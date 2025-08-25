@@ -1,0 +1,12 @@
+[submodule "imgui"]
+	path = imgui
+	url = https://github.com/ocornut/imgui.git
+[submodule "ImGuiDatePicker"]
+	path = ImGuiDatePicker
+	url = https://github.com/osullivj/ImGuiDatePicker.git
+[submodule "imspinner"]
+	path = imspinner
+	url = https://github.com/dalerank/imspinner.git
+[submodule "websocketpp"]
+	path = websocketpp
+	url = https://github.com/zaphoyd/websocketpp.git
