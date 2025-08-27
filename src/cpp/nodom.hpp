@@ -11,11 +11,11 @@
 #include <websocketpp/config/asio_no_tls_client.hpp>
 #include <websocketpp/client.hpp>
 
-// NoDOM emulation: debugging ND impls in TS/JS is tricky. Code compiled from C++ to clang .o
+// NoDOM emulation: debugging ND impls in JS is tricky. Code compiled from C++ to clang .o
 // is not available. So when we port to EM, we have to resort to printf debugging. Not good
 // when we want to understand what the "correct" imgui behaviour should be. So here we have
 // just enough impl to emulate ND server and client scaffolding that allows us to debug
-// imgui logic. So we don't bother with HTTP, sockets etc as that just introduces more
+// imgui logic. So we don't bother with HTTP get, just the websockets, with enough
 // C++ code to maintain when we just want to focus on the impl that is opaque in the browser.
 // JOS 2025-01-22
 
@@ -91,8 +91,8 @@ public:
     void dispatch_server_responses(std::queue<nlohmann::json>& responses);
     void get_server_responses(std::queue<nlohmann::json>& responses);
 
-    bool duck_app() { return server.duck_app(); }
-    void set_done(bool d) { server.set_done(d); }
+    bool duck_app();
+    void set_done(bool d);
 
     void on_duck_event(nlohmann::json& duck_msg);
 
@@ -132,9 +132,9 @@ protected:
     void push_font(nlohmann::json& w);
     void pop_font(nlohmann::json& w);
 private:
-    // ref to "server process"; in reality it's just a Service class instance
-    // with no event loop and synchornous dispatch across c++py boundary
+    // ref to "server process"; just an abstraction of EMV vs win32
     NDServer&                           server;
+    // NSServer invokes will be replaced with EM_JS
     
     nlohmann::json                      layout; // layout and data are fetched by 
     nlohmann::json                      data;   // sync c++py calls not HTTP gets
@@ -168,3 +168,12 @@ private:
     // ref to NDWebSockClient::send
     ws_sender ws_send;
 };
+
+// switch off name mangling for C funcs
+extern "C" {
+    GLFWwindow* im_start(NDContext& ctx);
+    void        im_end(GLFWwindow* w);
+    int         im_render(GLFWwindow* window, NDContext& ctx);
+    void        glfw_error_callback(int error, const char* description);
+};
+

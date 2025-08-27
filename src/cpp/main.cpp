@@ -3,15 +3,7 @@
 // If you are new to Dear ImGui, read documentation from the docs/ folder + read the top of imgui.cpp.
 // Read online: https://github.com/ocornut/imgui/tree/master/docs
 // websock hdrs
-#include <iostream>
-#include <boost/asio/io_service.hpp>
-#include <boost/asio/deadline_timer.hpp>
-#include <boost/function.hpp>
-#include <boost/bind.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
-
-#include <websocketpp/config/asio_no_tls_client.hpp>
-#include <websocketpp/client.hpp>
+#include "websock.hpp"
 
 // imgui hdrs
 #include "imgui.h"
@@ -25,6 +17,10 @@
 
 #include "nodom.hpp"
 
+// NoDOM: this main.cpp is intended to stay as close as possible
+// to the imgui/examples/example_glfw_opengl3/main.cpp as that's 
+// the appropriate rendeder for the Chrome codebase. JOS 2025-08-25
+
 // [Win32] Our example includes a copy of glfw3.lib pre-compiled with VS2010 to maximize ease of testing and compatibility with old VS compilers.
 // To link with VS2010-era libraries, VS2015+ requires linking with legacy_stdio_definitions.lib, which we do using this pragma.
 // Your own project should not be affected, as you are likely to link with a newer binary of GLFW that is adequate for your version of Visual Studio.
@@ -32,7 +28,7 @@
 #pragma comment(lib, "legacy_stdio_definitions")
 #endif
 
-static void glfw_error_callback(int error, const char* description)
+void glfw_error_callback(int error, const char* description)
 {
     fprintf(stderr, "Glfw Error %d: %s\n", error, description);
 }
@@ -173,116 +169,6 @@ void im_end(GLFWwindow* window)
     glfwDestroyWindow(window);
     glfwTerminate();
 }
-
-
-typedef websocketpp::client<websocketpp::config::asio_client> ws_client;
-typedef websocketpp::connection_hdl ws_handle;
-typedef websocketpp::lib::error_code    ws_error_code;
-typedef websocketpp::config::asio_client::message_type::ptr message_ptr;
-typedef boost::asio::deadline_timer     asio_timer;
-
-using websocketpp::lib::placeholders::_1;
-using websocketpp::lib::placeholders::_2;
-using websocketpp::lib::bind;
-
-
-
-class NDWebSockClient {
-public:
-    NDWebSockClient(const std::string& url, NDContext& c) : uri(url), ctx(c), window(im_start(c)) {
-        client.set_access_channels(websocketpp::log::alevel::all);
-        client.clear_access_channels(websocketpp::log::alevel::frame_payload);
-        client.init_asio();
-        client.set_message_handler(bind(&NDWebSockClient::on_message, this, &client, ::_1, ::_2));
-        client.set_open_handler(bind(&NDWebSockClient::on_open, this, &client, ::_1));
-        client.set_close_handler(bind(&NDWebSockClient::on_close, this, &client, ::_1));
-        client.set_fail_handler(bind(&NDWebSockClient::on_fail, this, &client, ::_1));
-    }
-
-    void run() {
-        if (ctx.duck_app()) {
-            ctx.register_ws_callback(bind(&NDWebSockClient::send, this, ::_1));
-            error_code.clear();
-            ws_client::connection_ptr con = client.get_connection(uri, error_code);
-            if (error_code) {
-                std::cerr << "NDWebSockClient: could not create connection because: "
-                                                    << error_code.message() << std::endl;
-            }
-            else {
-                // TODO: possible discard the websock conn
-                // client.connect(con);
-            }
-        }
-        set_timer();    // latest possible timer start
-        client.run();   // this method just calls io_service.run()
-    }
-
-    void send(const std::string& payload) {
-        error_code.clear();
-        client.send(handle, payload, websocketpp::frame::opcode::TEXT, error_code);
-        if (error_code) {
-            std::cerr << "NDWebSockClient::send: failed with " << error_code << std::endl;
-        }
-    }
-
-protected:
-    void set_timer() {
-        asio_timer timer(client.get_io_service());
-        timer.expires_from_now(boost::posix_time::millisec(16));
-        timer.async_wait(boost::bind(&NDWebSockClient::on_timeout, this, ::_1));
-    }
-
-    void on_timeout(const boost::system::error_code& e) {
-        // if im_render returns false someone has closed the app via GUI
-        if (!im_render(window, ctx)) {
-            im_end(window);                 // imgui finalisation
-            ctx.set_done(true);             // py thread loop exit
-            client.get_io_service().stop(); // asio finalisation
-        }
-        else {
-            set_timer();
-            // are there any responses from the python side?
-            while (!python_responses.empty()) {
-                python_responses.pop();
-                std::cerr << "NDWebSockClient::on_timeout: python_responses not empty!" << std::endl;
-            }
-            ctx.get_server_responses(python_responses);
-            ctx.dispatch_server_responses(python_responses);
-        }
-    }
-
-    void on_message(ws_client* c, ws_handle h, message_ptr msg_ptr) {
-        std::string payload(msg_ptr->get_payload());
-        std::cout << "NDWebSockClient::on_message: hdl( " << h.lock().get()
-            << ") msg: " << payload << std::endl;
-
-        nlohmann::json msg_json = nlohmann::json::parse(payload);
-        ctx.on_duck_event(msg_json);
-    }
-
-
-    void on_open(ws_client* c, ws_handle h) {
-        std::cout << "NDWebSockClient::on_open: hdl:" << h.lock().get() << std::endl;
-        handle = h;
-    }
-
-    void on_close(ws_client* c, ws_handle h) {
-        std::cout << "NDWebSockClient::on_close: hdl: " << h.lock().get() << std::endl;
-    }
-
-    void on_fail(ws_client* c, ws_handle h) {
-        std::cout << "NDWebSockClient::on_fail: hdl: " << h.lock().get() << std::endl;
-    }
-
-private:
-    std::string     uri;
-    ws_client       client;
-    ws_handle       handle;
-    ws_error_code   error_code;
-    NDContext&      ctx;
-    GLFWwindow*     window;
-    std::queue<nlohmann::json>  python_responses;
-};
 
 
 int main(int argc, char* argv[]) {

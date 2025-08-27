@@ -26,7 +26,7 @@ using websocketpp::lib::placeholders::_2;
 using websocketpp::lib::bind;
 
 class NDContext;
-class GLFWwindow;
+struct GLFWwindow;
 
 class NDWebSockClient {
 public:

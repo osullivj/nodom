@@ -114,6 +114,8 @@
       <AdditionalDependencies>opengl32.lib;glfw3.lib;arrow_python.lib;arrow.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Console</SubSystem>
       <IgnoreSpecificDefaultLibraries>msvcrt.lib</IgnoreSpecificDefaultLibraries>
+      <MapExports>true</MapExports>
+      <AdditionalOptions>/VERBOSE %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -167,6 +169,7 @@
     <ClCompile Include="..\..\imgui\imgui_widgets.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="nodom.cpp" />
+    <ClCompile Include="websock.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\imgui\imconfig.h" />
@@ -176,6 +179,7 @@
     <ClInclude Include="json.hpp" />
     <ClInclude Include="nodom.hpp" />
     <ClInclude Include="pybind11_json.hpp" />
+    <ClInclude Include="websock.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\misc\debuggers\imgui.natvis" />

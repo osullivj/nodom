@@ -320,6 +320,7 @@ NDContext::NDContext(NDServer& s)
     db_status_color = red;
 
     // emulate the main.ts NDContext fetch from server side
+
     std::string layout_s = server.fetch("layout");
     layout = nlohmann::json::parse(layout_s);
     data = nlohmann::json::parse(server.fetch("data"));
@@ -480,6 +481,16 @@ void NDContext::dispatch_render(nlohmann::json& w)
         return;
     }
     it->second(w);
+}
+
+bool NDContext::duck_app()
+{
+    return server.duck_app();
+}
+
+void NDContext::set_done(bool d)
+{
+
 }
 
 void NDContext::duck_dispatch(const std::string& nd_type, const std::string& sql, const std::string& qid)
