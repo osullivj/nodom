@@ -172,11 +172,10 @@ void im_end(GLFWwindow* window)
 
 
 int main(int argc, char* argv[]) {
-    std::string uri = "ws://localhost:8892/api/websock";
     NDServer server(argc, argv);
     NDContext ctx(server);
     try {
-        NDWebSockClient ws_client(uri, ctx);
+        NDWebSockClient ws_client(server.get_server_url(), ctx);
         ws_client.run();
     }
     catch (websocketpp::exception const& e) {
