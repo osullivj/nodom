@@ -86,13 +86,14 @@ NDServer::NDServer(int argc, char** argv)
     load_json();
 
     // ...now we can kick off the py thread
-    py_thread = boost::thread(&NDServer::python_thread, this);
+    // py_thread = boost::thread(&NDServer::python_thread, this);
 }
 
 NDServer::~NDServer() {
 
 }
 
+/*
 bool NDServer::init_python()
 {
     try {
@@ -158,6 +159,7 @@ bool NDServer::fini_python()
     // pybind11::finalize_interpreter();
     return true;
 }
+*/
 
 bool NDServer::load_json()
 {
@@ -177,7 +179,7 @@ bool NDServer::load_json()
     return true;
 }
 
-
+/*
 void NDServer::marshall_server_responses(pybind11::list& server_responses_p, nlohmann::json& server_responses_j, const std::string& type_filter)
 {
     static const char* method = "NDServer::marshall_server_responses: ";
@@ -192,14 +194,14 @@ void NDServer::marshall_server_responses(pybind11::list& server_responses_p, nlo
         }
     }
     std::cout << method << "py: " << server_responses_p.size() << ", json: " << server_responses_j.size() << std::endl;
-}
+} */
 
 
 void NDServer::get_server_responses(std::queue<nlohmann::json>& responses)
 {
     static const char* method = "NDServer::get_server_responses: ";
-    boost::unique_lock<boost::mutex> from_lock(from_mutex);
-    from_python.swap(responses);
+    // boost::unique_lock<boost::mutex> from_lock(from_mutex);
+    server_responses.swap(responses);
     std::cout << method << responses.size() << " responses" << std::endl;
 }
 
@@ -212,14 +214,14 @@ void NDServer::notify_server(const std::string& caddr, nlohmann::json& old_val, 
     nlohmann::json msg = { {nd_type_cs, data_change_cs}, {cache_key_cs, caddr}, {new_value_cs, new_val}, {old_value_cs, old_val} };
     try {
         // grab lock for this Q: should be free as ::python_thread should be in to_cond.wait()
-        boost::unique_lock<boost::mutex> to_lock(to_mutex);
-        to_python.push(msg);
+        // boost::unique_lock<boost::mutex> to_lock(to_mutex);
+        // to_python.push(msg);
     }
     catch (...) {
         std::cerr << "notify_server EXCEPTION!" << std::endl;
     }
     // lock is out of scope so released: signal py thread to wake up
-    to_cond.notify_one();
+    // to_cond.notify_one();
 }
 
 void NDServer::duck_dispatch(nlohmann::json& db_request)
@@ -227,16 +229,17 @@ void NDServer::duck_dispatch(nlohmann::json& db_request)
     std::cout << "cpp: duck_dispatch: " << db_request << std::endl;
     try {
         // grab lock for this Q: should be free as ::python_thread should be in to_cond.wait()
-        boost::unique_lock<boost::mutex> to_lock(to_mutex);
-        to_python.push(db_request);
+        // boost::unique_lock<boost::mutex> to_lock(to_mutex);
+        // to_python.push(db_request);
     }
     catch (...) {
         std::cerr << "duck_dispatch EXCEPTION!" << std::endl;
     }
     // lock is out of scope so released: signal py thread to wake up
-    to_cond.notify_one();
+    // to_cond.notify_one();
 }
 
+/*
 void NDServer::python_thread()
 {
     const static char* method = "NDServer::python_thread: ";
@@ -310,7 +313,7 @@ void NDServer::python_thread()
         }
     }
     fini_python();
-}
+} */
 
 
 NDContext::NDContext(NDServer& s)

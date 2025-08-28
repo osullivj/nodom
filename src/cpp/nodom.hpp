@@ -24,6 +24,11 @@ typedef websocketpp::client<websocketpp::config::asio_client> ws_client;
 #define ND_MAX_COMBO_LIST 16
 #define ND_WC_BUF_SZ 256
 
+
+// Encapsulate the server side. The singleton NDServer instance
+// will either...
+// 1. EM_JS to evoke JS fetch on ems
+// 2. Use websockpp on win32
 class NDServer {
 public:             // All public methods exec on the cpp thread
 
@@ -45,12 +50,13 @@ protected:
     // cpp thread
     bool load_json();
 
-    // py thread
+    // py thread 
+    /*
     bool init_python();
     bool fini_python();
     void python_thread();
     void marshall_server_responses(pybind11::list& server_changes_p, nlohmann::json& server_changes_j,
-                                    const std::string& type_filter);
+                                    const std::string& type_filter); */
 
 private:
     nlohmann::json                      bb_config;
@@ -69,14 +75,17 @@ private:
     std::map<std::string, std::string>  json_map;
 
     // queues, mutexes and condition for managing C++ to python work
+    /* replace with EM_JS fetch 
     std::queue<nlohmann::json>          to_python;
     std::queue<nlohmann::json>          from_python;
     boost::mutex                        to_mutex;
     boost::mutex                        from_mutex;
     boost::condition_variable           to_cond;
     boost::condition_variable           from_cond;
+    boost::thread                       py_thread; */
+
     boost::atomic<bool>                 done;
-    boost::thread                       py_thread;
+    std::queue<nlohmann::json>          server_responses;
 };
 
 typedef std::function<void(const std::string&)> ws_sender;
@@ -107,7 +116,7 @@ protected:
     void duck_dispatch(const std::string& nd_type, const std::string& sql, const std::string& qid);
     // Render funcs are members of NDContext, unlike in main.ts
     // Why? Separate standalone funcs like in main.ts cause too much
-    // hassle with dispatch_render passing this and templating
+    // hassle with dispatch_render passing this and templates
     // defaulting to const. Wasted too much time experimenting
     // with std::bind, std::function etc. So the main.ts and
     // cpp will be different shapes, but hopefully with identical
