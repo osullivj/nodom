@@ -52,5 +52,5 @@ private:
     ws_error_code   error_code;
     NDContext&      ctx;
     GLFWwindow*     window;
-    std::queue<nlohmann::json>  python_responses;
+    std::queue<nlohmann::json>  server_responses;
 };
