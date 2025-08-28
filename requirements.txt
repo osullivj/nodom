@@ -1,0 +1,12 @@
+setuptools==42.0.0
+tornado
+dnslib
+jinja2
+starlette
+wsproto
+certifi
+service-identity
+pyOpenSSL
+pylsqpack
+pyarrow
+pandas
