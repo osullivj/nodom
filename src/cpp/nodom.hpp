@@ -63,9 +63,8 @@ private:
 
     // these three test config strings are written once at startup
     // time in the cpp thread, and read from the py thread
-    std::string                         test_dir;
     std::string                         test_module_name;
-    std::string                         test_name;
+    std::string                         test_dir;
 
     std::map<std::string, std::string>  json_map;
 
