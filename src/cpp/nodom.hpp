@@ -45,6 +45,7 @@ public:             // All public methods exec on the cpp thread
     void            get_server_responses(std::queue<nlohmann::json>& responses);
     void            set_done(bool d) { done = d; }
     nlohmann::json  get_breadboard_config() { return bb_config; }
+    std::string& get_server_url() { return server_url; }
 
 protected:
     // cpp thread
@@ -86,6 +87,7 @@ private:
 
     boost::atomic<bool>                 done;
     std::queue<nlohmann::json>          server_responses;
+    std::string                         server_url;
 };
 
 typedef std::function<void(const std::string&)> ws_sender;

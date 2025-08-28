@@ -51,9 +51,9 @@ static char* font_size_base_cs("font_size_base");
 
 
 NDServer::NDServer(int argc, char** argv)
-    :is_duck_app(false), done(false)
+    :is_duck_app(false), done(false), server_url("ws://localhost:8892/api/websock")
 {
-    std::string usage("breadboard <breadboard_config_json_path> <test_dir>");
+    std::string usage("breadboard <breadboard_config_json_path> <test_dir> [<server_url>]");
     if (argc < 3) {
         printf("breadboard <breadboard_config_json_path> <test_dir>");
         exit(1);
@@ -61,6 +61,9 @@ NDServer::NDServer(int argc, char** argv)
     exe = argv[0];
     bb_json_path = argv[1];
     test_dir = argv[2];
+    if (argc >= 4) {
+        server_url = argv[3];
+    }
 
     if (!std::filesystem::exists(bb_json_path)) {
         std::cerr << usage << std::endl << "Cannot load breadboard config json from " << bb_json_path << std::endl;
@@ -85,6 +88,13 @@ NDServer::NDServer(int argc, char** argv)
     // last cpp thread init job...
     load_json();
 
+    std::stringstream log_buffer;
+    log_buffer << "NoDOM starting with..." << std::endl;
+    log_buffer << "exe: " << exe << std::endl;
+    log_buffer << "Breadboard config json: " << bb_json_path << std::endl;
+    log_buffer << "Test data dir: " << test_dir << std::endl;
+    log_buffer << "Server URL: " << server_url << std::endl;
+    std::cout << log_buffer.str() << std::endl;
     // ...now we can kick off the py thread
     // py_thread = boost::thread(&NDServer::python_thread, this);
 }
@@ -202,7 +212,13 @@ void NDServer::get_server_responses(std::queue<nlohmann::json>& responses)
     static const char* method = "NDServer::get_server_responses: ";
     // boost::unique_lock<boost::mutex> from_lock(from_mutex);
     server_responses.swap(responses);
-    std::cout << method << responses.size() << " responses" << std::endl;
+    int rsz = responses.size();
+    if (rsz) {
+        std::cout << rsz << std::endl;
+    }
+    else {
+        std::cout << ".";
+    }
 }
 
 
