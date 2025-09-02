@@ -103,6 +103,14 @@ NDServer::~NDServer() {
 
 }
 
+
+std::string& NDServer::fetch(const std::string& key)
+{
+    // TODO: retain localFS JSON approach, and add EM_JS fetch...
+    return json_map[key];
+}
+
+
 /*
 bool NDServer::init_python()
 {

@@ -35,7 +35,7 @@ public:             // All public methods exec on the cpp thread
                     NDServer(int argc, char** argv);
     virtual         ~NDServer();
 
-    std::string&    fetch(const std::string& key) { return json_map[key]; }
+    std::string&    fetch(const std::string& key);
 
     bool            duck_app() { return is_duck_app; }
 

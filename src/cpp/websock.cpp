@@ -102,7 +102,8 @@ void NDWebSockClient::on_timeout(const boost::system::error_code& e) {
     }
     else {
         set_timer();
-        // are there any responses from the python side?
+        // Are there any responses from the python side?
+        // NB there shouldn't be...
         while (!server_responses.empty()) {
             server_responses.pop();
             std::cerr << "NDWebSockClient::on_timeout: python_responses not empty!" << std::endl;
