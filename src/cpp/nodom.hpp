@@ -3,13 +3,11 @@
 #include <map>
 #include <deque>
 #include "json.hpp"
-#include <pybind11/pybind11.h>
+// #include <pybind11/pybind11.h>
 #include <filesystem>
 #include <functional>
-#include <boost/atomic.hpp>
-#include <boost/thread.hpp>
-#include <websocketpp/config/asio_no_tls_client.hpp>
-#include <websocketpp/client.hpp>
+// #include <boost/atomic.hpp>
+// #include <boost/thread.hpp>
 
 // NoDOM emulation: debugging ND impls in JS is tricky. Code compiled from C++ to clang .o
 // is not available. So when we port to EM, we have to resort to printf debugging. Not good
@@ -19,7 +17,11 @@
 // C++ code to maintain when we just want to focus on the impl that is opaque in the browser.
 // JOS 2025-01-22
 
+#ifndef __EMSCRIPTEN__
+#include <websocketpp/config/asio_no_tls_client.hpp>
+#include <websocketpp/client.hpp>
 typedef websocketpp::client<websocketpp::config::asio_client> ws_client;
+#endif
 
 #define ND_MAX_COMBO_LIST 16
 #define ND_WC_BUF_SZ 256
@@ -61,8 +63,8 @@ protected:
 
 private:
     nlohmann::json                      bb_config;
-    pybind11::object                    on_data_change_f;
-    pybind11::object                    duck_request_f;
+    // pybind11::object                    on_data_change_f;
+    // pybind11::object                    duck_request_f;
     bool                                is_duck_app;
     char*                               exe;    // argv[0]
     wchar_t                             wc_buf[ND_WC_BUF_SZ];
@@ -84,8 +86,11 @@ private:
     boost::condition_variable           to_cond;
     boost::condition_variable           from_cond;
     boost::thread                       py_thread; */
-
-    boost::atomic<bool>                 done;
+// #ifndef __EMSCRIPTEN__
+//    boost::atomic<bool>                 done;
+// #else
+    bool                                done;
+// #endif
     std::queue<nlohmann::json>          server_responses;
     std::string                         server_url;
 };

@@ -2,8 +2,13 @@
 // (GLFW is a cross-platform general purpose library for handling windows, inputs, OpenGL/Vulkan/Metal graphics context creation, etc.)
 // If you are new to Dear ImGui, read documentation from the docs/ folder + read the top of imgui.cpp.
 // Read online: https://github.com/ocornut/imgui/tree/master/docs
-// websock hdrs
+// 
+// websock hdrs: only used win32 for breadboard builds 
+#ifndef __EMSCRIPTEN__
 #include "websock.hpp"
+#else
+#include "emscripten_mainloop_stub.h"
+#endif
 
 // imgui hdrs
 #include "imgui.h"
@@ -174,6 +179,7 @@ void im_end(GLFWwindow* window)
 int main(int argc, char* argv[]) {
     NDServer server(argc, argv);
     NDContext ctx(server);
+#ifndef __EMSCRIPTEN__
     try {
         NDWebSockClient ws_client(server.get_server_url(), ctx);
         ws_client.run();
@@ -181,5 +187,18 @@ int main(int argc, char* argv[]) {
     catch (websocketpp::exception const& e) {
         std::cout << e.what() << std::endl;
     }
+#else
+    GLFWwindow* window = im_start(ctx);
+    // For an Emscripten build we are disabling file-system access, so let's not attempt to do a fopen() of the imgui.ini file.
+    // You may manually call LoadIniSettingsFromMemory() to load settings from your own storage.
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    io.IniFilename = nullptr;
+    EMSCRIPTEN_MAINLOOP_BEGIN
+    while (im_render(window, ctx)) {
+
+    }
+    EMSCRIPTEN_MAINLOOP_END;
+    im_end(window);
+#endif
 }
 

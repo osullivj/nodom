@@ -15,39 +15,38 @@
 #include <algorithm>
 // nlohmann/json/single_include/nlohmann/json.hpp
 // pybind11
-#include <pybind11/embed.h>
-#include "pybind11_json.hpp"
+// #include <pybind11/embed.h>
+// #include "pybind11_json.hpp"
 #include "nodom.hpp"
-#include <arrow/python/pyarrow.h>
+// #include <arrow/python/pyarrow.h>
 #include <arrow/api.h>
 
 // Python consts
-static char* on_data_change_cs("on_data_change");
-static char* is_duck_app_cs("is_duck_app");
-static char* data_change_cs("DataChange");
+static const char* on_data_change_cs("on_data_change");
+static const char* is_duck_app_cs("is_duck_app");
+static const char* data_change_cs("DataChange");
 static std::string data_change_s(data_change_cs);
-static char* data_change_confirmed_cs("DataChangeConfirmed");
-static char* new_value_cs("new_value");
-static char* old_value_cs("old_value");
-static char* cache_key_cs("cache_key");
-static char* nd_type_cs("nd_type");
-static char* query_id_cs("query_id");
-static char* __nodom__cs("__nodom__");
-static char* sys_cs("sys");
-static char* sql_cs("sql");
-static char* cspec_cs("cspec");
-static char* cname_cs("cname");
-static char* title_cs("title");
-static char* table_flags_cs("table_flags");
-static char* path_cs("path");
-static char* service_cs("service");
-static char* breadboard_cs("breadboard");
-static char* duck_module_cs("duck_module");
-static char* empty_cs("");
-static char* nodom_cs("NoDOM");
-static char* font_cs("font");
-static char* font_size_base_cs("font_size_base");
-
+static const char* data_change_confirmed_cs("DataChangeConfirmed");
+static const char* new_value_cs("new_value");
+static const char* old_value_cs("old_value");
+static const char* cache_key_cs("cache_key");
+static const char* nd_type_cs("nd_type");
+static const char* query_id_cs("query_id");
+static const char* __nodom__cs("__nodom__");
+static const char* sys_cs("sys");
+static const char* sql_cs("sql");
+static const char* cspec_cs("cspec");
+static const char* cname_cs("cname");
+static const char* title_cs("title");
+static const char* table_flags_cs("table_flags");
+static const char* path_cs("path");
+static const char* service_cs("service");
+static const char* breadboard_cs("breadboard");
+static const char* duck_module_cs("duck_module");
+static const char* empty_cs("");
+static const char* nodom_cs("NoDOM");
+static const char* font_cs("font");
+static const char* font_size_base_cs("font_size_base");
 
 
 NDServer::NDServer(int argc, char** argv)
