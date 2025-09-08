@@ -100,7 +100,12 @@ NDServer::~NDServer() {
 
 std::string& NDServer::fetch(const std::string& key)
 {
+    static const char* method = "NDServer::fetch: ";
     // TODO: retain localFS JSON approach, and add EM_JS fetch...
+    std::cout << method << key << std::endl;
+#ifndef __EMSCRIPTEN__
+#else   // breadboard
+#endif  // __EMSCRIPTEN__
     return json_map[key];
 }
 

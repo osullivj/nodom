@@ -74,23 +74,8 @@ private:
     // time in the cpp thread, and read from the py thread
     std::string                         test_module_name;
     std::string                         test_dir;
-
     std::map<std::string, std::string>  json_map;
-
-    // queues, mutexes and condition for managing C++ to python work
-    /* replace with EM_JS fetch 
-    std::queue<nlohmann::json>          to_python;
-    std::queue<nlohmann::json>          from_python;
-    boost::mutex                        to_mutex;
-    boost::mutex                        from_mutex;
-    boost::condition_variable           to_cond;
-    boost::condition_variable           from_cond;
-    boost::thread                       py_thread; */
-// #ifndef __EMSCRIPTEN__
-//    boost::atomic<bool>                 done;
-// #else
     bool                                done;
-// #endif
     std::queue<nlohmann::json>          server_responses;
     std::string                         server_url;
 };
