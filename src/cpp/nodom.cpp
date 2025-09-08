@@ -13,12 +13,7 @@
 #include <vector>
 #include <filesystem>
 #include <algorithm>
-// nlohmann/json/single_include/nlohmann/json.hpp
-// pybind11
-// #include <pybind11/embed.h>
-// #include "pybind11_json.hpp"
 #include "nodom.hpp"
-// #include <arrow/python/pyarrow.h>
 #include <arrow/api.h>
 
 // Python consts
@@ -109,75 +104,6 @@ std::string& NDServer::fetch(const std::string& key)
     return json_map[key];
 }
 
-
-/*
-bool NDServer::init_python()
-{
-    try {
-        // See "Custom PyConfig"
-        // https://raw.githubusercontent.com/pybind/pybind11/refs/heads/master/tests/test_embed/test_interpreter.cpp
-        PyConfig config;
-        PyConfig_InitPythonConfig(&config);
-
-        // should set exe name to breadboard.exe
-        std::mbstowcs(wc_buf, exe, ND_WC_BUF_SZ);
-        PyConfig_SetString(&config, &config.executable, wc_buf);
-
-        // now get base_prefix (orig py install dir) and prefix (venv) from breadboard.json
-        std::string base_prefix = bb_config["base_prefix"];
-        std::string prefix = bb_config["prefix"];
-        std::mbstowcs(wc_buf, base_prefix.c_str(), ND_WC_BUF_SZ);
-        PyConfig_SetString(&config, &config.base_prefix, wc_buf);
-        std::mbstowcs(wc_buf, prefix.c_str(), ND_WC_BUF_SZ);
-        PyConfig_SetString(&config, &config.prefix, wc_buf);
-
-        // Start Python runtime
-        Py_InitializeFromConfig(&config);
-        // pybind11::initialize_interpreter();
-
-        // after python init, we must hold the GIL for any pybind11 invocation
-        // this gil_scoped_acquire will cover the rest of this method
-        pybind11::gil_scoped_acquire acquire;
-
-        // as a sanity check, import sys and print sys.path
-        auto sys_module = pybind11::module_::import(sys_cs);
-        auto path_p = sys_module.attr(path_cs);
-        pybind11::print("sys.path: ", path_p);
-
-        // src/py is not in sys.path, so how do we import?
-        // see nodom.pth in site-packages
-        auto test_module = pybind11::module_::import(test_module_name.c_str());
-        pybind11::object service = test_module.attr(service_cs);
-        on_data_change_f = service.attr(on_data_change_cs);
-        is_duck_app = pybind11::bool_(service.attr(is_duck_app_cs));
-
-        if (is_duck_app) {
-            // gotta do an explicit pyarrow import from cpp
-            // https://arrow.apache.org/docs/3.0/python/extending.html
-            // see the note on initializing the API
-            arrow::py::import_pyarrow();
-            auto duck_module = pybind11::module_::import(duck_module_cs);
-            pybind11::object duck_service = duck_module.attr(service_cs);
-            duck_request_f = duck_service.attr("request");
-        }
-    }
-    catch (pybind11::error_already_set& ex) {
-        std::cerr << ex.what() << std::endl;
-        return false;
-    }
-    return true;
-}
-
-
-bool NDServer::fini_python()
-{
-    // TODO: debug refcount errors. Is it happening because we're mixing
-    // Py_InitializeFromConfig with pybind11 ?
-    // pybind11::finalize_interpreter();
-    return true;
-}
-*/
-
 bool NDServer::load_json()
 {
     // bool rv = true;
@@ -195,23 +121,6 @@ bool NDServer::load_json()
     }
     return true;
 }
-
-/*
-void NDServer::marshall_server_responses(pybind11::list& server_responses_p, nlohmann::json& server_responses_j, const std::string& type_filter)
-{
-    static const char* method = "NDServer::marshall_server_responses: ";
-    // TODO: a better STLish predicate based filtering mechanism. Maybe a lambda as param?
-    for (int i = 0; i < server_responses_p.size(); i++) {
-        pybind11::dict change_p = server_responses_p[i];
-        std::string nd_type = pyjson::to_json(change_p[nd_type_cs]);
-        if (nd_type == type_filter || type_filter.empty()) {
-            nlohmann::json change_j(pyjson::to_json(change_p));
-            std::cout << method << change_j << server_responses_j.size() << std::endl;
-            server_responses_j.push_back(change_j);
-        }
-    }
-    std::cout << method << "py: " << server_responses_p.size() << ", json: " << server_responses_j.size() << std::endl;
-} */
 
 
 void NDServer::get_server_responses(std::queue<nlohmann::json>& responses)
@@ -236,15 +145,11 @@ void NDServer::notify_server(const std::string& caddr, nlohmann::json& old_val, 
     // build a JSON msg for the to_python Q
     nlohmann::json msg = { {nd_type_cs, data_change_cs}, {cache_key_cs, caddr}, {new_value_cs, new_val}, {old_value_cs, old_val} };
     try {
-        // grab lock for this Q: should be free as ::python_thread should be in to_cond.wait()
-        // boost::unique_lock<boost::mutex> to_lock(to_mutex);
-        // to_python.push(msg);
+        // TODO: websockpp send in breadboard, EM_JS fetch for EMS
     }
     catch (...) {
         std::cerr << "notify_server EXCEPTION!" << std::endl;
     }
-    // lock is out of scope so released: signal py thread to wake up
-    // to_cond.notify_one();
 }
 
 void NDServer::duck_dispatch(nlohmann::json& db_request)
@@ -261,82 +166,6 @@ void NDServer::duck_dispatch(nlohmann::json& db_request)
     // lock is out of scope so released: signal py thread to wake up
     // to_cond.notify_one();
 }
-
-/*
-void NDServer::python_thread()
-{
-    const static char* method = "NDServer::python_thread: ";
-
-    std::cout << method << "starting..." << std::endl;
-    // NB init_python does it's own pybind11::gil_scoped_acquire acquire;
-    if (!init_python()) exit(1);
-    std::cout << method << "init done" << std::endl;
-
-    nlohmann::json response_list_j = nlohmann::json::array();
-
-    // https://www.boost.org/doc/libs/1_34_0/doc/html/boost/condition.html
-    // A condition object is always used in conjunction with a mutex object (an object
-    // whose type is a model of a Mutex or one of its refinements). The mutex object
-    // must be locked prior to waiting on the condition, which is verified by passing a lock
-    // object (an object whose type is a model of Lock or one of its refinements) to the
-    // condition object's wait functions. Upon blocking on the condition object, the thread
-    // unlocks the mutex object. When the thread returns from a call to one of the condition object's
-    // wait functions the mutex object is again locked. The tricky unlock/lock sequence is performed
-    // automatically by the condition object's wait functions.
-
-    while (!done) {
-        boost::unique_lock<boost::mutex> to_lock(to_mutex);
-        to_cond.wait(to_lock);
-        // thead quiesces in the wait above, with to_mutex
-        // unlocked so the C++ thread can add work items
-        std::cout << method << "to_python depth : " << to_python.size() << std::endl;
-        while (!to_python.empty()) {
-            nlohmann::json msg(to_python.front());
-            to_python.pop();
-            if (!msg.contains(nd_type_cs)) {
-                std::cerr << method << "nd_type missing: " << msg << std::endl;
-                continue;
-            }
-            std::string nd_type(msg[nd_type_cs]);
-            if (nd_type == data_change_s) {
-                try {
-                    pybind11::gil_scoped_acquire acquire;
-                    // explicitly avoiding move ctor here rather than using "pyjson::from_json(msg)"
-                    // as param 2 into on_data_change_f threw an exception...
-                    pybind11::dict data_change_dict(pyjson::from_json(msg));
-                    pybind11::list response_list_p = on_data_change_f(breadboard_cs, data_change_dict);
-                    marshall_server_responses(response_list_p, response_list_j, data_change_s);
-                }
-                catch (pybind11::error_already_set& ex) {
-                    std::cerr << method << nd_type << ": " << ex.what() << std::endl;
-                    continue;
-                }
-            }
-            else {
-                try {
-                    pybind11::gil_scoped_acquire acquire;
-                    pybind11::dict duck_request_dict(pyjson::from_json(msg));
-                    // not a DataChange, so must be DB
-                    pybind11::list response_list_p = duck_request_f(duck_request_dict);
-                    marshall_server_responses(response_list_p, response_list_j, empty_cs);
-                }
-                catch (pybind11::error_already_set& ex) {
-                    std::cerr << method << nd_type << ": " << ex.what() << std::endl;
-                    continue;
-                }
-            }
-            // lock response Q and enqueue the changes, then clear the local
-            // response Q before another go around
-            boost::unique_lock<boost::mutex> from_lock(from_mutex);
-            for (auto resp : response_list_j) {
-                std::cout << method << resp << std::endl;
-                from_python.push(resp);
-            }
-            response_list_j.clear();
-        }
-    }
-    fini_python();
-} */
 
 
 NDContext::NDContext(NDServer& s)
