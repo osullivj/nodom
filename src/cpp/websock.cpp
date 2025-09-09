@@ -50,8 +50,8 @@ using websocketpp::lib::bind;
 
 
 
-NDWebSockClient::NDWebSockClient(const std::string& url, NDContext& c)
-:uri(url), ctx(c), window(im_start(c)) {
+NDWebSockClient::NDWebSockClient(NDServer& svr, NDContext& c)
+:uri(svr.get_server_url()), server(svr), ctx(c), window(im_start(c)) {
     client.set_access_channels(websocketpp::log::alevel::all);
     client.clear_access_channels(websocketpp::log::alevel::frame_payload);
     client.init_asio();

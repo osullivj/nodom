@@ -181,7 +181,7 @@ int main(int argc, char* argv[]) {
     NDContext ctx(server);
 #ifndef __EMSCRIPTEN__
     try {
-        NDWebSockClient ws_client(server.get_server_url(), ctx);
+        NDWebSockClient ws_client(server, ctx);
         ws_client.run();
     }
     catch (websocketpp::exception const& e) {

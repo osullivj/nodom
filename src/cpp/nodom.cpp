@@ -42,7 +42,8 @@ static const char* empty_cs("");
 static const char* nodom_cs("NoDOM");
 static const char* font_cs("font");
 static const char* font_size_base_cs("font_size_base");
-
+static const char* cache_response_cs("CacheResponse");
+static const char* cache_request_cs("CacheRequest");
 
 NDServer::NDServer(int argc, char** argv)
     :is_duck_app(false), done(false), server_url("ws://localhost:8892/api/websock")
@@ -89,8 +90,6 @@ NDServer::NDServer(int argc, char** argv)
     log_buffer << "Test data dir: " << test_dir << std::endl;
     log_buffer << "Server URL: " << server_url << std::endl;
     std::cout << log_buffer.str() << std::endl;
-    // ...now we can kick off the py thread
-    // py_thread = boost::thread(&NDServer::python_thread, this);
 }
 
 NDServer::~NDServer() {
@@ -98,15 +97,17 @@ NDServer::~NDServer() {
 }
 
 
-std::string& NDServer::fetch(const std::string& key)
+void NDServer::fetch(const std::string& ckey)
 {
     static const char* method = "NDServer::fetch: ";
     // TODO: retain localFS JSON approach, and add EM_JS fetch...
-    std::cout << method << key << std::endl;
+    std::cout << method << ckey << std::endl;
+    nlohmann::json msg = { {nd_type_cs, cache_response_cs}, {cache_key_cs, ckey} };
 #ifndef __EMSCRIPTEN__
 #else   // breadboard
+
+
 #endif  // __EMSCRIPTEN__
-    return json_map[key];
 }
 
 bool NDServer::load_json()
@@ -131,7 +132,7 @@ bool NDServer::load_json()
 void NDServer::get_server_responses(std::queue<nlohmann::json>& responses)
 {
     static const char* method = "NDServer::get_server_responses: ";
-    // boost::unique_lock<boost::mutex> from_lock(from_mutex);
+
     server_responses.swap(responses);
     int rsz = responses.size();
     if (rsz) {
@@ -151,6 +152,11 @@ void NDServer::notify_server(const std::string& caddr, nlohmann::json& old_val, 
     nlohmann::json msg = { {nd_type_cs, data_change_cs}, {cache_key_cs, caddr}, {new_value_cs, new_val}, {old_value_cs, old_val} };
     try {
         // TODO: websockpp send in breadboard, EM_JS fetch for EMS
+#ifndef __EMSCRIPTEN__
+        // TODO: websockpp send in breadboard
+#else   // 
+        // TODO: EM_JS fetch
+#endif  // __EMSCRIPTEN__
     }
     catch (...) {
         std::cerr << "notify_server EXCEPTION!" << std::endl;
@@ -179,11 +185,13 @@ NDContext::NDContext(NDServer& s)
     // init status is not connected
     db_status_color = red;
 
-    // emulate the main.ts NDContext fetch from server side
+    // std::string layout_s = server.fetch("layout");
+    // layout = nlohmann::json::parse(layout_s);
+    // data = nlohmann::json::parse(server.fetch("data"));
 
-    std::string layout_s = server.fetch("layout");
-    layout = nlohmann::json::parse(layout_s);
-    data = nlohmann::json::parse(server.fetch("data"));
+    // this is async, the response will arrive in NDWebSockClient::on_message
+    server.fetch("layout");
+    server.fetch("data");
 
     // layout is a list of widgets; and all may have children
     // however, not all widgets are children. For instance modals
@@ -463,7 +471,7 @@ void NDContext::render_home(nlohmann::json& w)
     if (cspec.contains("title")) {
         title = cspec["title"];
     }
-    boolean pop_font = false;
+    bool pop_font = false;
     float font_size_base = 0.0;
     if (cspec.contains("font")) {
         std::string font_name = cspec["font"];

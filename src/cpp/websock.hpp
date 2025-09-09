@@ -25,12 +25,13 @@ using websocketpp::lib::placeholders::_1;
 using websocketpp::lib::placeholders::_2;
 using websocketpp::lib::bind;
 
+class NDServer;
 class NDContext;
 struct GLFWwindow;
 
 class NDWebSockClient {
 public:
-    NDWebSockClient(const std::string& url, NDContext& c);
+    NDWebSockClient(NDServer& svr, NDContext& c);
     void run();
     void send(const std::string& payload); 
 
@@ -50,6 +51,7 @@ private:
     ws_client       client;
     ws_handle       handle;
     ws_error_code   error_code;
+    NDServer&       server;
     NDContext&      ctx;
     GLFWwindow*     window;
     std::queue<nlohmann::json>  server_responses;

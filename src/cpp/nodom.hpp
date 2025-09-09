@@ -1,13 +1,10 @@
 #pragma once
 #include <string>
 #include <map>
-#include <deque>
-#include "json.hpp"
-// #include <pybind11/pybind11.h>
+#include <queue>
 #include <filesystem>
 #include <functional>
-// #include <boost/atomic.hpp>
-// #include <boost/thread.hpp>
+#include "json.hpp"
 
 // NoDOM emulation: debugging ND impls in JS is tricky. Code compiled from C++ to clang .o
 // is not available. So when we port to EM, we have to resort to printf debugging. Not good
@@ -17,27 +14,20 @@
 // C++ code to maintain when we just want to focus on the impl that is opaque in the browser.
 // JOS 2025-01-22
 
-#ifndef __EMSCRIPTEN__
-#include <websocketpp/config/asio_no_tls_client.hpp>
-#include <websocketpp/client.hpp>
-typedef websocketpp::client<websocketpp::config::asio_client> ws_client;
-#endif
-
 #define ND_MAX_COMBO_LIST 16
 #define ND_WC_BUF_SZ 256
 
-
+class NDWebSockClient;
 // Encapsulate the server side. The singleton NDServer instance
 // will either...
 // 1. EM_JS to evoke JS fetch on ems
 // 2. Use websockpp on win32
 class NDServer {
-public:             // All public methods exec on the cpp thread
-
+public:
                     NDServer(int argc, char** argv);
     virtual         ~NDServer();
 
-    std::string&    fetch(const std::string& key);
+    void            fetch(const std::string& key);
 
     bool            duck_app() { return is_duck_app; }
 
@@ -47,24 +37,14 @@ public:             // All public methods exec on the cpp thread
     void            get_server_responses(std::queue<nlohmann::json>& responses);
     void            set_done(bool d) { done = d; }
     nlohmann::json  get_breadboard_config() { return bb_config; }
-    std::string& get_server_url() { return server_url; }
+    std::string&    get_server_url() { return server_url; }
 
 protected:
-    // cpp thread
-    bool load_json();
 
-    // py thread 
-    /*
-    bool init_python();
-    bool fini_python();
-    void python_thread();
-    void marshall_server_responses(pybind11::list& server_changes_p, nlohmann::json& server_changes_j,
-                                    const std::string& type_filter); */
+    bool load_json();
 
 private:
     nlohmann::json                      bb_config;
-    // pybind11::object                    on_data_change_f;
-    // pybind11::object                    duck_request_f;
     bool                                is_duck_app;
     char*                               exe;    // argv[0]
     wchar_t                             wc_buf[ND_WC_BUF_SZ];
