@@ -44,9 +44,13 @@ static const char* font_cs("font");
 static const char* font_size_base_cs("font_size_base");
 static const char* cache_response_cs("CacheResponse");
 static const char* cache_request_cs("CacheRequest");
+static const char* layout_cs("layout");
+static const char* data_cs("data");
+static const char* value_cs("value");
+
 
 NDServer::NDServer(int argc, char** argv)
-    :is_duck_app(false), done(false), server_url("ws://localhost:8892/api/websock")
+    :is_duck_app(false), done(false), server_url("ws://localhost:8890/api/websock")
 {
     std::string usage("breadboard <breadboard_config_json_path> <test_dir> [<server_url>]");
     if (argc < 3) {
@@ -97,18 +101,7 @@ NDServer::~NDServer() {
 }
 
 
-void NDServer::fetch(const std::string& ckey)
-{
-    static const char* method = "NDServer::fetch: ";
-    // TODO: retain localFS JSON approach, and add EM_JS fetch...
-    std::cout << method << ckey << std::endl;
-    nlohmann::json msg = { {nd_type_cs, cache_response_cs}, {cache_key_cs, ckey} };
-#ifndef __EMSCRIPTEN__
-#else   // breadboard
 
-
-#endif  // __EMSCRIPTEN__
-}
 
 bool NDServer::load_json()
 {
@@ -129,21 +122,6 @@ bool NDServer::load_json()
 }
 
 
-void NDServer::get_server_responses(std::queue<nlohmann::json>& responses)
-{
-    static const char* method = "NDServer::get_server_responses: ";
-
-    server_responses.swap(responses);
-    int rsz = responses.size();
-    if (rsz) {
-        std::cout << rsz << std::endl;
-    }
-    else {
-        std::cout << ".";
-    }
-}
-
-
 void NDServer::notify_server(const std::string& caddr, nlohmann::json& old_val, nlohmann::json& new_val)
 {
     std::cout << "cpp: notify_server: " << caddr << ", old: " << old_val << ", new: " << new_val << std::endl;
@@ -154,6 +132,7 @@ void NDServer::notify_server(const std::string& caddr, nlohmann::json& old_val, 
         // TODO: websockpp send in breadboard, EM_JS fetch for EMS
 #ifndef __EMSCRIPTEN__
         // TODO: websockpp send in breadboard
+        ws_send(msg.dump());
 #else   // 
         // TODO: EM_JS fetch
 #endif  // __EMSCRIPTEN__
@@ -185,28 +164,6 @@ NDContext::NDContext(NDServer& s)
     // init status is not connected
     db_status_color = red;
 
-    // std::string layout_s = server.fetch("layout");
-    // layout = nlohmann::json::parse(layout_s);
-    // data = nlohmann::json::parse(server.fetch("data"));
-
-    // this is async, the response will arrive in NDWebSockClient::on_message
-    server.fetch("layout");
-    server.fetch("data");
-
-    // layout is a list of widgets; and all may have children
-    // however, not all widgets are children. For instance modals
-    // like parquet_loading_modal have to be explicitly pushed
-    // on to the render stack by an event. JOS 2025-01-31
-    // Fonts appear in layout now. JOS 2025-07-29
-    for (nlohmann::json::iterator it = layout.begin(); it != layout.end(); ++it) {
-        std::cout << "NDcontext.ctor: layout: " << *it << std::endl;
-        std::string widget_id = it->value("widget_id", "");
-        if (!widget_id.empty()) {
-            std::cout << "NDcontext.ctor: pushable: " << widget_id << ":" << *it << std::endl;
-            pushable[widget_id] = *it;
-        }
-    }
-
     rfmap.emplace(std::string("Home"), [this](nlohmann::json& w){ render_home(w); });
     rfmap.emplace(std::string("InputInt"), [this](nlohmann::json& w) { render_input_int(w); });
     rfmap.emplace(std::string("Combo"), [this](nlohmann::json& w) { render_combo(w); });
@@ -221,10 +178,47 @@ NDContext::NDContext(NDServer& s)
     rfmap.emplace(std::string("Table"), [this](nlohmann::json& w) { render_table(w); });
     rfmap.emplace(std::string("PushFont"), [this](nlohmann::json& w) { push_font(w); });
     rfmap.emplace(std::string("PopFont"), [this](nlohmann::json& w) { pop_font(w); });
+}
+
+
+void NDContext::on_layout()
+{
+    // layout is a list of widgets; and all may have children
+    // however, not all widgets are children. For instance modals
+    // like parquet_loading_modal have to be explicitly pushed
+    // on to the render stack by an event. JOS 2025-01-31
+    // Fonts appear in layout now. JOS 2025-07-29
+    for (nlohmann::json::iterator it = layout.begin(); it != layout.end(); ++it) {
+        std::cout << "NDcontext.ctor: layout: " << *it << std::endl;
+        std::string widget_id = it->value("widget_id", "");
+        if (!widget_id.empty()) {
+            std::cout << "NDcontext.ctor: pushable: " << widget_id << ":" << *it << std::endl;
+            pushable[widget_id] = *it;
+        }
+    }
     // Home on the render stack
     stack.push_back(layout[0]);
 }
 
+void NDContext::on_ws_open()
+{
+    server_request("data");
+    server_request("layout");
+}
+
+void NDContext::server_request(const std::string& ckey)
+{
+    static const char* method = "NDContext::server_request: ";
+    // TODO: retain localFS JSON approach, and add EM_JS fetch...
+    std::cout << method << ckey << std::endl;
+    nlohmann::json msg = { {nd_type_cs, cache_request_cs}, {cache_key_cs, ckey} };
+#ifndef __EMSCRIPTEN__  // websockpp impl
+    ws_send(msg.dump());
+#else                   // breadboard: use JS fetch
+    // TODO: EM_JS code
+
+#endif  // __EMSCRIPTEN__
+}
 
 void NDContext::dispatch_server_responses(std::queue<nlohmann::json>& responses)
 {
@@ -235,30 +229,51 @@ void NDContext::dispatch_server_responses(std::queue<nlohmann::json>& responses)
         nlohmann::json& resp = responses.front();
         std::cout << method << resp << std::endl;
         // polymorphic as types are hidden inside change
-        if (resp[nd_type_cs] == data_change_cs) {
+        // Is this a CacheResponse for layout or data?
+        if (resp[nd_type_cs] == cache_response_cs) {
+            if (resp[cache_key_cs] == data_cs) {
+                data = resp[value_cs];
+            }
+            else if (resp[cache_key_cs] == layout_cs) {
+                layout = resp[value_cs];
+                on_layout();
+            }
+        }
+        // Is this a DataChange?
+        else if (resp[nd_type_cs] == data_change_cs) {
             data[resp[cache_key_cs]] = resp[new_value_cs];
         }
+        // Duck or Parquet event...
         else {
-            on_duck_event(resp);
+            on_event(resp);
         }
         responses.pop();
     }
 }
 
-
-void NDContext::get_server_responses(std::queue<nlohmann::json>& responses)
-{
-    server.get_server_responses(responses);
-}
-
-
 void NDContext::notify_server(const std::string& caddr, nlohmann::json& old_val, nlohmann::json& new_val)
 {
-    server.notify_server(caddr, old_val, new_val);
+    const static char* method = "NDContext::notify_server: ";
+    
+    std::cout << method << caddr << ", old: " << old_val << ", new: " << new_val << std::endl;
+
+    // build a JSON msg for the to_python Q
+    nlohmann::json msg = { {nd_type_cs, data_change_cs}, {cache_key_cs, caddr}, {new_value_cs, new_val}, {old_value_cs, old_val} };
+    try {
+        // TODO: websockpp send in breadboard, EM_JS fetch for EMS
+#ifndef __EMSCRIPTEN__
+        // TODO: websockpp send in breadboard
+        ws_send(msg.dump());
+#else   // 
+        // TODO: EM_JS fetch
+#endif  // __EMSCRIPTEN__
+    }
+    catch (...) {
+        std::cerr << "notify_server EXCEPTION!" << std::endl;
+    }
 }
 
-
-void NDContext::on_duck_event(nlohmann::json& duck_msg)
+void NDContext::on_event(nlohmann::json& duck_msg)
 {
     const static char* method = "NDContext::on_duck_event: ";
 

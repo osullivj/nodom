@@ -62,18 +62,16 @@ NDWebSockClient::NDWebSockClient(NDServer& svr, NDContext& c)
 }
 
 void NDWebSockClient::run() {
-    if (ctx.duck_app()) {
-        ctx.register_ws_callback(bind(&NDWebSockClient::send, this, ::_1));
-        error_code.clear();
-        ws_client::connection_ptr con = client.get_connection(uri, error_code);
-        if (error_code) {
-            std::cerr << "NDWebSockClient: could not create connection because: "
+    ctx.register_ws_callback(bind(&NDWebSockClient::send, this, ::_1));
+    error_code.clear();
+    ws_client::connection_ptr con = client.get_connection(uri, error_code);
+    if (error_code) {
+        std::cerr << "NDWebSockClient: could not create connection because: "
                                                 << error_code.message() << std::endl;
-        }
-        else {
-            // TODO: possible discard the websock conn
-            // client.connect(con);
-        }
+    }
+    else {
+        // TODO: possible discard the websock conn
+        client.connect(con);
     }
     set_timer();    // latest possible timer start
     client.run();   // this method just calls io_service.run()
@@ -102,14 +100,11 @@ void NDWebSockClient::on_timeout(const boost::system::error_code& e) {
     }
     else {
         set_timer();
-        // Are there any responses from the python side?
-        // NB there shouldn't be...
-        while (!server_responses.empty()) {
-            server_responses.pop();
-            std::cerr << "NDWebSockClient::on_timeout: python_responses not empty!" << std::endl;
+        // Are there any responses from the server side?
+        if (!server_responses.empty()) {
+            ctx.dispatch_server_responses(server_responses);
         }
-        ctx.get_server_responses(server_responses);
-        ctx.dispatch_server_responses(server_responses);
+
     }
 }
 
@@ -119,13 +114,14 @@ void NDWebSockClient::on_message(ws_client* c, ws_handle h, message_ptr msg_ptr)
         << ") msg: " << payload << std::endl;
 
     nlohmann::json msg_json = nlohmann::json::parse(payload);
-    ctx.on_duck_event(msg_json);
+    server_responses.emplace(msg_json);
 }
 
 
 void NDWebSockClient::on_open(ws_client* c, ws_handle h) {
     std::cout << "NDWebSockClient::on_open: hdl:" << h.lock().get() << std::endl;
     handle = h;
+    ctx.on_ws_open();
 }
 
 void NDWebSockClient::on_close(ws_client* c, ws_handle h) {

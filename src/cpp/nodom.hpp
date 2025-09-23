@@ -18,6 +18,8 @@
 #define ND_WC_BUF_SZ 256
 
 class NDWebSockClient;
+typedef std::function<void(const std::string&)> ws_sender;
+
 // Encapsulate the server side. The singleton NDServer instance
 // will either...
 // 1. EM_JS to evoke JS fetch on ems
@@ -27,7 +29,7 @@ public:
                     NDServer(int argc, char** argv);
     virtual         ~NDServer();
 
-    void            fetch(const std::string& key);
+
 
     bool            duck_app() { return is_duck_app; }
 
@@ -38,7 +40,7 @@ public:
     void            set_done(bool d) { done = d; }
     nlohmann::json  get_breadboard_config() { return bb_config; }
     std::string&    get_server_url() { return server_url; }
-
+    void            register_ws_callback(ws_sender send) { ws_send = send; }
 protected:
 
     bool load_json();
@@ -58,27 +60,31 @@ private:
     bool                                done;
     std::queue<nlohmann::json>          server_responses;
     std::string                         server_url;
+    // ref to NDWebSockClient::send
+    ws_sender ws_send;
 };
 
-typedef std::function<void(const std::string&)> ws_sender;
+
 
 class NDContext {
 public:
     NDContext(NDServer& s);
     void render();                              // invoked by main loop
 
+    void server_request(const std::string& key);
     void notify_server(const std::string& caddr, nlohmann::json& old_val, nlohmann::json& new_val);
     void dispatch_server_responses(std::queue<nlohmann::json>& responses);
-    void get_server_responses(std::queue<nlohmann::json>& responses);
 
     bool duck_app();
     void set_done(bool d);
 
-    void on_duck_event(nlohmann::json& duck_msg);
+    void on_ws_open();
+    void on_event(nlohmann::json& duck_msg);
+    void on_layout();
 
     nlohmann::json  get_breadboard_config() { return server.get_breadboard_config(); }
 
-    void register_ws_callback(ws_sender send) { ws_send = send; }
+    void register_ws_callback(ws_sender send) { ws_send = send; server.register_ws_callback(send); }
 
     void register_font(const std::string& name, ImFont* f) { font_map[name] = f; }
 
