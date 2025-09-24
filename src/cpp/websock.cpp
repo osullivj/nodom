@@ -10,7 +10,7 @@
 #include <boost/bind.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
-#include <websocketpp/config/asio_no_tls_client.hpp>
+#include <websocketpp/config/asio_client.hpp>
 #include <websocketpp/client.hpp>
 
 // imgui hdrs
@@ -33,21 +33,8 @@
 #pragma comment(lib, "legacy_stdio_definitions")
 #endif
 
-
 static bool show_demo_window = true;
 static ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-
-
-typedef websocketpp::client<websocketpp::config::asio_client> ws_client;
-typedef websocketpp::connection_hdl ws_handle;
-typedef websocketpp::lib::error_code    ws_error_code;
-typedef websocketpp::config::asio_client::message_type::ptr message_ptr;
-typedef boost::asio::deadline_timer     asio_timer;
-
-using websocketpp::lib::placeholders::_1;
-using websocketpp::lib::placeholders::_2;
-using websocketpp::lib::bind;
-
 
 
 NDWebSockClient::NDWebSockClient(NDServer& svr, NDContext& c)
@@ -59,12 +46,13 @@ NDWebSockClient::NDWebSockClient(NDServer& svr, NDContext& c)
     client.set_open_handler(bind(&NDWebSockClient::on_open, this, &client, ::_1));
     client.set_close_handler(bind(&NDWebSockClient::on_close, this, &client, ::_1));
     client.set_fail_handler(bind(&NDWebSockClient::on_fail, this, &client, ::_1));
+    client.set_tls_init_handler(bind(&NDWebSockClient::on_tls_init, this, &client, ::_1, ::_2));
 }
 
 void NDWebSockClient::run() {
     ctx.register_ws_callback(bind(&NDWebSockClient::send, this, ::_1));
     error_code.clear();
-    ws_client::connection_ptr con = client.get_connection(uri, error_code);
+    wss_client::connection_ptr con = client.get_connection(uri, error_code);
     if (error_code) {
         std::cerr << "NDWebSockClient: could not create connection because: "
                                                 << error_code.message() << std::endl;
@@ -108,7 +96,7 @@ void NDWebSockClient::on_timeout(const boost::system::error_code& e) {
     }
 }
 
-void NDWebSockClient::on_message(ws_client* c, ws_handle h, message_ptr msg_ptr) {
+void NDWebSockClient::on_message(wss_client* c, ws_handle h, message_ptr msg_ptr) {
     std::string payload(msg_ptr->get_payload());
     std::cout << "NDWebSockClient::on_message: hdl( " << h.lock().get()
         << ") msg: " << payload << std::endl;
@@ -118,17 +106,36 @@ void NDWebSockClient::on_message(ws_client* c, ws_handle h, message_ptr msg_ptr)
 }
 
 
-void NDWebSockClient::on_open(ws_client* c, ws_handle h) {
+void NDWebSockClient::on_open(wss_client* c, ws_handle h) {
     std::cout << "NDWebSockClient::on_open: hdl:" << h.lock().get() << std::endl;
     handle = h;
     ctx.on_ws_open();
 }
 
-void NDWebSockClient::on_close(ws_client* c, ws_handle h) {
+void NDWebSockClient::on_close(wss_client* c, ws_handle h) {
     std::cout << "NDWebSockClient::on_close: hdl: " << h.lock().get() << std::endl;
 }
 
-void NDWebSockClient::on_fail(ws_client* c, ws_handle h) {
+void NDWebSockClient::on_fail(wss_client* c, ws_handle h) {
     std::cout << "NDWebSockClient::on_fail: hdl: " << h.lock().get() << std::endl;
+}
+
+bool verify_certificate(const char* hostname, bool preverified, boost::asio::ssl::verify_context& ctx)
+{
+    return true;
+}
+
+context_ptr NDWebSockClient::on_tls_init(const char* hostname, ws_handle)
+{
+    context_ptr ctx = websocketpp::lib::make_shared<boost::asio::ssl::context>(boost::asio::ssl::context::sslv23);
+
+    try {
+        ctx->set_options(boost::asio::ssl::context::default_workarounds);
+        ctx->set_verify_mode(boost::asio::ssl::verify_none);
+    }
+    catch (std::exception& e) {
+        std::cout << e.what() << std::endl;
+    }
+    return ctx;
 }
 
