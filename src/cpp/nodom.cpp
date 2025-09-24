@@ -50,19 +50,15 @@ static const char* value_cs("value");
 
 
 NDServer::NDServer(int argc, char** argv)
-    :is_duck_app(false), done(false), server_url("ws://localhost:8890/api/websock")
+    :is_duck_app(false), done(false)
 {
     std::string usage("breadboard <breadboard_config_json_path> <test_dir> [<server_url>]");
-    if (argc < 3) {
-        printf("breadboard <breadboard_config_json_path> <test_dir>");
+    if (argc < 2) {
+        printf("breadboard <breadboard_config_json_path>");
         exit(1);
     }
     exe = argv[0];
     bb_json_path = argv[1];
-    test_dir = argv[2];
-    if (argc >= 4) {
-        server_url = argv[3];
-    }
 
     if (!std::filesystem::exists(bb_json_path)) {
         std::cerr << usage << std::endl << "Cannot load breadboard config json from " << bb_json_path << std::endl;
@@ -74,24 +70,17 @@ NDServer::NDServer(int argc, char** argv)
         std::ifstream in_file_stream(bb_json_path);
         json_buffer << in_file_stream.rdbuf();
         bb_config = nlohmann::json::parse(json_buffer);
+        server_url = bb_config["server_url"];
     }
     catch (...) {
         printf("cannot load breadboard.json");
         exit(1);
     }
 
-    // figure out the module from test name
-    std::filesystem::path test_path(test_dir);
-    test_module_name = test_path.stem().string();
-
-    // last cpp thread init job...
-    load_json();
-
     std::stringstream log_buffer;
     log_buffer << "NoDOM starting with..." << std::endl;
     log_buffer << "exe: " << exe << std::endl;
     log_buffer << "Breadboard config json: " << bb_json_path << std::endl;
-    log_buffer << "Test data dir: " << test_dir << std::endl;
     log_buffer << "Server URL: " << server_url << std::endl;
     std::cout << log_buffer.str() << std::endl;
 }
@@ -99,28 +88,6 @@ NDServer::NDServer(int argc, char** argv)
 NDServer::~NDServer() {
 
 }
-
-
-
-
-bool NDServer::load_json()
-{
-    // bool rv = true;
-    std::list<std::string> json_files = { "layout", "data" };
-    for (auto jf : json_files) {
-        std::filesystem::path jpath(test_dir);
-        std::stringstream file_name_buffer;
-        file_name_buffer << jf << ".json";
-        jpath.append(file_name_buffer.str());
-        std::cout << "load_json: " << jpath << std::endl;
-        std::stringstream json_buffer;
-        std::ifstream in_file_stream(jpath);
-        json_buffer << in_file_stream.rdbuf();
-        json_map[jf] = json_buffer.str();
-    }
-    return true;
-}
-
 
 void NDServer::notify_server(const std::string& caddr, nlohmann::json& old_val, nlohmann::json& new_val)
 {

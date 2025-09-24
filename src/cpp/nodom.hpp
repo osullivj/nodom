@@ -36,14 +36,11 @@ public:
     // cpp thread
     void            notify_server(const std::string& caddr, nlohmann::json& old_val, nlohmann::json& new_val);
     void            duck_dispatch(nlohmann::json& db_request);
-    void            get_server_responses(std::queue<nlohmann::json>& responses);
     void            set_done(bool d) { done = d; }
     nlohmann::json  get_breadboard_config() { return bb_config; }
     std::string&    get_server_url() { return server_url; }
     void            register_ws_callback(ws_sender send) { ws_send = send; }
 protected:
-
-    bool load_json();
 
 private:
     nlohmann::json                      bb_config;
@@ -55,8 +52,6 @@ private:
     // these three test config strings are written once at startup
     // time in the cpp thread, and read from the py thread
     std::string                         test_module_name;
-    std::string                         test_dir;
-    std::map<std::string, std::string>  json_map;
     bool                                done;
     std::queue<nlohmann::json>          server_responses;
     std::string                         server_url;
