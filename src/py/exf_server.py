@@ -235,7 +235,7 @@ service = DepthService(NDAPP, EXF_LAYOUT, EXF_DATA, True)
 
 async def main():
     parse_command_line()
-    cert_path = os.path.normpath(os.path.join(nd_consts.ND_ROOT_DIR, 'cfg', 'h3'))
+    cert_path = os.path.normpath(os.path.join(nd_consts.ND_ROOT_DIR, 'cfg'))
     app = nd_web.NDApp(service, EXTRA_HANDLERS)
     https_server = tornado.httpserver.HTTPServer(app, ssl_options={
         "certfile": os.path.join(cert_path, "ssl_cert.pem"),
