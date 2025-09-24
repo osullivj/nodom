@@ -121,6 +121,8 @@ class Service(object):
         conf_dict['nd_type'] = 'DataChangeConfirmed'
         # Does a subclass want to add server side changes?
         server_changes = self.on_client_data_change(client_uuid, client_change)
+        if not server_changes:
+            pass
         return [conf_dict] + server_changes
 
     def on_duck_op(self, client_uuid, msg_dict):
@@ -144,7 +146,8 @@ class Service(object):
     def on_cache_request(self, client_uuid, msg_dict):
         ckey = msg_dict.get('cache_key')
         try:
-            return [dict(nd_type="CacheResponse", uuid=client_uuid, cache_key=msg_dict.get('cache_key'), value=self.cache.get(ckey))]
+            return [dict(nd_type="CacheResponse", uuid=client_uuid,
+                         cache_key=msg_dict.get('cache_key'), value=self.cache.get(ckey))]
         except Exception as ex:
             logr.error(f'on_cache_request: {client_uuid} {ckey}\n{ex}')
             return [dict(nd_type="CacheResponse", uuid=client_uuid, cache_key=ckey, value=None, error="bad ckey")]

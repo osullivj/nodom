@@ -54,6 +54,7 @@ class AdditionService(nd_utils.Service):
             change = dict(nd_type='DataChange', old_value=data_cache[ckey], new_value=new_val, cache_key=ckey)
             data_cache[ckey] = new_val
             return [change]
+        return []
 
 
 define("port", default=8890, help="run on the given port", type=int)
