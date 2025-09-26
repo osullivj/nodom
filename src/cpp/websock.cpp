@@ -10,9 +10,6 @@
 #include <boost/bind.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
-// #include <websocketpp/config/asio_client.hpp>
-// #include <websocketpp/client.hpp>
-
 // imgui hdrs
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
