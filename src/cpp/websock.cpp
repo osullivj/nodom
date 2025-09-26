@@ -41,12 +41,13 @@ NDWebSockClient::NDWebSockClient(NDServer& svr, NDContext& c)
 :uri(svr.get_server_url()), server(svr), ctx(c), window(im_start(c)) {
     client.set_access_channels(websocketpp::log::alevel::all);
     client.clear_access_channels(websocketpp::log::alevel::frame_payload);
+    client.set_error_channels(websocketpp::log::alevel::all);
     client.init_asio();
     client.set_message_handler(bind(&NDWebSockClient::on_message, this, &client, ::_1, ::_2));
     client.set_open_handler(bind(&NDWebSockClient::on_open, this, &client, ::_1));
     client.set_close_handler(bind(&NDWebSockClient::on_close, this, &client, ::_1));
     client.set_fail_handler(bind(&NDWebSockClient::on_fail, this, &client, ::_1));
-    client.set_tls_init_handler(bind(&NDWebSockClient::on_tls_init, this, &client, ::_1, ::_2));
+    client.set_tls_init_handler(bind(&NDWebSockClient::on_tls_init, this, "localhost", ::_1));
 }
 
 void NDWebSockClient::run() {
