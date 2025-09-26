@@ -115,12 +115,12 @@ ND_HANDLERS = [
     (r'/api/websock', WebSockHandler),
     (r'/api/(.*)', JSONHandler),
     (r'/ui/duckjournal/(.*)', DuckJournalHandler),
-    (r'/imgui/misc/fonts/(.*)', StaticFileHandler, dict(path=os.path.join(nd_consts.IMGUI_DIR, 'imgui', 'misc', 'fonts'))),
-    (r'/node_modules/@flyover/system/build/(.*)', StaticFileHandler, dict(path=os.path.join(nd_consts.IMGUI_DIR, 'node_modules', '@flyover', 'system', 'build'))),
-    (r'/example/build/(.*)', StaticFileHandler, dict(path=os.path.join(nd_consts.IMGUI_DIR, 'example', 'build'))),
-    (r'/build/(.*)', StaticFileHandler, dict(path=os.path.join(nd_consts.IMGUI_DIR, 'build'))),
-    (r'/example/(.*)', StaticFileHandler, dict(path=os.path.join(nd_consts.IMGUI_DIR, 'example'))),
-    (r'/src/(.*)', StaticFileHandler, dict(path=os.path.join(nd_consts.IMGUI_DIR, 'src'))),
+    (r'/imgui/misc/fonts/(.*)', StaticFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, 'imgui', 'misc', 'fonts'))),
+    (r'/node_modules/@flyover/system/build/(.*)', StaticFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, 'node_modules', '@flyover', 'system', 'build'))),
+    (r'/example/build/(.*)', StaticFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, 'example', 'build'))),
+    (r'/build/(.*)', StaticFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, 'build'))),
+    (r'/example/(.*)', StaticFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, 'example'))),
+    (r'/src/(.*)', StaticFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, 'src'))),
     (r'/(.*)', StaticFileHandler, dict(path=nd_consts.ND_ROOT_DIR)),
 ]
 
@@ -129,7 +129,7 @@ class NDApp( tornado.web.Application):
         # extra_handlers first so they get first crack at the match
         self.service = service
         handlers = extra_handlers + ND_HANDLERS
-        settings = dict(template_path=os.path.join(nd_consts.IMGUI_DIR, 'example'))
+        settings = dict(template_path=os.path.join(nd_consts.ND_ROOT_DIR, 'imgui', 'example'))
         tornado.web.Application.__init__( self, handlers, **settings)
         self.ws_handlers = service.get_ws_handlers()
 
