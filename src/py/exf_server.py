@@ -29,7 +29,7 @@ EXF_LAYOUT = [
     dict(
         rname='Home',
         cspec=dict(
-            title='Eurex Futures',
+            title='Eurex Futures', font="Arial",
             # only applicable here in the Home widget
             gui_canvas_style_width="200px",
             gui_canvas_style_height="100px",
@@ -37,6 +37,7 @@ EXF_LAYOUT = [
             shell_canvas_style_top = "0px"
         ),
         children=[
+            dict(rname="PushFont", cspec=dict(font='Courier')),
             dict(
                 rname='Combo',
                 cspec=dict(
@@ -91,6 +92,7 @@ EXF_LAYOUT = [
             dict(rname='Separator', cspec=dict()),
             dict(rname='Table', cspec=dict(title='Depth grid',cname='depth_query_result')),
             dict(rname='Footer', cspec=dict(db=True, fps=True, demo=True, id_stack=True, memory=True)),
+            dict(rname='PopFont'),
         ],
     ),
     # not a Home child? Must have an ID to be pushable
@@ -227,7 +229,7 @@ class DepthService(nd_utils.Service):
 
 
 # for security reasons duck only ingests parquet via 443
-define("port", default=443, help="run on the given port", type=int)
+define("port", default=8890, help="run on the given port", type=int)
 
 # breadboard looks out for service at the module level
 # NB 4th param for duck app
@@ -235,14 +237,9 @@ service = DepthService(NDAPP, EXF_LAYOUT, EXF_DATA, True)
 
 async def main():
     parse_command_line()
-    cert_path = os.path.normpath(os.path.join(nd_consts.ND_ROOT_DIR, 'cfg'))
-    app = nd_web.NDApp(service, EXTRA_HANDLERS)
-    https_server = tornado.httpserver.HTTPServer(app, ssl_options={
-        "certfile": os.path.join(cert_path, "ssl_cert.pem"),
-        "keyfile": os.path.join(cert_path, "ssl_key.pem"),
-    })
-    https_server.listen(options.port)
-    logr.info(f'{NDAPP} port:{options.port} cert_path:{cert_path}')
+    app = nd_web.NDApp(service, [])
+    app.listen(options.port)
+    logr.info(f'{NDAPP} port:{options.port}')
     await asyncio.Event().wait()
 
 
