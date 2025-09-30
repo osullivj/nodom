@@ -172,6 +172,7 @@
     <ClCompile Include="websock.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\ImGuiDatePicker\ImGuiDatePicker.hpp" />
     <ClInclude Include="..\..\imgui\imconfig.h" />
     <ClInclude Include="..\..\imgui\imgui.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
