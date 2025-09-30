@@ -512,7 +512,7 @@ void NDContext::render_combo(nlohmann::json& w)
 {
     // Static storage for the combo list
     // NB single GUI thread!
-    // No malloc at runbtime, but we will clear the array with a memset
+    // No malloc at runtime, but we will clear the array with a memset
     // on each visit. JOS 2025-01-26
     static std::vector<std::string> combo_list;
     static const char* cs_combo_list[ND_MAX_COMBO_LIST];
@@ -562,7 +562,7 @@ void NDContext::render_footer(nlohmann::json& w)
         // Push colour styling for the DB button
         ImGui::PushStyleColor(ImGuiCol_Button, (ImU32)db_status_color);
         if (ImGui::Button("DB")) {
-            // TODO: main.ts raises a new brwser tab here...
+            // TODO: main.ts raises a new browser tab here...
         }
         ImGui::PopStyleColor(1);
     }
@@ -592,10 +592,11 @@ void NDContext::render_same_line(nlohmann::json& w)
 
 void NDContext::render_date_picker(nlohmann::json& w)
 {
-    static int default_table_flags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_SizingFixedFit |
-        ImGuiTableFlags_NoHostExtendX | ImGuiTableFlags_NoHostExtendY;
+    static int default_table_flags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_SizingFixedSame;
+    //| ImGuiTableFlags_SizingFixedSame |
+    //    ImGuiTableFlags_NoHostExtendX | ImGuiTableFlags_NoHostExtendY;
     static int ymd_i[3] = { 0, 0, 0 };
-    static float tsz[2] = { 274.5,301.5 };
+    static float tsz[2] = { /*274.5,301.5 */ 0.0, 0.0};
     try {
         int flags = w.value(nlohmann::json::json_pointer("/cspec/table_flags"), default_table_flags);
         std::string ckey = w.value(nlohmann::json::json_pointer("/cspec/cname"), "render_date_picker_bad_cname");
