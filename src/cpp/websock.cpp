@@ -31,7 +31,7 @@
 #endif
 
 
-NDWebSockClient::NDWebSockClient(NDServer& svr, NDContext& c)
+NDWebSockClient::NDWebSockClient(NDProxy& svr, NDContext& c)
 :uri(svr.get_server_url()), server(svr), ctx(c), window(im_start(c)) {
     client.set_access_channels(websocketpp::log::alevel::all);
     client.clear_access_channels(websocketpp::log::alevel::frame_payload);
