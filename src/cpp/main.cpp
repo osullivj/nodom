@@ -177,7 +177,7 @@ void im_end(GLFWwindow* window)
 
 
 int main(int argc, char* argv[]) {
-    NDServer server(argc, argv);
+    NDProxy server(argc, argv);
     NDContext ctx(server);
 #ifndef __EMSCRIPTEN__
     try {
