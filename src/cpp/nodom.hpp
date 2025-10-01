@@ -4,6 +4,11 @@
 #include <queue>
 #include <filesystem>
 #include <functional>
+#include <duckdb.h>
+#ifndef __EMSCRIPTEN__
+#include <boost/thread.hpp>
+#include <boost/atomic.hpp>
+#endif
 #include "json.hpp"
 
 // NoDOM emulation: debugging ND impls in JS is tricky. Code compiled from C++ to clang .o
@@ -20,20 +25,17 @@
 class NDWebSockClient;
 typedef std::function<void(const std::string&)> ws_sender;
 
-// Encapsulate the server side. The singleton NDServer instance
-// will either...
-// 1. EM_JS to evoke JS fetch on ems
-// 2. Use websockpp on win32
-class NDServer {
+// NDProxy encapsulates the server side. In Breadboard it also hosts
+// the DuckDB instance.
+
+class NDProxy {
 public:
-                    NDServer(int argc, char** argv);
-    virtual         ~NDServer();
-
-
+                    NDProxy(int argc, char** argv);
+    virtual         ~NDProxy();
 
     bool            duck_app() { return is_duck_app; }
 
-    // cpp thread
+    // GUI thread
     void            notify_server(const std::string& caddr, nlohmann::json& old_val, nlohmann::json& new_val);
     void            duck_dispatch(nlohmann::json& db_request);
     void            set_done(bool d) { done = d; }
@@ -41,7 +43,12 @@ public:
     std::string&    get_server_url() { return server_url; }
     void            register_ws_callback(ws_sender send) { ws_send = send; }
 protected:
-
+    // DB thread
+#ifndef __EMSCRIPTEN__
+    bool            duck_init();
+    void            duck_fnls();
+    void            duck_loop();
+#endif
 private:
     nlohmann::json                      bb_config;
     bool                                is_duck_app;
@@ -56,14 +63,27 @@ private:
     std::queue<nlohmann::json>          server_responses;
     std::string                         server_url;
     // ref to NDWebSockClient::send
-    ws_sender ws_send;
+    ws_sender                           ws_send;
+    
+#ifndef __EMSCRIPTEN__
+    duckdb_database                     duck_db;
+    duckdb_connection                   duck_conn;
+    boost::thread                       duck_thread;
+    boost::atomic<bool>                 duck_done;
+    std::queue<nlohmann::json>          duck_queries;
+    std::queue<nlohmann::json>          duck_results;
+    boost::mutex                        query_mutex;
+    boost::mutex                        result_mutex;
+    boost::condition_variable           query_cond;
+    boost::condition_variable           result_cond;
+#endif
 };
 
 
 
 class NDContext {
 public:
-    NDContext(NDServer& s);
+    NDContext(NDProxy& s);
     void render();                              // invoked by main loop
 
     void server_request(const std::string& key);
@@ -74,12 +94,12 @@ public:
     void set_done(bool d);
 
     void on_ws_open();
-    void on_event(nlohmann::json& duck_msg);
+    void on_db_event(nlohmann::json& duck_msg);
     void on_layout();
 
-    nlohmann::json  get_breadboard_config() { return server.get_breadboard_config(); }
+    nlohmann::json  get_breadboard_config() { return proxy.get_breadboard_config(); }
 
-    void register_ws_callback(ws_sender send) { ws_send = send; server.register_ws_callback(send); }
+    void register_ws_callback(ws_sender send) { ws_send = send; proxy.register_ws_callback(send); }
 
     void register_font(const std::string& name, ImFont* f) { font_map[name] = f; }
 
@@ -114,7 +134,7 @@ protected:
     void pop_font(nlohmann::json& w);
 private:
     // ref to "server process"; just an abstraction of EMV vs win32
-    NDServer&                           server;
+    NDProxy&                           proxy;
     // NSServer invokes will be replaced with EM_JS
     
     nlohmann::json                      layout; // layout and data are fetched by 

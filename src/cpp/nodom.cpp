@@ -47,9 +47,10 @@ static const char* cache_request_cs("CacheRequest");
 static const char* layout_cs("layout");
 static const char* data_cs("data");
 static const char* value_cs("value");
+static const char* parquet_scan_cs("ParquetScan");
+static const char* query_cs("Query");
 
-
-NDServer::NDServer(int argc, char** argv)
+NDProxy::NDProxy(int argc, char** argv)
     :is_duck_app(false), done(false)
 {
     std::string usage("breadboard <breadboard_config_json_path> <test_dir> [<server_url>]");
@@ -71,6 +72,7 @@ NDServer::NDServer(int argc, char** argv)
         json_buffer << in_file_stream.rdbuf();
         bb_config = nlohmann::json::parse(json_buffer);
         server_url = bb_config["server_url"];
+        is_duck_app = bb_config["duck_app"];
     }
     catch (...) {
         printf("cannot load breadboard.json");
@@ -83,13 +85,17 @@ NDServer::NDServer(int argc, char** argv)
     log_buffer << "Breadboard config json: " << bb_json_path << std::endl;
     log_buffer << "Server URL: " << server_url << std::endl;
     std::cout << log_buffer.str() << std::endl;
+
+    if (is_duck_app) {
+
+    }
 }
 
-NDServer::~NDServer() {
+NDProxy::~NDProxy() {
 
 }
 
-void NDServer::notify_server(const std::string& caddr, nlohmann::json& old_val, nlohmann::json& new_val)
+void NDProxy::notify_server(const std::string& caddr, nlohmann::json& old_val, nlohmann::json& new_val)
 {
     std::cout << "cpp: notify_server: " << caddr << ", old: " << old_val << ", new: " << new_val << std::endl;
 
@@ -109,7 +115,7 @@ void NDServer::notify_server(const std::string& caddr, nlohmann::json& old_val, 
     }
 }
 
-void NDServer::duck_dispatch(nlohmann::json& db_request)
+void NDProxy::duck_dispatch(nlohmann::json& db_request)
 {
     std::cout << "cpp: duck_dispatch: " << db_request << std::endl;
     try {
@@ -125,8 +131,91 @@ void NDServer::duck_dispatch(nlohmann::json& db_request)
 }
 
 
-NDContext::NDContext(NDServer& s)
-    :server(s), red(255, 51, 0), green(102, 153, 0), amber(255, 153, 0)
+#ifndef __EMSCRIPTEN__
+bool NDProxy::duck_init()
+{
+    if (duckdb_open(NULL, &duck_db) == DuckDBError) {
+        std::cerr << "DuckDB instantiation failed" << std::endl;
+        return false;
+    }
+    if (duckdb_connect(duck_db, &duck_conn) == DuckDBError) {
+        std::cerr << "DuckDB instantiation failed" << std::endl;
+        return false;
+    }
+}
+
+void NDProxy::duck_fnls()
+{
+    duckdb_disconnect(&duck_conn);
+    duckdb_close(&duck_db);
+}
+
+void NDProxy::duck_loop()
+{
+    static const char* method = "NDProxy::duck_loop: ";
+
+    std::cout << method << "starting..." << std::endl;
+    if (!duck_init()) {
+        exit(1);
+    }
+    std::cout << method << "init done" << std::endl;
+
+    nlohmann::json response_list_j = nlohmann::json::array();
+    duckdb_state dbstate;
+    std::unordered_map<std::string, duckdb_result> result_map;
+
+    // https://www.boost.org/doc/libs/1_34_0/doc/html/boost/condition.html
+    // A condition object is always used in conjunction with a mutex object (an object
+    // whose type is a model of a Mutex or one of its refinements). The mutex object
+    // must be locked prior to waiting on the condition, which is verified by passing a lock
+    // object (an object whose type is a model of Lock or one of its refinements) to the
+    // condition object's wait functions. Upon blocking on the condition object, the thread
+    // unlocks the mutex object. When the thread returns from a call to one of the condition object's
+    // wait functions the mutex object is again locked. The tricky unlock/lock sequence is performed
+    // automatically by the condition object's wait functions.
+
+    while (!done) {
+
+        boost::unique_lock<boost::mutex> to_lock(query_mutex);
+        query_cond.wait(to_lock);
+        // thead quiesces in the wait above, with query_mutex
+        // unlocked so the C++ thread can add work items
+        std::cout << method << "duck_queries depth : " << duck_queries.size() << std::endl;
+        while (!duck_queries.empty()) {
+            nlohmann::json db_request(duck_queries.front());
+            duck_queries.pop();
+            if (!db_request.contains(nd_type_cs)) {
+                std::cerr << method << "nd_type missing: " << db_request << std::endl;
+                continue;
+            }
+            if (!db_request.contains(sql_cs)) {
+                std::cerr << method << "sql missing: " << db_request << std::endl;
+                continue;
+            }
+            const std::string& nd_type(db_request[nd_type_cs]);
+            const std::string& sql(db_request[sql_cs]);
+            const std::string& qid(db_request[query_id_cs]);
+            // ParquetScan request do not produce a result set, unlike queries
+            if (nd_type == parquet_scan_cs) {
+                dbstate = duckdb_query(duck_conn, sql.c_str(), nullptr);
+            }
+            else {
+                // yes, this fires the duckdb_result default ctor the 1st
+                // time a query_id is presented
+                duckdb_result& dbresult(result_map[qid]);
+                dbstate = duckdb_query(duck_conn, sql.c_str(), &dbresult);
+                // TODO: impl "Release" request from GUI to signal when 
+                // a result set is no longer needed
+            }
+        }
+    }
+}
+
+#endif
+
+
+NDContext::NDContext(NDProxy& s)
+    :proxy(s), red(255, 51, 0), green(102, 153, 0), amber(255, 153, 0)
 {
     // init status is not connected
     db_status_color = red;
@@ -212,7 +301,7 @@ void NDContext::dispatch_server_responses(std::queue<nlohmann::json>& responses)
         }
         // Duck or Parquet event...
         else {
-            on_event(resp);
+            on_db_event(resp);
         }
         responses.pop();
     }
@@ -240,12 +329,12 @@ void NDContext::notify_server(const std::string& caddr, nlohmann::json& old_val,
     }
 }
 
-void NDContext::on_event(nlohmann::json& duck_msg)
+void NDContext::on_db_event(nlohmann::json& duck_msg)
 {
-    const static char* method = "NDContext::on_duck_event: ";
+    const static char* method = "NDContext::on_db_event: ";
 
     if (!duck_msg.contains("nd_type")) {
-        std::cerr << "NDContext::on_duck_event: no nd_type in " << duck_msg << std::endl;
+        std::cerr << method << "no nd_type in " << duck_msg << std::endl;
     }
     std::cout << method << duck_msg << std::endl;
     const std::string& nd_type(duck_msg[nd_type_cs]);
@@ -335,7 +424,7 @@ void NDContext::dispatch_render(nlohmann::json& w)
 
 bool NDContext::duck_app()
 {
-    return server.duck_app();
+    return proxy.duck_app();
 }
 
 void NDContext::set_done(bool d)
@@ -346,7 +435,7 @@ void NDContext::set_done(bool d)
 void NDContext::duck_dispatch(const std::string& nd_type, const std::string& sql, const std::string& qid)
 {
     nlohmann::json duck_request = { {nd_type_cs, nd_type}, {sql_cs, sql}, {query_id_cs, qid} };
-    server.duck_dispatch(duck_request);
+    proxy.duck_dispatch(duck_request);
 }
 
 void NDContext::action_dispatch(const std::string& action, const std::string& nd_event)
