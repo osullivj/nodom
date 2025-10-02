@@ -52,6 +52,7 @@ static const char* query_cs("Query");
 static const char* parquet_scan_result_cs("ParquetScanResult");
 static const char* query_result_cs("QueryResult");
 static const char* error_cs("Error");
+static const char* chunk_cs("Chunk");
 
 NDProxy::NDProxy(int argc, char** argv)
     :is_duck_app(false), done(false)
@@ -120,17 +121,19 @@ void NDProxy::notify_server(const std::string& caddr, nlohmann::json& old_val, n
 
 void NDProxy::duck_dispatch(nlohmann::json& db_request)
 {
-    std::cout << "cpp: duck_dispatch: " << db_request << std::endl;
+    const static char* method = "NDProxy::duck_dispatch: ";
+
+    std::cout << method << db_request << std::endl;
     try {
-        // grab lock for this Q: should be free as ::python_thread should be in to_cond.wait()
-        // boost::unique_lock<boost::mutex> to_lock(to_mutex);
-        // to_python.push(db_request);
+        // grab lock for this Q: should be free as ::duck_loop should be in to_cond.wait()
+        boost::unique_lock<boost::mutex> request_lock(query_mutex);
+        duck_queries.push(db_request);
     }
     catch (...) {
         std::cerr << "duck_dispatch EXCEPTION!" << std::endl;
     }
-    // lock is out of scope so released: signal py thread to wake up
-    // to_cond.notify_one();
+    // lock is out of scope so released: signal duck thread to wake up
+    query_cond.notify_one();
 }
 
 
@@ -224,12 +227,16 @@ void NDProxy::duck_loop()
                 }
                 else {
                     db_response[error_cs] = 0;
+                    duckdb_data_chunk chunk = duckdb_fetch_chunk(dbresult);
+                    db_response[chunk_cs] = reinterpret_cast<std::uintptr_t>(chunk);
                 }
-                // TODO: impl "Release" request from GUI to signal when 
-                // a result set is no longer needed
             }
+            // lock the result queue and post back to the GUI thread
+            boost::unique_lock<boost::mutex> results_lock(result_mutex);
+            duck_results.push(db_response);
         }
     }
+    duck_fnls();
 }
 
 #endif
@@ -371,12 +378,13 @@ void NDContext::on_db_event(nlohmann::json& duck_msg)
     }
     else if (nd_type == "QueryResult") {
         db_status_color = green;
-        // const std::string& nd_type(duck_msg[nd_type_cs]);
         const std::string& qid(duck_msg[query_id_cs]);
-        std::uint64_t arrow_ptr_val(duck_msg["result"]);
+        std::uintptr_t uintptr_chunk = duck_msg[chunk_cs];
         std::string cname(qid);
         cname += "_result";
-        data[cname] = arrow_ptr_val;
+        data[cname] = uintptr_chunk;
+        // when render code gets hold of data[cname] it will need to do this...
+        // duckdb_data_chunk chunk = reinterpret_cast<duckdb_data_chunk>(uintptr_chunk);
     }
     else if (nd_type == "DuckInstance") {
         // TODO: q processing order means this doesn't happen so early in cpp
@@ -394,8 +402,10 @@ void NDContext::on_db_event(nlohmann::json& duck_msg)
 
 void NDContext::render()
 {
+    const static char* method = "NDContext::render: ";
+
     if (pending_pops.size() || pending_pushes.size()) {
-        std::cerr << "render: " << pending_pops.size() << " pending pops, " << pending_pushes.size()
+        std::cerr << method << pending_pops.size() << " pending pops, " << pending_pushes.size()
             << " pending pushes" << std::endl;
     }
     // address pending pops first: maintaining ordering by working from front to back
@@ -426,18 +436,16 @@ void NDContext::render()
 
 void NDContext::dispatch_render(nlohmann::json& w)
 {
+    const static char* method = "NDContext::dispatch_render: ";
+
     if (!w.contains("rname")) {
-        std::stringstream error_buf;
-        error_buf << "dispatch_render: missing rname in " << w << "\n";
-        printf(error_buf.str().c_str());
+        std::cerr << method << "missing rname in " << w << std::endl;
         return;
     }
     const std::string& rname(w["rname"]);
     auto it = rfmap.find(rname);
     if (it == rfmap.end()) {
-        std::stringstream error_buf;
-        error_buf << "dispatch_render: unknown rname in " << w << "\n";
-        printf(error_buf.str().c_str());
+        std::cerr << method << "unknown rname in " << w << std::endl;
         return;
     }
     it->second(w);
@@ -456,6 +464,7 @@ void NDContext::set_done(bool /* d */)
 
 void NDContext::duck_dispatch(const std::string& nd_type, const std::string& sql, const std::string& qid)
 {
+    const static char* method = "NDContext::duck_dispatch: ";
     nlohmann::json duck_request = { {nd_type_cs, nd_type}, {sql_cs, sql}, {query_id_cs, qid} };
     proxy.duck_dispatch(duck_request);
 }
@@ -819,11 +828,8 @@ void NDContext::render_duck_table_summary_modal(nlohmann::json& w)
 
     int column_count = 0;
     if (ImGui::BeginPopupModal(title.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-        // TODO: replace Arrow code with Duck C API
-        /*
-        std::uint64_t arrow_ptr_val = data[cname];
-        std::shared_ptr<arrow::Table> arrow_table(reinterpret_cast<arrow::Table*>(arrow_ptr_val));
-        const std::shared_ptr<arrow::Schema>& schema(arrow_table->schema()); */
+        std::uintptr_t uintptr_chunk = data[cname];
+        duckdb_data_chunk chunk = reinterpret_cast<duckdb_data_chunk>(uintptr_chunk);
     }
  
 }
