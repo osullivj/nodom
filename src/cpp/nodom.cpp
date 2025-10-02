@@ -49,6 +49,9 @@ static const char* data_cs("data");
 static const char* value_cs("value");
 static const char* parquet_scan_cs("ParquetScan");
 static const char* query_cs("Query");
+static const char* parquet_scan_result_cs("ParquetScanResult");
+static const char* query_result_cs("QueryResult");
+static const char* error_cs("Error");
 
 NDProxy::NDProxy(int argc, char** argv)
     :is_duck_app(false), done(false)
@@ -142,6 +145,7 @@ bool NDProxy::duck_init()
         std::cerr << "DuckDB instantiation failed" << std::endl;
         return false;
     }
+    return true;
 }
 
 void NDProxy::duck_fnls()
@@ -195,15 +199,32 @@ void NDProxy::duck_loop()
             const std::string& nd_type(db_request[nd_type_cs]);
             const std::string& sql(db_request[sql_cs]);
             const std::string& qid(db_request[query_id_cs]);
+            nlohmann::json db_response = { {query_id_cs, qid}, { error_cs, 0 } };
             // ParquetScan request do not produce a result set, unlike queries
             if (nd_type == parquet_scan_cs) {
                 dbstate = duckdb_query(duck_conn, sql.c_str(), nullptr);
+                db_response[nd_type_cs] = parquet_scan_result_cs;
+                if (dbstate == DuckDBError) {
+                    std::cerr << method << "ParquetScan failed: " << db_request << std::endl;
+                    db_response[error_cs] = 1;
+                }
+                else {
+                    db_response[error_cs] = 0;
+                }
             }
             else {
                 // yes, this fires the duckdb_result default ctor the 1st
                 // time a query_id is presented
                 duckdb_result& dbresult(result_map[qid]);
                 dbstate = duckdb_query(duck_conn, sql.c_str(), &dbresult);
+                db_response[nd_type_cs] = query_result_cs;
+                if (dbstate == DuckDBError) {
+                    std::cerr << method << "Query failed: " << db_request << std::endl;
+                    db_response[error_cs] = 1;
+                }
+                else {
+                    db_response[error_cs] = 0;
+                }
                 // TODO: impl "Release" request from GUI to signal when 
                 // a result set is no longer needed
             }
