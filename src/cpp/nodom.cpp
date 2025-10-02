@@ -14,7 +14,7 @@
 #include <filesystem>
 #include <algorithm>
 #include "nodom.hpp"
-#include <arrow/api.h>
+// #include <arrow/api.h>
 
 // Python consts
 static const char* on_data_change_cs("on_data_change");
@@ -371,7 +371,7 @@ void NDContext::on_db_event(nlohmann::json& duck_msg)
     }
     else if (nd_type == "QueryResult") {
         db_status_color = green;
-        const std::string& nd_type(duck_msg[nd_type_cs]);
+        // const std::string& nd_type(duck_msg[nd_type_cs]);
         const std::string& qid(duck_msg[query_id_cs]);
         std::uint64_t arrow_ptr_val(duck_msg["result"]);
         std::string cname(qid);
@@ -448,9 +448,10 @@ bool NDContext::duck_app()
     return proxy.duck_app();
 }
 
-void NDContext::set_done(bool d)
+void NDContext::set_done(bool /* d */)
 {
-
+    // TODO: add code to do proxy.set_done() so the
+    // duck_loop exits
 }
 
 void NDContext::duck_dispatch(const std::string& nd_type, const std::string& sql, const std::string& qid)
@@ -613,6 +614,7 @@ void NDContext::render_input_int(nlohmann::json& w)
     // copy local copy back into cache
     if (input_integer != old_val) {
         data[cname_cache_addr] = input_integer;
+        // TODO: mv semantics so notify_server can own the params
         notify_server(cname_cache_addr, nlohmann::json(old_val), nlohmann::json(input_integer));
     }
 }
@@ -652,7 +654,7 @@ void NDContext::render_combo(nlohmann::json& w)
 }
 
 
-void NDContext::render_separator(nlohmann::json& w)
+void NDContext::render_separator(nlohmann::json& /* w */)
 {
     ImGui::Separator();
 }
@@ -664,9 +666,11 @@ void NDContext::render_footer(nlohmann::json& w)
     // bound at startup time...
     bool db = w.value(nlohmann::json::json_pointer("/cspec/db"), true);
     bool fps = w.value(nlohmann::json::json_pointer("/cspec/fps"), true);
-    bool demo = w.value(nlohmann::json::json_pointer("/cspec/demo"), true);
+    // TODO: config demo mode so it can be switched on/off in prod
+    // bool demo = w.value(nlohmann::json::json_pointer("/cspec/demo"), true);
     bool id_stack = w.value(nlohmann::json::json_pointer("/cspec/id_stack"), true);
-    bool memory = w.value(nlohmann::json::json_pointer("/cspec/memory"), true);
+    // TODO: understand ems mem anlytics and restore in footer
+    // bool memory = w.value(nlohmann::json::json_pointer("/cspec/memory"), true);
 
     if (db) {
         // Push colour styling for the DB button
@@ -694,7 +698,7 @@ void NDContext::render_footer(nlohmann::json& w)
 }
 
 
-void NDContext::render_same_line(nlohmann::json& w)
+void NDContext::render_same_line(nlohmann::json& /* w */)
 {
     ImGui::SameLine();
 }
@@ -808,22 +812,24 @@ void NDContext::render_duck_table_summary_modal(nlohmann::json& w)
     ImGuiViewport* vp = ImGui::GetMainViewport();
     if (!vp) {
         std::cerr << method << cname << ": null viewport ptr!";
+        return;
     }
     auto center = vp->GetCenter();
     ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, { 0.5, 0.5 });
 
     int column_count = 0;
     if (ImGui::BeginPopupModal(title.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-        // TODO: resolve cname to Arrow ptr
+        // TODO: replace Arrow code with Duck C API
+        /*
         std::uint64_t arrow_ptr_val = data[cname];
         std::shared_ptr<arrow::Table> arrow_table(reinterpret_cast<arrow::Table*>(arrow_ptr_val));
-        const std::shared_ptr<arrow::Schema>& schema(arrow_table->schema());
+        const std::shared_ptr<arrow::Schema>& schema(arrow_table->schema()); */
     }
  
 }
 
 
-void NDContext::render_table(nlohmann::json& w)
+void NDContext::render_table(nlohmann::json& /* w */)
 {
     
 }
@@ -871,7 +877,7 @@ void NDContext::push_font(nlohmann::json& w)
     }
 }
 
-void NDContext::pop_font(nlohmann::json& w)
+void NDContext::pop_font(nlohmann::json& /* w */)
 {
     ImGui::PopFont();
 }
