@@ -848,6 +848,8 @@ void NDContext::render_duck_table_summary_modal(nlohmann::json& w)
 
     int colm_count = SMRY_COLM_CNT;
     int colm_index = 0;
+    duckdb_type colm_type = DUCKDB_TYPE_INVALID;
+    uint64_t* colm_validity = nullptr;
     if (ImGui::BeginPopupModal(title.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
         std::uintptr_t uintptr_chunk = data[cname];
         duckdb_data_chunk chunk = reinterpret_cast<duckdb_data_chunk>(uintptr_chunk);
@@ -861,10 +863,33 @@ void NDContext::render_duck_table_summary_modal(nlohmann::json& w)
             }
             ImGui::TableHeadersRow();
             auto row_count = duckdb_data_chunk_get_size(chunk);
+            char buf[32];
+            int64_t* bidata = nullptr;
             for (int row_index = 0; row_index < row_count; row_index++) {
                 ImGui::TableNextRow();
                 for (colm_index = 0; colm_index < colm_index; colm_index++) {
                     ImGui::TableSetColumnIndex(colm_index);
+                    colm_type = colm_types[colm_index];
+                    duckdb_vector colm = duckdb_data_chunk_get_vector(chunk, colm_index);
+                    colm_validity = duckdb_vector_get_validity(colm);
+                    if (duckdb_validity_row_is_valid(colm_validity, row_index)) {
+                        switch (colm_type) {
+                        case DUCKDB_TYPE_VARCHAR:
+                            break;
+                        case DUCKDB_TYPE_BIGINT:
+                            bidata = (int64_t*)duckdb_vector_get_data(colm);
+                            sprintf(buf, "%d", bidata[row_index]);
+                            ImGui::TextUnformatted(buf);
+                            break;
+                        case DUCKDB_TYPE_DOUBLE:
+                            break;
+                        case DUCKDB_TYPE_DECIMAL:
+                            break;
+                        }
+                    }
+                    else {
+                        // NULL
+                    }
                 }
             }
             ImGui::EndTable();
