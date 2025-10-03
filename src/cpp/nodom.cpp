@@ -797,11 +797,28 @@ void NDContext::render_duck_parquet_loading_modal(nlohmann::json& w)
     }
 }
 
+#define SMRY_COL_CNT 12
 
 void NDContext::render_duck_table_summary_modal(nlohmann::json& w)
 {
     const static char* method = "NDContext::render_duck_table_summary_modal: ";
     static int default_summary_table_flags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_RowBg;
+    const static char* column_names[SMRY_COL_CNT] = {
+        "name", "type",
+        "min", "max", 
+        "apxu", "avg",
+        "std", "q25", 
+        "q50", "q75", 
+        "cnt", "null"
+    };
+    const static duckdb_type column_types[SMRY_COL_CNT] = {
+        DUCKDB_TYPE_VARCHAR, DUCKDB_TYPE_VARCHAR, 
+        DUCKDB_TYPE_VARCHAR, DUCKDB_TYPE_VARCHAR,
+        DUCKDB_TYPE_BIGINT, DUCKDB_TYPE_DOUBLE,
+        DUCKDB_TYPE_DOUBLE, DUCKDB_TYPE_VARCHAR,
+        DUCKDB_TYPE_VARCHAR, DUCKDB_TYPE_VARCHAR,
+        DUCKDB_TYPE_BIGINT, DUCKDB_TYPE_DECIMAL
+    };
 
     if (!w.contains(cspec_cs) || !w[cspec_cs].contains(cname_cs) || !w[cspec_cs].contains(title_cs)) {
         std::cerr << method << "bad cspec in: " << w << std::endl;
@@ -820,16 +837,23 @@ void NDContext::render_duck_table_summary_modal(nlohmann::json& w)
     // Always center this window when appearing
     ImGuiViewport* vp = ImGui::GetMainViewport();
     if (!vp) {
-        std::cerr << method << cname << ": null viewport ptr!";
+        std::cerr << method << cname << ": null viewport ptr!" << std::endl;
         return;
     }
     auto center = vp->GetCenter();
     ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, { 0.5, 0.5 });
 
-    int column_count = 0;
+    int column_count = SMRY_COL_CNT;
     if (ImGui::BeginPopupModal(title.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
         std::uintptr_t uintptr_chunk = data[cname];
         duckdb_data_chunk chunk = reinterpret_cast<duckdb_data_chunk>(uintptr_chunk);
+        if (!chunk) {
+            std::cerr << method << cname << ": null chunk!" << std::endl;
+            return;
+        }
+        if (ImGui::BeginTable(cname.c_str(), column_count, table_flags)) {
+
+        }
     }
  
 }
