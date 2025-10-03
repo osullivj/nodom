@@ -53,6 +53,9 @@ static const char* parquet_scan_result_cs("ParquetScanResult");
 static const char* query_result_cs("QueryResult");
 static const char* error_cs("Error");
 static const char* chunk_cs("Chunk");
+static const char* ok_cs("OK");
+static const char* cancel_cs("Cancel");
+static const char* duck_table_summary_modal_cs("DuckTableSummaryModal");
 
 NDProxy::NDProxy(int argc, char** argv)
     :is_duck_app(false), done(false)
@@ -797,13 +800,13 @@ void NDContext::render_duck_parquet_loading_modal(nlohmann::json& w)
     }
 }
 
-#define SMRY_COL_CNT 12
+#define SMRY_COLM_CNT 12
 
 void NDContext::render_duck_table_summary_modal(nlohmann::json& w)
 {
     const static char* method = "NDContext::render_duck_table_summary_modal: ";
     static int default_summary_table_flags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_RowBg;
-    const static char* column_names[SMRY_COL_CNT] = {
+    const static char* colm_names[SMRY_COLM_CNT] = {
         "name", "type",
         "min", "max", 
         "apxu", "avg",
@@ -811,7 +814,7 @@ void NDContext::render_duck_table_summary_modal(nlohmann::json& w)
         "q50", "q75", 
         "cnt", "null"
     };
-    const static duckdb_type column_types[SMRY_COL_CNT] = {
+    const static duckdb_type colm_types[SMRY_COLM_CNT] = {
         DUCKDB_TYPE_VARCHAR, DUCKDB_TYPE_VARCHAR, 
         DUCKDB_TYPE_VARCHAR, DUCKDB_TYPE_VARCHAR,
         DUCKDB_TYPE_BIGINT, DUCKDB_TYPE_DOUBLE,
@@ -843,7 +846,8 @@ void NDContext::render_duck_table_summary_modal(nlohmann::json& w)
     auto center = vp->GetCenter();
     ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, { 0.5, 0.5 });
 
-    int column_count = SMRY_COL_CNT;
+    int colm_count = SMRY_COLM_CNT;
+    int colm_index = 0;
     if (ImGui::BeginPopupModal(title.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
         std::uintptr_t uintptr_chunk = data[cname];
         duckdb_data_chunk chunk = reinterpret_cast<duckdb_data_chunk>(uintptr_chunk);
@@ -851,11 +855,37 @@ void NDContext::render_duck_table_summary_modal(nlohmann::json& w)
             std::cerr << method << cname << ": null chunk!" << std::endl;
             return;
         }
-        if (ImGui::BeginTable(cname.c_str(), column_count, table_flags)) {
-
+        if (ImGui::BeginTable(cname.c_str(), colm_count, table_flags)) {
+            for (colm_index = 0; colm_index < colm_count; colm_index++) {
+                ImGui::TableSetupColumn(colm_names[colm_index]);
+            }
+            ImGui::TableHeadersRow();
+            auto row_count = duckdb_data_chunk_get_size(chunk);
+            for (int row_index = 0; row_index < row_count; row_index++) {
+                ImGui::TableNextRow();
+                for (colm_index = 0; colm_index < colm_index; colm_index++) {
+                    ImGui::TableSetColumnIndex(colm_index);
+                }
+            }
+            ImGui::EndTable();
         }
+        ImGui::Separator();
     }
- 
+    // Note the pop_widget() invocations when
+    // OK or Cancel are shown. Because we're a modal,
+    // we know we're now a Home child, so we must have
+    // been pushed onto the stack...
+    if (ImGui::Button(ok_cs)) {
+        ImGui::CloseCurrentPopup();
+        pop_widget(duck_table_summary_modal_cs);
+    }
+    ImGui::SetItemDefaultFocus();
+    ImGui::SameLine();
+    if (ImGui::Button(cancel_cs)) {
+        ImGui::CloseCurrentPopup();
+        pop_widget(duck_table_summary_modal_cs);
+    }
+    ImGui::EndPopup();
 }
 
 
