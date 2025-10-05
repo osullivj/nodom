@@ -865,6 +865,7 @@ void NDContext::render_duck_table_summary_modal(nlohmann::json& w)
             auto row_count = duckdb_data_chunk_get_size(chunk);
             char buf[32];
             int64_t* bidata = nullptr;
+            double* dbldata = nullptr;
             for (int row_index = 0; row_index < row_count; row_index++) {
                 ImGui::TableNextRow();
                 for (colm_index = 0; colm_index < colm_index; colm_index++) {
@@ -878,10 +879,13 @@ void NDContext::render_duck_table_summary_modal(nlohmann::json& w)
                             break;
                         case DUCKDB_TYPE_BIGINT:
                             bidata = (int64_t*)duckdb_vector_get_data(colm);
-                            sprintf(buf, "%d", bidata[row_index]);
+                            sprintf(buf, "%I64d", bidata[row_index]);
                             ImGui::TextUnformatted(buf);
                             break;
                         case DUCKDB_TYPE_DOUBLE:
+                            dbldata = (double_t*)duckdb_vector_get_data(colm);
+                            sprintf(buf, "%f", dbldata[row_index]);
+                            ImGui::TextUnformatted(buf);
                             break;
                         case DUCKDB_TYPE_DECIMAL:
                             break;
