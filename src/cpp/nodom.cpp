@@ -870,6 +870,7 @@ void NDContext::render_duck_table_summary_modal(nlohmann::json& w)
     int colm_index = 0;
     duckdb_type colm_type = DUCKDB_TYPE_INVALID;
     uint64_t* colm_validity = nullptr;
+    char buf[32];
     if (ImGui::BeginPopupModal(title.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
         nlohmann::json chunk_lo_hi = nlohmann::json::array();
         chunk_lo_hi = data[cname];
@@ -890,7 +891,6 @@ void NDContext::render_duck_table_summary_modal(nlohmann::json& w)
             }
             ImGui::TableHeadersRow();
             auto row_count = duckdb_data_chunk_get_size(chunk);
-            char buf[32];
             int64_t* bidata = nullptr;
             double* dbldata = nullptr;
             for (int row_index = 0; row_index < row_count; row_index++) {
