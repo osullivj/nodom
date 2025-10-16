@@ -239,7 +239,10 @@ void NDProxy::duck_loop()
                 else {
                     db_response[error_cs] = 0;
                     duckdb_data_chunk chunk = duckdb_fetch_chunk(dbresult);
-                    db_response[chunk_cs] = reinterpret_cast<std::uintptr_t>(chunk);
+                    std::uint64_t chunk_ptr = reinterpret_cast<std::uint64_t>(chunk);
+                    std::cout << method << "chunk_ptr: " << std::hex << chunk_ptr << std::endl;
+                    // std::uint32_t will discard the hi 32 bits
+                    db_response[chunk_cs] = nlohmann::json::array({ std::uint32_t(chunk_ptr), std::uint32_t(chunk_ptr >> 32) });
                 }
             }
             // lock the result queue and post back to the GUI thread
@@ -255,7 +258,9 @@ void NDProxy::get_duck_responses(std::queue<nlohmann::json>& responses)
     static const char* method = "NDProxy::get_duck_responses: ";
     boost::unique_lock<boost::mutex> from_lock(result_mutex);
     duck_results.swap(responses);
-    std::cout << method << responses.size() << " responses" << std::endl;
+    if (!responses.empty()) {
+        std::cout << method << responses.size() << " responses" << std::endl;
+    }
 }
 
 #endif
@@ -398,12 +403,11 @@ void NDContext::on_db_event(nlohmann::json& duck_msg)
     else if (nd_type == "QueryResult") {
         db_status_color = green;
         const std::string& qid(duck_msg[query_id_cs]);
-        std::uintptr_t uintptr_chunk = duck_msg[chunk_cs];
-        std::string cname(qid);
-        cname += "_result";
-        data[cname] = uintptr_chunk;
-        // when render code gets hold of data[cname] it will need to do this...
-        // duckdb_data_chunk chunk = reinterpret_cast<duckdb_data_chunk>(uintptr_chunk);
+        nlohmann::json chunk_lo_hi = nlohmann::json::array();
+        chunk_lo_hi = duck_msg[chunk_cs];
+        std::cout << method << "chunk_ptr: " << std::hex << chunk_lo_hi << std::endl;
+        std::string cname = qid + "_result";
+        data[cname] = chunk_lo_hi;
     }
     else if (nd_type == "DuckInstance") {
         // TODO: q processing order means this doesn't happen so early in cpp
@@ -804,7 +808,7 @@ void NDContext::render_duck_parquet_loading_modal(nlohmann::json& w)
 
     // Get the parquet url list
     auto pq_urls = data[cname_cache_addr];
-    std::cout << "render_duck_parquet_loading_modal: urls: " << pq_urls << std::endl;
+    // std::cout << "render_duck_parquet_loading_modal: urls: " << pq_urls << std::endl;
 
     if (ImGui::BeginPopupModal(title.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
         for (int i = 0; i < pq_urls.size(); i++) ImGui::Text(pq_urls[i].get<std::string>().c_str());
@@ -867,8 +871,15 @@ void NDContext::render_duck_table_summary_modal(nlohmann::json& w)
     duckdb_type colm_type = DUCKDB_TYPE_INVALID;
     uint64_t* colm_validity = nullptr;
     if (ImGui::BeginPopupModal(title.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-        std::uintptr_t uintptr_chunk = data[cname];
-        duckdb_data_chunk chunk = reinterpret_cast<duckdb_data_chunk>(uintptr_chunk);
+        nlohmann::json chunk_lo_hi = nlohmann::json::array();
+        chunk_lo_hi = data[cname];
+        std::cout << method << "chunk_ptr: " << chunk_lo_hi << std::endl;
+        std::uint64_t chunk_lo = chunk_lo_hi[0];
+        std::uint64_t chunk_hi = static_cast<uint64_t>(chunk_lo_hi[1]) << 32;
+        std::uint64_t chunk_ptr = chunk_hi + chunk_lo;
+        std::cout << method << "chunk_ptr: " << std::hex << chunk_hi << "," << chunk_lo << std::endl;
+        std::cout << method << "chunk_ptr: " << chunk_ptr << std::endl;
+        duckdb_data_chunk chunk = reinterpret_cast<duckdb_data_chunk>(chunk_ptr);
         if (!chunk) {
             std::cerr << method << cname << ": null chunk!" << std::endl;
             return;
@@ -884,7 +895,7 @@ void NDContext::render_duck_table_summary_modal(nlohmann::json& w)
             double* dbldata = nullptr;
             for (int row_index = 0; row_index < row_count; row_index++) {
                 ImGui::TableNextRow();
-                for (colm_index = 0; colm_index < colm_index; colm_index++) {
+                for (colm_index = 0; colm_index < colm_count; colm_index++) {
                     ImGui::TableSetColumnIndex(colm_index);
                     colm_type = colm_types[colm_index];
                     duckdb_vector colm = duckdb_data_chunk_get_vector(chunk, colm_index);
