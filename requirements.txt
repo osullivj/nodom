@@ -10,3 +10,4 @@ pyOpenSSL
 pylsqpack
 pyarrow
 pandas
+duckdb
