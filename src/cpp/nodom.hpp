@@ -42,6 +42,9 @@ public:
     nlohmann::json  get_breadboard_config() { return bb_config; }
     std::string&    get_server_url() { return server_url; }
     void            register_ws_callback(ws_sender send) { ws_send = send; }
+#ifndef __EMSCRIPTEN__
+    void            get_duck_responses(std::queue<nlohmann::json>& responses);
+#endif
 protected:
     // DB thread
 #ifndef __EMSCRIPTEN__
@@ -75,7 +78,6 @@ private:
     boost::mutex                        query_mutex;
     boost::mutex                        result_mutex;
     boost::condition_variable           query_cond;
-    boost::condition_variable           result_cond;
 #endif
 };
 

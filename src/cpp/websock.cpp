@@ -85,7 +85,25 @@ void NDWebSockClient::on_timeout(const boost::system::error_code& e) {
     else {
         set_timer();
         // Are there any responses from the server side?
+        // NB this.server_responses will be empty at init.
+        // proxy.duck_responses may have an nd_type:DuckInstance,
+        // but no results until a scan or query happens. 
+        // get_duck_responses will swap them, then
+        // ctx.dispatch_server_responses will drain the
+        // swapped Q. Also note that NDWebSockClient::on_message
+        // is on the GUI thread and can populate server_responses,
+        // hence one check and dispatch before get_duck_responses
         if (!server_responses.empty()) {
+            // handle incoming websock from server
+            ctx.dispatch_server_responses(server_responses);
+        }
+        // Potential lock contention in get_duck_responses()
+        // which attempts to acquire server.result_mutex, when
+        // duck_loop() may be holding result_mutex to enqueue
+        // DB responses.
+        server.get_duck_responses(server_responses);
+        if (!server_responses.empty()) {
+            // now handle results from DB
             ctx.dispatch_server_responses(server_responses);
         }
 

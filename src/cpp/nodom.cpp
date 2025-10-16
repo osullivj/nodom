@@ -56,6 +56,7 @@ static const char* chunk_cs("Chunk");
 static const char* ok_cs("OK");
 static const char* cancel_cs("Cancel");
 static const char* duck_table_summary_modal_cs("DuckTableSummaryModal");
+static const char* duck_instance_cs("DuckInstance");
 
 NDProxy::NDProxy(int argc, char** argv)
     :is_duck_app(false), done(false)
@@ -93,8 +94,8 @@ NDProxy::NDProxy(int argc, char** argv)
     log_buffer << "Server URL: " << server_url << std::endl;
     std::cout << log_buffer.str() << std::endl;
 
-    if (is_duck_app) {
-
+    if (is_duck_app) {  // kick off DB thread
+        duck_thread = boost::thread(&NDProxy::duck_loop, this);
     }
 }
 
@@ -168,6 +169,13 @@ void NDProxy::duck_loop()
     if (!duck_init()) {
         exit(1);
     }
+    else {
+        // lock the result queue and post back to the GUI thread
+        nlohmann::json db_instance = { {nd_type_cs, duck_instance_cs} };
+        boost::unique_lock<boost::mutex> results_lock(result_mutex);
+        // send nd_type:DuckInstance
+        duck_results.push(db_instance);
+    }
     std::cout << method << "init done" << std::endl;
 
     nlohmann::json response_list_j = nlohmann::json::array();
@@ -240,6 +248,14 @@ void NDProxy::duck_loop()
         }
     }
     duck_fnls();
+}
+
+void NDProxy::get_duck_responses(std::queue<nlohmann::json>& responses)
+{
+    static const char* method = "NDProxy::get_duck_responses: ";
+    boost::unique_lock<boost::mutex> from_lock(result_mutex);
+    duck_results.swap(responses);
+    std::cout << method << responses.size() << " responses" << std::endl;
 }
 
 #endif

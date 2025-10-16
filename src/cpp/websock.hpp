@@ -60,7 +60,7 @@ private:
     ws_client       client;
     ws_handle       handle;
     ws_error_code   error_code;
-    NDProxy&       server;
+    NDProxy&        server;
     NDContext&      ctx;
     GLFWwindow*     window;
     std::queue<nlohmann::json>  server_responses;
