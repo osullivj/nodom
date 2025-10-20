@@ -30,6 +30,7 @@ struct DuckDBFixture {
         int32_t* idata = nullptr;
         int64_t* bidata = nullptr;
         duckdb_string_t* vcdata = nullptr;
+        double* dbldata = nullptr;
         uint64_t* colm_validity = nullptr;
         char buf[32];
 
@@ -68,6 +69,11 @@ struct DuckDBFixture {
                     sprintf(buf, "%I64d\t", bidata[row]);
                     printf(buf);
                     break;
+                case DUCKDB_TYPE_DOUBLE:    // double
+                    dbldata = (double*)duckdb_vector_get_data(colm);
+                    sprintf(buf, "%f\t", dbldata[row]);
+                    printf(buf);
+                    break;
                 case DUCKDB_TYPE_VARCHAR:   // duckdb_string_t
                     // https://duckdb.org/docs/stable/clients/c/vector#strings
                     vcdata = (duckdb_string_t*)duckdb_vector_get_data(colm);
@@ -76,6 +82,7 @@ struct DuckDBFixture {
                         memcpy(buf, vcdata[row].value.inlined.inlined, vcdata[row].value.inlined.length);
                         buf[vcdata[row].value.inlined.length] = 0;
                         printf(buf);
+                        printf("\t");
                         // yes, this fires the default ctor for
                         // std::vector<std::string> on 1st visit
                         std::vector<std::string>& strvec(varchars[col]);
@@ -83,9 +90,12 @@ struct DuckDBFixture {
                     }
                     else {
                         printf(vcdata[row].value.pointer.ptr);
+                        printf("\t");
                         std::vector<std::string>& strvec(varchars[col]);
                         strvec.push_back(vcdata[row].value.pointer.ptr);
                     }
+                    break;
+                case DUCKDB_TYPE_DECIMAL:
                     break;
                 }
                 buf[0] = 0;
