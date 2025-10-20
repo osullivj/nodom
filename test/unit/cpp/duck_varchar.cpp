@@ -5,6 +5,7 @@
 struct DuckDBFixture {
     duckdb_database db;
     duckdb_connection con;
+    std::map<idx_t, std::vector<std::string>> varchars;
 
     DuckDBFixture() {
         auto ret_val = duckdb_open(NULL, &db);
@@ -28,6 +29,7 @@ struct DuckDBFixture {
 
         int32_t* idata = nullptr;
         int64_t* bidata = nullptr;
+        duckdb_string_t* vcdata = nullptr;
         uint64_t* colm_validity = nullptr;
         char buf[32];
 
@@ -38,33 +40,54 @@ struct DuckDBFixture {
                 duckdb_logical_type type_l = duckdb_vector_get_column_type(colm);
                 duckdb_type type = duckdb_get_type_id(type_l);
                 if (!duckdb_validity_row_is_valid(colm_validity, row)) {
-                    printf("INVLD\t");
+                    printf("NULL\t");
                     continue;
                 }
+                // https://duckdb.org/docs/stable/clients/c/vector
+                // NB the type mappings
                 switch (type) {
-                    // 32 bit ints
-                case DUCKDB_TYPE_TINYINT:
-                case DUCKDB_TYPE_SMALLINT:
-                case DUCKDB_TYPE_INTEGER:
+                case DUCKDB_TYPE_TINYINT:   // int8_t
+                    break;
+                case DUCKDB_TYPE_SMALLINT:  // int16_t
+                    break;
+                case DUCKDB_TYPE_INTEGER:   // int32_t
                     idata = (int32_t*)duckdb_vector_get_data(colm);
                     sprintf(buf, "%I32d\t", idata[row]);
+                    printf(buf);
                     break;
-
-                case DUCKDB_TYPE_UTINYINT:
-                case DUCKDB_TYPE_USMALLINT:
-                case DUCKDB_TYPE_UINTEGER:
-                    // 64 bit ints
-                case DUCKDB_TYPE_UBIGINT:
+                case DUCKDB_TYPE_UTINYINT:  // uint8_t
                     break;
-                case DUCKDB_TYPE_BIGINT:
+                case DUCKDB_TYPE_USMALLINT: // uint16_t
+                    break;
+                case DUCKDB_TYPE_UINTEGER:  // uint32_t
+                    break;
+                case DUCKDB_TYPE_UBIGINT:   // uint64_t
+                    break;
+                case DUCKDB_TYPE_BIGINT:    // int64_t
                     bidata = (int64_t*)duckdb_vector_get_data(colm);
                     sprintf(buf, "%I64d\t", bidata[row]);
+                    printf(buf);
                     break;
-                case DUCKDB_TYPE_VARCHAR:
-                    printf("VCHR\t");
+                case DUCKDB_TYPE_VARCHAR:   // duckdb_string_t
+                    // https://duckdb.org/docs/stable/clients/c/vector#strings
+                    vcdata = (duckdb_string_t*)duckdb_vector_get_data(colm);
+                    if (duckdb_string_is_inlined(vcdata[row])) {
+                        // if inlined is 12 chars, there will be no zero terminator
+                        memcpy(buf, vcdata[row].value.inlined.inlined, vcdata[row].value.inlined.length);
+                        buf[vcdata[row].value.inlined.length] = 0;
+                        printf(buf);
+                        // yes, this fires the default ctor for
+                        // std::vector<std::string> on 1st visit
+                        std::vector<std::string>& strvec(varchars[col]);
+                        strvec.push_back(buf);
+                    }
+                    else {
+                        printf(vcdata[row].value.pointer.ptr);
+                        std::vector<std::string>& strvec(varchars[col]);
+                        strvec.push_back(vcdata[row].value.pointer.ptr);
+                    }
                     break;
                 }
-                printf(buf);
                 buf[0] = 0;
             }
             printf("\n");
@@ -75,15 +98,18 @@ struct DuckDBFixture {
 BOOST_FIXTURE_TEST_CASE(Varchar1, DuckDBFixture)
 {
     duckdb_result result;
+    std::vector<std::string> expercted_varchars({"Alice","BobLongerThan12", "TwelveTwelve"});
 
     // Create a table and insert data
     duckdb_query(con, "CREATE TABLE my_table(id INTEGER, name VARCHAR);", NULL);
-    duckdb_query(con, "INSERT INTO my_table VALUES (1, 'Alice'), (2, 'BobLongerThan12'), (3, NULL);", NULL);
+    duckdb_query(con, "INSERT INTO my_table VALUES (1, 'Alice'), (2, 'BobLongerThan12'), (3, 'TwelveTwelve'), (4, NULL);", NULL);
 
     auto rv = duckdb_query(con, "SELECT * FROM my_table;", &result);
     BOOST_TEST(rv == DuckDBSuccess);
     read_and_print_all_columns(result);
-
+    // [1] is a map key from colm index
+    BOOST_TEST(varchars[1].size() == 3);    // 3 non NULL in name col
+    BOOST_TEST(varchars[1] == expercted_varchars);
     // Destroy the result after use
     duckdb_destroy_result(&result);
 }
