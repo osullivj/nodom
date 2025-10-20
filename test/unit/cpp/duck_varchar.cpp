@@ -98,7 +98,7 @@ struct DuckDBFixture {
 BOOST_FIXTURE_TEST_CASE(Varchar1, DuckDBFixture)
 {
     duckdb_result result;
-    std::vector<std::string> expercted_varchars({"Alice","BobLongerThan12", "TwelveTwelve"});
+    std::vector<std::string> expected_varchars({"Alice","BobLongerThan12", "TwelveTwelve"});
 
     // Create a table and insert data
     duckdb_query(con, "CREATE TABLE my_table(id INTEGER, name VARCHAR);", NULL);
@@ -109,12 +109,26 @@ BOOST_FIXTURE_TEST_CASE(Varchar1, DuckDBFixture)
     read_and_print_all_columns(result);
     // [1] is a map key from colm index
     BOOST_TEST(varchars[1].size() == 3);    // 3 non NULL in name col
-    BOOST_TEST(varchars[1] == expercted_varchars);
+    BOOST_TEST(varchars[1] == expected_varchars);
     // Destroy the result after use
     duckdb_destroy_result(&result);
 }
 
-BOOST_AUTO_TEST_CASE(Foo2)
+BOOST_FIXTURE_TEST_CASE(Summarize, DuckDBFixture)
 {
-    BOOST_CHECK(true);
+    duckdb_result result;
+    std::vector<std::string> expected_varchars({ "Alice","BobLongerThan12", "TwelveTwelve" });
+
+    // Create a table and insert data
+    duckdb_query(con, "CREATE TABLE my_table(id INTEGER, name VARCHAR);", NULL);
+    duckdb_query(con, "INSERT INTO my_table VALUES (1, 'Alice'), (2, 'BobLongerThan12'), (3, 'TwelveTwelve'), (4, NULL);", NULL);
+
+    auto rv = duckdb_query(con, "summarize SELECT * FROM my_table;", &result);
+    BOOST_TEST(rv == DuckDBSuccess);
+    read_and_print_all_columns(result);
+    // [1] is a map key from colm index
+    BOOST_TEST(varchars[1].size() == 3);    // 3 non NULL in name col
+    BOOST_TEST(varchars[1] == expected_varchars);
+    // Destroy the result after use
+    duckdb_destroy_result(&result);
 }
