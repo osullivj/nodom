@@ -925,7 +925,10 @@ void NDContext::render_duck_table_summary_modal(nlohmann::json& w)
                                 ImGui::TextUnformatted(buf);
                             }
                             else {
-                                ImGui::TextUnformatted(vcdata[row_index].value.pointer.ptr);
+                                // NB ptr arithmetic using length to calc the end
+                                // ptr as these strings may be packed without 0 terminators
+                                ImGui::TextUnformatted(vcdata[row_index].value.pointer.ptr, 
+                                    vcdata[row_index].value.pointer.ptr + vcdata[row_index].value.pointer.length);
                             }
                             break;
                         case DUCKDB_TYPE_BIGINT:
@@ -986,13 +989,13 @@ void NDContext::render_duck_table_summary_modal(nlohmann::json& w)
     // been pushed onto the stack...
     if (ImGui::Button(ok_cs)) {
         ImGui::CloseCurrentPopup();
-        pop_widget(duck_table_summary_modal_cs);
+        pending_pops.push_back(duck_table_summary_modal_cs);
     }
     ImGui::SetItemDefaultFocus();
     ImGui::SameLine();
     if (ImGui::Button(cancel_cs)) {
         ImGui::CloseCurrentPopup();
-        pop_widget(duck_table_summary_modal_cs);
+        pending_pops.push_back(duck_table_summary_modal_cs);
     }
     ImGui::EndPopup();
 }
