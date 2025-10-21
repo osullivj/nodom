@@ -1,6 +1,7 @@
 #include <duckdb.h>
 #define BOOST_TEST_MODULE Varchar_Tests
 #include <boost/test/unit_test.hpp>
+#include <math.h>
 
 struct DuckDBFixture {
     duckdb_database db;
@@ -27,11 +28,19 @@ struct DuckDBFixture {
         idx_t row_count = duckdb_data_chunk_get_size(res_chunk);
         duckdb_vector vec = duckdb_data_chunk_get_vector(res_chunk, 0);
 
-        int32_t* idata = nullptr;
-        int64_t* bidata = nullptr;
-        duckdb_string_t* vcdata = nullptr;
-        double* dbldata = nullptr;
-        uint64_t* colm_validity = nullptr;
+        int16_t*            sidata = nullptr;
+        int32_t*            idata = nullptr;
+        int64_t*            bidata = nullptr;
+        duckdb_hugeint*     hidata = nullptr;
+        duckdb_string_t*    vcdata = nullptr;
+        double*             dbldata = nullptr;
+        uint64_t*   colm_validity = nullptr;
+        duckdb_type decimal_type;
+        uint8_t decimal_width = 0;
+        uint8_t decimal_scale = 0;
+        double  decimal_divisor = 1.0;
+        double  decimal_value = 0.0;
+
         char buf[32];
 
         for (idx_t row = 0; row < row_count; row++) {
@@ -48,8 +57,10 @@ struct DuckDBFixture {
                 // NB the type mappings
                 switch (type) {
                 case DUCKDB_TYPE_TINYINT:   // int8_t
+                    BOOST_FAIL("DUCKDB_TYPE_TINYINT unimplemented");
                     break;
                 case DUCKDB_TYPE_SMALLINT:  // int16_t
+                    BOOST_FAIL("DUCKDB_TYPE_SMALLINT unimplemented");
                     break;
                 case DUCKDB_TYPE_INTEGER:   // int32_t
                     idata = (int32_t*)duckdb_vector_get_data(colm);
@@ -57,12 +68,16 @@ struct DuckDBFixture {
                     printf(buf);
                     break;
                 case DUCKDB_TYPE_UTINYINT:  // uint8_t
+                    BOOST_FAIL("DUCKDB_TYPE_UTINYINT unimplemented");
                     break;
                 case DUCKDB_TYPE_USMALLINT: // uint16_t
+                    BOOST_FAIL("DUCKDB_TYPE_USMALLINT unimplemented");
                     break;
                 case DUCKDB_TYPE_UINTEGER:  // uint32_t
+                    BOOST_FAIL("DUCKDB_TYPE_UINTEGER unimplemented");
                     break;
                 case DUCKDB_TYPE_UBIGINT:   // uint64_t
+                    BOOST_FAIL("DUCKDB_TYPE_TINYINT unimplemented");
                     break;
                 case DUCKDB_TYPE_BIGINT:    // int64_t
                     bidata = (int64_t*)duckdb_vector_get_data(colm);
@@ -96,6 +111,28 @@ struct DuckDBFixture {
                     }
                     break;
                 case DUCKDB_TYPE_DECIMAL:
+                    // https://duckdb.org/docs/stable/clients/c/vector#decimals
+                    decimal_width = duckdb_decimal_width(type_l);
+                    decimal_scale = duckdb_decimal_scale(type_l);
+                    decimal_type = duckdb_decimal_internal_type(type_l);
+                    decimal_divisor = pow(10, decimal_scale);
+
+                    switch (decimal_type) {
+                    case DUCKDB_TYPE_SMALLINT:  // int16_t
+                        sidata = (int16_t*)duckdb_vector_get_data(colm);
+                        decimal_value = (double)sidata[row] / decimal_divisor;
+                        break;
+                    case DUCKDB_TYPE_INTEGER:   // int32_t
+                        idata = (int32_t*)duckdb_vector_get_data(colm);
+                        decimal_value = (double)idata[row] / decimal_divisor;
+                        break;
+                    case DUCKDB_TYPE_BIGINT:    // int64_t
+                        bidata = (int64_t*)duckdb_vector_get_data(colm);
+                        decimal_value = (double)bidata[row] / decimal_divisor;
+                        break;
+                    case DUCKDB_TYPE_HUGEINT:   // duckdb_hugeint: 128
+                        break;
+                    }
                     break;
                 }
                 buf[0] = 0;
