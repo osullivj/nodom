@@ -119,6 +119,7 @@ protected:
     void render_home(nlohmann::json& w);
     void render_input_int(nlohmann::json& w);
     void render_combo(nlohmann::json& w);
+    void render_checkbox(nlohmann::json& w);
     void render_separator(nlohmann::json& w);
     void render_footer(nlohmann::json& w);
     void render_same_line(nlohmann::json& w);

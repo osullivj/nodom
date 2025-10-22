@@ -33,6 +33,7 @@ static const char* sql_cs("sql");
 static const char* cspec_cs("cspec");
 static const char* cname_cs("cname");
 static const char* title_cs("title");
+static const char* text_cs("text");
 static const char* table_flags_cs("table_flags");
 static const char* path_cs("path");
 static const char* service_cs("service");
@@ -282,6 +283,7 @@ NDContext::NDContext(NDProxy& s)
     rfmap.emplace(std::string("Home"), [this](nlohmann::json& w){ render_home(w); });
     rfmap.emplace(std::string("InputInt"), [this](nlohmann::json& w) { render_input_int(w); });
     rfmap.emplace(std::string("Combo"), [this](nlohmann::json& w) { render_combo(w); });
+    rfmap.emplace(std::string("Checkbox"), [this](nlohmann::json& w) { render_checkbox(w); });
     rfmap.emplace(std::string("Separator"), [this](nlohmann::json& w) { render_separator(w); });
     rfmap.emplace(std::string("Footer"), [this](nlohmann::json& w) { render_footer(w); });
     rfmap.emplace(std::string("SameLine"), [this](nlohmann::json& w) { render_same_line(w); });
@@ -501,10 +503,12 @@ void NDContext::duck_dispatch(const std::string& nd_type, const std::string& sql
 
 void NDContext::action_dispatch(const std::string& action, const std::string& nd_event)
 {
-    std::cout << "cpp: action_dispatch: action(" << action << ")" << std::endl;
+    const static char* method = "NDContext::action_dispatch: ";
+
+    std::cout << method << "action(" << action << ")" << std::endl;
 
     if (action.empty()) {
-        std::cerr << "cpp: action_dispatch: no action specified!" << std::endl;
+        std::cerr << method << "no action specified!" << std::endl;
         return;
     }
     // Is it a pushable widget? NB this is only for self popping modals like DuckTableSummaryModal.
@@ -513,23 +517,23 @@ void NDContext::action_dispatch(const std::string& action, const std::string& nd
     // JOS 2025-02-22
     auto it = pushable.find(action);
     if (it != pushable.end() && nd_event.empty()) {
-        std::cout << "cpp: action_dispatch: pushable(" << action << ")" << std::endl;
+        std::cout << method << "pushable(" << action << ")" << std::endl;
         stack.push_back(pushable[action]);
     }
     else {
         if (!data.contains("actions")) {
-            std::cerr << "cpp: action_dispatch: no actions in data!" << std::endl;
+            std::cerr << method << "no actions in data!" << std::endl;
             return;
         }
         // get hold of "actions" in data: do we have one matching action?
         nlohmann::json& actions = data["actions"];
         if (!actions.contains(action)) {
-            std::cerr << "cpp: action_dispatch: no actions." << action << " in data!" << std::endl;
+            std::cerr << method << "no actions." << action << " in data!" << std::endl;
             return;
         }
         nlohmann::json& action_defn = actions[action];
         if (!action_defn.contains("nd_events")) {
-            std::cerr << "cpp: action_dispatch: no nd_events in actions." << action << " in data!" << std::endl;
+            std::cerr << method << "no nd_events in actions." << action << " in data!" << std::endl;
             return;
         }
         nlohmann::json nd_events = nlohmann::json::array();
@@ -543,7 +547,7 @@ void NDContext::action_dispatch(const std::string& action, const std::string& nd
             }
         }
         if (!event_match) {
-            std::cerr << "cpp: action_dispatch: no match for nd_event(" << nd_event << ") in defn(" << action_defn << ") in data!" << std::endl;
+            std::cerr << method << "no match for nd_event(" << nd_event << ") in defn(" << action_defn << ") in data!" << std::endl;
             return;
         }
         // Now we have a matched action definition in hand we can look
@@ -553,7 +557,7 @@ void NDContext::action_dispatch(const std::string& action, const std::string& nd
             // for pops we supply the rname, not the pushable name so
             // the context can check the widget type on pops
             const std::string& rname(action_defn["ui_pop"]);
-            std::cout << "cpp: action_dispatch: ui_pop(" << rname << ")" << std::endl;
+            std::cout << method << "ui_pop(" << rname << ")" << std::endl;
             pending_pops.push_back(rname);
         }
         if (action_defn.contains("ui_push")) {
@@ -562,25 +566,25 @@ void NDContext::action_dispatch(const std::string& action, const std::string& nd
             // salt'n'pepa in da house!
             auto push_it = pushable.find(widget_id);
             if (push_it != pushable.end()) {
-                std::cout << "cpp: action_dispatch: ui_push(" << widget_id << ")" << std::endl;
+                std::cout << method << "ui_push(" << widget_id << ")" << std::endl;
                 // NB action_dispatch is called by eg render_button, which ultimately is called
                 // by render(), which iterates over stack. So we cannot change stack here...
                 pending_pushes.push_back(push_it->second);
             }
             else {
-                std::cerr << "cpp: action_dispatch: ui_push(" << widget_id << ") no such pushable" << std::endl;
+                std::cerr << method << "ui_push(" << widget_id << ") no such pushable" << std::endl;
             }
         }
         // Finally, do we have a DB op to handle?
         if (action_defn.contains("db")) {
             nlohmann::json& db_op(action_defn["db"]);
             if (!db_op.contains("sql_cname") || !db_op.contains("query_id") || !db_op.contains("action")) {
-                std::cerr << "cpp: action_dispatch: db(" << db_op << ") missing sql_cname|query_id|action" << std::endl;
+                std::cerr << method << "db(" << db_op << ") missing sql_cname|query_id|action" << std::endl;
             }
             else {
                 const std::string& sql_cache_key(db_op["sql_cname"]);
                 if (!data.contains(sql_cache_key)) {
-                    std::cerr << "cpp: action_dispatch: db(" << db_op << ") sql_cname(" << sql_cache_key << ") does not resolve" << std::endl;
+                    std::cerr << method << "db(" << db_op << ") sql_cname(" << sql_cache_key << ") does not resolve" << std::endl;
                 }
                 else {
                     const std::string& sql(data[sql_cache_key]);
@@ -594,8 +598,10 @@ void NDContext::action_dispatch(const std::string& action, const std::string& nd
 
 void NDContext::render_home(nlohmann::json& w)
 {
+    const static char* method = "NDContext::render_home: ";
+
     if (!w.contains("cspec")) {
-        std::cerr << "render_home: no cspec in w(" << w << ")" << std::endl;
+        std::cerr << method << "no cspec in w(" << w << ")" << std::endl;
         return;
     }
     nlohmann::json& cspec = w["cspec"];
@@ -680,6 +686,31 @@ void NDContext::render_combo(nlohmann::json& w)
         notify_server(combo_index_cache_addr, nlohmann::json(old_val), nlohmann::json(combo_selection));
     }
 }
+
+
+void NDContext::render_checkbox(nlohmann::json& w)
+{
+    const static char* method = "NDContext::render_checkbox: ";
+
+    if (!w.contains(cspec_cs)) {
+        std::cerr << method << "no cspec in w(" << w << ")" << std::endl;
+        return;
+    }
+    const nlohmann::json& cspec(w[cspec_cs]);
+    const std::string& cname_cache_addr(cspec[cname_cs]);
+    const std::string& text(cspec[text_cs].empty() ? cname_cache_addr : cspec[title_cs]);
+
+    bool checked_value = data[cname_cache_addr];
+    bool old_checked_value = checked_value;
+
+    ImGui::Checkbox(text.c_str(), &checked_value);
+
+    if (checked_value != old_checked_value) {
+        data[cname_cache_addr] = checked_value;
+        notify_server(cname_cache_addr, nlohmann::json(old_checked_value), nlohmann::json(checked_value));
+    }
+}
+
 
 
 void NDContext::render_separator(nlohmann::json& /* w */)
