@@ -39,7 +39,7 @@ EXF_LAYOUT = [
                 cspec=dict(
                     cname='instruments',
                     index='selected_instrument',
-                    label='Instrument',
+                    text='Instrument',
                 ),
             ),
             # see src/imgui.ts for enum defns

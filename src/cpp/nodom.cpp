@@ -664,7 +664,7 @@ void NDContext::render_combo(nlohmann::json& w)
     // /cspec/cname should give us a data cache addr for the combo list
     std::string combo_list_cache_addr = w.value(nlohmann::json::json_pointer("/cspec/cname"), "render_combo_list_bad_cname");
     std::string combo_index_cache_addr = w.value(nlohmann::json::json_pointer("/cspec/index"), "render_combo_list_bad_index");
-    std::string label = w.value(nlohmann::json::json_pointer("/cspec/label"), "");
+    std::string label = w.value(nlohmann::json::json_pointer("/cspec/text"), "");
     // if no label use cache addr
     if (!label.size()) label = combo_list_cache_addr;
     int combo_count = 0;
