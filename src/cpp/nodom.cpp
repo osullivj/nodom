@@ -46,6 +46,8 @@ static const char* title_font_cs("title_font");
 static const char* title_font_size_base_cs("title_font_size_base");
 static const char* body_font_cs("body_font");
 static const char* body_font_size_base_cs("body_font_size_base");
+static const char* button_font_cs("button_font");
+static const char* button_font_size_base_cs("button_font_size_base");
 static const char* cache_response_cs("CacheResponse");
 static const char* cache_request_cs("CacheRequest");
 static const char* layout_cs("layout");
@@ -860,9 +862,9 @@ void NDContext::render_duck_table_summary_modal(nlohmann::json& w)
         table_flags = cspec[table_flags_cs];
     }
 
-    bool tpop = false;
+    bool title_pop = false;
     if (cspec.contains(title_font_cs))
-        tpop = push_font(w, title_font_cs, title_font_size_base_cs);
+        title_pop = push_font(w, title_font_cs, title_font_size_base_cs);
 
     ImGui::OpenPopup(title.c_str());
     // Always center this window when appearing
@@ -881,10 +883,11 @@ void NDContext::render_duck_table_summary_modal(nlohmann::json& w)
     uint64_t* colm_validity = nullptr;
     char buf[32];
     char fmtbuf[16];
-    bool bpop = false;
+    bool body_pop = false;
     if (ImGui::BeginPopupModal(title.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        if (title_pop) pop_font();
         if (cspec.contains(body_font_cs))
-            bpop = push_font(w, body_font_cs, body_font_size_base_cs);
+            body_pop = push_font(w, body_font_cs, body_font_size_base_cs);
 
         nlohmann::json chunk_lo_hi = nlohmann::json::array();
         chunk_lo_hi = data[cname];
@@ -994,6 +997,12 @@ void NDContext::render_duck_table_summary_modal(nlohmann::json& w)
         }
         ImGui::Separator();
     }
+    if (body_pop) pop_font();
+
+    bool button_pop = false;
+    if (cspec.contains(button_font_cs))
+        button_pop = push_font(w, button_font_cs, button_font_size_base_cs);
+
     // Note we do not invoke pop_widget() here as we're
     // rendering, and that would change the stack while
     // the topmost render method is iterating over it.
@@ -1009,9 +1018,10 @@ void NDContext::render_duck_table_summary_modal(nlohmann::json& w)
         ImGui::CloseCurrentPopup();
         pending_pops.push_back(duck_table_summary_modal_cs);
     }
-    if (bpop) pop_font();
+
+    if (button_pop) pop_font();
+
     ImGui::EndPopup();
-    if (tpop) pop_font();
 }
 
 

@@ -95,7 +95,7 @@ GLFWwindow* im_start(NDContext& ctx)
 
     // setup scaling
     ImGuiStyle& style = ImGui::GetStyle();
-    float scale = bbcfg.value("font_size_base", 20.0);
+    float scale = bbcfg.value("font_scale_dpi", 4.0);
     style.ScaleAllSizes(scale);
     style.FontScaleDpi = scale;
 
