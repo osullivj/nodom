@@ -30,7 +30,7 @@ EXF_LAYOUT = [
         rname='Home',
         cspec=dict(
             title='Eurex Futures',
-            font="Arial",
+            title_font="Arial",
         ),
         children=[
             dict(rname="PushFont", cspec=dict(font='Courier')),
@@ -97,6 +97,8 @@ EXF_LAYOUT = [
         rname='DuckTableSummaryModal',
         cspec=dict(
             title='Depth table',
+            title_font='Arial',
+            body_font='Courier',
             cname='depth_summary_result',
         ),
     ),
@@ -105,6 +107,8 @@ EXF_LAYOUT = [
         rname='DuckParquetLoadingModal',
         cspec=dict(
             title='Loading parquet...',
+            title_font='Arial',
+            body_font='Courier',
             cname='scan_urls',
         ),
     ),

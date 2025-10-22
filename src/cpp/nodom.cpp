@@ -42,6 +42,10 @@ static const char* empty_cs("");
 static const char* nodom_cs("NoDOM");
 static const char* font_cs("font");
 static const char* font_size_base_cs("font_size_base");
+static const char* title_font_cs("title_font");
+static const char* title_font_size_base_cs("title_font_size_base");
+static const char* body_font_cs("body_font");
+static const char* body_font_size_base_cs("body_font_size_base");
 static const char* cache_response_cs("CacheResponse");
 static const char* cache_request_cs("CacheRequest");
 static const char* layout_cs("layout");
@@ -285,8 +289,8 @@ NDContext::NDContext(NDProxy& s)
     rfmap.emplace(std::string("DuckTableSummaryModal"), [this](nlohmann::json& w) { render_duck_table_summary_modal(w); });
     rfmap.emplace(std::string("DuckParquetLoadingModal"), [this](nlohmann::json& w) { render_duck_parquet_loading_modal(w); });
     rfmap.emplace(std::string("Table"), [this](nlohmann::json& w) { render_table(w); });
-    rfmap.emplace(std::string("PushFont"), [this](nlohmann::json& w) { push_font(w); });
-    rfmap.emplace(std::string("PopFont"), [this](nlohmann::json& w) { pop_font(w); });
+    rfmap.emplace(std::string("PushFont"), [this](nlohmann::json& w) { render_push_font(w); });
+    rfmap.emplace(std::string("PopFont"), [this](nlohmann::json& w) { render_pop_font(w); });
 }
 
 
@@ -599,8 +603,8 @@ void NDContext::render_home(nlohmann::json& w)
     }
 
     bool fpop = false;
-    if (cspec.contains("font"))
-        fpop = push_font(w);
+    if (cspec.contains(title_font_cs))
+        fpop = push_font(w, title_font_cs, title_font_size_base_cs);
 
     ImGui::Begin(title.c_str());
     nlohmann::json& children = w["children"];
@@ -608,7 +612,7 @@ void NDContext::render_home(nlohmann::json& w)
         dispatch_render(*it);
     }
     if (fpop) {
-        pop_font(w);
+        pop_font();
     }
     ImGui::End();
 }
@@ -782,9 +786,22 @@ void NDContext::render_button(nlohmann::json& w)
 
 void NDContext::render_duck_parquet_loading_modal(nlohmann::json& w)
 {
+    const static char* method = "NDContext::render_duck_parquet_loading_modal: ";
+
     static ImVec2 position = { 0.5, 0.5 };
-    std::string cname_cache_addr = w.value(nlohmann::json::json_pointer("/cspec/cname"), "");
-    std::string title = w.value(nlohmann::json::json_pointer("/cspec/title"), "");
+
+    if (!w.contains(cspec_cs) || !w[cspec_cs].contains(cname_cs) || !w[cspec_cs].contains(title_cs)) {
+        std::cerr << method << "bad cspec in: " << w << std::endl;
+        return;
+    }
+    const nlohmann::json& cspec(w[cspec_cs]);
+    const std::string& cname_cache_addr(cspec[cname_cs]);
+    const std::string& title(cspec[title_cs].empty() ? cname_cache_addr : cspec[title_cs]);
+
+    bool tpop = false;
+    if (cspec.contains(title_font_cs))
+        tpop = push_font(w, title_font_cs, title_font_size_base_cs);
+
     ImGui::OpenPopup(title.c_str());
 
     // Always center this window when appearing
@@ -801,13 +818,18 @@ void NDContext::render_duck_parquet_loading_modal(nlohmann::json& w)
     // std::cout << "render_duck_parquet_loading_modal: urls: " << pq_urls << std::endl;
 
     if (ImGui::BeginPopupModal(title.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        bool bpop = false;
+        if (cspec.contains(body_font_cs))
+            bpop = push_font(w, body_font_cs, body_font_size_base_cs);
         for (int i = 0; i < pq_urls.size(); i++) ImGui::Text(pq_urls[i].get<std::string>().c_str());
+        if (bpop) pop_font();
         if (!ImGui::Spinner("parquet_loading_spinner", 5, 2, 0)) {
             // TODO: spinner always fails IsClippedEx on first render
             std::cerr << "render_duck_parquet_loading_modal: spinner fail" << std::endl;
         }
         ImGui::EndPopup();
     }
+    if (tpop) pop_font();
 }
 
 #define SMRY_COLM_CNT 12
@@ -838,6 +860,10 @@ void NDContext::render_duck_table_summary_modal(nlohmann::json& w)
         table_flags = cspec[table_flags_cs];
     }
 
+    bool tpop = false;
+    if (cspec.contains(title_font_cs))
+        tpop = push_font(w, title_font_cs, title_font_size_base_cs);
+
     ImGui::OpenPopup(title.c_str());
     // Always center this window when appearing
     ImGuiViewport* vp = ImGui::GetMainViewport();
@@ -855,7 +881,11 @@ void NDContext::render_duck_table_summary_modal(nlohmann::json& w)
     uint64_t* colm_validity = nullptr;
     char buf[32];
     char fmtbuf[16];
+    bool bpop = false;
     if (ImGui::BeginPopupModal(title.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        if (cspec.contains(body_font_cs))
+            bpop = push_font(w, body_font_cs, body_font_size_base_cs);
+
         nlohmann::json chunk_lo_hi = nlohmann::json::array();
         chunk_lo_hi = data[cname];
         std::cout << method << "chunk_ptr: " << chunk_lo_hi << std::endl;
@@ -979,7 +1009,9 @@ void NDContext::render_duck_table_summary_modal(nlohmann::json& w)
         ImGui::CloseCurrentPopup();
         pending_pops.push_back(duck_table_summary_modal_cs);
     }
+    if (bpop) pop_font();
     ImGui::EndPopup();
+    if (tpop) pop_font();
 }
 
 
@@ -1008,7 +1040,18 @@ void NDContext::pop_widget(const std::string& rname)
     }
 }
 
-bool NDContext::push_font(nlohmann::json& w)
+void NDContext::render_push_font(nlohmann::json& w)
+{
+    push_font(w, font_cs, font_size_base_cs);
+}
+
+void NDContext::render_pop_font(nlohmann::json& w)
+{
+    pop_font();
+}
+
+bool NDContext::push_font(nlohmann::json& w, const char* font_attr,
+    const char* font_size_base_attr)
 {
     const static char* method = "NDContext::push_font: ";
 
@@ -1017,28 +1060,28 @@ bool NDContext::push_font(nlohmann::json& w)
         return false;
     }
     const nlohmann::json& cspec(w[cspec_cs]);
-    if (!cspec.contains(font_cs)) {
-        std::cerr << method << "no font in cspec: " << w << std::endl;
+    if (!cspec.contains(font_attr)) {
+        std::cerr << method << "no " << font_attr << " in cspec : " << w << std::endl;
         return false;
     }
     bool pop_font = false;
     float font_size_base = 0.0;
-    const std::string& font_name = cspec["font"];
+    const std::string& font_name = cspec[font_attr];
     auto font_it = font_map.find(font_name);
     if (font_it != font_map.end()) {
-        if (cspec.contains(font_size_base_cs)) {
-            font_size_base = cspec[font_size_base_cs];
+        if (cspec.contains(font_size_base_attr)) {
+            font_size_base = cspec[font_size_base_attr];
         }
         ImGui::PushFont(font_it->second, font_size_base);
     }
     else {
-        std::cerr << "render_home: bad font name in cspec in w(" << w << ")" << std::endl;
+        std::cerr << method << "bad font name in cspec in w(" << w << ")" << std::endl;
         return false;
     }
     return true;
 }
 
-void NDContext::pop_font(nlohmann::json& /* w */)
+void NDContext::pop_font()
 {
     ImGui::PopFont();
 }

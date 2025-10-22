@@ -128,12 +128,15 @@ protected:
     void render_duck_table_summary_modal(nlohmann::json& w);
     void render_duck_parquet_loading_modal(nlohmann::json& w);
     void render_table(nlohmann::json& w);
+    void render_push_font(nlohmann::json& w);
+    void render_pop_font(nlohmann::json& w);
 
     void push_widget(nlohmann::json& w);
     void pop_widget(const std::string& rname = "");
 
-    bool push_font(nlohmann::json& w);
-    void pop_font(nlohmann::json& w);
+    bool push_font(nlohmann::json& w, const char* font_attr,
+                                const char* font_size_base_attr);
+    void pop_font();
 private:
     // ref to "server process"; just an abstraction of EMV vs win32
     NDProxy&                           proxy;
