@@ -695,7 +695,7 @@ void NDContext::render_footer(nlohmann::json& w)
     bool db = w.value(nlohmann::json::json_pointer("/cspec/db"), true);
     bool fps = w.value(nlohmann::json::json_pointer("/cspec/fps"), true);
     // TODO: config demo mode so it can be switched on/off in prod
-    // bool demo = w.value(nlohmann::json::json_pointer("/cspec/demo"), true);
+    bool demo = w.value(nlohmann::json::json_pointer("/cspec/demo"), true);
     bool id_stack = w.value(nlohmann::json::json_pointer("/cspec/id_stack"), true);
     // TODO: understand ems mem anlytics and restore in footer
     // bool memory = w.value(nlohmann::json::json_pointer("/cspec/memory"), true);
@@ -712,12 +712,14 @@ void NDContext::render_footer(nlohmann::json& w)
         ImGui::SameLine();
         ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
     }
-    /* TODO
     if (demo) {
-
-    } */
+        ImGui::Checkbox("Demo", &show_demo);
+        if (show_demo)  ImGui::ShowDemoWindow();
+    }
     if (id_stack) {
-        ImGui::ShowStackToolWindow();
+        ImGui::SameLine();
+        ImGui::Checkbox("IDStack", &show_id_stack);
+        if (show_id_stack)  ImGui::ShowStackToolWindow();
     }
     /* TODO
     if (memory) {

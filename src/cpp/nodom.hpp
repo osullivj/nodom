@@ -158,7 +158,9 @@ private:
     // outside the render stack walk. JOS 2025-01-31
     std::deque<nlohmann::json> pending_pushes;
     std::deque<std::string> pending_pops;
+    bool    show_demo = false;
     bool    show_id_stack = false;
+    bool    show_memory = false;
 
     // colours: https://www.w3schools.com/colors/colors_picker.asp
     ImColor red;    // ImGui.COL32(255, 51, 0);
