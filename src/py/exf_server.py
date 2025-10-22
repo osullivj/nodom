@@ -29,12 +29,8 @@ EXF_LAYOUT = [
     dict(
         rname='Home',
         cspec=dict(
-            title='Eurex Futures', font="Arial",
-            # only applicable here in the Home widget
-            gui_canvas_style_width="200px",
-            gui_canvas_style_height="100px",
-            shell_canvas_style_left="100px",
-            shell_canvas_style_top = "0px"
+            title='Eurex Futures',
+            font="Arial",
         ),
         children=[
             dict(rname="PushFont", cspec=dict(font='Courier')),
