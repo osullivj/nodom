@@ -103,6 +103,9 @@ EXF_LAYOUT = [
             button_font='Courier',
             button_font_size_base=12,
             cname='depth_summary_result',
+            # ImGuiWindowFlags_AlwaysAutoResize|ImGuiWindowFlags_HorizontalScrollbar
+            # 1 << 6 | 1 << 11
+            window_flags= 1 << 6 | 1 << 11
         ),
     ),
     dict(

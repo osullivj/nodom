@@ -35,6 +35,7 @@ static const char* cname_cs("cname");
 static const char* title_cs("title");
 static const char* text_cs("text");
 static const char* table_flags_cs("table_flags");
+static const char* window_flags_cs("window_flags");
 static const char* path_cs("path");
 static const char* service_cs("service");
 static const char* breadboard_cs("breadboard");
@@ -873,6 +874,8 @@ void NDContext::render_duck_table_summary_modal(nlohmann::json& w)
 {
     const static char* method = "NDContext::render_duck_table_summary_modal: ";
     static int default_summary_table_flags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_RowBg;
+    static int default_window_flags = ImGuiWindowFlags_AlwaysAutoResize;
+
     const static char* colm_names[SMRY_COLM_CNT] = {
         "name", "type", // DUCKDB_TYPE_VARCHAR, DUCKDB_TYPE_VARCHAR, 
         "min", "max",   // DUCKDB_TYPE_VARCHAR, DUCKDB_TYPE_VARCHAR,
@@ -893,6 +896,11 @@ void NDContext::render_duck_table_summary_modal(nlohmann::json& w)
     int table_flags = default_summary_table_flags;
     if (cspec.contains(table_flags_cs)) {
         table_flags = cspec[table_flags_cs];
+    }
+
+    int window_flags = default_window_flags;
+    if (cspec.contains(window_flags_cs)) {
+        window_flags = cspec[window_flags_cs];
     }
 
     bool title_pop = false;
@@ -917,7 +925,7 @@ void NDContext::render_duck_table_summary_modal(nlohmann::json& w)
     char buf[32];
     char fmtbuf[16];
     bool body_pop = false;
-    if (ImGui::BeginPopupModal(title.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+    if (ImGui::BeginPopupModal(title.c_str(), nullptr, window_flags)) {
         if (title_pop) pop_font();
         if (cspec.contains(body_font_cs))
             body_pop = push_font(w, body_font_cs, body_font_size_base_cs);
