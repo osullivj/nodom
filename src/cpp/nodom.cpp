@@ -828,20 +828,12 @@ void NDContext::render_duck_table_summary_modal(nlohmann::json& w)
     const static char* method = "NDContext::render_duck_table_summary_modal: ";
     static int default_summary_table_flags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_RowBg;
     const static char* colm_names[SMRY_COLM_CNT] = {
-        "name", "type",
-        "min", "max", 
-        "apxu", "avg",
-        "std", "q25", 
-        "q50", "q75", 
-        "cnt", "null"
-    };
-    const static duckdb_type colm_types[SMRY_COLM_CNT] = {
-        DUCKDB_TYPE_VARCHAR, DUCKDB_TYPE_VARCHAR, 
-        DUCKDB_TYPE_VARCHAR, DUCKDB_TYPE_VARCHAR,
-        DUCKDB_TYPE_BIGINT, DUCKDB_TYPE_DOUBLE,
-        DUCKDB_TYPE_DOUBLE, DUCKDB_TYPE_VARCHAR,
-        DUCKDB_TYPE_VARCHAR, DUCKDB_TYPE_VARCHAR,
-        DUCKDB_TYPE_BIGINT, DUCKDB_TYPE_DECIMAL
+        "name", "type", // DUCKDB_TYPE_VARCHAR, DUCKDB_TYPE_VARCHAR, 
+        "min", "max",   // DUCKDB_TYPE_VARCHAR, DUCKDB_TYPE_VARCHAR,
+        "apxu", "avg",  // DUCKDB_TYPE_BIGINT, DUCKDB_TYPE_DOUBLE,
+        "std", "q25",   // DUCKDB_TYPE_DOUBLE, DUCKDB_TYPE_VARCHAR,
+        "q50", "q75",   // DUCKDB_TYPE_VARCHAR, DUCKDB_TYPE_VARCHAR,
+        "cnt", "null"   // DUCKDB_TYPE_BIGINT, DUCKDB_TYPE_DECIMAL
     };
 
     if (!w.contains(cspec_cs) || !w[cspec_cs].contains(cname_cs) || !w[cspec_cs].contains(title_cs)) {
@@ -983,10 +975,11 @@ void NDContext::render_duck_table_summary_modal(nlohmann::json& w)
         }
         ImGui::Separator();
     }
-    // Note the pop_widget() invocations when
-    // OK or Cancel are shown. Because we're a modal,
-    // we know we're now a Home child, so we must have
-    // been pushed onto the stack...
+    // Note we do not invoke pop_widget() here as we're
+    // rendering, and that would change the stack while
+    // the topmost render method is iterating over it.
+    // Instead we add it to the list of pending_pops
+    // so top level render will invoke pop_widget for us.
     if (ImGui::Button(ok_cs)) {
         ImGui::CloseCurrentPopup();
         pending_pops.push_back(duck_table_summary_modal_cs);
