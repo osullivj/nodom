@@ -132,7 +132,7 @@ protected:
     void push_widget(nlohmann::json& w);
     void pop_widget(const std::string& rname = "");
 
-    void push_font(nlohmann::json& w);
+    bool push_font(nlohmann::json& w);
     void pop_font(nlohmann::json& w);
 private:
     // ref to "server process"; just an abstraction of EMV vs win32

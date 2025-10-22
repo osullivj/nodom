@@ -597,29 +597,18 @@ void NDContext::render_home(nlohmann::json& w)
     if (cspec.contains("title")) {
         title = cspec["title"];
     }
-    bool pop_font = false;
-    float font_size_base = 0.0;
-    if (cspec.contains("font")) {
-        std::string font_name = cspec["font"];
-        auto font_it = font_map.find(font_name);
-        if (font_it != font_map.end()) {
-            if (cspec.contains(font_size_base_cs)) {
-                font_size_base = cspec[font_size_base_cs];
-            }
-            ImGui::PushFont(font_it->second, font_size_base);
-            pop_font = true;
-        }
-        else {
-            std::cerr << "render_home: bad font cspec in w(" << w << ")" << std::endl;
-        }
-    }
+
+    bool fpop = false;
+    if (cspec.contains("font"))
+        fpop = push_font(w);
+
     ImGui::Begin(title.c_str());
     nlohmann::json& children = w["children"];
     for (nlohmann::json::iterator it = children.begin(); it != children.end(); ++it) {
         dispatch_render(*it);
     }
-    if (pop_font) {
-        ImGui::PopFont();
+    if (fpop) {
+        pop_font(w);
     }
     ImGui::End();
 }
@@ -1019,27 +1008,34 @@ void NDContext::pop_widget(const std::string& rname)
     }
 }
 
-void NDContext::push_font(nlohmann::json& w)
+bool NDContext::push_font(nlohmann::json& w)
 {
     const static char* method = "NDContext::push_font: ";
 
     if (!w.contains(cspec_cs)) {
         std::cerr << method << "bad cspec in: " << w << std::endl;
-        return;
+        return false;
     }
     const nlohmann::json& cspec(w[cspec_cs]);
     if (!cspec.contains(font_cs)) {
         std::cerr << method << "no font in cspec: " << w << std::endl;
-        return;
+        return false;
     }
-    const std::string& font_name(cspec[font_cs]);
-    const auto it = font_map.find(font_name);
-    if (it != font_map.end()) {
-        ImGui::PushFont(it->second);
+    bool pop_font = false;
+    float font_size_base = 0.0;
+    const std::string& font_name = cspec["font"];
+    auto font_it = font_map.find(font_name);
+    if (font_it != font_map.end()) {
+        if (cspec.contains(font_size_base_cs)) {
+            font_size_base = cspec[font_size_base_cs];
+        }
+        ImGui::PushFont(font_it->second, font_size_base);
     }
     else {
-        std::cerr << method << "unknown font: " << font_name << std::endl;
+        std::cerr << "render_home: bad font name in cspec in w(" << w << ")" << std::endl;
+        return false;
     }
+    return true;
 }
 
 void NDContext::pop_font(nlohmann::json& /* w */)
