@@ -873,7 +873,7 @@ void NDContext::render_duck_parquet_loading_modal(nlohmann::json& w)
 void NDContext::render_duck_table_summary_modal(nlohmann::json& w)
 {
     const static char* method = "NDContext::render_duck_table_summary_modal: ";
-    static int default_summary_table_flags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_RowBg;
+    static int default_summary_table_flags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY;
     static int default_window_flags = ImGuiWindowFlags_AlwaysAutoResize;
 
     const static char* colm_names[SMRY_COLM_CNT] = {
