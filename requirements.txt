@@ -11,3 +11,4 @@ pylsqpack
 pyarrow
 pandas
 duckdb
+slimgui
