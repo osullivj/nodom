@@ -1126,9 +1126,141 @@ void NDContext::render_duck_table_summary_modal(nlohmann::json& w)
 }
 
 
-void NDContext::render_table(nlohmann::json& /* w */)
+void NDContext::render_table(nlohmann::json& w)
 {
-    
+    const static char* method = "NDContext::render_table: ";
+    static int default_table_flags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY;
+
+    char* colm_names[64];   // TODO: get colm_names from cspec
+
+    if (!w.contains(cspec_cs) || !w[cspec_cs].contains(cname_cs) || !w[cspec_cs].contains(title_cs)) {
+        std::cerr << method << "bad cspec in: " << w << std::endl;
+        return;
+    }
+    const nlohmann::json& cspec(w[cspec_cs]);
+    const std::string& cname(cspec[cname_cs]);
+    const std::string& title(cspec[title_cs].empty() ? cname : cspec[title_cs]);
+
+    int table_flags = default_table_flags;
+    if (cspec.contains(table_flags_cs)) {
+        table_flags = cspec[table_flags_cs];
+    }
+
+    int colm_count = SMRY_COLM_CNT;
+    int colm_index = 0;
+    duckdb_type colm_type = DUCKDB_TYPE_INVALID;
+    duckdb_logical_type colm_type_l;
+    uint64_t* colm_validity = nullptr;
+    char buf[32];
+    char fmtbuf[16];
+    bool body_pop = false;
+
+    nlohmann::json chunk_lo_hi = nlohmann::json::array();
+    chunk_lo_hi = data[cname];
+    std::cout << method << "chunk_ptr: " << chunk_lo_hi << std::endl;
+    std::uint64_t chunk_lo = chunk_lo_hi[0];
+    std::uint64_t chunk_hi = static_cast<uint64_t>(chunk_lo_hi[1]) << 32;
+    std::uint64_t chunk_ptr = chunk_hi + chunk_lo;
+    std::cout << method << "chunk_ptr: " << std::hex << chunk_hi << "," << chunk_lo << std::endl;
+    std::cout << method << "chunk_ptr: " << chunk_ptr << std::endl;
+    duckdb_data_chunk chunk = reinterpret_cast<duckdb_data_chunk>(chunk_ptr);
+    if (!chunk) {
+        std::cerr << method << cname << ": null chunk!" << std::endl;
+        return;
+    }
+    if (ImGui::BeginTable(cname.c_str(), colm_count, table_flags)) {
+        for (colm_index = 0; colm_index < colm_count; colm_index++) {
+            ImGui::TableSetupColumn(colm_names[colm_index]);
+        }
+        ImGui::TableHeadersRow();
+        auto row_count = duckdb_data_chunk_get_size(chunk);
+        int16_t* sidata = nullptr;
+        int32_t* idata = nullptr;
+        int64_t* bidata = nullptr;
+        duckdb_hugeint* hidata = nullptr;
+        double* dbldata = nullptr;
+        duckdb_string_t* vcdata = nullptr;
+        duckdb_type decimal_type;
+        uint8_t decimal_width = 0;
+        uint8_t decimal_scale = 0;
+        double  decimal_divisor = 1.0;
+        double  decimal_value = 0.0;
+        for (int row_index = 0; row_index < row_count; row_index++) {
+            ImGui::TableNextRow();
+            for (colm_index = 0; colm_index < colm_count; colm_index++) {
+                ImGui::TableSetColumnIndex(colm_index);
+                duckdb_vector colm = duckdb_data_chunk_get_vector(chunk, colm_index);
+                colm_validity = duckdb_vector_get_validity(colm);
+                duckdb_logical_type colm_type_l = duckdb_vector_get_column_type(colm);
+                duckdb_type colm_type = duckdb_get_type_id(colm_type_l);
+
+                if (duckdb_validity_row_is_valid(colm_validity, row_index)) {
+                    switch (colm_type) {
+                    case DUCKDB_TYPE_VARCHAR:
+                        vcdata = (duckdb_string_t*)duckdb_vector_get_data(colm);
+                        if (duckdb_string_is_inlined(vcdata[row_index])) {
+                            // if inlined is 12 chars, there will be no zero terminator
+                            memcpy(buf, vcdata[row_index].value.inlined.inlined, vcdata[row_index].value.inlined.length);
+                            buf[vcdata[row_index].value.inlined.length] = 0;
+                            ImGui::TextUnformatted(buf);
+                        }
+                        else {
+                            // NB ptr arithmetic using length to calc the end
+                            // ptr as these strings may be packed without 0 terminators
+                            ImGui::TextUnformatted(vcdata[row_index].value.pointer.ptr,
+                                vcdata[row_index].value.pointer.ptr + vcdata[row_index].value.pointer.length);
+                        }
+                        break;
+                    case DUCKDB_TYPE_BIGINT:
+                        bidata = (int64_t*)duckdb_vector_get_data(colm);
+                        sprintf(buf, "%I64d", bidata[row_index]);
+                        ImGui::TextUnformatted(buf);
+                        break;
+                    case DUCKDB_TYPE_DOUBLE:
+                        dbldata = (double_t*)duckdb_vector_get_data(colm);
+                        sprintf(buf, "%f", dbldata[row_index]);
+                        ImGui::TextUnformatted(buf);
+                        break;
+                    case DUCKDB_TYPE_DECIMAL:
+                        decimal_width = duckdb_decimal_width(colm_type_l);
+                        decimal_scale = duckdb_decimal_scale(colm_type_l);
+                        decimal_type = duckdb_decimal_internal_type(colm_type_l);
+                        decimal_divisor = pow(10, decimal_scale);
+
+                        switch (decimal_type) {
+                        case DUCKDB_TYPE_SMALLINT:  // int16_t
+                            sidata = (int16_t*)duckdb_vector_get_data(colm);
+                            decimal_value = (double)sidata[row_index] / decimal_divisor;
+                            break;
+                        case DUCKDB_TYPE_INTEGER:   // int32_t
+                            idata = (int32_t*)duckdb_vector_get_data(colm);
+                            decimal_value = (double)idata[row_index] / decimal_divisor;
+                            break;
+                        case DUCKDB_TYPE_BIGINT:    // int64_t
+                            bidata = (int64_t*)duckdb_vector_get_data(colm);
+                            decimal_value = (double)bidata[row_index] / decimal_divisor;
+                            break;
+                        case DUCKDB_TYPE_HUGEINT:   // duckdb_hugeint: 128
+                            hidata = (duckdb_hugeint*)duckdb_vector_get_data(colm);
+                            decimal_value = duckdb_hugeint_to_double(hidata[row_index]) / decimal_divisor;
+                            break;
+                        }
+                        // decimal scale 2 means we want "%.2f"
+                        // NB %% is the "escape sequence" for %
+                        // in a printf format, not \%.
+                        sprintf(fmtbuf, "%%.%df", decimal_scale);
+                        sprintf(buf, fmtbuf, decimal_value);
+                        ImGui::TextUnformatted(buf);
+                        break;
+                    }
+                }
+                else {
+                    ImGui::TextUnformatted(null_cs);
+                }
+            }
+        }
+        ImGui::EndTable();
+    }
 }
 
 void NDContext::push_widget(nlohmann::json& w)
