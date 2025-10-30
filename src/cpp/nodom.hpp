@@ -131,6 +131,10 @@ protected:
     void render_table(nlohmann::json& w);
     void render_push_font(nlohmann::json& w);
     void render_pop_font(nlohmann::json& w);
+    void render_begin_child(nlohmann::json& w);
+    void render_end_child(nlohmann::json& w);
+    void render_begin_group(nlohmann::json& w);
+    void render_end_group(nlohmann::json& w);
 
     void push_widget(nlohmann::json& w);
     void pop_widget(const std::string& rname = "");

@@ -37,6 +37,7 @@ static const char* text_cs("text");
 static const char* table_flags_cs("table_flags");
 static const char* combo_flags_cs("combo_flags");
 static const char* window_flags_cs("window_flags");
+static const char* child_flags_cs("child_flags");
 static const char* path_cs("path");
 static const char* service_cs("service");
 static const char* breadboard_cs("breadboard");
@@ -56,6 +57,7 @@ static const char* year_month_font_size_base_cs("year_month_font_size_base");
 static const char* day_date_font_cs("day_date_font");
 static const char* day_date_font_size_base_cs("day_date_font_size_base");
 static const char* spinner_radius_cs("spinner_radius");
+static const char* size_cs("size");
 static const char* spinner_thickness_cs("spinner_thickness");
 static const char* cache_response_cs("CacheResponse");
 static const char* cache_request_cs("CacheRequest");
@@ -303,6 +305,11 @@ NDContext::NDContext(NDProxy& s)
     rfmap.emplace(std::string("Table"), [this](nlohmann::json& w) { render_table(w); });
     rfmap.emplace(std::string("PushFont"), [this](nlohmann::json& w) { render_push_font(w); });
     rfmap.emplace(std::string("PopFont"), [this](nlohmann::json& w) { render_pop_font(w); });
+    rfmap.emplace(std::string("BeginChild"), [this](nlohmann::json& w) { render_begin_child(w); });
+    rfmap.emplace(std::string("EndChild"), [this](nlohmann::json& w) { render_end_child(w); });
+    rfmap.emplace(std::string("BeginGroup"), [this](nlohmann::json& w) { render_begin_group(w); });
+    rfmap.emplace(std::string("EndGroup"), [this](nlohmann::json& w) { render_end_group(w); });
+
 }
 
 
@@ -1153,6 +1160,51 @@ void NDContext::render_pop_font(nlohmann::json& w)
 {
     pop_font();
 }
+
+void NDContext::render_begin_child(nlohmann::json& w)
+{
+    const static char* method = "NDContext::render_begin_child: ";
+
+    // NB BeginChild is a grouping mechahism, so there's no single
+    // cache datum to which we refer, so no cname. However, we do look
+    // require a title (for imgui ID purposes) and we can have styling
+    // attributes like ImGuiChildFlags
+    if (!w.contains(cspec_cs) || !w[cspec_cs].contains(title_cs)) {
+        std::cerr << method << "bad cspec in: " << w << std::endl;
+        return;
+    }
+    const nlohmann::json& cspec(w[cspec_cs]);
+    const std::string& title(cspec[title_cs]);
+
+    int child_flags = 0;
+    if (cspec.contains(child_flags_cs)) {
+        child_flags = cspec[child_flags_cs];
+    }
+    ImVec2 size{ 0, 0 };
+    if (cspec.contains(size_cs)) {
+        nlohmann::json size_tup2 = nlohmann::json::array();
+        size_tup2 = cspec[size_cs];
+        size[0] = size_tup2.at(0);
+        size[1] = size_tup2.at(1);
+    }
+    ImGui::BeginChild(title.c_str(), size, child_flags);
+}
+
+void NDContext::render_end_child(nlohmann::json& w)
+{
+    ImGui::EndChild();
+}
+
+void NDContext::render_begin_group(nlohmann::json& w)
+{
+    ImGui::BeginGroup();
+}
+
+void NDContext::render_end_group(nlohmann::json& w)
+{
+    ImGui::EndGroup();
+}
+
 
 bool NDContext::push_font(nlohmann::json& w, const char* font_attr,
     const char* font_size_base_attr)
