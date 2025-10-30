@@ -798,6 +798,9 @@ void NDContext::render_date_picker(nlohmann::json& w)
                 if (cspec.contains(year_month_font_size_base_cs))
                     year_month_font_size_base = cspec[year_month_font_size_base_cs];
             }
+            else {
+                std::cerr << method << ym_font << " not in font_map" << std::endl;
+            }
         }
         if (cspec.contains(day_date_font_cs)) {
             const std::string& dd_font(cspec[day_date_font_cs]);
@@ -806,6 +809,9 @@ void NDContext::render_date_picker(nlohmann::json& w)
                 day_date_font = font_it->second;
                 if (cspec.contains(day_date_font_size_base_cs))
                     day_date_font_size_base = cspec[day_date_font_size_base_cs];
+            }
+            else {
+                std::cerr << method << dd_font << " not in font_map" << std::endl;
             }
         }
         int table_flags = default_table_flags;
