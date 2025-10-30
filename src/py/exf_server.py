@@ -51,10 +51,10 @@ EXF_LAYOUT = [
                 rname='DatePicker',
                 cspec=dict(
                     cname='start_date',
-                    year_month_font='Arial',
-                    year_month_font_size_base=8,
+                    year_month_font='Courier',
+                    year_month_font_size_base=12,
                     day_date_font='Arial',
-                    day_date_font_size_base=6,
+                    day_date_font_size_base=8,
                     table_flags=0,
                     combo_flags=ComboFlags.HEIGHT_LARGE
                 ),
@@ -69,7 +69,12 @@ EXF_LAYOUT = [
                 rname='DatePicker',
                 cspec=dict(
                     cname='end_date',
+                    year_month_font='Courier',
+                    year_month_font_size_base=12,
+                    day_date_font='Arial',
+                    day_date_font_size_base=8,
                     table_flags=0,
+                    combo_flags=ComboFlags.HEIGHT_LARGE
                 ),
             ),
             dict(rname='SameLine'),
