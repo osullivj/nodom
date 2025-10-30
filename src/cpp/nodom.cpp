@@ -35,6 +35,7 @@ static const char* cname_cs("cname");
 static const char* title_cs("title");
 static const char* text_cs("text");
 static const char* table_flags_cs("table_flags");
+static const char* combo_flags_cs("combo_flags");
 static const char* window_flags_cs("window_flags");
 static const char* path_cs("path");
 static const char* service_cs("service");
@@ -50,6 +51,10 @@ static const char* body_font_cs("body_font");
 static const char* body_font_size_base_cs("body_font_size_base");
 static const char* button_font_cs("button_font");
 static const char* button_font_size_base_cs("button_font_size_base");
+static const char* year_month_font_cs("year_month_font");
+static const char* year_month_font_size_base_cs("year_month_font_size_base");
+static const char* day_date_font_cs("day_date_font");
+static const char* day_date_font_size_base_cs("day_date_font_size_base");
 static const char* cache_response_cs("CacheResponse");
 static const char* cache_request_cs("CacheRequest");
 static const char* layout_cs("layout");
@@ -768,20 +773,54 @@ void NDContext::render_same_line(nlohmann::json& /* w */)
 
 void NDContext::render_date_picker(nlohmann::json& w)
 {
+    const static char* method = "NDContext::render_date_picker: ";
+
     static int default_table_flags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_SizingFixedSame;
+    static int default_combo_flags = ImGuiComboFlags_HeightRegular;
     //| ImGuiTableFlags_SizingFixedSame |
     //    ImGuiTableFlags_NoHostExtendX | ImGuiTableFlags_NoHostExtendY;
     static int ymd_i[3] = { 0, 0, 0 };
-    static float tsz[2] = { /*274.5,301.5 */ 0.0, 0.0};
+    ImFont* year_month_font = nullptr;
+    ImFont* day_date_font = nullptr;
+    uint32_t year_month_font_size_base = 0;
+    uint32_t day_date_font_size_base = 0;
     try {
-        int flags = w.value(nlohmann::json::json_pointer("/cspec/table_flags"), default_table_flags);
+        if (!w.contains("cspec")) {
+            std::cerr << method << "no cspec in w(" << w << ")" << std::endl;
+            return;
+        }
+        nlohmann::json& cspec = w["cspec"];
+        if (cspec.contains(year_month_font_cs)) {
+            const std::string& ym_font(cspec[year_month_font_cs]);
+            auto font_it = font_map.find(ym_font);
+            if (font_it != font_map.end()) {
+                year_month_font = font_it->second;
+                if (cspec.contains(year_month_font_size_base_cs))
+                    year_month_font_size_base = cspec[year_month_font_size_base_cs];
+            }
+        }
+        if (cspec.contains(day_date_font_cs)) {
+            const std::string& dd_font(cspec[day_date_font_cs]);
+            auto font_it = font_map.find(dd_font);
+            if (font_it != font_map.end()) {
+                day_date_font = font_it->second;
+                if (cspec.contains(day_date_font_size_base_cs))
+                    day_date_font_size_base = cspec[day_date_font_size_base_cs];
+            }
+        }
+        int table_flags = default_table_flags;
+        if (cspec.contains(table_flags_cs))
+            table_flags = cspec[table_flags_cs];
+        int combo_flags = default_combo_flags;
+        if (cspec.contains(combo_flags_cs))
+            combo_flags = cspec[combo_flags_cs];
         std::string ckey = w.value(nlohmann::json::json_pointer("/cspec/cname"), "render_date_picker_bad_cname");
         nlohmann::json ymd_old_j = nlohmann::json::array();
         ymd_old_j = data[ckey];
         ymd_i[0] = ymd_old_j.at(0);
         ymd_i[1] = ymd_old_j.at(1);
         ymd_i[2] = ymd_old_j.at(2);
-        if (ImGui::DatePicker(ckey.c_str(), ymd_i, tsz, false, flags)) {
+        if (ImGui::DatePicker(ckey.c_str(), ymd_i, combo_flags, table_flags, year_month_font, day_date_font, year_month_font_size_base, day_date_font_size_base)) {
             nlohmann::json ymd_new_j = nlohmann::json::array();
             ymd_new_j.push_back(ymd_i[0]);
             ymd_new_j.push_back(ymd_i[1]);
