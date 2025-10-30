@@ -126,6 +126,8 @@ EXF_LAYOUT = [
             title_font='Arial',
             body_font='Courier',
             cname='scan_urls',
+            spinner_radius=20,
+            spinner_thickness=4
         ),
     ),
 ]
