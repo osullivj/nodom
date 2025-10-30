@@ -55,6 +55,8 @@ static const char* year_month_font_cs("year_month_font");
 static const char* year_month_font_size_base_cs("year_month_font_size_base");
 static const char* day_date_font_cs("day_date_font");
 static const char* day_date_font_size_base_cs("day_date_font_size_base");
+static const char* spinner_radius_cs("spinner_radius");
+static const char* spinner_thickness_cs("spinner_thickness");
 static const char* cache_response_cs("CacheResponse");
 static const char* cache_request_cs("CacheRequest");
 static const char* layout_cs("layout");
@@ -904,7 +906,13 @@ void NDContext::render_duck_parquet_loading_modal(nlohmann::json& w)
             bpop = push_font(w, body_font_cs, body_font_size_base_cs);
         for (int i = 0; i < pq_urls.size(); i++) ImGui::Text(pq_urls[i].get<std::string>().c_str());
         if (bpop) pop_font();
-        if (!ImGui::Spinner("parquet_loading_spinner", 5, 2, 0)) {
+        int spinner_radius = 5;
+        int spinner_thickness = 2;
+        if (cspec.contains(spinner_radius_cs))
+            spinner_radius = cspec[spinner_radius_cs];
+        if (cspec.contains(spinner_thickness_cs))
+            spinner_thickness = cspec[spinner_thickness_cs];
+        if (!ImGui::Spinner("parquet_loading_spinner", spinner_radius, spinner_thickness, 0)) {
             // TODO: spinner always fails IsClippedEx on first render
             std::cerr << "render_duck_parquet_loading_modal: spinner fail" << std::endl;
         }
