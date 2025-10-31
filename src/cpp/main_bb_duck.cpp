@@ -20,8 +20,10 @@
 #endif
 #include <GLFW/glfw3.h> // Will drag system OpenGL headers
 
+#include "static_strings.hpp"
 #include "nodom.hpp"
 #include "im_render.hpp"
+
 
 // NoDOM: this main.cpp is intended to stay as close as possible
 // to the imgui/examples/example_glfw_opengl3/main.cpp as that's 
@@ -34,15 +36,10 @@
 #pragma comment(lib, "legacy_stdio_definitions")
 #endif
 
-
-
-static ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-
-
 int main(int argc, char* argv[]) {
     NDProxy server(argc, argv);
-    NDContext<nlohmann::json> ctx(server);
 #ifndef __EMSCRIPTEN__
+    NDContext<nlohmann::json> ctx(server);
     try {
         NDWebSockClient ws_client(server, ctx);
         ws_client.run();
@@ -51,6 +48,7 @@ int main(int argc, char* argv[]) {
         std::cout << e.what() << std::endl;
     }
 #else
+    NDContext<emscripten::val> ctx(server);
     GLFWwindow* window = im_start(ctx);
     // For an Emscripten build we are disabling file-system access, so let's not attempt to do a fopen() of the imgui.ini file.
     // You may manually call LoadIniSettingsFromMemory() to load settings from your own storage.

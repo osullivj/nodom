@@ -167,8 +167,8 @@
     <ClCompile Include="..\..\imgui\imgui_draw.cpp" />
     <ClCompile Include="..\..\imgui\imgui_tables.cpp" />
     <ClCompile Include="..\..\imgui\imgui_widgets.cpp" />
-    <ClCompile Include="main.cpp" />
-    <ClCompile Include="nodom.cpp" />
+    <ClCompile Include="main_bb_duck.cpp" />
+    <ClCompile Include="proxy.cpp" />
     <ClCompile Include="websock.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -177,8 +177,13 @@
     <ClInclude Include="..\..\imgui\imgui.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
     </ClInclude>
+    <ClInclude Include="db_cache.hpp" />
+    <ClInclude Include="im_render.hpp" />
     <ClInclude Include="json.hpp" />
+    <ClInclude Include="json_cache.hpp" />
     <ClInclude Include="nodom.hpp" />
+    <ClInclude Include="proxy.hpp" />
+    <ClInclude Include="static_strings.hpp" />
     <ClInclude Include="websock.hpp" />
   </ItemGroup>
   <ItemGroup>
