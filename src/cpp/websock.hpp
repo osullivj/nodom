@@ -24,7 +24,7 @@
 #include <websocketpp/config/asio_no_tls_client.hpp>
 #include <websocketpp/client.hpp>
 
-#include "nodom.hpp"        // NDContext template
+#include "context.hpp"        // NDContext template
 #include "im_render.hpp"    // im_start, im_render, im_end
 
 typedef websocketpp::client<websocketpp::config::asio_client>               ws_client;
