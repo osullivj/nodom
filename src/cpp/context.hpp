@@ -184,7 +184,7 @@ public:
         }
     }
 
-    bool duck_app() { return proxy.duck_app(); }
+    bool db_app() { return proxy.db_app(); }
     void set_done(bool d) {
         // TODO: add code to do proxy.set_done() so the
         // duck_loop exits
@@ -229,10 +229,10 @@ public:
             // so we can just flip status button color here
             db_status_color = amber;
             // send a test query
-            duck_dispatch("Query", "select 1729;", "ramanujan");
+            db_dispatch("Query", "select 1729;", "ramanujan");
         }
         else {
-            std::cerr << "NDContext::on_duck_event: unexpected nd_type in " << duck_msg << std::endl;
+            std::cerr << "NDContext::on_db_event: unexpected nd_type in " << duck_msg << std::endl;
         }
     }
 
@@ -375,17 +375,17 @@ protected:
                     }
                     else {
                         const std::string& sql(data[sql_cache_key]);
-                        duck_dispatch(db_op["action"], sql, db_op["query_id"]);
+                        db_dispatch(db_op["action"], sql, db_op["query_id"]);
                     }
                 }
             }
         }
     }
 
-    void duck_dispatch(const std::string& nd_type, const std::string& sql, const std::string& qid) {
+    void db_dispatch(const std::string& nd_type, const std::string& sql, const std::string& qid) {
         const static char* method = "NDContext::duck_dispatch: ";
-        JSON duck_request = { {nd_type_cs, nd_type}, {sql_cs, sql}, {query_id_cs, qid} };
-        proxy.duck_dispatch(duck_request);
+        JSON db_request = { {nd_type_cs, nd_type}, {sql_cs, sql}, {query_id_cs, qid} };
+        proxy.db_dispatch(db_request);
 
     }
 

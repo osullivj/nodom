@@ -5,7 +5,7 @@
 #include "static_strings.hpp"
 
 NDProxy::NDProxy(int argc, char** argv)
-    :is_duck_app(false), done(false)
+    :is_db_app(false), done(false)
 {
     std::string usage("breadboard <breadboard_config_json_path> <test_dir> [<server_url>]");
     if (argc < 2) {
@@ -26,7 +26,7 @@ NDProxy::NDProxy(int argc, char** argv)
         json_buffer << in_file_stream.rdbuf();
         bb_config = nlohmann::json::parse(json_buffer);
         server_url = bb_config["server_url"];
-        is_duck_app = bb_config["duck_app"];
+        is_db_app = bb_config["db_app"];
     }
     catch (...) {
         printf("cannot load breadboard.json");
@@ -40,8 +40,8 @@ NDProxy::NDProxy(int argc, char** argv)
     log_buffer << "Server URL: " << server_url << std::endl;
     std::cout << log_buffer.str() << std::endl;
 
-    if (is_duck_app) {  // kick off DB thread
-        duck_thread = boost::thread(&NDProxy::duck_loop, this);
+    if (is_db_app) {  // kick off DB thread
+        db_thread = boost::thread(&NDProxy::db_loop, this);
     }
 }
 
@@ -69,7 +69,7 @@ void NDProxy::notify_server(const std::string& caddr, nlohmann::json& old_val, n
     }
 }
 
-void NDProxy::duck_dispatch(nlohmann::json& db_request)
+void NDProxy::db_dispatch(nlohmann::json& db_request)
 {
     const static char* method = "NDProxy::duck_dispatch: ";
 
@@ -77,7 +77,7 @@ void NDProxy::duck_dispatch(nlohmann::json& db_request)
     try {
         // grab lock for this Q: should be free as ::duck_loop should be in to_cond.wait()
         boost::unique_lock<boost::mutex> request_lock(query_mutex);
-        duck_queries.push(db_request);
+        db_queries.push(db_request);
     }
     catch (...) {
         std::cerr << "duck_dispatch EXCEPTION!" << std::endl;
@@ -88,7 +88,8 @@ void NDProxy::duck_dispatch(nlohmann::json& db_request)
 
 
 #ifndef __EMSCRIPTEN__
-bool NDProxy::duck_init()
+#ifdef NODOM_DUCK
+bool NDProxy::db_init()
 {
     if (duckdb_open(NULL, &duck_db) == DuckDBError) {
         std::cerr << "DuckDB instantiation failed" << std::endl;
@@ -101,18 +102,18 @@ bool NDProxy::duck_init()
     return true;
 }
 
-void NDProxy::duck_fnls()
+void NDProxy::db_fnls()
 {
     duckdb_disconnect(&duck_conn);
     duckdb_close(&duck_db);
 }
 
-void NDProxy::duck_loop()
+void NDProxy::db_loop()
 {
     static const char* method = "NDProxy::duck_loop: ";
 
     std::cout << method << "starting..." << std::endl;
-    if (!duck_init()) {
+    if (!db_init()) {
         exit(1);
     }
     else {
@@ -120,7 +121,7 @@ void NDProxy::duck_loop()
         nlohmann::json db_instance = { {nd_type_cs, duck_instance_cs} };
         boost::unique_lock<boost::mutex> results_lock(result_mutex);
         // send nd_type:DuckInstance
-        duck_results.push(db_instance);
+        db_results.push(db_instance);
     }
     std::cout << method << "init done" << std::endl;
 
@@ -144,10 +145,10 @@ void NDProxy::duck_loop()
         query_cond.wait(to_lock);
         // thead quiesces in the wait above, with query_mutex
         // unlocked so the C++ thread can add work items
-        std::cout << method << "duck_queries depth : " << duck_queries.size() << std::endl;
-        while (!duck_queries.empty()) {
-            nlohmann::json db_request(duck_queries.front());
-            duck_queries.pop();
+        std::cout << method << "db_queries depth : " << db_queries.size() << std::endl;
+        while (!db_queries.empty()) {
+            nlohmann::json db_request(db_queries.front());
+            db_queries.pop();
             if (!db_request.contains(nd_type_cs)) {
                 std::cerr << method << "nd_type missing: " << db_request << std::endl;
                 continue;
@@ -193,17 +194,18 @@ void NDProxy::duck_loop()
             }
             // lock the result queue and post back to the GUI thread
             boost::unique_lock<boost::mutex> results_lock(result_mutex);
-            duck_results.push(db_response);
+            db_results.push(db_response);
         }
     }
-    duck_fnls();
+    db_fnls();
 }
-
-void NDProxy::get_duck_responses(std::queue<nlohmann::json>& responses)
+#else // sqllite
+#endif // NODOM_DUCK
+void NDProxy::get_db_responses(std::queue<nlohmann::json>& responses)
 {
-    static const char* method = "NDProxy::get_duck_responses: ";
+    static const char* method = "NDProxy::get_db_responses: ";
     boost::unique_lock<boost::mutex> from_lock(result_mutex);
-    duck_results.swap(responses);
+    db_results.swap(responses);
     if (!responses.empty()) {
         std::cout << method << responses.size() << " responses" << std::endl;
     }

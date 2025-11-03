@@ -124,7 +124,7 @@ protected:
             // which attempts to acquire server.result_mutex, when
             // duck_loop() may be holding result_mutex to enqueue
             // DB responses.
-            server.get_duck_responses(server_responses);
+            server.get_db_responses(server_responses);
             if (!server_responses.empty()) {
                 // now handle results from DB
                 ctx.dispatch_server_responses(server_responses);
