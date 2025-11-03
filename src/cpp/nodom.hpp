@@ -243,7 +243,7 @@ public:
         // like parquet_loading_modal have to be explicitly pushed
         // on to the render stack by an event. JOS 2025-01-31
         // Fonts appear in layout now. JOS 2025-07-29
-        for (JSON::iterator it = layout.begin(); it != layout.end(); ++it) {
+        for (typename JSON::iterator it = layout.begin(); it != layout.end(); ++it) {
             std::cout << method << *it << std::endl;
             // NB we used it->value("wiget_id", "") in nlohmann::json
             // to extract child value. emscripten::val doesn't implement
@@ -251,7 +251,7 @@ public:
             // both support.
             const JSON& w(*it);
             if (w.contains("widget_id")) {
-                const std::string& widget_id = w["widget_id"].get<std::string>();
+                const std::string& widget_id = w["widget_id"].template get<std::string>();
                 if (!widget_id.empty()) {
                     std::cout << method << "pushable: " << widget_id << ":" << *it << std::endl;
                     pushable[widget_id] = *it;
@@ -409,7 +409,7 @@ protected:
 
         ImGui::Begin(title.c_str());
         JSON& children = w["children"];
-        for (JSON::iterator it = children.begin(); it != children.end(); ++it) {
+        for (typename JSON::iterator it = children.begin(); it != children.end(); ++it) {
             dispatch_render(*it);
         }
         if (fpop) {
@@ -438,7 +438,7 @@ protected:
         int flags = 0;
         if (cspec.contains("flags")) flags = cspec["flags"];
         // one param by ref: the int itself
-        std::string& cname_cache_addr = cspec["cname"].get<std::string>();
+        std::string& cname_cache_addr = cspec["cname"].template get<std::string>();
         // if no label use cache addr
         if (!label.size()) label = cname_cache_addr;
         // local static copy of cache val
@@ -477,8 +477,8 @@ protected:
         if (cspec.contains("step")) step = cspec["step"];
         // no value params in layout here; all combo layout is data cache refs
         // /cspec/cname should give us a data cache addr for the combo list
-        std::string& combo_list_cache_addr(cspec["cname"].get<std::string>());
-        std::string& combo_index_cache_addr(cspec["index"].get<std::string>());
+        std::string& combo_list_cache_addr(cspec["cname"].template get<std::string>());
+        std::string& combo_index_cache_addr(cspec["index"].template get<std::string>());
         // if no label use cache addr
         if (!label.size()) label = combo_list_cache_addr;
         int combo_count = 0;
@@ -619,7 +619,7 @@ protected:
             int combo_flags = default_combo_flags;
             if (cspec.contains(combo_flags_cs))
                 combo_flags = cspec[combo_flags_cs];
-            std::string& ckey(cspec["cname"].get<std::string>());
+            std::string& ckey(cspec["cname"].template get<std::string>());
             JSON ymd_old_j = JSON::array();
             ymd_old_j = data[ckey];
             ymd_i[0] = ymd_old_j.at(0);
@@ -643,7 +643,7 @@ protected:
             return;
         }
         const JSON& cspec(w[cspec_cs]);
-        std::string& rtext = cspec["text"].get<std::string>();
+        std::string& rtext = cspec["text"].template get<std::string>();
         ImGui::Text(rtext.c_str());
     }
 
