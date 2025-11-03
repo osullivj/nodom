@@ -1,5 +1,8 @@
 #pragma once
 #include <string>
+#include <iostream>
+#include <fstream>
+#include <filesystem>
 #include <map>
 #include <queue>
 #ifndef __EMSCRIPTEN__
@@ -11,35 +14,55 @@
 
 #define ND_WC_BUF_SZ 256
 
-typedef std::function<void(const std::string&)> ws_sender;
 
 // NDProxy encapsulates the server side. In Breadboard it also hosts
 // the DuckDB instance.
-
-class NDProxy {
+template <typename DB>
+class NDProxy : public DB {
 public:
-    NDProxy(int argc, char** argv);
-    virtual         ~NDProxy();
+    NDProxy(int argc, char** argv) {
+        std::string usage("breadboard <breadboard_config_json_path> <test_dir> [<server_url>]");
+        if (argc < 2) {
+            printf("breadboard <breadboard_config_json_path>");
+            exit(1);
+        }
+        exe = argv[0];
+        bb_json_path = argv[1];
+
+        if (!std::filesystem::exists(bb_json_path)) {
+            std::cerr << usage << std::endl << "Cannot load breadboard config json from " << bb_json_path << std::endl;
+            exit(1);
+        }
+        try {
+            // breadboard.json specifies the base paths for the embedded py
+            std::stringstream json_buffer;
+            std::ifstream in_file_stream(bb_json_path);
+            json_buffer << in_file_stream.rdbuf();
+            bb_config = nlohmann::json::parse(json_buffer);
+            server_url = bb_config["server_url"];
+            is_db_app = bb_config["db_app"];
+        }
+        catch (...) {
+            printf("cannot load breadboard.json");
+            exit(1);
+        }
+
+        std::stringstream log_buffer;
+        log_buffer << "NoDOM starting with..." << std::endl;
+        log_buffer << "exe: " << exe << std::endl;
+        log_buffer << "Breadboard config json: " << bb_json_path << std::endl;
+        log_buffer << "Server URL: " << server_url << std::endl;
+        std::cout << log_buffer.str() << std::endl;
+    }
+    virtual         ~NDProxy() {};
 
     bool            db_app() { return is_db_app; }
-
-    // GUI thread
-    void            notify_server(const std::string& caddr, nlohmann::json& old_val, nlohmann::json& new_val);
-    void            db_dispatch(nlohmann::json& db_request);
     void            set_done(bool d) { done = d; }
     nlohmann::json  get_breadboard_config() { return bb_config; }
-    std::string& get_server_url() { return server_url; }
-#ifndef __EMSCRIPTEN__
-    void            register_ws_callback(ws_sender send) { ws_send = send; }
-    void            get_db_responses(std::queue<nlohmann::json>& responses);
-#endif
+    std::string&    get_server_url() { return server_url; }
+
 protected:
-    // DB thread
-#ifndef __EMSCRIPTEN__
-    bool            db_init();
-    void            db_fnls();
-    void            db_loop();
-#endif
+
 private:
     nlohmann::json                      bb_config;
     bool                                is_db_app;
@@ -50,24 +73,6 @@ private:
     // these three test config strings are written once at startup
     // time in the cpp thread, and read from the py thread
     std::string                         test_module_name;
-    bool                                done;
     std::queue<nlohmann::json>          server_responses;
     std::string                         server_url;
-    // ref to NDWebSockClient::send
-    ws_sender                           ws_send;
-
-#ifndef __EMSCRIPTEN__
-#ifdef NODOM_DUCK
-    duckdb_database                     duck_db;
-    duckdb_connection                   duck_conn;
-#else   // sqlite
-#endif  // DUCK or sqlite
-    boost::thread                       db_thread;
-    boost::atomic<bool>                 db_done;
-    std::queue<nlohmann::json>          db_queries;
-    std::queue<nlohmann::json>          db_results;
-    boost::mutex                        query_mutex;
-    boost::mutex                        result_mutex;
-    boost::condition_variable           query_cond;
-#endif
 };

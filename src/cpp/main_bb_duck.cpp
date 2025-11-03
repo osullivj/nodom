@@ -23,6 +23,7 @@
 #include "static_strings.hpp"
 #include "context.hpp"
 #include "im_render.hpp"
+#include "db_cache.hpp"
 
 
 // NoDOM: this main.cpp is intended to stay as close as possible
@@ -37,8 +38,8 @@
 #endif
 
 int main(int argc, char* argv[]) {
-    NDProxy server(argc, argv);
 #ifndef __EMSCRIPTEN__
+    NDProxy<DuckDBCache> server(argc, argv);
     NDContext<nlohmann::json> ctx(server);
     try {
         NDWebSockClient ws_client(server, ctx);

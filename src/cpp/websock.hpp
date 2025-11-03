@@ -26,6 +26,7 @@
 
 #include "context.hpp"        // NDContext template
 #include "im_render.hpp"    // im_start, im_render, im_end
+#include "db_cache.hpp"
 
 typedef websocketpp::client<websocketpp::config::asio_client>               ws_client;
 // TODO: SSL
@@ -41,7 +42,6 @@ using websocketpp::lib::placeholders::_1;
 using websocketpp::lib::placeholders::_2;
 using websocketpp::lib::bind;
 
-class NDProxy;
 struct GLFWwindow;
 
 class NDWebSockClient {
@@ -50,12 +50,18 @@ private:
     ws_client       client;
     ws_handle       handle;
     ws_error_code   error_code;
-    NDProxy& server;
+#ifdef NODOM_DUCK
+    NDProxy<DuckDBCache>& server;
+#else
+#endif
     NDContext<nlohmann::json>& ctx;
     GLFWwindow* window;
     std::queue<nlohmann::json>  server_responses;
 public:
-    NDWebSockClient(NDProxy& svr, NDContext<nlohmann::json>& c)
+#ifdef NODOM_DUCK
+    NDWebSockClient(NDProxy<DuckDBCache>& svr, NDContext<nlohmann::json>& c)
+#else
+#endif
         :uri(svr.get_server_url()), server(svr), ctx(c), window(im_start(c)) {
             client.set_access_channels(websocketpp::log::alevel::all);
             client.clear_access_channels(websocketpp::log::alevel::frame_payload);
