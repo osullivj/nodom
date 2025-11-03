@@ -1,3 +1,4 @@
+set SAVEPATH=%PATH%
 pushd %ND_EMS_HOME%
 :: updating EMS may break build
 :: call emsdk install latest
@@ -13,5 +14,5 @@ popd
 :: deleted, but contents were. 2 fixed that...
 set EMCC_DEBUG=2
 :: WASM bin tools, pyarrow venv dir to pick up arrow.dll
-set PATH=%ND_DUCK_HOME%;%ND_WABT_HOME%;%ND_HOME\venv\Lib\site-packages\pyarrow;%ND_GNU_HOME%;%PATH%
+set PATH=%ND_DUCK_HOME%;%ND_WABT_HOME%;%ND_HOME%\venv\scripts;%ND_HOME%\venv\Lib\site-packages\pyarrow;%ND_GNU_HOME%;%PATH%
 
