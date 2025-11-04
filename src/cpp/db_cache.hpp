@@ -2,14 +2,23 @@
 #include <iostream>
 #include <queue>
 #include <vector>
-#include <boost/thread.hpp>
-#include <boost/atomic.hpp>
 #include "json.hpp"
 #include "static_strings.hpp"
+
+#ifndef __EMSCRIPTEN__
+
+#include <boost/thread.hpp>
+#include <boost/atomic.hpp>
+
 #ifdef NODOM_DUCK
 #include <duckdb.h>
 #else   // sqlite
 #endif  // NODOM_DUCK
+
+#else   // __EMSCRIPTEN__
+#include <emscripten/val.h>
+#endif  // __EMSCRIPTEN__
+
 
 typedef std::function<void(const std::string&)> ws_sender;
 
@@ -17,6 +26,15 @@ typedef std::function<void(const std::string&)> ws_sender;
 #define FMT_BUF_LEN 16
 
 class DBCache {
+public:
+    virtual ~DBCache() {}
+};
+
+#ifndef __EMSCRIPTEN__
+// No DuckDB specifics in BreadBoardDBCache,
+// but we are using stuff we don't have on EMS.
+// For example, boost threads.
+class BreadBoardDBCache : public DBCache {
 public:
     char* buffer{ 0 };
 protected:
@@ -27,16 +45,16 @@ protected:
     boost::mutex                        query_mutex;
     boost::mutex                        result_mutex;
     boost::condition_variable           query_cond;
-    bool                                done;
     boost::thread                       db_thread;
     // ref to NDWebSockClient::send
     ws_sender                           ws_send;
+    bool                                done{ false };
 public:
-    DBCache() : done(false) {
+    BreadBoardDBCache() {
         memset(string_buffer, 0, STR_BUF_LEN);
         memset(format_buffer, 0, FMT_BUF_LEN);
     }
-    virtual ~DBCache() {}
+    virtual ~BreadBoardDBCache() {}
 
     void get_db_responses(std::queue<nlohmann::json>& responses) {
         static const char* method = "DBCache::get_db_responses: ";
@@ -65,33 +83,21 @@ public:
     void notify_server(const std::string& caddr, nlohmann::json& old_val, nlohmann::json& new_val) {
         const static char* method = "DBCache::notify_server: ";
         std::cout << method << caddr << ", old: " << old_val << ", new: " << new_val << std::endl;
-
-        // build a JSON msg for the to_python Q
         nlohmann::json msg = { {nd_type_cs, data_change_cs}, {cache_key_cs, caddr}, {new_value_cs, new_val}, {old_value_cs, old_val} };
         try {
-            // TODO: websockpp send in breadboard, EM_JS fetch for EMS
-#ifndef __EMSCRIPTEN__
-        // TODO: websockpp send in breadboard
             ws_send(msg.dump());
-#else   // 
-        // TODO: EM_JS fetch
-#endif  // __EMSCRIPTEN__
         }
         catch (...) {
             std::cerr << "notify_server EXCEPTION!" << std::endl;
         }
     }
-#ifndef __EMSCRIPTEN__
+
     void register_ws_callback(ws_sender send) { ws_send = send; }
-#endif
-
-
 };
 
 #define MAX_COLUMNS 256
 
-#ifdef NODOM_DUCK
-class DuckDBCache : public DBCache {
+class DuckDBCache : public BreadBoardDBCache {
 private:
     duckdb_database                     duck_db;
     duckdb_connection                   duck_conn;
@@ -361,5 +367,95 @@ public:
         return 0;
     }
 };
-#else   // sqlite
-#endif  // NODOM_DUCK
+
+#else   // __EMSCRIPTEN__
+
+std::ostream& operator<<(std::ostream& os, const emscripten::val& v)
+{
+    os << v.as<std::string>();
+    return os;
+}
+
+class DuckDBWebCache : public DBCache {
+public:
+    char* buffer{ 0 };
+private:
+    // DuckDB-WASM state vars here
+protected:
+    std::queue<emscripten::val>          db_queries;
+    std::queue<emscripten::val>          db_results;
+public:
+    void get_db_responses(std::queue<emscripten::val>& responses) {
+        static const char* method = "DBCache::get_db_responses: ";
+        db_results.swap(responses);
+        if (!responses.empty()) {
+            std::cout << method << responses.size() << " responses" << std::endl;
+        }
+    }
+
+    void db_dispatch(emscripten::val& db_request) {
+        const static char* method = "DBCache::db_dispatch: ";
+        std::cout << method << db_request << std::endl;
+        try {
+            db_queries.push(db_request);
+        }
+        catch (...) {
+            std::cerr << "db_dispatch EXCEPTION!" << std::endl;
+        }
+    }
+
+    void notify_server(const std::string& caddr, nlohmann::json& old_val, nlohmann::json& new_val) {
+        const static char* method = "DBCache::notify_server: ";
+        std::cout << method << caddr << ", old: " << old_val << ", new: " << new_val << std::endl;
+
+        // build a JSON msg for the to_python Q
+        emscripten::val msg;
+        msg.set(nd_type_cs, data_change_cs);
+        msg.set(cache_key_cs, caddr);
+        msg.set(new_value_cs, new_val);
+        msg.set(old_value_cs, old_val);
+
+        try {
+        // TODO: EM_JS fetch
+        }
+        catch (...) {
+            std::cerr << "notify_server EXCEPTION!" << std::endl;
+        }
+    }
+
+
+    // db_init, db_fnls, db_loop: these three methods exec 
+    // on the DB thread
+    bool db_init() {
+        return true;
+    }
+
+    void db_fnls() {
+    }
+
+    void db_loop() {
+        db_init();
+        // while (!done) {}
+        db_fnls();
+    }
+
+    // GUI thread methods for accessing the data
+    std::uint64_t get_handle(emscripten::val handle_array) {
+        return 0;
+    }
+
+    std::uint64_t get_row_count(std::uint64_t handle) {
+        return 0;
+    }
+
+    bool get_meta_data(std::uint64_t handle, std::uint64_t column_count) {
+        return true;
+    }
+
+    char* get_datum(std::uint64_t handle, std::uint64_t colm_index, std::uint64_t row_index) {
+        buffer = (char*)null_cs;
+        return 0;
+    }
+};
+
+#endif  // __EMSCRIPTEN__
