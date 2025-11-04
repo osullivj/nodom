@@ -161,7 +161,6 @@ public:
         // automatically by the condition object's wait functions.
 
         while (!done) {
-
             boost::unique_lock<boost::mutex> to_lock(query_mutex);
             query_cond.wait(to_lock);
             // thead quiesces in the wait above, with query_mutex
