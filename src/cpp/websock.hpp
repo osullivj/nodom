@@ -144,7 +144,6 @@ protected:
             << ") msg: " << payload << std::endl;
         nlohmann::json msg_json = nlohmann::json::parse(payload);
         server_responses.emplace(msg_json);
-
     }
 
     void on_open(ws_client* c, ws_handle h) {
