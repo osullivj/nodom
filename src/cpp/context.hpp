@@ -9,6 +9,7 @@
 #include "proxy.hpp"
 #include "static_strings.hpp"
 #include "db_cache.hpp"
+#include "json_cache.hpp"
 
 // NoDOM emulation: debugging ND impls in JS is tricky. Code compiled from C++ to clang .o
 // is not available. So when we port to EM, we have to resort to printf debugging. Not good
@@ -32,6 +33,7 @@ private:
 #else
 #endif // NODOM_DUCK
 #else
+    NDProxy<DuckDBWebCache>& proxy;
 #endif // __EMSCRIPTEN
     // NSServer invokes will be replaced with EM_JS
 
@@ -76,9 +78,10 @@ public:
 #else
 #endif
 #else
+    NDContext(NDProxy<DuckDBWebCache>& s)
 #endif
-        :proxy(s), red(255, 51, 0),
-        green(102, 153, 0), amber(255, 153, 0) {
+    :proxy(s), red{ 255, 51, 0 },
+        green{ 102, 153, 0 }, amber{ 255, 153, 0 } {
         // init status is not connected
         db_status_color = red;
 
@@ -255,7 +258,7 @@ public:
         // like parquet_loading_modal have to be explicitly pushed
         // on to the render stack by an event. JOS 2025-01-31
         // Fonts appear in layout now. JOS 2025-07-29
-        for (typename JSON::iterator it = layout.begin(); it != layout.end(); ++it) {
+        for (typename JSON::iterator it = layout.begin(); it != layout.end(); it++) {
             std::cout << method << *it << std::endl;
             // NB we used it->value("wiget_id", "") in nlohmann::json
             // to extract child value. emscripten::val doesn't implement
@@ -278,9 +281,9 @@ public:
     }
 
     JSON  get_breadboard_config() { return proxy.get_breadboard_config(); }
-
+#ifndef __EMSCRIPTEN__
     void register_ws_callback(ws_sender send) { ws_send = send; proxy.register_ws_callback(send); }
-
+#endif
     void register_font(const std::string& name, ImFont* f) { font_map[name] = f; }
 
 protected:
@@ -405,23 +408,23 @@ protected:
     void render_home(JSON& w) {
         const static char* method = "NDContext::render_home: ";
 
-        if (!w.contains("cspec")) {
+        if (!JContains(w, cspec_cs)) {
             std::cerr << method << "no cspec in w(" << w << ")" << std::endl;
             return;
         }
-        JSON& cspec = w["cspec"];
+        const JSON& cspec = w[cspec_cs];
         std::string title(nodom_cs);
-        if (cspec.contains("title")) {
-            title = cspec["title"];
+        if (JContains(cspec, title_cs)) {
+            title = JAsString(cspec, title_cs);
         }
 
         bool fpop = false;
-        if (cspec.contains(title_font_cs))
+        if (JContains(cspec, title_font_cs))
             fpop = push_font(w, title_font_cs, title_font_size_base_cs);
 
         ImGui::Begin(title.c_str());
-        JSON& children = w["children"];
-        for (typename JSON::iterator it = children.begin(); it != children.end(); ++it) {
+        JSON& children = w[children_cs];
+        for (typename JSON::iterator it = children.begin(); it != children.end(); it++) {
             dispatch_render(*it);
         }
         if (fpop) {
@@ -828,7 +831,8 @@ protected:
             bool bpop = false;
             if (cspec.contains(body_font_cs))
                 bpop = push_font(w, body_font_cs, body_font_size_base_cs);
-            for (int i = 0; i < pq_urls.size(); i++) ImGui::Text(pq_urls[i].get<std::string>().c_str());
+            for (int i = 0; i < pq_urls.size(); i++)
+                ImGui::Text(pq_urls[i].template get<std::string>().c_str());
             if (bpop) pop_font();
             int spinner_radius = 5;
             int spinner_thickness = 2;
