@@ -6,32 +6,45 @@
 
 // obviously wrong non specialised func
 template <typename JSON>
-JSON parse(const char* json_string) {
+JSON JParse(const char* json_string) {
 	return JSON{};
 }
 
-// Both nlohmann::json and emscripten::val support
-// STL style containers, so we can use unspecialised funcs
 template <typename JSON>
-typename JSON::iterator begin(JSON& obj) {
-	return obj.begin();
+bool JContains(JSON& obj, const char* key) {
+	return false;
 }
 
 template <typename JSON>
-typename JSON::iterator end(JSON& obj) {
-	return obj.end();
+std::string JAsString(JSON& obj, const char* key) {
+	return "";
 }
 
 #ifndef __EMSCRIPTEN__
 // nlohmann::json implementations of JSON cache ops
 template <>
-nlohmann::json parse(const char* json_string) {
+nlohmann::json JParse(const char* json_string) {
 	return nlohmann::json::parse(json_string);
 }
 
+template <>
+bool JContains(nlohmann::json& obj, const char* json_string) {
+	return obj.contains(json_string);
+}
 
-
+template <>
+std::string JAsString(nlohmann::json& obj, const char* key) {
+	return obj[key].template get<std::string>();
+}
 #else
+bool JContains(emscripten::val& obj, const char* json_string) {
+	return obj.hasOwnProperty(json_string);
+}
+template <>
+std::string JAsString(emscripten::val& obj, const char* key) {
+	return obj[key].as<std::string>();
+}
+
 // emscripten::val implementations of JSON cache ops
 #endif
 
