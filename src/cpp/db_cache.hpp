@@ -18,9 +18,9 @@ typedef std::function<void(const std::string&)> ws_sender;
 
 class DBCache {
 public:
-    char string_buffer[STR_BUF_LEN];
     char* buffer{ 0 };
 protected:
+    char string_buffer[STR_BUF_LEN];
     char format_buffer[FMT_BUF_LEN];
     std::queue<nlohmann::json>          db_queries;
     std::queue<nlohmann::json>          db_results;
@@ -198,6 +198,7 @@ public:
                     // time a query_id is presented
                     duckdb_result& dbresult(result_map[qid]);
                     dbstate = duckdb_query(duck_conn, sql.c_str(), &dbresult);
+                    std::cout << method << "QID: " << qid << ", SQL: " << sql << std::endl;
                     db_response[nd_type_cs] = query_result_cs;
                     if (dbstate == DuckDBError) {
                         std::cerr << method << "Query failed: " << db_request << std::endl;
@@ -207,9 +208,11 @@ public:
                         db_response[error_cs] = 0;
                         duckdb_data_chunk chunk = duckdb_fetch_chunk(dbresult);
                         std::uint64_t chunk_ptr = reinterpret_cast<std::uint64_t>(chunk);
-                        std::cout << method << "chunk_ptr: " << std::hex << chunk_ptr << std::endl;
+                        nlohmann::json chunk_array = nlohmann::json::array({ std::uint32_t(chunk_ptr), std::uint32_t(chunk_ptr >> 32) });
+                        std::cout << method << qid << " chunk_ptr: " << std::hex << chunk_ptr 
+                            << ", chunk_array: " << chunk_array << std::endl;
                         // std::uint32_t will discard the hi 32 bits
-                        db_response[db_handle_cs] = nlohmann::json::array({ std::uint32_t(chunk_ptr), std::uint32_t(chunk_ptr >> 32) });
+                        db_response[db_handle_cs] = chunk_array;
                     }
                 }
                 // lock the result queue and post back to the GUI thread
@@ -227,12 +230,29 @@ public:
     // GUI thread methods for accessing the data
     std::uint64_t get_handle(nlohmann::json handle_array) {
         static const char* method = "DuckDBCache::get_handle: ";
-        std::cout << method << "chunk_ptr: " << handle_array << std::endl;
+        std::cout << method << "handle_array: " << handle_array << std::endl;
+        if (handle_array.type() != nlohmann::json::value_t::array) {
+            std::cerr << method << "handle_array: " << handle_array 
+                << "isn't an array!" << std::endl;
+            return 0;
+        }
+        if (handle_array.size() != 2) {
+            std::cerr << method << "handle_array: " << handle_array
+                << "isn't two elements!" << std::endl;
+            return 0;
+        }
+        if (handle_array[0].type() != nlohmann::json::value_t::number_unsigned
+            || handle_array[1].type() != nlohmann::json::value_t::number_unsigned) {
+            std::cerr << method << "handle_array: " << handle_array
+                << "isn't two number_unsigned!" << std::endl;
+            return 0;
+        }
+
         std::uint64_t chunk_lo = handle_array[0];
         std::uint64_t chunk_hi = static_cast<uint64_t>(handle_array[1]) << 32;
         std::uint64_t chunk_ptr = chunk_hi + chunk_lo;
-        std::cout << method << "chunk_ptr: " << std::hex << chunk_hi << "," << chunk_lo << std::endl;
-        std::cout << method << "chunk_ptr: " << chunk_ptr << std::endl;
+        std::cout << method << "chunk_ptr: " << chunk_hi << "," << chunk_lo << std::endl;
+        std::cout << method << "chunk_ptr: " << std::hex << chunk_ptr << std::endl;
         duckdb_data_chunk chunk = reinterpret_cast<duckdb_data_chunk>(chunk_ptr);
         return reinterpret_cast<std::uint64_t>(chunk);
     }
@@ -246,9 +266,9 @@ public:
         duckdb_data_chunk chunk = reinterpret_cast<duckdb_data_chunk>(handle);
         // yes, these fire default ctor on 1st visit
         std::vector<duckdb_vector>& columns(column_map[handle]);
-        std::vector<uint64_t*> validities(validity_map[handle]);
-        std::vector<duckdb_type> types(type_map[handle]);
-        std::vector<duckdb_logical_type> logical_types(logical_type_map[handle]);
+        std::vector<uint64_t*>& validities(validity_map[handle]);
+        std::vector<duckdb_type>& types(type_map[handle]);
+        std::vector<duckdb_logical_type>& logical_types(logical_type_map[handle]);
         columns.clear();
         validities.clear();
         types.clear();
@@ -263,6 +283,7 @@ public:
             logical_types.push_back(type_l);
             types.push_back(duckdb_get_type_id(type_l));
         }
+        return true;
     }
 
     char* get_datum(std::uint64_t handle, std::uint64_t colm_index, std::uint64_t row_index) {
@@ -342,4 +363,3 @@ public:
 };
 #else   // sqlite
 #endif  // NODOM_DUCK
-
