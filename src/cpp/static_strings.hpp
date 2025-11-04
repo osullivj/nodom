@@ -28,6 +28,7 @@ static const char* window_flags_cs("window_flags");
 static const char* child_flags_cs("child_flags");
 static const char* path_cs("path");
 static const char* service_cs("service");
+static const char* children_cs("children");
 static const char* breadboard_cs("breadboard");
 static const char* duck_module_cs("duck_module");
 static const char* empty_cs("");
