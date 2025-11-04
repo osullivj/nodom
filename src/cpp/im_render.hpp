@@ -89,7 +89,7 @@ GLFWwindow* im_start(NDContext<JSON>& ctx)
     for (auto fit = jfonts.begin(); fit != jfonts.end(); ++fit) {
         // fonts is an untyped list of strings. so we get<std::str>()
         // to coerce and avoid extra quotes
-        ImFont* font = io.Fonts->AddFontFromFileTTF(fit.value().get<std::string>().c_str());
+        ImFont* font = io.Fonts->AddFontFromFileTTF(fit.value().template get<std::string>().c_str());
         IM_ASSERT(font != NULL);
         ctx.register_font(fit.key(), font);
     }
