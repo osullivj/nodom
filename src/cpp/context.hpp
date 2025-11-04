@@ -434,18 +434,18 @@ protected:
         // static storage: imgui wants int (int32), nlohmann::json uses int64_t
         static int input_integer;
         input_integer = 0;
-        if (!w.contains("cspec")) {
+        if (!w.contains(cspec_cs)) {
             std::cerr << method << "no cspec in w(" << w << ")" << std::endl;
             return;
         }
         JSON& cspec = w["cspec"];
-        std::string label(nodom_cs);
-        if (cspec.contains("label")) label = cspec["label"];
+        std::string label;
+        if (cspec.contains(text_cs)) label = cspec[text_cs];
         // params by value
         int step = 1;
-        if (cspec.contains("step")) step = cspec["step"];
+        if (cspec.contains(step_cs)) step = cspec[step_cs];
         int step_fast = 1;
-        if (cspec.contains("step_fast")) step_fast = cspec["step_fast"];
+        if (cspec.contains(step_fast_cs)) step_fast = cspec[step_fast_cs];
         int flags = 0;
         if (cspec.contains("flags")) flags = cspec["flags"];
         // one param by ref: the int itself

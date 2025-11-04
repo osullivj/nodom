@@ -20,6 +20,8 @@ static const char* cspec_cs("cspec");
 static const char* cname_cs("cname");
 static const char* title_cs("title");
 static const char* text_cs("text");
+static const char* step_cs("step");
+static const char* step_fast_cs("step_fast");
 static const char* table_flags_cs("table_flags");
 static const char* combo_flags_cs("combo_flags");
 static const char* window_flags_cs("window_flags");
