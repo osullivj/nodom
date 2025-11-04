@@ -21,9 +21,9 @@ template <typename DB>
 class NDProxy : public DB {
 public:
     NDProxy(int argc, char** argv) {
-        std::string usage("breadboard <breadboard_config_json_path> <test_dir> [<server_url>]");
+        std::string usage("breadboard <breadboard_config_json_path> [<server_url>]");
         if (argc < 2) {
-            printf("breadboard <breadboard_config_json_path>");
+            std::cerr << usage << std::endl;
             exit(1);
         }
         exe = argv[0];
@@ -41,6 +41,9 @@ public:
             bb_config = nlohmann::json::parse(json_buffer);
             server_url = bb_config["server_url"];
             is_db_app = bb_config["db_app"];
+        }
+        catch (nlohmann::json::exception& ex) {
+
         }
         catch (...) {
             printf("cannot load breadboard.json");
