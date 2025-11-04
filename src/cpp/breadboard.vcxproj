@@ -168,7 +168,6 @@
     <ClCompile Include="..\..\imgui\imgui_tables.cpp" />
     <ClCompile Include="..\..\imgui\imgui_widgets.cpp" />
     <ClCompile Include="main_bb_duck.cpp" />
-    <ClCompile Include="websock.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\ImGuiDatePicker\ImGuiDatePicker.hpp" />
