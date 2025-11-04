@@ -199,10 +199,7 @@ public:
     }
 
     bool db_app() { return proxy.db_app(); }
-    void set_done(bool d) {
-        // TODO: add code to do proxy.set_done() so the
-        // duck_loop exits
-    }
+    void set_done(bool d) { proxy.set_done(true); }
 
     void on_ws_open() {
         server_request("data");
