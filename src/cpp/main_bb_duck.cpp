@@ -58,6 +58,7 @@ int main(int argc, char* argv[]) {
         std::cout << method << ex.what() << std::endl;
     }
 #else
+    NDProxy<DuckDBWebCache> server;
     NDContext<emscripten::val> ctx(server);
     GLFWwindow* window = im_start(ctx);
     // For an Emscripten build we are disabling file-system access, so let's not attempt to do a fopen() of the imgui.ini file.
