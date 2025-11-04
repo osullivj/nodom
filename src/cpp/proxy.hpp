@@ -5,11 +5,6 @@
 #include <filesystem>
 #include <map>
 #include <queue>
-#ifndef __EMSCRIPTEN__
-#include <duckdb.h>
-#include <boost/thread.hpp>
-#include <boost/atomic.hpp>
-#endif
 #include "json.hpp"
 
 #define ND_WC_BUF_SZ 256
@@ -20,6 +15,8 @@
 template <typename DB>
 class NDProxy : public DB {
 public:
+
+#ifndef __EMSCRIPTEN__
     NDProxy(int argc, char** argv) {
         std::string usage("breadboard <breadboard_config_json_path> [<server_url>]");
         if (argc < 2) {
@@ -57,6 +54,9 @@ public:
         log_buffer << "Server URL: " << server_url << std::endl;
         std::cout << log_buffer.str() << std::endl;
     }
+#else   // __EMSCRIPTEN__
+    NDProxy() {}
+#endif  // __EMSCRIPTEN__
     virtual         ~NDProxy() {};
 
     bool            db_app() { return is_db_app; }
@@ -65,7 +65,7 @@ public:
     std::string&    get_server_url() { return server_url; }
 
 protected:
-
+    bool            done{false};
 private:
     nlohmann::json                      bb_config;
     bool                                is_db_app;
