@@ -42,7 +42,7 @@ private:
     std::deque<JSON>          stack;  // render stack
 
     // map layout render func names to the actual C++ impls
-    std::unordered_map<std::string, std::function<void(JSON& w)>> rfmap;
+    std::unordered_map<std::string, std::function<void(const JSON& w)>> rfmap;
 
     // top level layout widgets with widget_id eg modals are in pushables
     std::unordered_map<std::string, JSON> pushable;
@@ -85,25 +85,25 @@ public:
         // init status is not connected
         db_status_color = red;
 
-        rfmap.emplace(std::string("Home"), [this](JSON& w) { render_home(w); });
-        rfmap.emplace(std::string("InputInt"), [this](JSON& w) { render_input_int(w); });
-        rfmap.emplace(std::string("Combo"), [this](JSON& w) { render_combo(w); });
-        rfmap.emplace(std::string("Checkbox"), [this](JSON& w) { render_checkbox(w); });
-        rfmap.emplace(std::string("Separator"), [this](JSON& w) { render_separator(w); });
-        rfmap.emplace(std::string("Footer"), [this](JSON& w) { render_footer(w); });
-        rfmap.emplace(std::string("SameLine"), [this](JSON& w) { render_same_line(w); });
-        rfmap.emplace(std::string("DatePicker"), [this](JSON& w) { render_date_picker(w); });
-        rfmap.emplace(std::string("Text"), [this](JSON& w) { render_text(w); });
-        rfmap.emplace(std::string("Button"), [this](JSON& w) { render_button(w); });
-        rfmap.emplace(std::string("DuckTableSummaryModal"), [this](JSON& w) { render_duck_table_summary_modal(w); });
-        rfmap.emplace(std::string("DuckParquetLoadingModal"), [this](JSON& w) { render_duck_parquet_loading_modal(w); });
-        rfmap.emplace(std::string("Table"), [this](JSON& w) { render_table(w); });
-        rfmap.emplace(std::string("PushFont"), [this](JSON& w) { render_push_font(w); });
-        rfmap.emplace(std::string("PopFont"), [this](JSON& w) { render_pop_font(w); });
-        rfmap.emplace(std::string("BeginChild"), [this](JSON& w) { render_begin_child(w); });
-        rfmap.emplace(std::string("EndChild"), [this](JSON& w) { render_end_child(w); });
-        rfmap.emplace(std::string("BeginGroup"), [this](JSON& w) { render_begin_group(w); });
-        rfmap.emplace(std::string("EndGroup"), [this](JSON& w) { render_end_group(w); });
+        rfmap.emplace(std::string("Home"), [this](const JSON& w) { render_home(w); });
+        rfmap.emplace(std::string("InputInt"), [this](const JSON& w) { render_input_int(w); });
+        rfmap.emplace(std::string("Combo"), [this](const JSON& w) { render_combo(w); });
+        rfmap.emplace(std::string("Checkbox"), [this](const JSON& w) { render_checkbox(w); });
+        rfmap.emplace(std::string("Separator"), [this](const JSON& w) { render_separator(w); });
+        rfmap.emplace(std::string("Footer"), [this](const JSON& w) { render_footer(w); });
+        rfmap.emplace(std::string("SameLine"), [this](const JSON& w) { render_same_line(w); });
+        rfmap.emplace(std::string("DatePicker"), [this](const JSON& w) { render_date_picker(w); });
+        rfmap.emplace(std::string("Text"), [this](const JSON& w) { render_text(w); });
+        rfmap.emplace(std::string("Button"), [this](const JSON& w) { render_button(w); });
+        rfmap.emplace(std::string("DuckTableSummaryModal"), [this](const JSON& w) { render_duck_table_summary_modal(w); });
+        rfmap.emplace(std::string("DuckParquetLoadingModal"), [this](const JSON& w) { render_duck_parquet_loading_modal(w); });
+        rfmap.emplace(std::string("Table"), [this](const JSON& w) { render_table(w); });
+        rfmap.emplace(std::string("PushFont"), [this](const JSON& w) { render_push_font(w); });
+        rfmap.emplace(std::string("PopFont"), [this](const JSON& w) { render_pop_font(w); });
+        rfmap.emplace(std::string("BeginChild"), [this](const JSON& w) { render_begin_child(w); });
+        rfmap.emplace(std::string("EndChild"), [this](const JSON& w) { render_end_child(w); });
+        rfmap.emplace(std::string("BeginGroup"), [this](const JSON& w) { render_begin_group(w); });
+        rfmap.emplace(std::string("EndGroup"), [this](const JSON& w) { render_end_group(w); });
     }
 
     // invoked by main loop
@@ -156,7 +156,11 @@ public:
         std::cout << method << caddr << ", old: " << old_val << ", new: " << new_val << std::endl;
 
         // build a JSON msg for the to_python Q
-        JSON msg = { {nd_type_cs, data_change_cs}, {cache_key_cs, caddr}, {new_value_cs, new_val}, {old_value_cs, old_val} };
+        JSON msg;
+        JSet(msg, nd_type_cs, data_change_cs);
+        JSet(msg, cache_key_cs, caddr);
+        JSet(msg, new_value_cs, new_val);
+        JSet(msg, old_value_cs, old_val);
         try {
             // TODO: websockpp send in breadboard, EM_JS fetch for EMS
 #ifndef __EMSCRIPTEN__
@@ -209,7 +213,7 @@ public:
         server_request("layout");
     }
 
-    void on_db_event(JSON& db_msg) {
+    void on_db_event(const JSON& db_msg) {
         const static char* method = "NDContext::on_db_event: ";
 
         if (!db_msg.contains("nd_type")) {
@@ -258,21 +262,24 @@ public:
         // like parquet_loading_modal have to be explicitly pushed
         // on to the render stack by an event. JOS 2025-01-31
         // Fonts appear in layout now. JOS 2025-07-29
-        for (typename JSON::iterator it = layout.begin(); it != layout.end(); it++) {
-            std::cout << method << *it << std::endl;
+        int layout_length = JSize(layout);
+        for (int inx=0; inx < layout_length; inx++) {
+        // for (typename JSON::const_iterator it = layout.begin(); it != layout.end(); it++) {
+            const JSON& w(layout[inx]);
+            std::cout << method << w << std::endl;
             // NB we used it->value("wiget_id", "") in nlohmann::json
             // to extract child value. emscripten::val doesn't implement
             // operator->, so we lean on JSON::iterator::operator*, which
             // both support.
-            const JSON& w(*it);
-            if (w.contains("widget_id")) {
-                const std::string& widget_id = w["widget_id"].template get<std::string>();
+
+            if (JContains(w, widget_id_cs)) {
+                std::string widget_id = JAsString(w, widget_id_cs);
                 if (!widget_id.empty()) {
-                    std::cout << method << "pushable: " << widget_id << ":" << *it << std::endl;
-                    pushable[widget_id] = *it;
+                    std::cout << method << "pushable: " << widget_id << ":" << w << std::endl;
+                    pushable[widget_id] = w;
                 }
                 else {
-                    std::cerr << method << "empty widget_id in: " << *it << std::endl;
+                    std::cerr << method << "empty widget_id in: " << w << std::endl;
                 }
             }
         }
@@ -288,15 +295,15 @@ public:
 
 protected:
     // w["rname"] resolve & invoke
-    void dispatch_render(JSON& w) {
+    void dispatch_render(const JSON& w) {
         const static char* method = "NDContext::dispatch_render: ";
 
-        if (!w.contains("rname")) {
+        if (!JContains(w, rname_cs)) {
             std::cerr << method << "missing rname in " << w << std::endl;
             return;
         }
-        const std::string& rname(w["rname"]);
-        auto it = rfmap.find(rname);
+        std::string rname = JAsString(w, rname_cs);
+        const auto it = rfmap.find(rname);
         if (it == rfmap.end()) {
             std::cerr << method << "unknown rname in " << w << std::endl;
             return;
@@ -405,7 +412,7 @@ protected:
     }
 
     // Render functions
-    void render_home(JSON& w) {
+    void render_home(const JSON& w) {
         const static char* method = "NDContext::render_home: ";
 
         if (!JContains(w, cspec_cs)) {
@@ -423,9 +430,11 @@ protected:
             fpop = push_font(w, title_font_cs, title_font_size_base_cs);
 
         ImGui::Begin(title.c_str());
-        JSON& children = w[children_cs];
-        for (typename JSON::iterator it = children.begin(); it != children.end(); it++) {
-            dispatch_render(*it);
+        const JSON& children = w[children_cs];
+        int child_count = JSize(children);
+        for (int inx=0; inx < child_count; inx++) {
+            const JSON& child(children[inx]);
+            dispatch_render(child);
         }
         if (fpop) {
             pop_font();
@@ -433,42 +442,44 @@ protected:
         ImGui::End();
     }
 
-    void render_input_int(JSON& w) {
+    void render_input_int(const JSON& w) {
         const static char* method = "NDContext::render_input_int: ";
         // static storage: imgui wants int (int32), nlohmann::json uses int64_t
         static int input_integer;
         input_integer = 0;
-        if (!w.contains(cspec_cs)) {
+        if (!JContains(w, cspec_cs)) {
             std::cerr << method << "no cspec in w(" << w << ")" << std::endl;
             return;
         }
-        JSON& cspec = w["cspec"];
+        const JSON& cspec(w[cspec_cs]);
         std::string label;
-        if (cspec.contains(text_cs)) label = cspec[text_cs];
+        if (JContains(cspec, text_cs)) label = JAsString(cspec, text_cs);
         // params by value
         int step = 1;
-        if (cspec.contains(step_cs)) step = cspec[step_cs];
+        if (JContains(cspec, step_cs)) step = JAsInt(cspec, step_cs);
         int step_fast = 1;
-        if (cspec.contains(step_fast_cs)) step_fast = cspec[step_fast_cs];
+        if (JContains(cspec, step_fast_cs)) step_fast = JAsInt(cspec, step_fast_cs);
         int flags = 0;
-        if (cspec.contains("flags")) flags = cspec["flags"];
+        if (JContains(cspec, flags_cs)) flags = JAsInt(cspec, flags_cs);
         // one param by ref: the int itself
-        std::string& cname_cache_addr = cspec["cname"].template get<std::string>();
+        std::string cname_cache_addr = JAsString(cspec, cname_cs);
         // if no label use cache addr
         if (!label.size()) label = cname_cache_addr;
         // local static copy of cache val
-        int old_val = input_integer = data[cname_cache_addr];
+        int old_val = input_integer = JAsInt(data, cname_cache_addr.c_str());
         // imgui has ptr to copy of cache val
         ImGui::InputInt(label.c_str(), &input_integer, step, step_fast, flags);
         // copy local copy back into cache
         if (input_integer != old_val) {
-            data[cname_cache_addr] = input_integer;
+            JSet(data, cname_cache_addr.c_str(), input_integer);
             // TODO: mv semantics so notify_server can own the params
-            notify_server(cname_cache_addr, JSON(old_val), JSON(input_integer));
+            JSON j_old_val{ old_val };
+            JSON j_input_int{ input_integer };
+            notify_server(cname_cache_addr, j_old_val, j_input_int);
         }
     }
 
-    void render_combo(JSON& w) {
+    void render_combo(const JSON& w) {
         const static char* method = "NDContext::render_combo: ";
         // Static storage for the combo list
         // NB single GUI thread!
@@ -480,78 +491,84 @@ protected:
         memset(cs_combo_list, 0, ND_MAX_COMBO_LIST * sizeof(char*));
         combo_selection = 0;
         combo_list.clear();
-        if (!w.contains("cspec")) {
+        if (!JContains(w, cspec_cs)) {
             std::cerr << method << "no cspec in w(" << w << ")" << std::endl;
             return;
         }
-        JSON& cspec = w["cspec"];
+        const JSON& cspec = w["cspec"];
         std::string label(nodom_cs);
-        if (cspec.contains("text")) label = cspec["text"];
+        if (JContains(cspec, text_cs)) label = JAsString(cspec, text_cs);
         // params by value
         int step = 1;
-        if (cspec.contains("step")) step = cspec["step"];
+        if (JContains(cspec, step_cs)) step = JAsInt(cspec, step_cs);
         // no value params in layout here; all combo layout is data cache refs
         // /cspec/cname should give us a data cache addr for the combo list
-        std::string& combo_list_cache_addr(cspec["cname"].template get<std::string>());
-        std::string& combo_index_cache_addr(cspec["index"].template get<std::string>());
+        std::string combo_list_cache_addr(JAsString(cspec, cname_cs));
+        std::string combo_index_cache_addr(JAsString(cspec, index_cs));
         // if no label use cache addr
         if (!label.size()) label = combo_list_cache_addr;
         int combo_count = 0;
-        combo_list = data[combo_list_cache_addr];
+        JAsStringVec(data, combo_list_cache_addr.c_str(), combo_list);
         for (auto it = combo_list.begin(); it != combo_list.end(); ++it) {
             cs_combo_list[combo_count++] = it->c_str();
             if (combo_count == ND_MAX_COMBO_LIST) break;
         }
-        int old_val = combo_selection = data[combo_index_cache_addr];
+        int old_val = combo_selection = JAsInt(data, combo_index_cache_addr.c_str());
         ImGui::Combo(label.c_str(), &combo_selection, cs_combo_list, combo_count, combo_count);
         if (combo_selection != old_val) {
-            data[combo_index_cache_addr] = combo_selection;
-            notify_server(combo_index_cache_addr, JSON(old_val), JSON(combo_selection));
+            JSet(data, combo_index_cache_addr.c_str(), combo_selection);
+            JSON j_old_val{ old_val };
+            JSON j_combo_selection{ combo_selection };
+            notify_server(combo_index_cache_addr, j_old_val, j_combo_selection);
         }
     }
 
-    void render_checkbox(JSON& w) {
+    void render_checkbox(const JSON& w) {
         const static char* method = "NDContext::render_checkbox: ";
 
-        if (!w.contains(cspec_cs)) {
+        if (!JContains(w, cspec_cs)) {
             std::cerr << method << "no cspec in w(" << w << ")" << std::endl;
             return;
         }
         const JSON& cspec(w[cspec_cs]);
-        const std::string& cname_cache_addr(cspec[cname_cs]);
-        const std::string& text(cspec[text_cs].empty() ? cname_cache_addr : cspec[title_cs]);
+        std::string cname_cache_addr(JAsString(cspec, cname_cs));
+        std::string text(cname_cache_addr);
+        if (JContains(cspec, text_cs))
+            text = JAsString(cspec, text_cs);
 
-        bool checked_value = data[cname_cache_addr];
+        bool checked_value = JAsBool(data, cname_cache_addr.c_str());
         bool old_checked_value = checked_value;
 
         ImGui::Checkbox(text.c_str(), &checked_value);
 
         if (checked_value != old_checked_value) {
-            data[cname_cache_addr] = checked_value;
-            notify_server(cname_cache_addr, nlohmann::json(old_checked_value), nlohmann::json(checked_value));
+            JSet(data, cname_cache_addr.c_str(), checked_value);
+            JSON j_old_checked_value{ old_checked_value };
+            JSON j_checked_value{ checked_value };
+            notify_server(cname_cache_addr, j_old_checked_value, j_checked_value);
         }
 
     }
 
-    void render_separator(JSON& w) {
+    void render_separator(const JSON& w) {
         ImGui::Separator();
     }
 
-    void render_footer(JSON& w) {
+    void render_footer(const JSON& w) {
         static const char* method = "NDContext::render_footer: ";
 
-        if (!w.contains(cspec_cs)) {
+        if (!JContains(w, cspec_cs)) {
             std::cerr << method << "no cspec in w(" << w << ")" << std::endl;
             return;
         }
         const JSON& cspec(w[cspec_cs]);
         // TODO: optimise local vars: these cspec are not cache refs so could
 // bound at startup time...
-        bool db = cspec["db"];
-        bool fps = cspec["fps"];
+        bool db = JAsBool(cspec, "db");
+        bool fps = JAsBool(cspec, "fps");
         // TODO: config demo mode so it can be switched on/off in prod
-        bool demo = cspec["demo"];
-        bool id_stack = cspec["id_stack"];
+        bool demo = JAsBool(cspec, "demo");
+        bool id_stack = JAsBool(cspec, "id_stack");
         // TODO: understand ems mem anlytics and restore in footer
         // bool memory = w.value(nlohmann::json::json_pointer("/cspec/memory"), true);
 
@@ -582,11 +599,11 @@ protected:
         } */
     }
 
-    void render_same_line(JSON& w) {
+    void render_same_line(const JSON& w) {
         ImGui::SameLine();
     }
 
-    void render_date_picker(JSON& w) {
+    void render_date_picker(const JSON& w) {
         const static char* method = "NDContext::render_date_picker: ";
 
         static int default_table_flags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_SizingFixedSame;
@@ -599,42 +616,42 @@ protected:
         uint32_t year_month_font_size_base = 0;
         uint32_t day_date_font_size_base = 0;
 
-            if (!w.contains("cspec")) {
+            if (!JContains(w, cspec_cs)) {
                 std::cerr << method << "no cspec in w(" << w << ")" << std::endl;
                 return;
             }
-            JSON& cspec = w["cspec"];
-            if (cspec.contains(year_month_font_cs)) {
-                const std::string& ym_font(cspec[year_month_font_cs]);
+            const JSON& cspec(w[cspec_cs]);
+            if (JContains(cspec, year_month_font_cs)) {
+                std::string ym_font(JAsString(cspec, year_month_font_cs));
                 auto font_it = font_map.find(ym_font);
                 if (font_it != font_map.end()) {
                     year_month_font = font_it->second;
-                    if (cspec.contains(year_month_font_size_base_cs))
-                        year_month_font_size_base = cspec[year_month_font_size_base_cs];
+                    if (JContains(cspec, year_month_font_size_base_cs))
+                        year_month_font_size_base = JAsFloat(cspec, year_month_font_size_base_cs);
                 }
                 else {
                     std::cerr << method << ym_font << " not in font_map" << std::endl;
                 }
             }
-            if (cspec.contains(day_date_font_cs)) {
-                const std::string& dd_font(cspec[day_date_font_cs]);
+            if (JContains(cspec, day_date_font_cs)) {
+                std::string dd_font(JAsString(cspec, day_date_font_cs));
                 auto font_it = font_map.find(dd_font);
                 if (font_it != font_map.end()) {
                     day_date_font = font_it->second;
-                    if (cspec.contains(day_date_font_size_base_cs))
-                        day_date_font_size_base = cspec[day_date_font_size_base_cs];
+                    if (JContains(cspec, day_date_font_size_base_cs))
+                        day_date_font_size_base = JAsFloat(cspec, day_date_font_size_base_cs);
                 }
                 else {
                     std::cerr << method << dd_font << " not in font_map" << std::endl;
                 }
             }
             int table_flags = default_table_flags;
-            if (cspec.contains(table_flags_cs))
-                table_flags = cspec[table_flags_cs];
+            if (JContains(cspec, table_flags_cs))
+                table_flags = JAsInt(cspec, table_flags_cs);
             int combo_flags = default_combo_flags;
-            if (cspec.contains(combo_flags_cs))
-                combo_flags = cspec[combo_flags_cs];
-            std::string& ckey(cspec["cname"].template get<std::string>());
+            if (JContains(cspec, combo_flags_cs))
+                combo_flags = JAsInt(cspec, combo_flags_cs);
+            std::string ckey = JAsString(cspec, cname_cs);
             JSON ymd_old_j = JSON::array();
             ymd_old_j = data[ckey];
             ymd_i[0] = ymd_old_j.at(0);
@@ -650,26 +667,26 @@ protected:
             }
     }
 
-    void render_text(JSON& w) {
+    void render_text(const JSON& w) {
         const static char* method = "NDContext::render_text: ";
 
-        if (!w.contains(cspec_cs)) {
+        if (!JContains(w, cspec_cs)) {
             std::cerr << method << "no cspec in w(" << w << ")" << std::endl;
             return;
         }
         const JSON& cspec(w[cspec_cs]);
-        std::string& rtext = cspec["text"].template get<std::string>();
+        std::string rtext = JAsString(cspec, text_cs);
         ImGui::Text(rtext.c_str());
     }
 
-    void render_button(JSON& w) {
+    void render_button(const JSON& w) {
         const static char* method = "NDContext::render_button: ";
 
         if (!w.contains("cspec")) {
             std::cerr << method << "no cspec in w(" << w << ")" << std::endl;
             return;
         }
-        JSON& cspec = w["cspec"];
+        const JSON& cspec = w["cspec"];
         if (!cspec.contains("text")) {
             std::cerr << method << "no text in cspec(" << cspec << ")" << std::endl;
             return;
@@ -682,7 +699,7 @@ protected:
 
 #define SMRY_COLM_CNT 12
 
-    void render_duck_table_summary_modal(JSON& w) {
+    void render_duck_table_summary_modal(const JSON& w) {
         const static char* method = "NDContext::render_duck_table_summary_modal: ";
         static int default_summary_table_flags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY;
         static int default_window_flags = ImGuiWindowFlags_AlwaysAutoResize;
@@ -795,7 +812,7 @@ protected:
         ImGui::EndPopup();
     }
 
-    void render_duck_parquet_loading_modal(JSON& w) {
+    void render_duck_parquet_loading_modal(const JSON& w) {
         const static char* method = "NDContext::render_duck_parquet_loading_modal: ";
 
         static ImVec2 position = { 0.5, 0.5 };
@@ -829,10 +846,11 @@ protected:
 
         if (ImGui::BeginPopupModal(title.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
             bool bpop = false;
-            if (cspec.contains(body_font_cs))
+            if (JContains(cspec, body_font_cs))
                 bpop = push_font(w, body_font_cs, body_font_size_base_cs);
-            for (int i = 0; i < pq_urls.size(); i++)
-                ImGui::Text(pq_urls[i].template get<std::string>().c_str());
+            for (int i = 0; i < pq_urls.size(); i++) {
+                ImGui::Text(JAsString(pq_urls, i).c_str());
+            }
             if (bpop) pop_font();
             int spinner_radius = 5;
             int spinner_thickness = 2;
@@ -849,17 +867,17 @@ protected:
         if (tpop) pop_font();
     }
 
-    void render_table(JSON& w) {}
+    void render_table(const JSON& w) {}
 
-    void render_push_font(JSON& w) {
+    void render_push_font(const JSON& w) {
         push_font(w, font_cs, font_size_base_cs);
     }
 
-    void render_pop_font(JSON& w) {
+    void render_pop_font(const JSON& w) {
         pop_font();
     }
 
-    void render_begin_child(JSON& w) {
+    void render_begin_child(const JSON& w) {
         const static char* method = "NDContext::render_begin_child: ";
 
         // NB BeginChild is a grouping mechahism, so there's no single
@@ -887,19 +905,19 @@ protected:
         ImGui::BeginChild(title.c_str(), size, child_flags);
     }
 
-    void render_end_child(JSON& w) {
+    void render_end_child(const JSON& w) {
         ImGui::EndChild();
     }
 
-    void render_begin_group(JSON& w) {
+    void render_begin_group(const JSON& w) {
         ImGui::BeginGroup();
     }
 
-    void render_end_group(JSON& w) {
+    void render_end_group(const JSON& w) {
         ImGui::EndGroup();
     }
 
-    void push_widget(JSON& w) {
+    void push_widget(const JSON& w) {
         stack.push_back(w);
     }
 
@@ -908,35 +926,35 @@ protected:
         // if rname specifies a class we check the
         //      popped widget rname
         if (!rname.empty()) {
-            JSON& w(stack.back());
-            if (w["rname"] != rname) {
-                std::cerr << "pop mismatch w.rname(" << w["rname"] << ") rname("
+            const JSON& w(stack.back());
+            std::string wrname = JAsString(w, rname_cs);
+            if (wrname != rname) {
+                std::cerr << "pop mismatch w.rname(" << wrname << ") rname("
                     << rname << ")" << std::endl;
             }
             stack.pop_back();
         }
     }
 
-    bool push_font(JSON& w, const char* font_attr,
+    bool push_font(const JSON& w, const char* font_attr,
         const char* font_size_base_attr) {
         const static char* method = "NDContext::push_font: ";
 
-        if (!w.contains(cspec_cs)) {
+        if (!JContains(w, cspec_cs)) {
             std::cerr << method << "bad cspec in: " << w << std::endl;
             return false;
         }
         const JSON& cspec(w[cspec_cs]);
-        if (!cspec.contains(font_attr)) {
+        if (!JContains(cspec, font_attr)) {
             std::cerr << method << "no " << font_attr << " in cspec : " << w << std::endl;
             return false;
         }
-        bool pop_font = false;
         float font_size_base = 0.0;
-        const std::string& font_name = cspec[font_attr];
+        std::string font_name = JAsString(cspec, font_attr);
         auto font_it = font_map.find(font_name);
         if (font_it != font_map.end()) {
-            if (cspec.contains(font_size_base_attr)) {
-                font_size_base = cspec[font_size_base_attr];
+            if (JContains(cspec, font_size_base_attr)) {
+                font_size_base = JAsFloat(cspec, font_size_base_attr);
             }
             ImGui::PushFont(font_it->second, font_size_base);
         }
