@@ -54,6 +54,7 @@ public:
         log_buffer << "Server URL: " << server_url << std::endl;
         std::cout << log_buffer.str() << std::endl;
     }
+    nlohmann::json  get_breadboard_config() { return bb_config; }
 #else   // __EMSCRIPTEN__
     NDProxy() {}
 #endif  // __EMSCRIPTEN__
@@ -61,7 +62,6 @@ public:
 
     bool            db_app() { return is_db_app; }
     void            set_done(bool d) { done = d; }
-    nlohmann::json  get_breadboard_config() { return bb_config; }
     std::string&    get_server_url() { return server_url; }
 
 protected:

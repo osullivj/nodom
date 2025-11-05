@@ -132,10 +132,10 @@ public:
         // main.ts:render (imgui-js based Typescript NDContext).
         // So here we push modals into pending_pushes so they can
         // push/pop outside the context of the loop below. JOS 2025-01-31
-        for (std::deque<nlohmann::json>::iterator it = stack.begin(); it != stack.end(); ++it) {
+        for (typename std::deque<JSON>::iterator it = stack.begin(); it != stack.end(); ++it) {
             // deref it for clarity and to rename as widget for
             // cross ref with main.ts logic
-            JSON& widget{ *it };
+            const JSON& widget{ *it };
             dispatch_render(widget);
         }
     }
@@ -287,8 +287,8 @@ public:
         stack.push_back(layout[0]);
     }
 
-    JSON  get_breadboard_config() { return proxy.get_breadboard_config(); }
 #ifndef __EMSCRIPTEN__
+    JSON  get_breadboard_config() { return proxy.get_breadboard_config(); }
     void register_ws_callback(ws_sender send) { ws_send = send; proxy.register_ws_callback(send); }
 #endif
     void register_font(const std::string& name, ImFont* f) { font_map[name] = f; }
@@ -330,31 +330,36 @@ protected:
             stack.push_back(pushable[action]);
         }
         else {
-            if (!data.contains("actions")) {
+            if (!JContains(data, actions_cs)) {
                 std::cerr << method << "no actions in data!" << std::endl;
                 return;
             }
             // get hold of "actions" in data: do we have one matching action?
-            JSON& actions = data["actions"];
-            if (!actions.contains(action)) {
+            const JSON& actions(data[actions_cs]);
+            if (!JContains(actions, action.c_str())) {
                 std::cerr << method << "no actions." << action << " in data!" << std::endl;
                 return;
             }
-            JSON& action_defn = actions[action];
-            if (!action_defn.contains("nd_events")) {
+            const JSON& action_defn(actions[action]);
+            if (!JContains(action_defn, nd_events_cs)) {
                 std::cerr << method << "no nd_events in actions." << action << " in data!" << std::endl;
                 return;
             }
-            JSON nd_events = nlohmann::json::array();
-            nd_events = action_defn["nd_events"];
-            auto event_iter = nd_events.begin();
-            bool event_match = false;
+
+            std::vector<std::string> nd_events_vec;
+            JAsStringVec(action_defn, nd_events_cs, nd_events_vec);
+            // JSON nd_events = JSON::array();
+            // nd_events = action_defn[nd_events_cs];
+            // auto event_iter = nd_events.begin();
+            auto nd_events_iter = std::find(nd_events_vec.begin(), nd_events_vec.end(), nd_event);
+            bool event_match = nd_events_iter != nd_events_vec.end();
+            /* bool event_match = false;
             while (event_iter != nd_events.end()) {
                 if (*event_iter++ == nd_event) {
                     event_match = true;
                     break;
                 }
-            }
+            } */
             if (!event_match) {
                 std::cerr << method << "no match for nd_event(" << nd_event << ") in defn(" << action_defn << ") in data!" << std::endl;
                 return;
@@ -362,16 +367,16 @@ protected:
             // Now we have a matched action definition in hand we can look
             // for UI push/pop and DB scan/query. If there's both push and pop,
             // pop goes first naturally!
-            if (action_defn.contains("ui_pop")) {
+            if (JContains(action_defn, ui_pop_cs)) {
                 // for pops we supply the rname, not the pushable name so
                 // the context can check the widget type on pops
-                const std::string& rname(action_defn["ui_pop"]);
+                std::string rname(JAsString(action_defn, ui_pop_cs));
                 std::cout << method << "ui_pop(" << rname << ")" << std::endl;
                 pending_pops.push_back(rname);
             }
-            if (action_defn.contains("ui_push")) {
+            if (JContains(action_defn, ui_push_cs)) {
                 // for pushes we supply widget_id, not the rname
-                const std::string& widget_id(action_defn["ui_push"]);
+                std::string widget_id(JAsString(action_defn, ui_push_cs));
                 // salt'n'pepa in da house!
                 auto push_it = pushable.find(widget_id);
                 if (push_it != pushable.end()) {
@@ -385,19 +390,21 @@ protected:
                 }
             }
             // Finally, do we have a DB op to handle?
-            if (action_defn.contains("db")) {
-                JSON& db_op(action_defn["db"]);
-                if (!db_op.contains("sql_cname") || !db_op.contains("query_id") || !db_op.contains("action")) {
+            if (JContains(action_defn, db_cs)) {
+                const JSON& db_op(action_defn[db_cs]);
+                if (!JContains(db_op, sql_cname_cs) || !JContains(db_op, query_id_cs) || !JContains(db_op, action_cs)) {
                     std::cerr << method << "db(" << db_op << ") missing sql_cname|query_id|action" << std::endl;
                 }
                 else {
-                    const std::string& sql_cache_key(db_op["sql_cname"]);
-                    if (!data.contains(sql_cache_key)) {
+                    std::string sql_cache_key(JAsString(db_op, sql_cname_cs));
+                    if (!JContains(data, sql_cache_key.c_str())) {
                         std::cerr << method << "db(" << db_op << ") sql_cname(" << sql_cache_key << ") does not resolve" << std::endl;
                     }
                     else {
-                        const std::string& sql(data[sql_cache_key]);
-                        db_dispatch(db_op["action"], sql, db_op["query_id"]);
+                        std::string sql(JAsString(data, sql_cache_key.c_str()));
+                        std::string db_action(JAsString(data, action_cs));
+                        std::string query_id(JAsString(data, query_id_cs));
+                        db_dispatch(db_action, sql, query_id);
                     }
                 }
             }
@@ -406,9 +413,11 @@ protected:
 
     void db_dispatch(const std::string& nd_type, const std::string& sql, const std::string& qid) {
         const static char* method = "NDContext::duck_dispatch: ";
-        JSON db_request = { {nd_type_cs, nd_type}, {sql_cs, sql}, {query_id_cs, qid} };
+        JSON db_request;
+        JSet(db_request, nd_type_cs, nd_type.c_str());
+        JSet(db_request, sql_cs, sql.c_str());
+        JSet(db_request, query_id_cs, qid.c_str());
         proxy.db_dispatch(db_request);
-
     }
 
     // Render functions
@@ -610,7 +619,7 @@ protected:
         static int default_combo_flags = ImGuiComboFlags_HeightRegular;
         //| ImGuiTableFlags_SizingFixedSame |
         //    ImGuiTableFlags_NoHostExtendX | ImGuiTableFlags_NoHostExtendY;
-        static int ymd_i[3] = { 0, 0, 0 };
+        static std::vector<int> ymd_i = { 0, 0, 0 };
         ImFont* year_month_font = nullptr;
         ImFont* day_date_font = nullptr;
         uint32_t year_month_font_size_base = 0;
@@ -654,15 +663,16 @@ protected:
             std::string ckey = JAsString(cspec, cname_cs);
             JSON ymd_old_j = JSON::array();
             ymd_old_j = data[ckey];
-            ymd_i[0] = ymd_old_j.at(0);
-            ymd_i[1] = ymd_old_j.at(1);
-            ymd_i[2] = ymd_old_j.at(2);
-            if (ImGui::DatePicker(ckey.c_str(), ymd_i, combo_flags, table_flags, year_month_font, day_date_font, year_month_font_size_base, day_date_font_size_base)) {
-                JSON ymd_new_j = JSON::array();
+            ymd_i[0] = JAsInt(ymd_old_j, 0);
+            ymd_i[1] = JAsInt(ymd_old_j, 1);
+            ymd_i[2] = JAsInt(ymd_old_j, 2);
+            if (ImGui::DatePicker(ckey.c_str(), ymd_i.data(), combo_flags, table_flags, year_month_font, day_date_font, year_month_font_size_base, day_date_font_size_base)) {
+                auto ymd_new_j = JArray(ymd_i);
+                /*
                 ymd_new_j.push_back(ymd_i[0]);
                 ymd_new_j.push_back(ymd_i[1]);
-                ymd_new_j.push_back(ymd_i[2]);
-                data[ckey] = ymd_new_j;
+                ymd_new_j.push_back(ymd_i[2]); */
+                JSet(data, ckey.c_str(), ymd_new_j);
                 notify_server(ckey, ymd_old_j, ymd_new_j);
             }
     }
@@ -682,16 +692,16 @@ protected:
     void render_button(const JSON& w) {
         const static char* method = "NDContext::render_button: ";
 
-        if (!w.contains("cspec")) {
+        if (!JContains(w, cspec_cs)) {
             std::cerr << method << "no cspec in w(" << w << ")" << std::endl;
             return;
         }
-        const JSON& cspec = w["cspec"];
-        if (!cspec.contains("text")) {
+        const JSON& cspec(w[cspec_cs]);
+        if (!JContains(cspec, text_cs)) {
             std::cerr << method << "no text in cspec(" << cspec << ")" << std::endl;
             return;
         }
-        const std::string& button_text = cspec["text"];
+        std::string button_text = JAsString(cspec, text_cs);
         if (ImGui::Button(button_text.c_str())) {
             action_dispatch(button_text, "Button");
         }
@@ -713,26 +723,28 @@ protected:
             "cnt", "null"   // DUCKDB_TYPE_BIGINT, DUCKDB_TYPE_DECIMAL
         };
 
-        if (!w.contains(cspec_cs) || !w[cspec_cs].contains(cname_cs) || !w[cspec_cs].contains(title_cs)) {
+        if (!JContains(w, cspec_cs) || !JContains(w[cspec_cs], cname_cs) || !JContains(w[cspec_cs], title_cs)) {
             std::cerr << method << "bad cspec in: " << w << std::endl;
             return;
         }
         const JSON& cspec(w[cspec_cs]);
-        const std::string& cname(cspec[cname_cs]);
-        const std::string& title(cspec[title_cs].empty() ? cname : cspec[title_cs]);
+        const std::string cname(JAsString(cspec, cname_cs));
+        std::string title(cname);
+        if (JContains(cspec, title_cs))
+            title = JAsString(cspec, title_cs);
 
         int table_flags = default_summary_table_flags;
-        if (cspec.contains(table_flags_cs)) {
-            table_flags = cspec[table_flags_cs];
+        if (JContains(cspec, table_flags_cs)) {
+            table_flags = JAsInt(cspec, table_flags_cs);
         }
 
         int window_flags = default_window_flags;
-        if (cspec.contains(window_flags_cs)) {
-            window_flags = cspec[window_flags_cs];
+        if (JContains(cspec, window_flags_cs)) {
+            window_flags = JAsInt(cspec, window_flags_cs);
         }
 
         bool title_pop = false;
-        if (cspec.contains(title_font_cs))
+        if (JContains(cspec, title_font_cs))
             title_pop = push_font(w, title_font_cs, title_font_size_base_cs);
 
         ImGui::OpenPopup(title.c_str());
@@ -750,7 +762,7 @@ protected:
         bool body_pop = false;
         if (ImGui::BeginPopupModal(title.c_str(), nullptr, window_flags)) {
             if (title_pop) pop_font();
-            if (cspec.contains(body_font_cs))
+            if (JContains(cspec, (body_font_cs)))
                 body_pop = push_font(w, body_font_cs, body_font_size_base_cs);
 
             JSON handle_array = JSON::array();
@@ -788,7 +800,7 @@ protected:
         if (body_pop) pop_font();
 
         bool button_pop = false;
-        if (cspec.contains(button_font_cs))
+        if (JContains(cspec, button_font_cs))
             button_pop = push_font(w, button_font_cs, button_font_size_base_cs);
 
         // Note we do not invoke pop_widget() here as we're
@@ -817,16 +829,18 @@ protected:
 
         static ImVec2 position = { 0.5, 0.5 };
 
-        if (!w.contains(cspec_cs) || !w[cspec_cs].contains(cname_cs) || !w[cspec_cs].contains(title_cs)) {
+        if (!JContains(w, cspec_cs) || !JContains(w[cspec_cs], cname_cs) || !JContains(w[cspec_cs], title_cs)) {
             std::cerr << method << "bad cspec in: " << w << std::endl;
             return;
         }
         const JSON& cspec(w[cspec_cs]);
-        const std::string& cname_cache_addr(cspec[cname_cs]);
-        const std::string& title(cspec[title_cs].empty() ? cname_cache_addr : cspec[title_cs]);
+        std::string cname_cache_addr(JAsString(cspec, cname_cs));
+        std::string title(cname_cache_addr);
+        if (JContains(cspec, title_cs))
+            title = JAsString(cspec, title_cs);
 
         bool tpop = false;
-        if (cspec.contains(title_font_cs))
+        if (JContains(cspec, title_font_cs))
             tpop = push_font(w, title_font_cs, title_font_size_base_cs);
 
         ImGui::OpenPopup(title.c_str());
@@ -841,23 +855,25 @@ protected:
         ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, position);
 
         // Get the parquet url list
-        auto pq_urls = data[cname_cache_addr];
+        std::vector<std::string> pq_url_vec;
+        JAsStringVec(data, cname_cache_addr.c_str(), pq_url_vec);
+        // auto pq_urls = data[cname_cache_addr];
         // std::cout << "render_duck_parquet_loading_modal: urls: " << pq_urls << std::endl;
 
         if (ImGui::BeginPopupModal(title.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
             bool bpop = false;
             if (JContains(cspec, body_font_cs))
                 bpop = push_font(w, body_font_cs, body_font_size_base_cs);
-            for (int i = 0; i < pq_urls.size(); i++) {
-                ImGui::Text(JAsString(pq_urls, i).c_str());
+            for (auto pq_iter = pq_url_vec.begin(); pq_iter != pq_url_vec.end(); ++pq_iter) {
+                ImGui::Text((*pq_iter).c_str());
             }
             if (bpop) pop_font();
             int spinner_radius = 5;
             int spinner_thickness = 2;
-            if (cspec.contains(spinner_radius_cs))
-                spinner_radius = cspec[spinner_radius_cs];
-            if (cspec.contains(spinner_thickness_cs))
-                spinner_thickness = cspec[spinner_thickness_cs];
+            if (JContains(cspec, spinner_radius_cs))
+                spinner_radius = JAsInt(cspec, spinner_radius_cs);
+            if (JContains(cspec, spinner_thickness_cs))
+                spinner_thickness = JAsInt(cspec, spinner_thickness_cs);
             if (!ImGui::Spinner("parquet_loading_spinner", spinner_radius, spinner_thickness, 0)) {
                 // TODO: spinner always fails IsClippedEx on first render
                 std::cerr << "render_duck_parquet_loading_modal: spinner fail" << std::endl;
@@ -884,23 +900,23 @@ protected:
         // cache datum to which we refer, so no cname. However, we do look
         // require a title (for imgui ID purposes) and we can have styling
         // attributes like ImGuiChildFlags
-        if (!w.contains(cspec_cs) || !w[cspec_cs].contains(title_cs)) {
+        if (!JContains(w, cspec_cs) || !JContains(w[cspec_cs], title_cs)) {
             std::cerr << method << "bad cspec in: " << w << std::endl;
             return;
         }
         const JSON& cspec(w[cspec_cs]);
-        const std::string& title(cspec[title_cs]);
+        std::string title(JAsString(cspec, title_cs));
 
         int child_flags = 0;
-        if (cspec.contains(child_flags_cs)) {
-            child_flags = cspec[child_flags_cs];
+        if (JContains(cspec, child_flags_cs)) {
+            child_flags = JAsInt(cspec, child_flags_cs);
         }
         ImVec2 size{ 0, 0 };
-        if (cspec.contains(size_cs)) {
-            nlohmann::json size_tup2 = nlohmann::json::array();
+        if (JContains(cspec, size_cs)) {
+            JSON size_tup2 = JSON::array();
             size_tup2 = cspec[size_cs];
-            size[0] = size_tup2.at(0);
-            size[1] = size_tup2.at(1);
+            size[0] = JAsInt(size_tup2, 0);
+            size[1] = JAsInt(size_tup2, 1);
         }
         ImGui::BeginChild(title.c_str(), size, child_flags);
     }

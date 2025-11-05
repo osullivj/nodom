@@ -25,8 +25,8 @@ float JAsFloat(const JSON& obj, const char* key) {
 	return 0.0;
 }
 
-template <typename JSON>
-float JAsInt(const JSON& obj, const char* key) {
+template <typename JSON, typename K>
+float JAsInt(const JSON& obj, K key) {
 	return 0;
 }
 
@@ -36,8 +36,7 @@ bool JAsBool(const JSON& obj, const char* key) {
 }
 
 template <typename JSON>
-bool JAsStringVec(const JSON& obj, const char* key, std::vector<std::string>& vec) {
-	return false;
+void JAsStringVec(const JSON& obj, const char* key, std::vector<std::string>& vec) {
 }
 
 template <typename JSON>
@@ -50,6 +49,10 @@ void JSet(JSON& obj, const char* key, const V& val) {
 	obj[key] = val;
 }
 
+template <typename JSON, typename V>
+JSON JArray(const std::vector<V>& values) {
+	return JSON(values);
+}
 
 #ifndef __EMSCRIPTEN__
 // nlohmann::json implementations of JSON cache ops
@@ -73,8 +76,8 @@ float JAsFloat(const nlohmann::json& obj, const char* key) {
 	return obj[key].template get<float>();
 }
 
-template <>
-float JAsInt(const nlohmann::json& obj, const char* key) {
+template <typename K>
+float JAsInt(const nlohmann::json& obj, K key) {
 	return obj[key].template get<int>();
 }
 
@@ -84,9 +87,8 @@ bool JAsBool(const nlohmann::json& obj, const char* key) {
 }
 
 template <>
-bool JAsStringVec(const nlohmann::json& obj, const char* key, std::vector<std::string>& vec) {
+void JAsStringVec(const nlohmann::json& obj, const char* key, std::vector<std::string>& vec) {
 	vec = obj[key];
-	return true;
 }
 
 template <>
@@ -99,7 +101,13 @@ void JSet(nlohmann::json& obj, const char* key, const V& val) {
 	obj[key] = val;
 }
 
+template <typename V>
+nlohmann::json JArray(const std::vector<V>& values) {
+	return nlohmann::json(values);
+}
+
 #else
+
 bool JContains(const emscripten::val& obj, const char* json_string) {
 	return obj.hasOwnProperty(json_string);
 }
@@ -114,9 +122,9 @@ float JAsFloat(const emscripten::val& obj, const char* key) {
 	return obj[key].as<float>();
 }
 
-template <>
-float JAsInt(const emscripten::val& obj, const char* key) {
-	return obj[key].as<int>();
+template <typename K>
+float JAsInt(const emscripten::val& obj, K key) {
+	return obj[key].template as<int>();
 }
 
 template <typename JSON>
@@ -125,9 +133,8 @@ bool JAsBool(const emscripten::val& obj, const char* key) {
 }
 
 template <>
-bool JAsStringVec(const emscripten::val& obj, const char* key, std::vector<std::string>& vec) {
+void JAsStringVec(const emscripten::val& obj, const char* key, std::vector<std::string>& vec) {
 	vec = emscripten::vecFromJSArray<std::string>(obj[key]);
-	return true;
 }
 
 template <>
@@ -138,6 +145,12 @@ int JSize(const emscripten::val& obj) {
 template <typename V>
 void JSet(emscripten::val& obj, const char* key, const V& val) {
 	obj.set(key, val);
+}
+
+
+template <typename V>
+emscripten::val JArray(const std::vector<V>& values) {
+	return emscripten::val::array(values);
 }
 
 // emscripten::val implementations of JSON cache ops

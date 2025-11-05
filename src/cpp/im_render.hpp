@@ -52,8 +52,6 @@ GLFWwindow* im_start(NDContext<JSON>& ctx)
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1); // Enable vsync
 
-    JSON bbcfg(ctx.get_breadboard_config());
-
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -66,8 +64,13 @@ GLFWwindow* im_start(NDContext<JSON>& ctx)
     //ImGui::StyleColorsClassic();
 
     // setup scaling
+    float scale = 4.0;
+#ifndef __EMSCRIPTEN__
+    JSON bbcfg(ctx.get_breadboard_config());
+    if (JContains(bbcfg, "font_scale_dpi"))
+        scale = JAsFloat(bbcfg, "font_scale_dpi");
+#endif
     ImGuiStyle& style = ImGui::GetStyle();
-    float scale = bbcfg.value("font_scale_dpi", 4.0);
     style.ScaleAllSizes(scale);
     style.FontScaleDpi = scale;
 
@@ -84,8 +87,8 @@ GLFWwindow* im_start(NDContext<JSON>& ctx)
     // - Remember that in C/C++ if you want to include a backslash \ in a string literal you need to write a double backslash \\ !
     // NB default font is ProggyClean; scalable but slow
     io.Fonts->AddFontDefault();
+#ifndef __EMSCRIPTEN__
     JSON jfonts = bbcfg["fonts"];
-
     for (auto fit = jfonts.begin(); fit != jfonts.end(); ++fit) {
         // fonts is an untyped list of strings. so we get<std::str>()
         // to coerce and avoid extra quotes
@@ -93,6 +96,9 @@ GLFWwindow* im_start(NDContext<JSON>& ctx)
         IM_ASSERT(font != NULL);
         ctx.register_font(fit.key(), font);
     }
+#else
+    // TODO: how do we load fonts in browser?
+#endif
 
     // Our state
     return window;
