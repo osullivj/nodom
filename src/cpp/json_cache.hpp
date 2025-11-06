@@ -4,51 +4,47 @@
 #else
 #endif
 
-// obviously wrong non specialised func
-template <typename JSON>
-JSON JParse(const char* json_string) {
-	return JSON{};
-}
+// non specialised func decls: no impl
+// because same logic cannot work for
+// both nlohmann::json and emscripten::val
 
 template <typename JSON>
-bool JContains(const JSON& obj, const char* key) {
-	return false;
-}
+JSON JParse(const char* json_string);
+
+template <typename JSON>
+bool JContains(const JSON& obj, const char* key);
 
 template <typename JSON, typename K>
-std::string JAsString(const JSON& obj, K key) {
-	return "";
-}
+std::string JAsString(const JSON& obj, K key);
 
 template <typename JSON>
-float JAsFloat(const JSON& obj, const char* key) {
-	return 0.0;
-}
+float JAsFloat(const JSON& obj, const char* key);
 
 template <typename JSON, typename K>
-float JAsInt(const JSON& obj, K key) {
-	return 0;
-}
+float JAsInt(const JSON& obj, K key);
 
 template <typename JSON>
-bool JAsBool(const JSON& obj, const char* key) {
-	return false;
-}
+bool JAsBool(const JSON& obj, const char* key);
 
 template <typename JSON>
-void JAsStringVec(const JSON& obj, const char* key, std::vector<std::string>& vec) {
-}
+void JAsStringVec(const JSON& obj, const char* key, std::vector<std::string>& vec);
 
 template <typename JSON>
-int JSize(const JSON& obj) {
-	return 0;
-}
+int JSize(const JSON& obj);
 
+// These generic impls should work for both
+// nlohmann::json and emscripten::val
+// JSet: both nloh and ems have [] setters
+// that work for map keys and list indicies.
 template <typename JSON, typename V>
 void JSet(JSON& obj, const char* key, const V& val) {
 	obj[key] = val;
 }
 
+// JArray: both nloh and ems take std::vector<V>
+// ctor params for constructing lists. This
+// method is slightly too generic as it
+// doesn't constrain V to be atomic.
 template <typename JSON, typename V>
 JSON JArray(const std::vector<V>& values) {
 	return JSON(values);
@@ -81,7 +77,7 @@ int JAsInt(const nlohmann::json& obj, K key) {
 	return obj[key].template get<int>();
 }
 
-template <typename JSON>
+template <>
 bool JAsBool(const nlohmann::json& obj, const char* key) {
 	return obj[key].template get<bool>();
 }
@@ -127,7 +123,7 @@ int JAsInt(const emscripten::val& obj, K key) {
 	return obj[key].template as<int>();
 }
 
-template <typename JSON>
+template <>
 bool JAsBool(const emscripten::val& obj, const char* key) {
 	return obj[key].template as<bool>();
 }

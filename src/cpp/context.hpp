@@ -345,21 +345,10 @@ protected:
                 std::cerr << method << "no nd_events in actions." << action << " in data!" << std::endl;
                 return;
             }
-
             std::vector<std::string> nd_events_vec;
             JAsStringVec(action_defn, nd_events_cs, nd_events_vec);
-            // JSON nd_events = JSON::array();
-            // nd_events = action_defn[nd_events_cs];
-            // auto event_iter = nd_events.begin();
             auto nd_events_iter = std::find(nd_events_vec.begin(), nd_events_vec.end(), nd_event);
             bool event_match = nd_events_iter != nd_events_vec.end();
-            /* bool event_match = false;
-            while (event_iter != nd_events.end()) {
-                if (*event_iter++ == nd_event) {
-                    event_match = true;
-                    break;
-                }
-            } */
             if (!event_match) {
                 std::cerr << method << "no match for nd_event(" << nd_event << ") in defn(" << action_defn << ") in data!" << std::endl;
                 return;
@@ -575,7 +564,7 @@ protected:
         }
         const JSON& cspec(w[cspec_cs]);
         // TODO: optimise local vars: these cspec are not cache refs so could
-// bound at startup time...
+        // bound at startup time...
         bool db = JAsBool(cspec, "db");
         bool fps = JAsBool(cspec, "fps");
         // TODO: config demo mode so it can be switched on/off in prod
@@ -620,8 +609,6 @@ protected:
 
         static int default_table_flags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_SizingFixedSame;
         static int default_combo_flags = ImGuiComboFlags_HeightRegular;
-        //| ImGuiTableFlags_SizingFixedSame |
-        //    ImGuiTableFlags_NoHostExtendX | ImGuiTableFlags_NoHostExtendY;
         static std::vector<int> ymd_i = { 0, 0, 0 };
         ImFont* year_month_font = nullptr;
         ImFont* day_date_font = nullptr;
@@ -671,10 +658,6 @@ protected:
             ymd_i[2] = JAsInt(ymd_old_j, 2);
             if (ImGui::DatePicker(ckey.c_str(), ymd_i.data(), combo_flags, table_flags, year_month_font, day_date_font, year_month_font_size_base, day_date_font_size_base)) {
                 auto ymd_new_j = JArray(ymd_i);
-                /*
-                ymd_new_j.push_back(ymd_i[0]);
-                ymd_new_j.push_back(ymd_i[1]);
-                ymd_new_j.push_back(ymd_i[2]); */
                 JSet(data, ckey.c_str(), ymd_new_j);
                 notify_server(ckey, ymd_old_j, ymd_new_j);
             }
@@ -710,7 +693,7 @@ protected:
         }
     }
 
-#define SMRY_COLM_CNT 12
+    constexpr static int SMRY_COLM_CNT = 12;
 
     void render_duck_table_summary_modal(const JSON& w) {
         const static char* method = "NDContext::render_duck_table_summary_modal: ";
@@ -860,8 +843,6 @@ protected:
         // Get the parquet url list
         std::vector<std::string> pq_url_vec;
         JAsStringVec(data, cname_cache_addr.c_str(), pq_url_vec);
-        // auto pq_urls = data[cname_cache_addr];
-        // std::cout << "render_duck_parquet_loading_modal: urls: " << pq_urls << std::endl;
 
         if (ImGui::BeginPopupModal(title.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
             bool bpop = false;
