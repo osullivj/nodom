@@ -63,6 +63,18 @@ class HomeHandler(tornado.web.RequestHandler):
     def get(self):
         self.render("index.html", duck_db=self.application.service.is_duck_app)
 
+class StaticJSFileHandler(tornado.web.StaticFileHandler):
+    def get_content_type(self):
+        return 'text/javascript'
+
+class StaticWASMFileHandler(tornado.web.StaticFileHandler):
+    def get_content_type(self):
+        return 'application/wasm'
+
+class StaticICOFileHandler(tornado.web.StaticFileHandler):
+    def get_content_type(self):
+        return ' image/vnd.microsoft.icon'
+
 
 class APIHandlerBase(tornado.web.RequestHandler):
     def set_default_headers(self, *args, **kwargs):
@@ -105,23 +117,15 @@ class WebSockHandler(tornado.websocket.WebSocketHandler):
         msg_dict['uuid'] = self._uuid
         self.application.on_ws_message(self, msg_dict)
 
-
-
-
-
-
 ND_HANDLERS = [
-    (r'/example/index.html', HomeHandler),
+    (r'/index.html', HomeHandler),
+    (r'/(.*\.js)', StaticJSFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, 'web'))),
+    (r'/(.*\.wasm)', StaticWASMFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, 'web'))),
+    (r'/(.*\.ico)', StaticICOFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, 'web'))),
     (r'/api/websock', WebSockHandler),
     (r'/api/(.*)', JSONHandler),
     (r'/ui/duckjournal/(.*)', DuckJournalHandler),
-    (r'/imgui/misc/fonts/(.*)', StaticFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, 'imgui', 'misc', 'fonts'))),
-    (r'/node_modules/@flyover/system/build/(.*)', StaticFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, 'node_modules', '@flyover', 'system', 'build'))),
-    (r'/example/build/(.*)', StaticFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, 'example', 'build'))),
-    (r'/build/(.*)', StaticFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, 'build'))),
-    (r'/example/(.*)', StaticFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, 'example'))),
-    (r'/src/(.*)', StaticFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, 'src'))),
-    (r'/(.*)', StaticFileHandler, dict(path=nd_consts.ND_ROOT_DIR)),
+    (r'/fonts/(.*)', StaticFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, 'imgui', 'misc', 'fonts'))),
 ]
 
 class NDApp( tornado.web.Application):
@@ -129,7 +133,7 @@ class NDApp( tornado.web.Application):
         # extra_handlers first so they get first crack at the match
         self.service = service
         handlers = extra_handlers + ND_HANDLERS
-        settings = dict(template_path=os.path.join(nd_consts.ND_ROOT_DIR, 'imgui', 'example'))
+        settings = dict(template_path=os.path.join(nd_consts.ND_ROOT_DIR, 'web'))
         tornado.web.Application.__init__( self, handlers, **settings)
         self.ws_handlers = service.get_ws_handlers()
 
