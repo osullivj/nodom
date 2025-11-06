@@ -19,7 +19,7 @@
 // C++ code to maintain when we just want to focus on the impl that is opaque in the browser.
 // JOS 2025-01-22
 
-#define ND_MAX_COMBO_LIST 16
+static constexpr int ND_MAX_COMBO_LIST{ 16 };
 
 typedef std::function<void(const std::string&)> ws_sender;
 
@@ -266,7 +266,7 @@ public:
         for (int inx=0; inx < layout_length; inx++) {
         // for (typename JSON::const_iterator it = layout.begin(); it != layout.end(); it++) {
             const JSON& w(layout[inx]);
-            std::cout << method << w << std::endl;
+            std::cout << method << "CHILD: " << w << std::endl;
             // NB we used it->value("wiget_id", "") in nlohmann::json
             // to extract child value. emscripten::val doesn't implement
             // operator->, so we lean on JSON::iterator::operator*, which
@@ -275,7 +275,7 @@ public:
             if (JContains(w, widget_id_cs)) {
                 std::string widget_id = JAsString(w, widget_id_cs);
                 if (!widget_id.empty()) {
-                    std::cout << method << "pushable: " << widget_id << ":" << w << std::endl;
+                    std::cout << method << "PUSHABLE: " << widget_id << ":" << w << std::endl;
                     pushable[widget_id] = w;
                 }
                 else {
@@ -402,8 +402,8 @@ protected:
                     }
                     else {
                         std::string sql(JAsString(data, sql_cache_key.c_str()));
-                        std::string db_action(JAsString(data, action_cs));
-                        std::string query_id(JAsString(data, query_id_cs));
+                        std::string db_action(JAsString(db_op, action_cs));
+                        std::string query_id(JAsString(db_op, query_id_cs));
                         db_dispatch(db_action, sql, query_id);
                     }
                 }
@@ -526,8 +526,11 @@ protected:
         ImGui::Combo(label.c_str(), &combo_selection, cs_combo_list, combo_count, combo_count);
         if (combo_selection != old_val) {
             JSet(data, combo_index_cache_addr.c_str(), combo_selection);
-            JSON j_old_val{ old_val };
-            JSON j_combo_selection{ combo_selection };
+            // Do not use list_init style ctors with nlohmann::json, 
+            // they'll serialize as [old_val], [combo_selection],
+            // and we want them to serialize as atomic vals, not lists
+            JSON j_old_val(old_val);
+            JSON j_combo_selection(combo_selection);
             notify_server(combo_index_cache_addr, j_old_val, j_combo_selection);
         }
     }

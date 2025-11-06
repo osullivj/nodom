@@ -77,7 +77,7 @@ float JAsFloat(const nlohmann::json& obj, const char* key) {
 }
 
 template <typename K>
-float JAsInt(const nlohmann::json& obj, K key) {
+int JAsInt(const nlohmann::json& obj, K key) {
 	return obj[key].template get<int>();
 }
 
@@ -123,7 +123,7 @@ float JAsFloat(const emscripten::val& obj, const char* key) {
 }
 
 template <typename K>
-float JAsInt(const emscripten::val& obj, K key) {
+int JAsInt(const emscripten::val& obj, K key) {
 	return obj[key].template as<int>();
 }
 

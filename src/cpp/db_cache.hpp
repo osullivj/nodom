@@ -31,6 +31,7 @@ public:
 };
 
 #ifndef __EMSCRIPTEN__
+
 // No DuckDB specifics in BreadBoardDBCache,
 // but we are using stuff we don't have on EMS.
 // For example, boost threads.
@@ -141,6 +142,7 @@ public:
 
         std::cout << method << "starting..." << std::endl;
         if (!db_init()) {
+            std::cout << method << "DB: init FAILED" << std::endl;
             exit(1);
         }
         else {
@@ -149,8 +151,8 @@ public:
             boost::unique_lock<boost::mutex> results_lock(result_mutex);
             // send nd_type:DuckInstance
             db_results.push(db_instance);
+            std::cout << method << "DB: " << db_instance << std::endl;
         }
-        std::cout << method << "init done" << std::endl;
 
         nlohmann::json response_list_j = nlohmann::json::array();
         duckdb_state dbstate;
