@@ -482,8 +482,8 @@ protected:
         if (input_integer != old_val) {
             JSet(data, cname_cache_addr.c_str(), input_integer);
             // TODO: mv semantics so notify_server can own the params
-            JSON j_old_val{ old_val };
-            JSON j_input_int{ input_integer };
+            JSON j_old_val(old_val);
+            JSON j_input_int(input_integer);
             notify_server(cname_cache_addr, j_old_val, j_input_int);
         }
     }
