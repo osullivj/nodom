@@ -64,7 +64,8 @@ endif
 ##---------------------------------------------------------------------
 
 CPPFLAGS += -I$(IMGUI_DIR) -I$(IMGUI_DIR)/backends
-#CPPFLAGS += -g
+# comment in for debug info!
+CPPFLAGS += -g
 CPPFLAGS += -Wall -Wformat -Os $(EMS)
 LDFLAGS += --shell-file ${IMGUI_DIR}/examples/libs/emscripten/shell_minimal.html
 LDFLAGS += $(EMS)
