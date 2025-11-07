@@ -60,6 +60,9 @@ GLFWwindow* im_start(NDContext<JSON>& ctx)
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
+#ifdef __EMSCRIPTEN__
+    io.IniFilename = nullptr;
+#endif
     //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
     //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 
