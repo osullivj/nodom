@@ -68,16 +68,7 @@ int main(int argc, char* argv[]) {
     NDProxy<DuckDBWebCache> server;
     NDContext<emscripten::val> ctx(server);
     GLFWwindow* window = im_start(ctx);
-    // For an Emscripten build we are disabling file-system access, so let's not attempt to do a fopen() of the imgui.ini file.
-    // You may manually call LoadIniSettingsFromMemory() to load settings from your own storage.
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
-    io.IniFilename = nullptr;
     emscripten_set_main_loop_arg(im_loop_body, &ctx, 0, 0);
-    /*
-    EMSCRIPTEN_MAINLOOP_BEGIN
-        im_render(window, ctx);
-    EMSCRIPTEN_MAINLOOP_END;
-    im_end(window); */
 #endif
 }
 
