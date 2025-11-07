@@ -37,6 +37,13 @@
 #pragma comment(lib, "legacy_stdio_definitions")
 #endif
 
+#ifdef __EMSCRIPTEN__
+void im_loop_body(void* c) {
+    NDContext<emscripten::val>* ctx = reinterpret_cast<NDContext<emscripten::val>*>(c);
+    if (ctx && !im_render(*ctx)) im_end(ctx->get_glfw_window());
+}
+#endif
+
 int main(int argc, char* argv[]) {
     const static char* method = "main: ";
 #ifndef __EMSCRIPTEN__
@@ -65,12 +72,12 @@ int main(int argc, char* argv[]) {
     // You may manually call LoadIniSettingsFromMemory() to load settings from your own storage.
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     io.IniFilename = nullptr;
+    emscripten_set_main_loop_arg(im_loop_body, &ctx, 0, 0);
+    /*
     EMSCRIPTEN_MAINLOOP_BEGIN
-    while (im_render(window, ctx)) {
-
-    }
+        im_render(window, ctx);
     EMSCRIPTEN_MAINLOOP_END;
-    im_end(window);
+    im_end(window); */
 #endif
 }
 
