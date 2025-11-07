@@ -15,6 +15,7 @@
 
 CC = emcc
 CXX = emcc
+DWP = emdwp
 WEB_DIR = web
 EXE = $(WEB_DIR)/index.html
 IMGUI_DIR = imgui
@@ -64,11 +65,13 @@ endif
 ##---------------------------------------------------------------------
 
 CPPFLAGS += -I$(IMGUI_DIR) -I$(IMGUI_DIR)/backends
-# comment in for debug info!
-CPPFLAGS += -g
-CPPFLAGS += -Wall -Wformat -Os $(EMS)
+# Comment in for debug info! And add to LDFLAGS...
+# See emscripten notes on DWARF debugging
+# https://emscripten.org/docs/porting/Debugging.html#debugging
+DBGFLAGS += -g -gdwarf-5 -gsplit-dwarf -gpubnames
+CPPFLAGS += $(DBGFLAGS) -Wall -Wformat -Os $(EMS)
 LDFLAGS += --shell-file ${IMGUI_DIR}/examples/libs/emscripten/shell_minimal.html
-LDFLAGS += $(EMS)
+LDFLAGS += $(EMS) $(DBGFLAGS)
 
 ##---------------------------------------------------------------------
 ## BUILD RULES
@@ -100,6 +103,12 @@ serve: all
 
 $(EXE): $(OBJS) $(WEB_DIR)
 	$(CXX) -o $@ $(OBJS) $(LDFLAGS)
+	$(DWP) -e web\index.wasm -o web\index.wasm.dwp
 
 clean:
-	rm -rf $(OBJS) $(WEB_DIR)
+	del $(OBJS)
+	del $(WEB_DIR)\index.html
+	del $(WEB_DIR)\index.js
+	del $(WEB_DIR)\index.wasm
+	del $(WEB_DIR)\index.wasm.dwp
+    
