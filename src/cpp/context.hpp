@@ -23,6 +23,8 @@ static constexpr int ND_MAX_COMBO_LIST{ 16 };
 
 typedef std::function<void(const std::string&)> ws_sender;
 
+struct GLFWwindow;
+
 template <typename JSON>
 class NDContext {
 private:
@@ -71,6 +73,8 @@ private:
     // ref to NDWebSockClient::send
     ws_sender ws_send;
 
+    GLFWwindow* glfw_window = nullptr;
+
 public:
 #ifndef __EMSCRIPTEN__
 #ifdef NODOM_DUCK
@@ -105,6 +109,9 @@ public:
         rfmap.emplace(std::string("BeginGroup"), [this](const JSON& w) { render_begin_group(w); });
         rfmap.emplace(std::string("EndGroup"), [this](const JSON& w) { render_end_group(w); });
     }
+
+    GLFWwindow* get_glfw_window() { return glfw_window; }
+    void        set_glfw_window(GLFWwindow* w) { glfw_window = w; }
 
     // invoked by main loop
     void render() {
