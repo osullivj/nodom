@@ -46,6 +46,8 @@ GLFWwindow* im_start(NDContext<JSON>& ctx)
 #endif
 
     // Create window with graphics context
+    // NB EMS example has this line...
+    // float main_scale = ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor()); // Valid on GLFW 3.3+ only
     GLFWwindow* window = glfwCreateWindow(1280, 720, "Nodom Breadboard", NULL, NULL);
     if (window == nullptr)
         return window;
@@ -76,6 +78,9 @@ GLFWwindow* im_start(NDContext<JSON>& ctx)
 
     // Setup Platform/Renderer backends
     ImGui_ImplGlfw_InitForOpenGL(window, true);
+#ifdef __EMSCRIPTEN__
+    ImGui_ImplGlfw_InstallEmscriptenCallbacks(window, "#canvas");
+#endif
     ImGui_ImplOpenGL3_Init(glsl_version);
 
     // Load Fonts
