@@ -23,10 +23,11 @@ CHROME_LAUNCH_FMT = (
     # we need both these to get Chrome to accept a self signed cert from the server
     '--ignore-cerificate-errors '
     '--ignore-certificate-errors-spki-list=%(b64_rsa_key)s '
+    '--disable-extensions '
     # https://medium.com/@aleksej.gudkov/understanding-and-fixing-the-strict-origin-when-cross-origin-cors-error-340c6614f701
     #   '--disable-web-security '
     # Python Tornado based servers on 8890, npm on 8080
-    'https://localhost:8890/example/index.html'
+    'http://localhost:8890/index.html'
 )
 
 CHROME_LAUNCH_DICT = dict(exe=CHROME_EXE, user_data_dir='', b64_rsa_key=B64_RSA_KEY)

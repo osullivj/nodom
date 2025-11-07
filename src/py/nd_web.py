@@ -64,8 +64,11 @@ class HomeHandler(tornado.web.RequestHandler):
         self.render("index.html", duck_db=self.application.service.is_duck_app)
 
 class StaticJSFileHandler(tornado.web.StaticFileHandler):
+    def set_default_headers(self, *args, **kwargs):
+        self.set_header("Content-Type", "application/javascript")
+        self.set_header("Access-Control-Allow-Origin", f"http://{options.host}:{options.node_port}")
     def get_content_type(self):
-        return 'text/javascript'
+        return 'application/javascript'
 
 class StaticWASMFileHandler(tornado.web.StaticFileHandler):
     def get_content_type(self):
@@ -97,6 +100,20 @@ class JSONHandler(APIHandlerBase):
         self.write(response_json)
         self.finish()
 
+# flip between serving the imgui example, and nodom build
+# web_args = ['imgui', 'examples', 'example_glfw_opengl3', 'web']     # imgui example
+web_args = ['web']                                                  # nodom build
+
+# DevToolsWorkspaceHandler informs the Chrome debugger about source file dirs
+# https://chromium.googlesource.com/devtools/devtools-frontend/+/main/docs/ecosystem/automatic_workspace_folders.md
+class DevToolsWorkspaceHandler(APIHandlerBase):
+    def get(self):
+        wsdict = dict(root=os.path.join(nd_consts.ND_ROOT_DIR, *web_args), uuid=str(uuid.uuid4()))
+        logr.info(f'DevToolsWorkspaceHandler.get: {wsdict}')
+        response_json = json.dumps(dict(workspace=wsdict))
+        self.write(response_json)
+        self.finish()
+
 
 class WebSockHandler(tornado.websocket.WebSocketHandler):
     def check_origin(self, origin):
@@ -117,11 +134,15 @@ class WebSockHandler(tornado.websocket.WebSocketHandler):
         msg_dict['uuid'] = self._uuid
         self.application.on_ws_message(self, msg_dict)
 
+
 ND_HANDLERS = [
     (r'/index.html', HomeHandler),
-    (r'/(.*\.js)', StaticJSFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, 'web'))),
-    (r'/(.*\.wasm)', StaticWASMFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, 'web'))),
-    (r'/(.*\.ico)', StaticICOFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, 'web'))),
+    # (r'/(index.html)', StaticFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, *web_args))),
+    (r'/(.*\.js)', StaticJSFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, *web_args))),
+    (r'/(.*\.wasm)', StaticWASMFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, *web_args))),
+    (r'/(.*\.wasm.dwp)', StaticWASMFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, *web_args))),
+    (r'/(.*\.ico)', StaticICOFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, *web_args))),
+    (r'/.well-known/appspecific/com.chrome.devtools.json', DevToolsWorkspaceHandler),
     (r'/api/websock', WebSockHandler),
     (r'/api/(.*)', JSONHandler),
     (r'/ui/duckjournal/(.*)', DuckJournalHandler),
