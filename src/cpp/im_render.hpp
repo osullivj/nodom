@@ -48,9 +48,11 @@ GLFWwindow* im_start(NDContext<JSON>& ctx)
     // Create window with graphics context
     // NB EMS example has this line...
     // float main_scale = ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor()); // Valid on GLFW 3.3+ only
-    GLFWwindow* window = glfwCreateWindow(1280, 720, "Nodom Breadboard", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(1280, 720, "NoDOM", NULL, NULL);
     if (window == nullptr)
         return window;
+    ctx.set_glfw_window(window);
+
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1); // Enable vsync
 
@@ -111,9 +113,13 @@ GLFWwindow* im_start(NDContext<JSON>& ctx)
 
 
 template <typename JSON>
-int im_render(GLFWwindow* window, NDContext<JSON>& ctx)
+int im_render(NDContext<JSON>& ctx)
 {
     static ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+
+    GLFWwindow* window = ctx.get_glfw_window();
+    if (window == nullptr)
+        return 0;
 
     if (!glfwWindowShouldClose(window)) {
         // Poll and handle events (inputs, window resize, etc.)
@@ -138,8 +144,8 @@ int im_render(GLFWwindow* window, NDContext<JSON>& ctx)
         glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
         glClear(GL_COLOR_BUFFER_BIT);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
         glfwSwapBuffers(window);
+
         return 1;
     }
     return 0;
