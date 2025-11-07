@@ -55,14 +55,13 @@ private:
 #else
 #endif
     NDContext<nlohmann::json>& ctx;
-    GLFWwindow* window;
     std::queue<nlohmann::json>  server_responses;
 public:
 #ifdef NODOM_DUCK
     NDWebSockClient(NDProxy<DuckDBCache>& svr, NDContext<nlohmann::json>& c)
 #else
 #endif
-        :uri(svr.get_server_url()), server(svr), ctx(c), window(im_start(c)) {
+        :uri(svr.get_server_url()), server(svr), ctx(c) {
             client.set_access_channels(websocketpp::log::alevel::all);
             client.clear_access_channels(websocketpp::log::alevel::frame_payload);
             client.set_error_channels(websocketpp::log::alevel::frame_payload);
@@ -86,6 +85,7 @@ public:
             client.connect(con);
         }
         set_timer();    // latest possible timer start
+        im_start(ctx);
         client.run();   // this method just calls io_service.run()
     }
 
@@ -106,8 +106,8 @@ protected:
 
     void on_timeout(const boost::system::error_code& e) {
         // if im_render returns false someone has closed the app via GUI
-        if (!im_render(window, ctx)) {
-            im_end(window);                 // imgui finalisation
+        if (!im_render(ctx)) {
+            im_end(ctx.get_glfw_window());                 // imgui finalisation
             ctx.set_done(true);             // py thread loop exit
             client.get_io_service().stop(); // asio finalisation
         }
