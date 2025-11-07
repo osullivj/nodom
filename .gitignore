@@ -3,3 +3,8 @@ package-lock.json
 .vscode
 imgui.ini
 **/*.o
+**/*.dwo
+web/*.js
+web/*.wasm
+web/*.wasm.dwp
+web/*.html
