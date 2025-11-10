@@ -56,7 +56,9 @@ public:
     }
     nlohmann::json  get_breadboard_config() { return bb_config; }
 #else   // __EMSCRIPTEN__
-    NDProxy():server_url("http://localhost:8890/index.html") {}
+    NDProxy() {
+        // TODO: ems code to get URL
+    }
 #endif  // __EMSCRIPTEN__
     virtual         ~NDProxy() {};
 

@@ -43,6 +43,15 @@ using websocketpp::lib::bind;
 
 struct GLFWwindow;
 
+#ifdef __EMSCRIPTEN__
+// standalone C style callbacks decls for ems websocket
+// NB they all redispatch to NDWebSockClient member funcs
+EM_BOOL ems_on_open(int eventType, const EmscriptenWebSocketOpenEvent* websocketEvent, void* userData);
+EM_BOOL ems_on_close(int eventType, const EmscriptenWebSocketCloseEvent* websocketEvent, void* userData);
+EM_BOOL ems_on_message(int eventType, const EmscriptenWebSocketMessageEvent* websocketEvent, void* userData);
+EM_BOOL ems_on_error(int eventType, const EmscriptenWebSocketErrorEvent* websocketEvent, void* userData);
+#endif
+
 template<typename JSON>
 class NDWebSockClient {
 private:
@@ -59,14 +68,15 @@ private:
     NDProxy<EmptyDBCache>& server;
 #endif
 #else
-    // TODO: emscripten websocket data members here
+    EMSCRIPTEN_WEBSOCKET_T ws;
+    EmscriptenWebSocketCreateAttributes ws_attrs = {
+                        nullptr, nullptr, EM_TRUE};
 #ifdef NODOM_DUCK
     NDProxy<DuckDBWebCache>& server;
 #else
     NDProxy<EmptyDBCache>& server;
 #endif
 #endif
-
 
 public:
 #ifndef __EMSCRIPTEN__
@@ -75,16 +85,16 @@ public:
 #else
     NDWebSockClient(NDProxy<EmptyDBCache>& svr, NDContext<JSON>& c)
 #endif
-        :uri(svr.get_server_url()), server(svr), ctx(c) {
-            client.set_access_channels(websocketpp::log::alevel::all);
-            client.clear_access_channels(websocketpp::log::alevel::frame_payload);
-            client.set_error_channels(websocketpp::log::alevel::frame_payload);
-            client.init_asio();
-            client.set_message_handler(bind(&NDWebSockClient::on_message, this, &client, ::_1, ::_2));
-            client.set_open_handler(bind(&NDWebSockClient::on_open, this, &client, ::_1));
-            client.set_close_handler(bind(&NDWebSockClient::on_close, this, &client, ::_1));
-            client.set_fail_handler(bind(&NDWebSockClient::on_fail, this, &client, ::_1));
-
+    // this win32 ctor configures a websocketpp websock
+    :uri(svr.get_server_url()), server(svr), ctx(c) {
+        client.set_access_channels(websocketpp::log::alevel::all);
+        client.clear_access_channels(websocketpp::log::alevel::frame_payload);
+        client.set_error_channels(websocketpp::log::alevel::frame_payload);
+        client.init_asio();
+        client.set_message_handler(bind(&NDWebSockClient::on_message, this, &client, ::_1, ::_2));
+        client.set_open_handler(bind(&NDWebSockClient::on_open, this, &client, ::_1));
+        client.set_close_handler(bind(&NDWebSockClient::on_close, this, &client, ::_1));
+        client.set_fail_handler(bind(&NDWebSockClient::on_fail, this, &client, ::_1));
     }
 
     // NDWebSockClient::run only exists on win32 as
@@ -112,8 +122,17 @@ public:
 #else
     NDWebSockClient(NDProxy<EmptyDBCache>& svr, NDContext<JSON>& c)
 #endif
-        :uri(svr.get_server_url()), server(svr), ctx(c) {
-        // TODO: emscripten/websocket.h init code here
+    :uri(svr.get_server_url()), server(svr), ctx(c) {
+        // see emscripten/websocket.h comments on ws_attrs.url
+        ws_attrs.url = uri.c_str();
+        ws = emscripten_websocket_new(&ws_attrs);
+        // ems callbacks require standalone C style funcs, so we
+        // pass this ptr as userData param so our callbacks
+        // can redispatch to NDWebSockClient member methods.
+        emscripten_websocket_set_onopen_callback(ws, this, ems_on_open);
+        emscripten_websocket_set_onerror_callback(ws, this, ems_on_error);
+        emscripten_websocket_set_onclose_callback(ws, this, ems_on_close);
+        emscripten_websocket_set_onmessage_callback(ws, this, ems_on_message);
     }
 #endif
 
@@ -126,6 +145,9 @@ public:
     }
 
 protected:
+// win32 only: websocketpp timouts are used to trigger rendering
+// on ems emscripten_set_main_loop_arg does that job
+#ifndef __EMSCRIPTEN__
     void set_timer() {
         asio_timer timer(client.get_io_service());
         timer.expires_from_now(boost::posix_time::millisec(16));
@@ -165,6 +187,7 @@ protected:
             }
         }
     }
+#endif
 
     void on_message(ws_client* c, ws_handle h, message_ptr msg_ptr) {
         std::string payload(msg_ptr->get_payload());
@@ -188,3 +211,27 @@ protected:
         std::cout << "NDWebSockClient::on_fail: hdl: " << h.lock().get() << std::endl;
     }
 };
+
+#ifdef __EMSCRIPTEN__
+// standalone C style callbacks decls for ems websocket
+// NB they all redispatch to NDWebSockClient member funcs
+EM_BOOL ems_on_open(int eventType, const EmscriptenWebSocketOpenEvent* websocketEvent, void* userData) {
+#ifdef NODOM_DUCK
+    NDProxy<DuckDBWebCache>* proxy = reinterpret_cast<NDProxy<DuckDBWebCache>*>(userData);
+#else
+    NDProxy<EmptyDBCache>* proxy = reinterpret_cast<NDProxy<EmptyDBCache>*>(userData);
+#endif
+}
+
+EM_BOOL ems_on_close(int eventType, const EmscriptenWebSocketCloseEvent* websocketEvent, void* userData) {
+
+}
+
+EM_BOOL ems_on_message(int eventType, const EmscriptenWebSocketMessageEvent* websocketEvent, void* userData) {
+
+}
+
+EM_BOOL ems_on_error(int eventType, const EmscriptenWebSocketErrorEvent* websocketEvent, void* userData) {
+
+}
+#endif

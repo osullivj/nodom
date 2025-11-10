@@ -80,21 +80,6 @@ public:
         // lock is out of scope so released: signal duck thread to wake up
         query_cond.notify_one();
     }
-
-    /*
-    void notify_server(const std::string& caddr, nlohmann::json& old_val, nlohmann::json& new_val) {
-        const static char* method = "DBCache::notify_server: ";
-        std::cout << method << caddr << ", old: " << old_val << ", new: " << new_val << std::endl;
-        nlohmann::json msg = { {nd_type_cs, data_change_cs}, {cache_key_cs, caddr}, {new_value_cs, new_val}, {old_value_cs, old_val} };
-        try {
-            ws_send(msg.dump());
-        }
-        catch (...) {
-            std::cerr << "notify_server EXCEPTION!" << std::endl;
-        }
-    }
-    void register_ws_callback(ws_sender send) { ws_send = send; }
-    */
 };
 
 static constexpr int MAX_COLUMNS = 256;
