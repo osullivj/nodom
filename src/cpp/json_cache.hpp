@@ -9,7 +9,7 @@
 // both nlohmann::json and emscripten::val
 
 template <typename JSON>
-JSON JParse(const char* json_string);
+JSON JParse(const std::string& json_string);
 
 template <typename JSON>
 bool JContains(const JSON& obj, const char* key);
@@ -53,7 +53,7 @@ JSON JArray(const std::vector<V>& values) {
 #ifndef __EMSCRIPTEN__
 // nlohmann::json implementations of JSON cache ops
 template <>
-nlohmann::json JParse(const char* json_string) {
+nlohmann::json JParse(const std::string& json_string) {
 	return nlohmann::json::parse(json_string);
 }
 
@@ -150,7 +150,7 @@ emscripten::val JArray(const std::vector<V>& values) {
 }
 
 template <>
-emscripten::val JParse(const char* json_string) {
+emscripten::val JParse(const std::string& json_string) {
 	emscripten::val json_global = emscripten::val::global("JSON");
 	return json_global.call<emscripten::val>("parse", json_string);
 }

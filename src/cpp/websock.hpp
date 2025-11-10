@@ -211,7 +211,7 @@ protected:
     }
 #endif
 
-    void on_message(const char* payload) {
+    void on_message(const std::string& payload) {
         JSON msg_json = JParse(payload);
         server_responses.emplace(msg_json);
     }
@@ -256,7 +256,7 @@ EM_BOOL ems_on_message(int eventType, const EmscriptenWebSocketMessageEvent* web
 #endif
     if (websocketEvent->isText) {
         // For only ascii chars.
-        proxy->on_message(websocketEvent->data);
+        proxy->on_message((const char*)websocketEvent->data);
     }
     else {
         NDLogger::cerr() << method << "non text message!" << std::endl;
