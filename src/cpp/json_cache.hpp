@@ -149,6 +149,11 @@ emscripten::val JArray(const std::vector<V>& values) {
 	return emscripten::val::array(values);
 }
 
+template <>
+emscripten::val JParse(const char* json_string) {
+	emscripten::val json_global = emscripten::val::global("JSON");
+	return json_global.call<emscripten::val>("parse", json_string);
+}
 // emscripten::val implementations of JSON cache ops
 #endif
 

@@ -91,10 +91,10 @@ public:
         client.clear_access_channels(websocketpp::log::alevel::frame_payload);
         client.set_error_channels(websocketpp::log::alevel::frame_payload);
         client.init_asio();
-        client.set_message_handler(bind(&NDWebSockClient::on_message, this, &client, ::_1, ::_2));
-        client.set_open_handler(bind(&NDWebSockClient::on_open, this, &client, ::_1));
-        client.set_close_handler(bind(&NDWebSockClient::on_close, this, &client, ::_1));
-        client.set_fail_handler(bind(&NDWebSockClient::on_fail, this, &client, ::_1));
+        client.set_message_handler(bind(&NDWebSockClient::wspp_on_message, this, &client, ::_1, ::_2));
+        client.set_open_handler(bind(&NDWebSockClient::wspp_on_open, this, &client, ::_1));
+        client.set_close_handler(bind(&NDWebSockClient::wspp_on_close, this, &client, ::_1));
+        client.set_fail_handler(bind(&NDWebSockClient::wspp_on_fail, this, &client, ::_1));
     }
 
     // NDWebSockClient::run only exists on win32 as
@@ -187,9 +187,8 @@ protected:
             }
         }
     }
-#endif
 
-    void on_message(ws_client* c, ws_handle h, message_ptr msg_ptr) {
+    void wspp_on_message(ws_client* c, ws_handle h, message_ptr msg_ptr) {
         std::string payload(msg_ptr->get_payload());
         std::cout << "NDWebSockClient::on_message: hdl( " << h.lock().get()
             << ") msg: " << payload << std::endl;
@@ -197,19 +196,33 @@ protected:
         server_responses.emplace(msg_json);
     }
 
-    void on_open(ws_client* c, ws_handle h) {
+    void wspp_on_open(ws_client* c, ws_handle h) {
         std::cout << "NDWebSockClient::on_open: hdl:" << h.lock().get() << std::endl;
         handle = h;
         ctx.on_ws_open();
     }
 
-    void on_close(ws_client* c, ws_handle h) {
+    void wspp_on_close(ws_client* c, ws_handle h) {
         std::cout << "NDWebSockClient::on_close: hdl: " << h.lock().get() << std::endl;
     }
 
-    void on_fail(ws_client* c, ws_handle h) {
+    void wspp_on_fail(ws_client* c, ws_handle h) {
         std::cout << "NDWebSockClient::on_fail: hdl: " << h.lock().get() << std::endl;
     }
+#endif
+
+    void on_message(const char* payload) {
+        JSON msg_json = JParse(payload);
+        server_responses.emplace(msg_json);
+    }
+
+    void on_open() {
+        ctx.on_ws_open();
+    }
+
+    void on_close() { }
+
+    void on_fail() { }
 };
 
 #ifdef __EMSCRIPTEN__
@@ -217,21 +230,46 @@ protected:
 // NB they all redispatch to NDWebSockClient member funcs
 EM_BOOL ems_on_open(int eventType, const EmscriptenWebSocketOpenEvent* websocketEvent, void* userData) {
 #ifdef NODOM_DUCK
-    NDProxy<DuckDBWebCache>* proxy = reinterpret_cast<NDProxy<DuckDBWebCache>*>(userData);
+    auto proxy = reinterpret_cast<NDProxy<DuckDBWebCache>*>(userData);
 #else
-    NDProxy<EmptyDBCache>* proxy = reinterpret_cast<NDProxy<EmptyDBCache>*>(userData);
+    auto proxy = reinterpret_cast<NDProxy<EmptyDBCache>*>(userData);
 #endif
+    proxy->on_open();
+    return EM_TRUE;
 }
 
 EM_BOOL ems_on_close(int eventType, const EmscriptenWebSocketCloseEvent* websocketEvent, void* userData) {
-
+#ifdef NODOM_DUCK
+    auto proxy = reinterpret_cast<NDProxy<DuckDBWebCache>*>(userData);
+#else
+    auto proxy = reinterpret_cast<NDProxy<EmptyDBCache>*>(userData);
+#endif
+    return EM_TRUE;
 }
 
 EM_BOOL ems_on_message(int eventType, const EmscriptenWebSocketMessageEvent* websocketEvent, void* userData) {
-
+    const static char* method = "ems_on_message: ";
+#ifdef NODOM_DUCK
+    auto proxy = reinterpret_cast<NDProxy<DuckDBWebCache>*>(userData);
+#else
+    auto proxy = reinterpret_cast<NDProxy<EmptyDBCache>*>(userData);
+#endif
+    if (websocketEvent->isText) {
+        // For only ascii chars.
+        proxy->on_message(websocketEvent->data);
+    }
+    else {
+        NDLogger::cerr() << method << "non text message!" << std::endl;
+    }
+    return EM_TRUE;
 }
 
 EM_BOOL ems_on_error(int eventType, const EmscriptenWebSocketErrorEvent* websocketEvent, void* userData) {
-
+#ifdef NODOM_DUCK
+    auto proxy = reinterpret_cast<NDProxy<DuckDBWebCache>*>(userData);
+#else
+    auto proxy = reinterpret_cast<NDProxy<EmptyDBCache>*>(userData);
+#endif
+    return EM_TRUE;
 }
 #endif
