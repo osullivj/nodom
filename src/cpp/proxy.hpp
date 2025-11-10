@@ -10,8 +10,7 @@
 #define ND_WC_BUF_SZ 256
 
 
-// NDProxy encapsulates the server side. In Breadboard it also hosts
-// the DuckDB instance.
+// NDProxy encapsulates the server side.
 template <typename DB>
 class NDProxy : public DB {
 public:

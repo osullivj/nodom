@@ -10,6 +10,7 @@
 #include "static_strings.hpp"
 #include "db_cache.hpp"
 #include "json_cache.hpp"
+#include "logger.hpp"
 
 // NoDOM emulation: debugging ND impls in JS is tricky. Code compiled from C++ to clang .o
 // is not available. So when we port to EM, we have to resort to printf debugging. Not good
@@ -118,7 +119,7 @@ public:
         const static char* method = "NDContext::render: ";
 
         if (pending_pops.size() || pending_pushes.size()) {
-            std::cerr << method << pending_pops.size() << " pending pops, " << pending_pushes.size()
+            NDLogger::cerr() << method << pending_pops.size() << " pending pops, " << pending_pushes.size()
                 << " pending pushes" << std::endl;
         }
         // address pending pops first: maintaining ordering by working from front to back
@@ -177,7 +178,7 @@ public:
 #endif  // __EMSCRIPTEN__
         }
         catch (...) {
-            std::cerr << "notify_server EXCEPTION!" << std::endl;
+            NDLogger::cerr() << "notify_server EXCEPTION!" << std::endl;
         }
     }
 
@@ -188,7 +189,7 @@ public:
         // list of py dicts. So use C++11 auto range...
         while (!responses.empty()) {
             JSON& resp = responses.front();
-            std::cout << method << resp << std::endl;
+            NDLogger::cout() << method << resp << std::endl;
             // polymorphic as types are hidden inside change
             // Is this a CacheResponse for layout or data?
             if (resp[nd_type_cs] == cache_response_cs) {
@@ -224,9 +225,9 @@ public:
         const static char* method = "NDContext::on_db_event: ";
 
         if (!db_msg.contains("nd_type")) {
-            std::cerr << method << "no nd_type in " << db_msg << std::endl;
+            NDLogger::cerr() << method << "no nd_type in " << db_msg << std::endl;
         }
-        std::cout << method << db_msg << std::endl;
+        NDLogger::cout() << method << db_msg << std::endl;
         const std::string& nd_type(db_msg[nd_type_cs]);
         if (nd_type == "ParquetScan") {
             db_status_color = amber;
@@ -244,7 +245,7 @@ public:
             JSON result_handle = JSON::array();
             result_handle = db_msg[db_handle_cs];
             std::string cname = qid + "_result";
-            std::cout << method << "DBHandle: " << std::hex << result_handle 
+            NDLogger::cout() << method << "DBHandle: " << std::hex << result_handle 
                 << ", caddr: " << cname << std::endl;
             data[cname] = result_handle;
         }
@@ -258,7 +259,7 @@ public:
             db_dispatch("Query", "select 1729;", "ramanujan");
         }
         else {
-            std::cerr << "NDContext::on_db_event: unexpected nd_type in " << db_msg << std::endl;
+            NDLogger::cerr() << "NDContext::on_db_event: unexpected nd_type in " << db_msg << std::endl;
         }
     }
 
@@ -273,7 +274,7 @@ public:
         for (int inx=0; inx < layout_length; inx++) {
         // for (typename JSON::const_iterator it = layout.begin(); it != layout.end(); it++) {
             const JSON& w(layout[inx]);
-            std::cout << method << "CHILD: " << w << std::endl;
+            NDLogger::cout() << method << "CHILD: " << w << std::endl;
             // NB we used it->value("wiget_id", "") in nlohmann::json
             // to extract child value. emscripten::val doesn't implement
             // operator->, so we lean on JSON::iterator::operator*, which
@@ -282,11 +283,11 @@ public:
             if (JContains(w, widget_id_cs)) {
                 std::string widget_id = JAsString(w, widget_id_cs);
                 if (!widget_id.empty()) {
-                    std::cout << method << "PUSHABLE: " << widget_id << ":" << w << std::endl;
+                    NDLogger::cout() << method << "PUSHABLE: " << widget_id << ":" << w << std::endl;
                     pushable[widget_id] = w;
                 }
                 else {
-                    std::cerr << method << "empty widget_id in: " << w << std::endl;
+                    NDLogger::cerr() << method << "empty widget_id in: " << w << std::endl;
                 }
             }
         }
@@ -306,13 +307,13 @@ protected:
         const static char* method = "NDContext::dispatch_render: ";
 
         if (!JContains(w, rname_cs)) {
-            std::cerr << method << "missing rname in " << w << std::endl;
+            NDLogger::cerr() << method << "missing rname in " << w << std::endl;
             return;
         }
         std::string rname = JAsString(w, rname_cs);
         const auto it = rfmap.find(rname);
         if (it == rfmap.end()) {
-            std::cerr << method << "unknown rname in " << w << std::endl;
+            NDLogger::cerr() << method << "unknown rname in " << w << std::endl;
             return;
         }
         it->second(w);
@@ -321,10 +322,10 @@ protected:
     void action_dispatch(const std::string& action, const std::string& nd_event) {
         const static char* method = "NDContext::action_dispatch: ";
 
-        std::cout << method << "action(" << action << ")" << std::endl;
+        NDLogger::cout() << method << "action(" << action << ")" << std::endl;
 
         if (action.empty()) {
-            std::cerr << method << "no action specified!" << std::endl;
+            NDLogger::cerr() << method << "no action specified!" << std::endl;
             return;
         }
         // Is it a pushable widget? NB this is only for self popping modals like DuckTableSummaryModal.
@@ -333,23 +334,23 @@ protected:
         // JOS 2025-02-22
         auto it = pushable.find(action);
         if (it != pushable.end() && nd_event.empty()) {
-            std::cout << method << "pushable(" << action << ")" << std::endl;
+            NDLogger::cout() << method << "pushable(" << action << ")" << std::endl;
             stack.push_back(pushable[action]);
         }
         else {
             if (!JContains(data, actions_cs)) {
-                std::cerr << method << "no actions in data!" << std::endl;
+                NDLogger::cerr() << method << "no actions in data!" << std::endl;
                 return;
             }
             // get hold of "actions" in data: do we have one matching action?
             const JSON& actions(data[actions_cs]);
             if (!JContains(actions, action.c_str())) {
-                std::cerr << method << "no actions." << action << " in data!" << std::endl;
+                NDLogger::cerr() << method << "no actions." << action << " in data!" << std::endl;
                 return;
             }
             const JSON& action_defn(actions[action]);
             if (!JContains(action_defn, nd_events_cs)) {
-                std::cerr << method << "no nd_events in actions." << action << " in data!" << std::endl;
+                NDLogger::cerr() << method << "no nd_events in actions." << action << " in data!" << std::endl;
                 return;
             }
             std::vector<std::string> nd_events_vec;
@@ -357,7 +358,7 @@ protected:
             auto nd_events_iter = std::find(nd_events_vec.begin(), nd_events_vec.end(), nd_event);
             bool event_match = nd_events_iter != nd_events_vec.end();
             if (!event_match) {
-                std::cerr << method << "no match for nd_event(" << nd_event << ") in defn(" << action_defn << ") in data!" << std::endl;
+                NDLogger::cerr() << method << "no match for nd_event(" << nd_event << ") in defn(" << action_defn << ") in data!" << std::endl;
                 return;
             }
             // Now we have a matched action definition in hand we can look
@@ -367,7 +368,7 @@ protected:
                 // for pops we supply the rname, not the pushable name so
                 // the context can check the widget type on pops
                 std::string rname(JAsString(action_defn, ui_pop_cs));
-                std::cout << method << "ui_pop(" << rname << ")" << std::endl;
+                NDLogger::cout() << method << "ui_pop(" << rname << ")" << std::endl;
                 pending_pops.push_back(rname);
             }
             if (JContains(action_defn, ui_push_cs)) {
@@ -376,25 +377,25 @@ protected:
                 // salt'n'pepa in da house!
                 auto push_it = pushable.find(widget_id);
                 if (push_it != pushable.end()) {
-                    std::cout << method << "ui_push(" << widget_id << ")" << std::endl;
+                    NDLogger::cout() << method << "ui_push(" << widget_id << ")" << std::endl;
                     // NB action_dispatch is called by eg render_button, which ultimately is called
                     // by render(), which iterates over stack. So we cannot change stack here...
                     pending_pushes.push_back(push_it->second);
                 }
                 else {
-                    std::cerr << method << "ui_push(" << widget_id << ") no such pushable" << std::endl;
+                    NDLogger::cerr() << method << "ui_push(" << widget_id << ") no such pushable" << std::endl;
                 }
             }
             // Finally, do we have a DB op to handle?
             if (JContains(action_defn, db_cs)) {
                 const JSON& db_op(action_defn[db_cs]);
                 if (!JContains(db_op, sql_cname_cs) || !JContains(db_op, query_id_cs) || !JContains(db_op, action_cs)) {
-                    std::cerr << method << "db(" << db_op << ") missing sql_cname|query_id|action" << std::endl;
+                    NDLogger::cerr() << method << "db(" << db_op << ") missing sql_cname|query_id|action" << std::endl;
                 }
                 else {
                     std::string sql_cache_key(JAsString(db_op, sql_cname_cs));
                     if (!JContains(data, sql_cache_key.c_str())) {
-                        std::cerr << method << "db(" << db_op << ") sql_cname(" << sql_cache_key << ") does not resolve" << std::endl;
+                        NDLogger::cerr() << method << "db(" << db_op << ") sql_cname(" << sql_cache_key << ") does not resolve" << std::endl;
                     }
                     else {
                         std::string sql(JAsString(data, sql_cache_key.c_str()));
@@ -421,7 +422,7 @@ protected:
         const static char* method = "NDContext::render_home: ";
 
         if (!JContains(w, cspec_cs)) {
-            std::cerr << method << "no cspec in w(" << w << ")" << std::endl;
+            NDLogger::cerr() << method << "no cspec in w(" << w << ")" << std::endl;
             return;
         }
         const JSON& cspec = w[cspec_cs];
@@ -453,7 +454,7 @@ protected:
         static int input_integer;
         input_integer = 0;
         if (!JContains(w, cspec_cs)) {
-            std::cerr << method << "no cspec in w(" << w << ")" << std::endl;
+            NDLogger::cerr() << method << "no cspec in w(" << w << ")" << std::endl;
             return;
         }
         const JSON& cspec(w[cspec_cs]);
@@ -497,7 +498,7 @@ protected:
         combo_selection = 0;
         combo_list.clear();
         if (!JContains(w, cspec_cs)) {
-            std::cerr << method << "no cspec in w(" << w << ")" << std::endl;
+            NDLogger::cerr() << method << "no cspec in w(" << w << ")" << std::endl;
             return;
         }
         const JSON& cspec = w["cspec"];
@@ -535,7 +536,7 @@ protected:
         const static char* method = "NDContext::render_checkbox: ";
 
         if (!JContains(w, cspec_cs)) {
-            std::cerr << method << "no cspec in w(" << w << ")" << std::endl;
+            NDLogger::cerr() << method << "no cspec in w(" << w << ")" << std::endl;
             return;
         }
         const JSON& cspec(w[cspec_cs]);
@@ -566,7 +567,7 @@ protected:
         static const char* method = "NDContext::render_footer: ";
 
         if (!JContains(w, cspec_cs)) {
-            std::cerr << method << "no cspec in w(" << w << ")" << std::endl;
+            NDLogger::cerr() << method << "no cspec in w(" << w << ")" << std::endl;
             return;
         }
         const JSON& cspec(w[cspec_cs]);
@@ -623,7 +624,7 @@ protected:
         uint32_t day_date_font_size_base = 0;
 
             if (!JContains(w, cspec_cs)) {
-                std::cerr << method << "no cspec in w(" << w << ")" << std::endl;
+                NDLogger::cerr() << method << "no cspec in w(" << w << ")" << std::endl;
                 return;
             }
             const JSON& cspec(w[cspec_cs]);
@@ -636,7 +637,7 @@ protected:
                         year_month_font_size_base = JAsFloat(cspec, year_month_font_size_base_cs);
                 }
                 else {
-                    std::cerr << method << ym_font << " not in font_map" << std::endl;
+                    NDLogger::cerr() << method << ym_font << " not in font_map" << std::endl;
                 }
             }
             if (JContains(cspec, day_date_font_cs)) {
@@ -648,7 +649,7 @@ protected:
                         day_date_font_size_base = JAsFloat(cspec, day_date_font_size_base_cs);
                 }
                 else {
-                    std::cerr << method << dd_font << " not in font_map" << std::endl;
+                    NDLogger::cerr() << method << dd_font << " not in font_map" << std::endl;
                 }
             }
             int table_flags = default_table_flags;
@@ -674,7 +675,7 @@ protected:
         const static char* method = "NDContext::render_text: ";
 
         if (!JContains(w, cspec_cs)) {
-            std::cerr << method << "no cspec in w(" << w << ")" << std::endl;
+            NDLogger::cerr() << method << "no cspec in w(" << w << ")" << std::endl;
             return;
         }
         const JSON& cspec(w[cspec_cs]);
@@ -686,12 +687,12 @@ protected:
         const static char* method = "NDContext::render_button: ";
 
         if (!JContains(w, cspec_cs)) {
-            std::cerr << method << "no cspec in w(" << w << ")" << std::endl;
+            NDLogger::cerr() << method << "no cspec in w(" << w << ")" << std::endl;
             return;
         }
         const JSON& cspec(w[cspec_cs]);
         if (!JContains(cspec, text_cs)) {
-            std::cerr << method << "no text in cspec(" << cspec << ")" << std::endl;
+            NDLogger::cerr() << method << "no text in cspec(" << cspec << ")" << std::endl;
             return;
         }
         std::string button_text = JAsString(cspec, text_cs);
@@ -717,7 +718,7 @@ protected:
         };
 
         if (!JContains(w, cspec_cs) || !JContains(w[cspec_cs], cname_cs) || !JContains(w[cspec_cs], title_cs)) {
-            std::cerr << method << "bad cspec in: " << w << std::endl;
+            NDLogger::cerr() << method << "bad cspec in: " << w << std::endl;
             return;
         }
         const JSON& cspec(w[cspec_cs]);
@@ -744,7 +745,7 @@ protected:
         // Always center this window when appearing
         ImGuiViewport* vp = ImGui::GetMainViewport();
         if (!vp) {
-            std::cerr << method << cname << ": null viewport ptr!" << std::endl;
+            NDLogger::cerr() << method << cname << ": null viewport ptr!" << std::endl;
             return;
         }
         auto center = vp->GetCenter();
@@ -761,9 +762,9 @@ protected:
             JSON handle_array = JSON::array();
             handle_array = data[cname];
             std::uint64_t result_handle = proxy.get_handle(handle_array);
-            std::cout << method << "result_handle: " << std::hex << result_handle << std::endl;
+            NDLogger::cout() << method << "result_handle: " << std::hex << result_handle << std::endl;
             if (!result_handle) {
-                std::cerr << method << cname << ": null result_handle!" << std::endl;
+                NDLogger::cerr() << method << cname << ": null result_handle!" << std::endl;
                 return;
             }
             if (ImGui::BeginTable(cname.c_str(), colm_count, table_flags)) {
@@ -823,7 +824,7 @@ protected:
         static ImVec2 position = { 0.5, 0.5 };
 
         if (!JContains(w, cspec_cs) || !JContains(w[cspec_cs], cname_cs) || !JContains(w[cspec_cs], title_cs)) {
-            std::cerr << method << "bad cspec in: " << w << std::endl;
+            NDLogger::cerr() << method << "bad cspec in: " << w << std::endl;
             return;
         }
         const JSON& cspec(w[cspec_cs]);
@@ -841,7 +842,7 @@ protected:
         // Always center this window when appearing
         ImGuiViewport* vp = ImGui::GetMainViewport();
         if (!vp) {
-            std::cerr << method << "cname: " << cname_cache_addr
+            NDLogger::cerr() << method << "cname: " << cname_cache_addr
                 << ", title: " << title << ", null viewport ptr!";
         }
         auto center = vp->GetCenter();
@@ -867,7 +868,7 @@ protected:
                 spinner_thickness = JAsInt(cspec, spinner_thickness_cs);
             if (!ImGui::Spinner("parquet_loading_spinner", spinner_radius, spinner_thickness, 0)) {
                 // TODO: spinner always fails IsClippedEx on first render
-                std::cerr << "render_duck_parquet_loading_modal: spinner fail" << std::endl;
+                NDLogger::cerr() << "render_duck_parquet_loading_modal: spinner fail" << std::endl;
             }
             ImGui::EndPopup();
         }
@@ -892,7 +893,7 @@ protected:
         // require a title (for imgui ID purposes) and we can have styling
         // attributes like ImGuiChildFlags
         if (!JContains(w, cspec_cs) || !JContains(w[cspec_cs], title_cs)) {
-            std::cerr << method << "bad cspec in: " << w << std::endl;
+            NDLogger::cerr() << method << "bad cspec in: " << w << std::endl;
             return;
         }
         const JSON& cspec(w[cspec_cs]);
@@ -936,7 +937,7 @@ protected:
             const JSON& w(stack.back());
             std::string wrname = JAsString(w, rname_cs);
             if (wrname != rname) {
-                std::cerr << "pop mismatch w.rname(" << wrname << ") rname("
+                NDLogger::cerr() << "pop mismatch w.rname(" << wrname << ") rname("
                     << rname << ")" << std::endl;
             }
             stack.pop_back();
@@ -948,12 +949,12 @@ protected:
         const static char* method = "NDContext::push_font: ";
 
         if (!JContains(w, cspec_cs)) {
-            std::cerr << method << "bad cspec in: " << w << std::endl;
+            NDLogger::cerr() << method << "bad cspec in: " << w << std::endl;
             return false;
         }
         const JSON& cspec(w[cspec_cs]);
         if (!JContains(cspec, font_attr)) {
-            std::cerr << method << "no " << font_attr << " in cspec : " << w << std::endl;
+            NDLogger::cerr() << method << "no " << font_attr << " in cspec : " << w << std::endl;
             return false;
         }
         float font_size_base = 0.0;
@@ -966,7 +967,7 @@ protected:
             ImGui::PushFont(font_it->second, font_size_base);
         }
         else {
-            std::cerr << method << "bad font name in cspec in w(" << w << ")" << std::endl;
+            NDLogger::cerr() << method << "bad font name in cspec in w(" << w << ")" << std::endl;
             return false;
         }
         return true;
