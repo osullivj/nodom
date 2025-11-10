@@ -12,13 +12,17 @@
 #include "json_cache.hpp"
 #include "logger.hpp"
 
-// NoDOM emulation: debugging ND impls in JS is tricky. Code compiled from C++ to clang .o
-// is not available. So when we port to EM, we have to resort to printf debugging. Not good
-// when we want to understand what the "correct" imgui behaviour should be. So here we have
-// just enough impl to emulate ND server and client scaffolding that allows us to debug
-// imgui logic. So we don't bother with HTTP get, just the websockets, with enough
-// C++ code to maintain when we just want to focus on the impl that is opaque in the browser.
-// JOS 2025-01-22
+// NDContext: the NoDOM render engine, built on top of Dear ImGui and Emscripten.
+// NDContext is coded as portable C++ with two targets: Emscripten (ems) running in 
+// Chrome and Win32. Because the two platforms differ some key abstractions
+// are in play...
+// json_cache.hpp: JSON is the format for data and layout. On win32 we use 
+// nlohmann::json, and on ems emscripten::val. json_cache.hpp uses template
+// functions to bridge the difference, keeping the code here identical.
+// websock.hpp: on win32 we use websocketpp, and on ems we use the ems 
+// wesock API. See emscripten/websocket.h and 
+// https://gist.github.com/nus/564e9e57e4c107faa1a45b8332c265b9
+
 
 static constexpr int ND_MAX_COMBO_LIST{ 16 };
 
@@ -34,11 +38,11 @@ private:
 #ifdef NODOM_DUCK
     NDProxy<DuckDBCache>& proxy;
 #else
+    NDProxy<EmptyDBCache>& proxy;
 #endif // NODOM_DUCK
 #else
     NDProxy<DuckDBWebCache>& proxy;
 #endif // __EMSCRIPTEN
-    // NSServer invokes will be replaced with EM_JS
 
     JSON                      layout; // layout and data are fetched by 
     JSON                      data;   // sync c++py calls not HTTP gets
@@ -81,6 +85,7 @@ public:
 #ifdef NODOM_DUCK
     NDContext(NDProxy<DuckDBCache>& s)
 #else
+    NDContext(NDProxy<EmptyDBCache>& s)
 #endif
 #else
     NDContext(NDProxy<DuckDBWebCache>& s)
@@ -156,7 +161,6 @@ public:
         ws_send(msg.dump());
 #else
         // TODO: EM_JS code to socket send
-
 #endif  // __EMSCRIPTEN__
     }
 
@@ -299,7 +303,7 @@ public:
 
 #ifndef __EMSCRIPTEN__
     JSON  get_breadboard_config() { return proxy.get_breadboard_config(); }
-    void register_ws_callback(ws_sender send) { ws_send = send; proxy.register_ws_callback(send); }
+    void register_ws_callback(ws_sender send) { ws_send = send; } // proxy.register_ws_callback(send);
 #endif
     void register_font(const std::string& name, ImFont* f) { font_map[name] = f; }
 

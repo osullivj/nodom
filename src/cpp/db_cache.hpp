@@ -25,9 +25,9 @@ typedef std::function<void(const std::string&)> ws_sender;
 #define STR_BUF_LEN 256
 #define FMT_BUF_LEN 16
 
-class DBCache {
+class EmptyDBCache {
 public:
-    virtual ~DBCache() {}
+    virtual ~EmptyDBCache() {}
 };
 
 #ifndef __EMSCRIPTEN__
@@ -35,7 +35,7 @@ public:
 // No DuckDB specifics in BreadBoardDBCache,
 // but we are using stuff we don't have on EMS.
 // For example, boost threads.
-class BreadBoardDBCache : public DBCache {
+class BreadBoardDBCache : public EmptyDBCache {
 public:
     char* buffer{ 0 };
 protected:
@@ -81,6 +81,7 @@ public:
         query_cond.notify_one();
     }
 
+    /*
     void notify_server(const std::string& caddr, nlohmann::json& old_val, nlohmann::json& new_val) {
         const static char* method = "DBCache::notify_server: ";
         std::cout << method << caddr << ", old: " << old_val << ", new: " << new_val << std::endl;
@@ -92,11 +93,11 @@ public:
             std::cerr << "notify_server EXCEPTION!" << std::endl;
         }
     }
-
     void register_ws_callback(ws_sender send) { ws_send = send; }
+    */
 };
 
-#define MAX_COLUMNS 256
+static constexpr int MAX_COLUMNS = 256;
 
 class DuckDBCache : public BreadBoardDBCache {
 private:
@@ -378,7 +379,7 @@ std::ostream& operator<<(std::ostream& os, const emscripten::val& v)
     return os;
 }
 
-class DuckDBWebCache : public DBCache {
+class DuckDBWebCache : public EmptyDBCache {
 public:
     char* buffer{ 0 };
 private:
@@ -406,6 +407,7 @@ public:
         }
     }
 
+    /*
     void notify_server(const std::string& caddr, nlohmann::json& old_val, nlohmann::json& new_val) {
         const static char* method = "DBCache::notify_server: ";
         std::cout << method << caddr << ", old: " << old_val << ", new: " << new_val << std::endl;
@@ -423,7 +425,7 @@ public:
         catch (...) {
             std::cerr << "notify_server EXCEPTION!" << std::endl;
         }
-    }
+    } */
 
 
     // db_init, db_fnls, db_loop: these three methods exec 

@@ -1,8 +1,5 @@
-// Dear ImGui: standalone example application for GLFW + OpenGL 3, using programmable pipeline
-// (GLFW is a cross-platform general purpose library for handling windows, inputs, OpenGL/Vulkan/Metal graphics context creation, etc.)
-// If you are new to Dear ImGui, read documentation from the docs/ folder + read the top of imgui.cpp.
-// Read online: https://github.com/ocornut/imgui/tree/master/docs
-// websock hdrs
+// websock.hpp: WebSocket comms for NoDOM. We use websockpp on win32
+// and emscripten's emscripten/websocket.h on ems.
 #include <iostream>
 #include <boost/function.hpp>
 #include <boost/bind.hpp>
@@ -16,17 +13,16 @@
 // #include <boost/asio/ssl/impl/src.hpp>
 // NB we use firedaemon SSL binaries: https://kb.firedaemon.com/support/solutions/articles/4000121705#Build-Script
 
-// websock is only used in breadboard, not EMS, so we can 
-// pull in nlohmann::json directly
-#include "json.hpp"
+#include "json_cache.hpp"
+#include "context.hpp"          // NDContext template
+#include "im_render.hpp"        // im_start, im_render, im_end
+#include "db_cache.hpp"
 
+
+#ifndef __EMSCRIPTEN__
 // TODO: switch to asio_client.hpp when we've figured SSL build
 #include <websocketpp/config/asio_no_tls_client.hpp>
 #include <websocketpp/client.hpp>
-
-#include "context.hpp"        // NDContext template
-#include "im_render.hpp"    // im_start, im_render, im_end
-#include "db_cache.hpp"
 
 typedef websocketpp::client<websocketpp::config::asio_client>               ws_client;
 // TODO: SSL
@@ -41,25 +37,43 @@ typedef boost::asio::deadline_timer     asio_timer;
 using websocketpp::lib::placeholders::_1;
 using websocketpp::lib::placeholders::_2;
 using websocketpp::lib::bind;
+#else
+#include <emscripten/websocket.h>
+#endif
 
 struct GLFWwindow;
 
+template<typename JSON>
 class NDWebSockClient {
 private:
-    std::string     uri;
-    ws_client       client;
-    ws_handle       handle;
-    ws_error_code   error_code;
+    std::string         uri;
+    NDContext<JSON>&    ctx;
+    std::queue<JSON>    server_responses;
+#ifndef __EMSCRIPTEN__
+    ws_client           client;
+    ws_handle           handle;
+    ws_error_code       error_code;
 #ifdef NODOM_DUCK
     NDProxy<DuckDBCache>& server;
 #else
+    NDProxy<EmptyDBCache>& server;
 #endif
-    NDContext<nlohmann::json>& ctx;
-    std::queue<nlohmann::json>  server_responses;
-public:
-#ifdef NODOM_DUCK
-    NDWebSockClient(NDProxy<DuckDBCache>& svr, NDContext<nlohmann::json>& c)
 #else
+    // TODO: emscripten websocket data members here
+#ifdef NODOM_DUCK
+    NDProxy<DuckDBWebCache>& server;
+#else
+    NDProxy<EmptyDBCache>& server;
+#endif
+#endif
+
+
+public:
+#ifndef __EMSCRIPTEN__
+#ifdef NODOM_DUCK
+    NDWebSockClient(NDProxy<DuckDBCache>& svr, NDContext<JSON>& c)
+#else
+    NDWebSockClient(NDProxy<EmptyDBCache>& svr, NDContext<JSON>& c)
 #endif
         :uri(svr.get_server_url()), server(svr), ctx(c) {
             client.set_access_channels(websocketpp::log::alevel::all);
@@ -72,6 +86,10 @@ public:
             client.set_fail_handler(bind(&NDWebSockClient::on_fail, this, &client, ::_1));
 
     }
+
+    // NDWebSockClient::run only exists on win32 as
+    // the entry point to the asio loop. On ems
+    // we're using emscripten_set_main_loop_arg
     void run() {
         ctx.register_ws_callback(bind(&NDWebSockClient::send, this, ::_1));
         error_code.clear();
@@ -88,6 +106,16 @@ public:
         im_start(ctx);
         client.run();   // this method just calls io_service.run()
     }
+#else
+#ifdef NODOM_DUCK
+    NDWebSockClient(NDProxy<DuckDBWebCache>& svr, NDContext<JSON>& c)
+#else
+    NDWebSockClient(NDProxy<EmptyDBCache>& svr, NDContext<JSON>& c)
+#endif
+        :uri(svr.get_server_url()), server(svr), ctx(c) {
+        // TODO: emscripten/websocket.h init code here
+    }
+#endif
 
     void send(const std::string& payload) {
         error_code.clear();
