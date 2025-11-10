@@ -6,6 +6,7 @@
 #include <map>
 #include <queue>
 #include "json.hpp"
+#include "logger.hpp"
 
 #define ND_WC_BUF_SZ 256
 
@@ -26,7 +27,7 @@ public:
         bb_json_path = argv[1];
 
         if (!std::filesystem::exists(bb_json_path)) {
-            std::cerr << usage << std::endl << "Cannot load breadboard config json from " << bb_json_path << std::endl;
+            NDLogger::cerr() << usage << std::endl << "Cannot load breadboard config json from " << bb_json_path << std::endl;
             exit(1);
         }
         try {
@@ -51,7 +52,7 @@ public:
         log_buffer << "exe: " << exe << std::endl;
         log_buffer << "Breadboard config json: " << bb_json_path << std::endl;
         log_buffer << "Server URL: " << server_url << std::endl;
-        std::cout << log_buffer.str() << std::endl;
+        NDLogger::cout() << log_buffer.str() << std::endl;
     }
     nlohmann::json  get_breadboard_config() { return bb_config; }
 #else   // __EMSCRIPTEN__
