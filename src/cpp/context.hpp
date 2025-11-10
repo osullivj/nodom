@@ -149,7 +149,9 @@ public:
     }
 
     void server_request(const std::string& key) {
-        JSON msg = { {nd_type_cs, cache_request_cs}, {cache_key_cs, key} };
+        JSON msg;
+        JSet(msg, nd_type_cs, cache_request_cs);
+        JSet(msg, cache_key_cs, key);
 #ifndef __EMSCRIPTEN__  // breadboard websockpp impl
         ws_send(msg.dump());
 #else
