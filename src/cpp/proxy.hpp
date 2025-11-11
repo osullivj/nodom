@@ -79,15 +79,17 @@ public:
 protected:
     bool            done{false};
 private:
-    nlohmann::json                      bb_config;
+#ifndef __EMSCRIPTEN__
+    nlohmann::json  bb_config;
+    char*           bb_json_path;
+    char*           exe;    // argv[0]
+    std::string     test_module_name;
+#endif
     bool                                is_db_app;
-    char* exe;    // argv[0]
     wchar_t                             wc_buf[ND_WC_BUF_SZ];
-    char* bb_json_path;
 
     // these three test config strings are written once at startup
     // time in the cpp thread, and read from the py thread
-    std::string                         test_module_name;
-    std::queue<nlohmann::json>          server_responses;
+    // std::queue<nlohmann::json>          server_responses;
     std::string                         server_url;
 };

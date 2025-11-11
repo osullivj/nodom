@@ -47,14 +47,14 @@ int main(int argc, char* argv[]) {
     const static char* method = "main: ";
 #ifndef __EMSCRIPTEN__
     NDProxy<DuckDBCache> server(argc, argv);
-    NDContext<nlohmann::json> ctx(server);
+    NDContext<nlohmann::json, DuckDBCache> ctx(server);
     try {
         // launch DB thread: see db_loop impls
         server.start_db_thread();
         // now launch websock client with a boost::asio
         // event loop on the main thread to dispatch
         // the timeout and on_message callbacks
-        NDWebSockClient<nlohmann::json> ws_client(server, ctx);
+        NDWebSockClient<nlohmann::json, DuckDBCache> ws_client(server, ctx);
         ws_client.run();
     }
     catch (websocketpp::exception const& ex) {

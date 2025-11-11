@@ -33,24 +33,11 @@ struct GLFWwindow;
 template <typename JSON, typename DB>
 class NDContext {
 private:
-    // ref to "server process"; just an abstraction of EMV vs win32
-#ifndef __EMSCRIPTEN__
-#ifdef NODOM_DUCK
-    NDProxy<DuckDBCache>& proxy;
-#else
-    NDProxy<EmptyDBCache<nlohmann::json>>& proxy;
-#endif  // NODOM_DUCK
-#else   // __EMSCRIPTEN__
-#ifdef NODOM_DUCK
-    NDProxy<DuckDBWebCache>& proxy;
-#else
-    NDProxy<EmptyDBCache<emscripten::val>>& proxy;
-#endif
-#endif  // __EMSCRIPTEN__
-
-    JSON                      layout; // layout and data are fetched by 
-    JSON                      data;   // sync c++py calls not HTTP gets
-    std::deque<JSON>          stack;  // render stack
+    // ref to "server process"; just an abstraction of EMS vs win32
+    NDProxy<DB>&        proxy;  // DB proxy decouples NDContext from DB detail
+    JSON                layout; // layout and data are fetched by 
+    JSON                data;   // sync c++py calls not HTTP gets
+    std::deque<JSON>    stack;  // render stack
 
     // map layout render func names to the actual C++ impls
     std::unordered_map<std::string, std::function<void(const JSON& w)>> rfmap;
@@ -64,6 +51,7 @@ private:
     // outside the render stack walk. JOS 2025-01-31
     std::deque<JSON>        pending_pushes;
     std::deque<std::string> pending_pops;
+
     bool    show_demo = false;
     bool    show_id_stack = false;
     bool    show_memory = false;
@@ -85,21 +73,10 @@ private:
     GLFWwindow* glfw_window = nullptr;
 
 public:
-#ifndef __EMSCRIPTEN__
-#ifdef NODOM_DUCK
-    NDContext(NDProxy<DuckDBCache>& s)
-#else
-    NDContext(NDProxy<EmptyDBCache<nlohmann::json>>& s)
-#endif
-#else   // __EMSCRIPTEN__
-#ifdef NODOM_DUCK
-    NDContext(NDProxy<DuckDBWebCache>& s)
-#else
-    NDContext(NDProxy<EmptyDBCache<emscripten::val>>& s)
-#endif
-#endif  // __EMSCRIPTEN__
-    :proxy(s), red{ 255, 51, 0 },
-        green{ 102, 153, 0 }, amber{ 255, 153, 0 } {
+    NDContext(NDProxy<DB>& s)
+        :proxy(s), red{ 255, 51, 0 },
+            green{ 102, 153, 0 }, 
+                amber{ 255, 153, 0 } {
         // init status is not connected
         db_status_color = red;
 

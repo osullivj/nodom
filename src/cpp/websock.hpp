@@ -57,41 +57,41 @@ EM_BOOL sa_ems_on_message(int eventType, const EmscriptenWebSocketMessageEvent* 
 EM_BOOL sa_ems_on_error(int eventType, const EmscriptenWebSocketErrorEvent* websocketEvent, void* userData);
 #endif
 
-template<typename JSON>
+template<typename JSON, typename DB>
 class NDWebSockClient {
 private:
-    std::string         uri;
-    NDContext<JSON>&    ctx;
-    std::queue<JSON>    server_responses;
+    std::string             uri;
+    NDContext<JSON, DB>&    ctx;
+    std::queue<JSON>        server_responses;
+    NDProxy<DB>&            server;
+
+    // websock data members: diff impls for 
+    // websockpp on win32, and emscripten's own
+    // websock abstraction
 #ifndef __EMSCRIPTEN__
     ws_client           client;
     ws_handle           handle;
     ws_error_code       error_code;
-#ifdef NODOM_DUCK
-    NDProxy<DuckDBCache>& server;
-#else
-    NDProxy<EmptyDBCache>& server;
-#endif
 #else
     EMSCRIPTEN_WEBSOCKET_T ws_handle;
     EmscriptenWebSocketCreateAttributes ws_attrs = {
                         nullptr, nullptr, EM_TRUE};
-#ifdef NODOM_DUCK
-    NDProxy<DuckDBWebCache>& server;
-#else
-    NDProxy<EmptyDBCache<emscripten::val>>& server;
-#endif
 #endif
 
 public:
-#ifndef __EMSCRIPTEN__
-#ifdef NODOM_DUCK
-    NDWebSockClient(NDProxy<DuckDBCache>& svr, NDContext<JSON>& c)
+    NDWebSockClient(NDProxy<DB>& svr, NDContext<JSON, DB>& c)
+        :uri(svr.get_server_url()), server(svr), ctx(c) {
+#ifdef __EMSCRIPTEN__
+        ws_attrs.url = uri.c_str();
+        ws_handle = emscripten_websocket_new(&ws_attrs);
+        // ems callbacks require standalone C style funcs, so we
+        // pass this ptr as userData param so our callbacks
+        // can redispatch to NDWebSockClient member methods.
+        emscripten_websocket_set_onopen_callback(ws_handle, this, sa_ems_on_open);
+        emscripten_websocket_set_onerror_callback(ws_handle, this, sa_ems_on_error);
+        emscripten_websocket_set_onclose_callback(ws_handle, this, sa_ems_on_close);
+        emscripten_websocket_set_onmessage_callback(ws_handle, this, sa_ems_on_message);
 #else
-    NDWebSockClient(NDProxy<EmptyDBCache>& svr, NDContext<JSON>& c)
-#endif
-    // this win32 ctor configures a websocketpp websock
-    :uri(svr.get_server_url()), server(svr), ctx(c) {
         client.set_access_channels(websocketpp::log::alevel::all);
         client.clear_access_channels(websocketpp::log::alevel::frame_payload);
         client.set_error_channels(websocketpp::log::alevel::frame_payload);
@@ -100,8 +100,19 @@ public:
         client.set_open_handler(bind(&NDWebSockClient::wspp_on_open, this, &client, ::_1));
         client.set_close_handler(bind(&NDWebSockClient::wspp_on_close, this, &client, ::_1));
         client.set_fail_handler(bind(&NDWebSockClient::wspp_on_fail, this, &client, ::_1));
+#endif
     }
 
+#ifdef __EMSCRIPTEN__
+    void send(const std::string& payload) {
+        const static char* method = "NDWebSockClient.send: ";
+        EMSCRIPTEN_RESULT result = emscripten_websocket_send_utf8_text(ws_handle, payload.c_str());
+        if (result) {
+            NDLogger::cerr() << method << "send failed!" << std::endl;
+        }
+    }
+
+#else   // __EMSCRIPTEN__
     // NDWebSockClient::run only exists on win32 as
     // the entry point to the asio loop. On ems
     // we're using emscripten_set_main_loop_arg
@@ -129,35 +140,7 @@ public:
             std::cerr << "NDWebSockClient::send: failed with " << error_code << std::endl;
         }
     }
-#else   // ems impls of ctor and send method
-#ifdef NODOM_DUCK
-    NDWebSockClient(NDProxy<DuckDBWebCache>& svr, NDContext<emscripten::val>& c)
-#else
-    NDWebSockClient(NDProxy<EmptyDBCache<emscripten::val>>& svr, NDContext<emscripten::val>& c)
 #endif
-    :uri(svr.get_server_url()), server(svr), ctx(c) {
-        // see emscripten/websocket.h comments on ws_attrs.url
-        ws_attrs.url = uri.c_str();
-        ws_handle = emscripten_websocket_new(&ws_attrs);
-        // ems callbacks require standalone C style funcs, so we
-        // pass this ptr as userData param so our callbacks
-        // can redispatch to NDWebSockClient member methods.
-        emscripten_websocket_set_onopen_callback(ws_handle, this, sa_ems_on_open);
-        emscripten_websocket_set_onerror_callback(ws_handle, this, sa_ems_on_error);
-        emscripten_websocket_set_onclose_callback(ws_handle, this, sa_ems_on_close);
-        emscripten_websocket_set_onmessage_callback(ws_handle, this, sa_ems_on_message);
-    }
-
-    void send(const std::string& payload) {
-        const static char* method = "NDWebSockClient.send: ";
-        EMSCRIPTEN_RESULT result = emscripten_websocket_send_utf8_text(ws_handle, payload.c_str());
-        if (result) {
-            NDLogger::cerr() << method << "send failed!" << std::endl;
-        }
-    }
-#endif  // ems
-
-
 
 protected:
 // win32 only: websocketpp timouts are used to trigger rendering
