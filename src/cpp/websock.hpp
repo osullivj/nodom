@@ -229,34 +229,22 @@ protected:
 // standalone C style callbacks decls for ems websocket
 // NB they all redispatch to NDWebSockClient member funcs
 EM_BOOL ems_on_open(int eventType, const EmscriptenWebSocketOpenEvent* websocketEvent, void* userData) {
-#ifdef NODOM_DUCK
-    auto proxy = reinterpret_cast<NDProxy<DuckDBWebCache>*>(userData);
-#else
-    auto proxy = reinterpret_cast<NDProxy<EmptyDBCache>*>(userData);
-#endif
-    proxy->on_open();
+    auto ws_client = reinterpret_cast<NDWebSockClient*>(userData);
+    ws_client->on_open();
     return EM_TRUE;
 }
 
 EM_BOOL ems_on_close(int eventType, const EmscriptenWebSocketCloseEvent* websocketEvent, void* userData) {
-#ifdef NODOM_DUCK
-    auto proxy = reinterpret_cast<NDProxy<DuckDBWebCache>*>(userData);
-#else
-    auto proxy = reinterpret_cast<NDProxy<EmptyDBCache>*>(userData);
-#endif
+    auto ws_client = reinterpret_cast<NDWebSockClient*>(userData);
     return EM_TRUE;
 }
 
 EM_BOOL ems_on_message(int eventType, const EmscriptenWebSocketMessageEvent* websocketEvent, void* userData) {
     const static char* method = "ems_on_message: ";
-#ifdef NODOM_DUCK
-    auto proxy = reinterpret_cast<NDProxy<DuckDBWebCache>*>(userData);
-#else
-    auto proxy = reinterpret_cast<NDProxy<EmptyDBCache>*>(userData);
-#endif
+    auto ws_client = reinterpret_cast<NDWebSockClient*>(userData);
     if (websocketEvent->isText) {
         // For only ascii chars.
-        proxy->on_message((const char*)websocketEvent->data);
+        ws_client->on_message((const char*)websocketEvent->data);
     }
     else {
         NDLogger::cerr() << method << "non text message!" << std::endl;
@@ -265,11 +253,7 @@ EM_BOOL ems_on_message(int eventType, const EmscriptenWebSocketMessageEvent* web
 }
 
 EM_BOOL ems_on_error(int eventType, const EmscriptenWebSocketErrorEvent* websocketEvent, void* userData) {
-#ifdef NODOM_DUCK
-    auto proxy = reinterpret_cast<NDProxy<DuckDBWebCache>*>(userData);
-#else
-    auto proxy = reinterpret_cast<NDProxy<EmptyDBCache>*>(userData);
-#endif
+    auto ws_client = reinterpret_cast<NDWebSockClient*>(userData);
     return EM_TRUE;
 }
 #endif
