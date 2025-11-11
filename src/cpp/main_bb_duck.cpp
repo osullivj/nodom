@@ -4,11 +4,7 @@
 // Read online: https://github.com/ocornut/imgui/tree/master/docs
 // 
 // websock hdrs: only used win32 for breadboard builds 
-#ifndef __EMSCRIPTEN__
-#include "websock.hpp"
-#else
-#include "emscripten_mainloop_stub.h"
-#endif
+
 
 // imgui hdrs
 #include "imgui.h"
@@ -24,7 +20,10 @@
 #include "context.hpp"
 #include "im_render.hpp"
 #include "db_cache.hpp"
-
+#include "websock.hpp"
+#ifdef __EMSCRIPTEN__
+#include "emscripten_mainloop_stub.h"
+#endif
 
 // NoDOM: this main.cpp is intended to stay as close as possible
 // to the imgui/examples/example_glfw_opengl3/main.cpp as that's 
@@ -55,7 +54,7 @@ int main(int argc, char* argv[]) {
         // now launch websock client with a boost::asio
         // event loop on the main thread to dispatch
         // the timeout and on_message callbacks
-        NDWebSockClient ws_client(server, ctx);
+        NDWebSockClient<nlohmann::json> ws_client(server, ctx);
         ws_client.run();
     }
     catch (websocketpp::exception const& ex) {
@@ -65,8 +64,9 @@ int main(int argc, char* argv[]) {
         std::cout << method << ex.what() << std::endl;
     }
 #else
-    NDProxy<DuckDBWebCache> server;
+    NDProxy<EmptyDBCache<emscripten::val>> server;
     NDContext<emscripten::val> ctx(server);
+    NDWebSockClient<emscripten::val> ws_client(server, ctx);
     GLFWwindow* window = im_start(ctx);
     emscripten_set_main_loop_arg(im_loop_body, &ctx, 0, 1);
 #endif

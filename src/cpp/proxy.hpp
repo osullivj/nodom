@@ -59,13 +59,15 @@ public:
     nlohmann::json  get_breadboard_config() { return bb_config; }
 #else   // __EMSCRIPTEN__
     NDProxy() {
+        const char* method = "NDProxy default ctor: ";
         // By the time the NDProxy ctor fires in a browser
         // the web page will be fully loaded, so grabbing
         // a global JS obj here should be fine
         emscripten::val window_global = emscripten::val::global("window");
         emscripten::val location = window_global["location"];
-        std::string hostname = location["hostname"].as<std::string>();
-        server_url = "ws://" + hostname + "/api/websock";
+        std::string host = location["host"].as<std::string>();
+        server_url = "ws://" + host + "/api/websock";
+        NDLogger::cout() << method << server_url << std::endl;
     }
 #endif  // __EMSCRIPTEN__
     virtual         ~NDProxy() {};

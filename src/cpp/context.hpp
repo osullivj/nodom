@@ -30,7 +30,7 @@ typedef std::function<void(const std::string&)> ws_sender;
 
 struct GLFWwindow;
 
-template <typename JSON>
+template <typename JSON, typename DB>
 class NDContext {
 private:
     // ref to "server process"; just an abstraction of EMV vs win32
@@ -38,11 +38,15 @@ private:
 #ifdef NODOM_DUCK
     NDProxy<DuckDBCache>& proxy;
 #else
-    NDProxy<EmptyDBCache>& proxy;
-#endif // NODOM_DUCK
-#else
+    NDProxy<EmptyDBCache<nlohmann::json>>& proxy;
+#endif  // NODOM_DUCK
+#else   // __EMSCRIPTEN__
+#ifdef NODOM_DUCK
     NDProxy<DuckDBWebCache>& proxy;
-#endif // __EMSCRIPTEN
+#else
+    NDProxy<EmptyDBCache<emscripten::val>>& proxy;
+#endif
+#endif  // __EMSCRIPTEN__
 
     JSON                      layout; // layout and data are fetched by 
     JSON                      data;   // sync c++py calls not HTTP gets
@@ -85,11 +89,15 @@ public:
 #ifdef NODOM_DUCK
     NDContext(NDProxy<DuckDBCache>& s)
 #else
-    NDContext(NDProxy<EmptyDBCache>& s)
+    NDContext(NDProxy<EmptyDBCache<nlohmann::json>>& s)
 #endif
-#else
+#else   // __EMSCRIPTEN__
+#ifdef NODOM_DUCK
     NDContext(NDProxy<DuckDBWebCache>& s)
+#else
+    NDContext(NDProxy<EmptyDBCache<emscripten::val>>& s)
 #endif
+#endif  // __EMSCRIPTEN__
     :proxy(s), red{ 255, 51, 0 },
         green{ 102, 153, 0 }, amber{ 255, 153, 0 } {
         // init status is not connected

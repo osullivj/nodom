@@ -2,11 +2,10 @@
 #include <iostream>
 #include <queue>
 #include <vector>
-#include "json.hpp"
 #include "static_strings.hpp"
 
 #ifndef __EMSCRIPTEN__
-
+#include "json.hpp"
 #include <boost/thread.hpp>
 #include <boost/atomic.hpp>
 
@@ -25,8 +24,29 @@ typedef std::function<void(const std::string&)> ws_sender;
 #define STR_BUF_LEN 256
 #define FMT_BUF_LEN 16
 
+template <typename JSON>
 class EmptyDBCache {
 public:
+    char* buffer{ 0 };  // zero copy accessor
+
+    // Data access methods called by tables in NDContext. All DBCache
+    // impls must provide these, even EmptyDBCache...
+    std::uint64_t get_handle(nlohmann::json handle_array) { return 0; }
+    std::uint64_t get_row_count(std::uint64_t handle) { return 0; }
+    bool get_meta_data(std::uint64_t handle, std::uint64_t column_count) {return false;}
+    char* get_datum(std::uint64_t handle, std::uint64_t colm_index, std::uint64_t row_index) { return "NULL"; }
+
+    // Query submission and response handling methods
+    void get_db_responses(std::queue<JSON>& responses) {
+        static const char* method = "EmptyDBCache::get_db_responses: ";
+        NDLogger::cout() << method << "NULL impl!" << std::endl;
+    }
+
+    void db_dispatch(JSON& db_request) {
+        const static char* method = "EmptyDBCache::db_dispatch: ";
+        NDLogger::cout() << method << "NULL impl!" << std::endl;
+    }
+
     virtual ~EmptyDBCache() {}
 };
 
@@ -34,10 +54,11 @@ public:
 
 // No DuckDB specifics in BreadBoardDBCache,
 // but we are using stuff we don't have on EMS.
-// For example, boost threads.
-class BreadBoardDBCache : public EmptyDBCache {
-public:
-    char* buffer{ 0 };
+// For example, boost threads. Also note that since
+// this is BreadBoard we know we're on win32, so
+// can explicitly specialise EmptyDBCache with
+// nlohmann::json
+class BreadBoardDBCache : public EmptyDBCache<nlohmann::json> {
 protected:
     char string_buffer[STR_BUF_LEN];
     char format_buffer[FMT_BUF_LEN];
@@ -364,7 +385,7 @@ std::ostream& operator<<(std::ostream& os, const emscripten::val& v)
     return os;
 }
 
-class DuckDBWebCache : public EmptyDBCache {
+class DuckDBWebCache : public EmptyDBCache<emscripten::val> {
 public:
     char* buffer{ 0 };
 private:
@@ -391,26 +412,6 @@ public:
             std::cerr << "db_dispatch EXCEPTION!" << std::endl;
         }
     }
-
-    /*
-    void notify_server(const std::string& caddr, nlohmann::json& old_val, nlohmann::json& new_val) {
-        const static char* method = "DBCache::notify_server: ";
-        std::cout << method << caddr << ", old: " << old_val << ", new: " << new_val << std::endl;
-
-        // build a JSON msg for the to_python Q
-        emscripten::val msg;
-        msg.set(nd_type_cs, data_change_cs);
-        msg.set(cache_key_cs, caddr);
-        msg.set(new_value_cs, new_val);
-        msg.set(old_value_cs, old_val);
-
-        try {
-        // TODO: EM_JS fetch
-        }
-        catch (...) {
-            std::cerr << "notify_server EXCEPTION!" << std::endl;
-        }
-    } */
 
 
     // db_init, db_fnls, db_loop: these three methods exec 

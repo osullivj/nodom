@@ -1,6 +1,9 @@
 // websock.hpp: WebSocket comms for NoDOM. We use websockpp on win32
-// and emscripten's emscripten/websocket.h on ems.
+// and emscripten's emscripten/websocket.h on ems. Note this gist...
+// https://gist.github.com/nus/564e9e57e4c107faa1a45b8332c265b9
+// ...which was handy for understanding the ems API.
 #include <iostream>
+#ifndef __EMSCRIPTEN__  // using boost::asio event loop on win32
 #include <boost/function.hpp>
 #include <boost/bind.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -12,14 +15,15 @@
 // for SSL support. 
 // #include <boost/asio/ssl/impl/src.hpp>
 // NB we use firedaemon SSL binaries: https://kb.firedaemon.com/support/solutions/articles/4000121705#Build-Script
+#endif
 
 #include "json_cache.hpp"
 #include "context.hpp"          // NDContext template
 #include "im_render.hpp"        // im_start, im_render, im_end
 #include "db_cache.hpp"
 
-
 #ifndef __EMSCRIPTEN__
+// websockpp headers on win32
 // TODO: switch to asio_client.hpp when we've figured SSL build
 #include <websocketpp/config/asio_no_tls_client.hpp>
 #include <websocketpp/client.hpp>
@@ -38,6 +42,7 @@ using websocketpp::lib::placeholders::_1;
 using websocketpp::lib::placeholders::_2;
 using websocketpp::lib::bind;
 #else
+// ems websock abstraction
 #include <emscripten/websocket.h>
 #endif
 
@@ -46,10 +51,10 @@ struct GLFWwindow;
 #ifdef __EMSCRIPTEN__
 // standalone C style callbacks decls for ems websocket
 // NB they all redispatch to NDWebSockClient member funcs
-EM_BOOL ems_on_open(int eventType, const EmscriptenWebSocketOpenEvent* websocketEvent, void* userData);
-EM_BOOL ems_on_close(int eventType, const EmscriptenWebSocketCloseEvent* websocketEvent, void* userData);
-EM_BOOL ems_on_message(int eventType, const EmscriptenWebSocketMessageEvent* websocketEvent, void* userData);
-EM_BOOL ems_on_error(int eventType, const EmscriptenWebSocketErrorEvent* websocketEvent, void* userData);
+EM_BOOL sa_ems_on_open(int eventType, const EmscriptenWebSocketOpenEvent* websocketEvent, void* userData);
+EM_BOOL sa_ems_on_close(int eventType, const EmscriptenWebSocketCloseEvent* websocketEvent, void* userData);
+EM_BOOL sa_ems_on_message(int eventType, const EmscriptenWebSocketMessageEvent* websocketEvent, void* userData);
+EM_BOOL sa_ems_on_error(int eventType, const EmscriptenWebSocketErrorEvent* websocketEvent, void* userData);
 #endif
 
 template<typename JSON>
@@ -68,13 +73,13 @@ private:
     NDProxy<EmptyDBCache>& server;
 #endif
 #else
-    EMSCRIPTEN_WEBSOCKET_T ws;
+    EMSCRIPTEN_WEBSOCKET_T ws_handle;
     EmscriptenWebSocketCreateAttributes ws_attrs = {
                         nullptr, nullptr, EM_TRUE};
 #ifdef NODOM_DUCK
     NDProxy<DuckDBWebCache>& server;
 #else
-    NDProxy<EmptyDBCache>& server;
+    NDProxy<EmptyDBCache<emscripten::val>>& server;
 #endif
 #endif
 
@@ -116,25 +121,6 @@ public:
         im_start(ctx);
         client.run();   // this method just calls io_service.run()
     }
-#else
-#ifdef NODOM_DUCK
-    NDWebSockClient(NDProxy<DuckDBWebCache>& svr, NDContext<JSON>& c)
-#else
-    NDWebSockClient(NDProxy<EmptyDBCache>& svr, NDContext<JSON>& c)
-#endif
-    :uri(svr.get_server_url()), server(svr), ctx(c) {
-        // see emscripten/websocket.h comments on ws_attrs.url
-        ws_attrs.url = uri.c_str();
-        ws = emscripten_websocket_new(&ws_attrs);
-        // ems callbacks require standalone C style funcs, so we
-        // pass this ptr as userData param so our callbacks
-        // can redispatch to NDWebSockClient member methods.
-        emscripten_websocket_set_onopen_callback(ws, this, ems_on_open);
-        emscripten_websocket_set_onerror_callback(ws, this, ems_on_error);
-        emscripten_websocket_set_onclose_callback(ws, this, ems_on_close);
-        emscripten_websocket_set_onmessage_callback(ws, this, ems_on_message);
-    }
-#endif
 
     void send(const std::string& payload) {
         error_code.clear();
@@ -143,6 +129,35 @@ public:
             std::cerr << "NDWebSockClient::send: failed with " << error_code << std::endl;
         }
     }
+#else   // ems impls of ctor and send method
+#ifdef NODOM_DUCK
+    NDWebSockClient(NDProxy<DuckDBWebCache>& svr, NDContext<emscripten::val>& c)
+#else
+    NDWebSockClient(NDProxy<EmptyDBCache<emscripten::val>>& svr, NDContext<emscripten::val>& c)
+#endif
+    :uri(svr.get_server_url()), server(svr), ctx(c) {
+        // see emscripten/websocket.h comments on ws_attrs.url
+        ws_attrs.url = uri.c_str();
+        ws_handle = emscripten_websocket_new(&ws_attrs);
+        // ems callbacks require standalone C style funcs, so we
+        // pass this ptr as userData param so our callbacks
+        // can redispatch to NDWebSockClient member methods.
+        emscripten_websocket_set_onopen_callback(ws_handle, this, sa_ems_on_open);
+        emscripten_websocket_set_onerror_callback(ws_handle, this, sa_ems_on_error);
+        emscripten_websocket_set_onclose_callback(ws_handle, this, sa_ems_on_close);
+        emscripten_websocket_set_onmessage_callback(ws_handle, this, sa_ems_on_message);
+    }
+
+    void send(const std::string& payload) {
+        const static char* method = "NDWebSockClient.send: ";
+        EMSCRIPTEN_RESULT result = emscripten_websocket_send_utf8_text(ws_handle, payload.c_str());
+        if (result) {
+            NDLogger::cerr() << method << "send failed!" << std::endl;
+        }
+    }
+#endif  // ems
+
+
 
 protected:
 // win32 only: websocketpp timouts are used to trigger rendering
@@ -209,42 +224,45 @@ protected:
     void wspp_on_fail(ws_client* c, ws_handle h) {
         std::cout << "NDWebSockClient::on_fail: hdl: " << h.lock().get() << std::endl;
     }
-#endif
-
-    void on_message(const std::string& payload) {
-        JSON msg_json = JParse(payload);
+#else   // ems
+public:
+    // public so the ems standalone callback funcs can invoke;
+    // after all, we don't wanna use the friend keyword...
+    void ems_on_message(const std::string& payload) {
+        emscripten::val msg_json = JParse<emscripten::val>(payload);
         server_responses.emplace(msg_json);
     }
 
-    void on_open() {
+    void ems_on_open() {
         ctx.on_ws_open();
     }
 
-    void on_close() { }
+    void ems_on_close() { }
 
-    void on_fail() { }
+    void ems_on_fail() { }
+#endif // ems
 };
 
 #ifdef __EMSCRIPTEN__
 // standalone C style callbacks decls for ems websocket
 // NB they all redispatch to NDWebSockClient member funcs
-EM_BOOL ems_on_open(int eventType, const EmscriptenWebSocketOpenEvent* websocketEvent, void* userData) {
-    auto ws_client = reinterpret_cast<NDWebSockClient*>(userData);
-    ws_client->on_open();
+EM_BOOL sa_ems_on_open_(int eventType, const EmscriptenWebSocketOpenEvent* websocketEvent, void* userData) {
+    auto ws_client = reinterpret_cast<NDWebSockClient<emscripten::val>*>(userData);
+    ws_client->ems_on_open();
     return EM_TRUE;
 }
 
-EM_BOOL ems_on_close(int eventType, const EmscriptenWebSocketCloseEvent* websocketEvent, void* userData) {
-    auto ws_client = reinterpret_cast<NDWebSockClient*>(userData);
+EM_BOOL sa_ems_on_close_(int eventType, const EmscriptenWebSocketCloseEvent* websocketEvent, void* userData) {
+    auto ws_client = reinterpret_cast<NDWebSockClient<emscripten::val>*>(userData);
     return EM_TRUE;
 }
 
-EM_BOOL ems_on_message(int eventType, const EmscriptenWebSocketMessageEvent* websocketEvent, void* userData) {
+EM_BOOL sa_ems_on_message_(int eventType, const EmscriptenWebSocketMessageEvent* websocketEvent, void* userData) {
     const static char* method = "ems_on_message: ";
-    auto ws_client = reinterpret_cast<NDWebSockClient*>(userData);
+    auto ws_client = reinterpret_cast<NDWebSockClient<emscripten::val>*>(userData);
     if (websocketEvent->isText) {
         // For only ascii chars.
-        ws_client->on_message((const char*)websocketEvent->data);
+        ws_client->ems_on_message((const char*)websocketEvent->data);
     }
     else {
         NDLogger::cerr() << method << "non text message!" << std::endl;
@@ -252,8 +270,8 @@ EM_BOOL ems_on_message(int eventType, const EmscriptenWebSocketMessageEvent* web
     return EM_TRUE;
 }
 
-EM_BOOL ems_on_error(int eventType, const EmscriptenWebSocketErrorEvent* websocketEvent, void* userData) {
-    auto ws_client = reinterpret_cast<NDWebSockClient*>(userData);
+EM_BOOL sa_ems_on_error(int eventType, const EmscriptenWebSocketErrorEvent* websocketEvent, void* userData) {
+    auto ws_client = reinterpret_cast<NDWebSockClient<emscripten::val>*>(userData);
     return EM_TRUE;
 }
 #endif
