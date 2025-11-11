@@ -7,7 +7,9 @@
 #include <queue>
 #include "json.hpp"
 #include "logger.hpp"
-
+#ifdef __EMSCRIPTEN__
+#include <emscripten/val.h>
+#endif
 #define ND_WC_BUF_SZ 256
 
 
@@ -57,7 +59,13 @@ public:
     nlohmann::json  get_breadboard_config() { return bb_config; }
 #else   // __EMSCRIPTEN__
     NDProxy() {
-        // TODO: ems code to get URL
+        // By the time the NDProxy ctor fires in a browser
+        // the web page will be fully loaded, so grabbing
+        // a global JS obj here should be fine
+        emscripten::val window_global = emscripten::val::global("window");
+        emscripten::val location = window_global["location"];
+        std::string hostname = location["hostname"].as<std::string>();
+        server_url = "ws://" + hostname + "/api/websock";
     }
 #endif  // __EMSCRIPTEN__
     virtual         ~NDProxy() {};
