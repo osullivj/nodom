@@ -37,8 +37,9 @@
 #endif
 
 #ifdef __EMSCRIPTEN__
+template <typename DB>
 void im_loop_body(void* c) {
-    NDContext<emscripten::val>* ctx = reinterpret_cast<NDContext<emscripten::val>*>(c);
+    auto ctx = reinterpret_cast<NDContext<emscripten::val, DB>*>(c);
     if (ctx && !im_render(*ctx)) im_end(ctx->get_glfw_window());
 }
 #endif
@@ -65,8 +66,8 @@ int main(int argc, char* argv[]) {
     }
 #else
     NDProxy<EmptyDBCache<emscripten::val>> server;
-    NDContext<emscripten::val> ctx(server);
-    NDWebSockClient<emscripten::val> ws_client(server, ctx);
+    NDContext<emscripten::val, EmptyDBCache<emscripten::val>> ctx(server);
+    NDWebSockClient<emscripten::val, EmptyDBCache<emscripten::val>> ws_client(server, ctx);
     GLFWwindow* window = im_start(ctx);
     emscripten_set_main_loop_arg(im_loop_body, &ctx, 0, 1);
 #endif

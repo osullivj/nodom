@@ -229,20 +229,23 @@ public:
 #ifdef __EMSCRIPTEN__
 // standalone C style callbacks decls for ems websocket
 // NB they all redispatch to NDWebSockClient member funcs
+template <typename DB>
 EM_BOOL sa_ems_on_open_(int eventType, const EmscriptenWebSocketOpenEvent* websocketEvent, void* userData) {
-    auto ws_client = reinterpret_cast<NDWebSockClient<emscripten::val>*>(userData);
+    auto ws_client = reinterpret_cast<NDWebSockClient<emscripten::val, DB>*>(userData);
     ws_client->ems_on_open();
     return EM_TRUE;
 }
 
+template <typename DB>
 EM_BOOL sa_ems_on_close_(int eventType, const EmscriptenWebSocketCloseEvent* websocketEvent, void* userData) {
-    auto ws_client = reinterpret_cast<NDWebSockClient<emscripten::val>*>(userData);
+    auto ws_client = reinterpret_cast<NDWebSockClient<emscripten::val, DB>*>(userData);
     return EM_TRUE;
 }
 
+template <typename DB>
 EM_BOOL sa_ems_on_message_(int eventType, const EmscriptenWebSocketMessageEvent* websocketEvent, void* userData) {
     const static char* method = "ems_on_message: ";
-    auto ws_client = reinterpret_cast<NDWebSockClient<emscripten::val>*>(userData);
+    auto ws_client = reinterpret_cast<NDWebSockClient<emscripten::val, DB>*>(userData);
     if (websocketEvent->isText) {
         // For only ascii chars.
         ws_client->ems_on_message((const char*)websocketEvent->data);
@@ -253,8 +256,9 @@ EM_BOOL sa_ems_on_message_(int eventType, const EmscriptenWebSocketMessageEvent*
     return EM_TRUE;
 }
 
+template <typename DB>
 EM_BOOL sa_ems_on_error(int eventType, const EmscriptenWebSocketErrorEvent* websocketEvent, void* userData) {
-    auto ws_client = reinterpret_cast<NDWebSockClient<emscripten::val>*>(userData);
+    auto ws_client = reinterpret_cast<NDWebSockClient<emscripten::val, DB>*>(userData);
     return EM_TRUE;
 }
 #endif
