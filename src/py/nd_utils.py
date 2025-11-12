@@ -115,14 +115,18 @@ class Service(object):
         logr.info(f'on_data_change: client_change:{client_change}')
         ckey = client_change["cache_key"]
         data_cache = self.cache['data']
-        data_cache[ckey] = client_change["new_value"]
-        logr.info(f'on_data_change: data_cache:{data_cache}')
+        old_val = data_cache[ckey]
+        new_val = client_change["new_value"]
+        response_type = 'DataChangeRejected'
+        server_changes = []
+        if type(old_val) == type(new_val):
+            response_type = 'DataChangeConfirmed'
+            data_cache[ckey] = new_val
+            # Does a subclass want to add server side changes?
+            server_changes = self.on_client_data_change(client_uuid, client_change)
         conf_dict = client_change.copy()
-        conf_dict['nd_type'] = 'DataChangeConfirmed'
-        # Does a subclass want to add server side changes?
-        server_changes = self.on_client_data_change(client_uuid, client_change)
-        if not server_changes:
-            pass
+        conf_dict['nd_type'] = response_type
+        logr.info(f'on_data_change: response:{conf_dict}')
         return [conf_dict] + server_changes
 
     def on_duck_op(self, client_uuid, msg_dict):
