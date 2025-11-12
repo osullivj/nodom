@@ -39,7 +39,11 @@ EMS =
 # Note: For glfw, we use emscripten-glfw port (contrib.glfw3) instead of ('-s USE_GLFW=3' in LDFLAGS) to get a better support for High DPI displays.
 # NDNote: NoDOM uses emscripten websockets, so we need -lwebsocket.js. See this URL...
 # https://emscripten.org/docs/porting/networking.html#emscripten-websockets-api
-EMS += -s DISABLE_EXCEPTION_CATCHING=1 --use-port=contrib.glfw3 
+# -fno-exceptions disables exception throwing, but we have code that throws
+# exceptions
+EMS += -s DISABLE_EXCEPTION_CATCHING=1
+# EMS += -s DISABLE_EXCEPTION_CATCHING=0
+EMS +=  --use-port=contrib.glfw3 
 LDFLAGS += -s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s NO_EXIT_RUNTIME=0
 LDFLAGS += -s ASSERTIONS=1 -lembind  -lwebsocket.js
 
