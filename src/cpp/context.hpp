@@ -135,8 +135,8 @@ public:
         for (int inx = 0; inx < stack_length; inx++) {
             // deref it for clarity and to rename as widget for
             // cross ref with main.ts logic
-            // const JSON& widget(*it);    // not {} to avoid list inits
-            dispatch_render(stack[inx]);
+            const JSON& widget(stack[inx]);    // not {} to avoid list inits
+            dispatch_render(widget);
         }
     }
 
@@ -176,20 +176,22 @@ public:
             NDLogger::cout() << method << resp << std::endl;
             // polymorphic as types are hidden inside change
             // Is this a CacheResponse for layout or data?
-            if (resp[nd_type_cs] == cache_response_cs) {
-                if (resp[cache_key_cs] == data_cs) {
+            if (JAsString(resp, nd_type_cs) == cache_response_cs) {
+                if (JAsString(resp, cache_key_cs) == data_cs) {
                     data = resp[value_cs];
                 }
-                else if (resp[cache_key_cs] == layout_cs) {
+                else if (JAsString(resp, cache_key_cs) == layout_cs) {
                     layout = resp[value_cs];
                     on_layout();
                 }
             }
             // Is this a DataChange?
-            else if (resp[nd_type_cs] == data_change_cs) {
-                data[resp[cache_key_cs]] = resp[new_value_cs];
+            else if (JAsString(resp, nd_type_cs) == data_change_cs) {
+                std::string ckey = JAsString(resp, cache_key_cs);
+                JSet(data, ckey.c_str(), resp[new_value_cs]);
+                // data[ckey] = resp[new_value_cs];
             }
-            else if (resp[nd_type_cs] == data_change_confirmed_cs) {
+            else if (JAsString(resp, nd_type_cs) == data_change_confirmed_cs) {
                 // TODO: add check that type has not mutated
             }
             // Duck or Parquet event...
@@ -211,11 +213,11 @@ public:
     void on_db_event(const JSON& db_msg) {
         const static char* method = "NDContext::on_db_event: ";
 
-        if (!db_msg.contains("nd_type")) {
+        if (!JContains(db_msg, nd_type_cs)) {
             NDLogger::cerr() << method << "no nd_type in " << db_msg << std::endl;
         }
         NDLogger::cout() << method << db_msg << std::endl;
-        const std::string& nd_type(db_msg[nd_type_cs]);
+        std::string nd_type = JAsString(db_msg, nd_type_cs);
         if (nd_type == "ParquetScan") {
             db_status_color = amber;
         }
@@ -224,17 +226,18 @@ public:
         }
         else if (nd_type == "ParquetScanResult") {
             db_status_color = green;
-            action_dispatch(db_msg["query_id"], nd_type);
+            std::string qid = JAsString(db_msg, query_id_cs);
+            action_dispatch(qid, nd_type);
         }
         else if (nd_type == "QueryResult") {
             db_status_color = green;
-            const std::string& qid(db_msg[query_id_cs]);
+            std::string qid = JAsString(db_msg, query_id_cs);
             JSON result_handle = JSON::array();
             result_handle = db_msg[db_handle_cs];
             std::string cname = qid + "_result";
             NDLogger::cout() << method << "DBHandle: " << std::hex << result_handle 
                 << ", caddr: " << cname << std::endl;
-            data[cname] = result_handle;
+            JSet(data, cname.c_str(), result_handle);
         }
         else if (nd_type == "DuckInstance") {
             // TODO: q processing order means this doesn't happen so early in cpp
