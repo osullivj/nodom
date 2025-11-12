@@ -169,14 +169,14 @@ protected:
             // ctx.dispatch_server_responses will drain the
             // swapped Q. Also note that NDWebSockClient::on_message
             // is on the GUI thread and can populate server_responses,
-            // hence one check and dispatch before get_duck_responses
+            // hence one check and dispatch before get_db_responses
             if (!server_responses.empty()) {
                 // handle incoming websock from server
                 ctx.dispatch_server_responses(server_responses);
             }
-            // Potential lock contention in get_duck_responses()
+            // Potential lock contention in get_db_responses()
             // which attempts to acquire server.result_mutex, when
-            // duck_loop() may be holding result_mutex to enqueue
+            // db_loop() may be holding result_mutex to enqueue
             // DB responses.
             server.get_db_responses(server_responses);
             if (!server_responses.empty()) {
@@ -214,6 +214,8 @@ public:
     void ems_on_message(const std::string& payload) {
         emscripten::val msg_json = JParse<emscripten::val>(payload);
         server_responses.emplace(msg_json);
+        // on win32 on_timeout invokes ctx.dispatch_server_responses()
+        ctx.dispatch_server_responses(server_responses);
     }
 
     void ems_on_open() {
