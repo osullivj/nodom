@@ -37,9 +37,8 @@
 #endif
 
 #ifdef __EMSCRIPTEN__
-template <typename DB>
 void im_loop_body(void* c) {
-    auto ctx = reinterpret_cast<NDContext<emscripten::val, DB>*>(c);
+    auto ctx = reinterpret_cast<NDContext<emscripten::val, EmptyDBCache<emscripten::val>>*>(c);
     if (ctx && !im_render(*ctx)) im_end(ctx->get_glfw_window());
 }
 #endif

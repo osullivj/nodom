@@ -31,7 +31,7 @@ public:
 
     // Data access methods called by tables in NDContext. All DBCache
     // impls must provide these, even EmptyDBCache...
-    std::uint64_t get_handle(nlohmann::json handle_array) { return 0; }
+    std::uint64_t get_handle(JSON handle_array) { return 0; }
     std::uint64_t get_row_count(std::uint64_t handle) { return 0; }
     bool get_meta_data(std::uint64_t handle, std::uint64_t column_count) {return false;}
     char* get_datum(std::uint64_t handle, std::uint64_t colm_index, std::uint64_t row_index) { return "NULL"; }
