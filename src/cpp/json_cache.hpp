@@ -52,6 +52,8 @@ JSON JArray(const std::vector<V>& values) {
 
 #ifndef __EMSCRIPTEN__
 // nlohmann::json implementations of JSON cache ops
+// nlohmann::json JSON cache ops only run in breadboard,
+// so we can use exception handling...
 template <>
 nlohmann::json JParse(const std::string& json_string) {
 	return nlohmann::json::parse(json_string);
@@ -74,6 +76,7 @@ float JAsFloat(const nlohmann::json& obj, const char* key) {
 
 template <typename K>
 int JAsInt(const nlohmann::json& obj, K key) {
+	static const char* method = "JAsInt: ";
 	return obj[key].template get<int>();
 }
 
