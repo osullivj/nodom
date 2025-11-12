@@ -155,8 +155,8 @@ SUMMARY_SQL = 'summarize select * from depth;'
 
 EXF_DATA = dict(
     home_title = 'FGB',
-    start_date = (2008,9,1),       # 3 tuple YMD
-    end_date = (2008,9,1),
+    start_date = [2008,9,1],        # 3 tuple YMD. But! JSON doesn't know about tuples,
+    end_date = [2008,9,1],          # so we use lists...
     # NB tuple gives us Array in TS, and list gives us Object
     instruments = ('FGBMU8', 'FGBMZ8', 'FGBXZ8', 'FGBSU8', 'FGBSZ8', 'FGBXU8', 'FGBLU8', 'FGBLZ8'),
     selected_instrument = 0,
