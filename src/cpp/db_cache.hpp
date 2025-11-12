@@ -245,7 +245,7 @@ public:
     // GUI thread methods for accessing the data
     std::uint64_t get_handle(nlohmann::json handle_array) {
         static const char* method = "DuckDBCache::get_handle: ";
-        std::cout << method << "handle_array: " << handle_array << std::endl;
+        // std::cout << method << "handle_array: " << handle_array << std::endl;
         if (handle_array.type() != nlohmann::json::value_t::array) {
             std::cerr << method << "handle_array: " << handle_array 
                 << "isn't an array!" << std::endl;
@@ -405,12 +405,7 @@ public:
     void db_dispatch(emscripten::val& db_request) {
         const static char* method = "DBCache::db_dispatch: ";
         std::cout << method << db_request << std::endl;
-        try {
-            db_queries.push(db_request);
-        }
-        catch (...) {
-            std::cerr << "db_dispatch EXCEPTION!" << std::endl;
-        }
+        db_queries.push(db_request);
     }
 
 
