@@ -139,14 +139,10 @@ public:
     }
 
     void server_request(const std::string& key) {
-        JSON msg;
-        JSet(msg, nd_type_cs, cache_request_cs);
-        JSet(msg, cache_key_cs, key);
-#ifndef __EMSCRIPTEN__  // breadboard websockpp impl
-        ws_send(msg.dump());
-#else
-        // TODO: EM_JS code to socket send
-#endif  // __EMSCRIPTEN__
+        std::stringstream msgbuf;
+        msgbuf << "{ \"" << nd_type_cs << "\":\"" << cache_request_cs << "\",\""
+            << cache_key_cs << "\":\"" << key << "\"}";
+        ws_send(msgbuf.str());
     }
 
     void notify_server(const std::string& caddr, JSON& old_val, JSON& new_val) {
@@ -154,23 +150,18 @@ public:
 
         std::cout << method << caddr << ", old: " << old_val << ", new: " << new_val << std::endl;
 
-        // build a JSON msg for the to_python Q
-        JSON msg;
-        JSet(msg, nd_type_cs, data_change_cs);
-        JSet(msg, cache_key_cs, caddr);
-        JSet(msg, new_value_cs, new_val);
-        JSet(msg, old_value_cs, old_val);
-        try {
-            // TODO: websockpp send in breadboard, EM_JS fetch for EMS
-#ifndef __EMSCRIPTEN__
-            ws_send(msg.dump());
-#else   // 
-        // TODO: EM_JS fetch
-#endif  // __EMSCRIPTEN__
-        }
-        catch (...) {
-            NDLogger::cerr() << "notify_server EXCEPTION!" << std::endl;
-        }
+        std::stringstream msgbuf;
+        // We supply wrapping "" for data_change_cs and caddr
+        // as we know they're strings. For new_val and old_val
+        // we rely on operator<< which is supplied by
+        // nlohmann::json. For emscripten::val we use our own
+        // operator<< from db_cache.hpp.
+        msgbuf << "{ \"" << nd_type_cs << "\":\"" << data_change_cs << "\",\""
+            << cache_key_cs << "\":\"" << caddr << "\",\""
+            // 
+            << new_value_cs << "\":" << new_val << ",\""
+            << old_value_cs << "\":" << old_val << "}";
+        ws_send(msgbuf.str());
     }
 
     void dispatch_server_responses(std::queue<JSON>& responses) {
@@ -195,6 +186,9 @@ public:
             // Is this a DataChange?
             else if (resp[nd_type_cs] == data_change_cs) {
                 data[resp[cache_key_cs]] = resp[new_value_cs];
+            }
+            else if (resp[nd_type_cs] == data_change_confirmed_cs) {
+                // TODO: add check that type has not mutated
             }
             // Duck or Parquet event...
             else {
@@ -288,9 +282,9 @@ public:
 
 #ifndef __EMSCRIPTEN__
     JSON  get_breadboard_config() { return proxy.get_breadboard_config(); }
-    void register_ws_callback(ws_sender send) { ws_send = send; } // proxy.register_ws_callback(send);
 #endif
     void register_font(const std::string& name, ImFont* f) { font_map[name] = f; }
+    void register_ws_callback(ws_sender send) { ws_send = send; }
 
 protected:
     // w["rname"] resolve & invoke
@@ -753,7 +747,7 @@ protected:
             JSON handle_array = JSON::array();
             handle_array = data[cname];
             std::uint64_t result_handle = proxy.get_handle(handle_array);
-            NDLogger::cout() << method << "result_handle: " << std::hex << result_handle << std::endl;
+            // NDLogger::cout() << method << "result_handle: " << std::hex << result_handle << std::endl;
             if (!result_handle) {
                 NDLogger::cerr() << method << cname << ": null result_handle!" << std::endl;
                 return;
