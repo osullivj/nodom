@@ -245,6 +245,7 @@ EM_BOOL sa_ems_on_message(int eventType, const EmscriptenWebSocketMessageEvent* 
     auto ws_client = reinterpret_cast<NDWebSockClient<emscripten::val, EmptyDBCache<emscripten::val>>*>(userData);
     if (websocketEvent->isText) {
         // For only ascii chars.
+        NDLogger::cout() << method << (const char*)websocketEvent->data << std::endl;
         ws_client->ems_on_message((const char*)websocketEvent->data);
     }
     else {
