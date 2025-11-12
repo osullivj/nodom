@@ -101,6 +101,7 @@ public:
         client.set_close_handler(bind(&NDWebSockClient::wspp_on_close, this, &client, ::_1));
         client.set_fail_handler(bind(&NDWebSockClient::wspp_on_fail, this, &client, ::_1));
 #endif
+        ctx.register_ws_callback(bind(&NDWebSockClient::send, this, std::placeholders::_1));
     }
 
 #ifdef __EMSCRIPTEN__
@@ -117,7 +118,6 @@ public:
     // the entry point to the asio loop. On ems
     // we're using emscripten_set_main_loop_arg
     void run() {
-        ctx.register_ws_callback(bind(&NDWebSockClient::send, this, ::_1));
         error_code.clear();
         ws_client::connection_ptr con = client.get_connection(uri, error_code);
         if (error_code) {
