@@ -32,14 +32,8 @@ void JAsStringVec(const JSON& obj, const char* key, std::vector<std::string>& ve
 template <typename JSON>
 int JSize(const JSON& obj);
 
-// These generic impls should work for both
-// nlohmann::json and emscripten::val
-// JSet: both nloh and ems have [] setters
-// that work for map keys and list indicies.
 template <typename JSON, typename V>
-void JSet(JSON& obj, const char* key, const V& val) {
-	obj[key] = val;
-}
+void JSet(JSON& obj, const char* key, const V& val);
 
 // JArray: both nloh and ems take std::vector<V>
 // ctor params for constructing lists. This
@@ -146,7 +140,6 @@ void JSet(emscripten::val& obj, const char* key, const V& val) {
 	obj.set(key, val);
 }
 
-
 template <typename V>
 emscripten::val JArray(const std::vector<V>& values) {
 	return emscripten::val::array(values);
@@ -155,7 +148,8 @@ emscripten::val JArray(const std::vector<V>& values) {
 template <>
 emscripten::val JParse(const std::string& json_string) {
 	emscripten::val json_global = emscripten::val::global("JSON");
-	return json_global.call<emscripten::val>("parse", json_string);
+	emscripten::val rv = json_global.call<emscripten::val>("parse", json_string);
+	return rv;
 }
 // emscripten::val implementations of JSON cache ops
 #endif
