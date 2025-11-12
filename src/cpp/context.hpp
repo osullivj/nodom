@@ -128,13 +128,15 @@ public:
         // This loop used to break if we raised a modal as changing stack state
         // while this iter is live segfaults. JS lets us get away with that in 
         // main.ts:render (imgui-js based Typescript NDContext).
-        // So here we push modals into pending_pushes so they can
+        // That's why modals are dealt with by pending_pushes/pops so they can
         // push/pop outside the context of the loop below. JOS 2025-01-31
-        for (typename std::deque<JSON>::iterator it = stack.begin(); it != stack.end(); ++it) {
+        // And we avoid live iterators so far down the stack too...
+        int stack_length = stack.size();
+        for (int inx = 0; inx < stack_length; inx++) {
             // deref it for clarity and to rename as widget for
             // cross ref with main.ts logic
-            const JSON& widget{ *it };
-            dispatch_render(widget);
+            // const JSON& widget(*it);    // not {} to avoid list inits
+            dispatch_render(stack[inx]);
         }
     }
 
