@@ -3,10 +3,10 @@
 #include <queue>
 #include <vector>
 #include "static_strings.hpp"
-#include "json_cache.hpp"
+#include "json_ops.hpp"
 
 #ifndef __EMSCRIPTEN__
-#include "json.hpp"     
+#include "nlohmann.hpp"     
 #include <boost/thread.hpp>
 #include <boost/atomic.hpp>
 

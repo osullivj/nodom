@@ -17,7 +17,7 @@
 // NB we use firedaemon SSL binaries: https://kb.firedaemon.com/support/solutions/articles/4000121705#Build-Script
 #endif
 
-#include "json_cache.hpp"
+#include "json_ops.hpp"
 #include "context.hpp"          // NDContext template
 #include "im_render.hpp"        // im_start, im_render, im_end
 #include "db_cache.hpp"

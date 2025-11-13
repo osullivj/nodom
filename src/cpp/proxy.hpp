@@ -5,11 +5,13 @@
 #include <filesystem>
 #include <map>
 #include <queue>
-#include "json.hpp"
 #include "logger.hpp"
 #ifdef __EMSCRIPTEN__
 #include <emscripten/val.h>
+#else
+#include "nlohmann.hpp"
 #endif
+
 #define ND_WC_BUF_SZ 256
 
 

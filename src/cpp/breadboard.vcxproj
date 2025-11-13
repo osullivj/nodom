@@ -179,9 +179,9 @@
     <ClInclude Include="context.hpp" />
     <ClInclude Include="db_cache.hpp" />
     <ClInclude Include="im_render.hpp" />
-    <ClInclude Include="json.hpp" />
-    <ClInclude Include="json_cache.hpp" />
+    <ClInclude Include="json_ops.hpp" />
     <ClInclude Include="Logger.hpp" />
+    <ClInclude Include="nlohmann.hpp" />
     <ClInclude Include="proxy.hpp" />
     <ClInclude Include="static_strings.hpp" />
     <ClInclude Include="websock.hpp" />

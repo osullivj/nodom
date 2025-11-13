@@ -9,7 +9,7 @@
 #include "proxy.hpp"
 #include "static_strings.hpp"
 #include "db_cache.hpp"
-#include "json_cache.hpp"
+#include "json_ops.hpp"
 #include "logger.hpp"
 
 // NDContext: the NoDOM render engine, built on top of Dear ImGui and Emscripten.

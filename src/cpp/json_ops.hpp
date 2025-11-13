@@ -1,7 +1,7 @@
 #pragma once
 #include <iostream>
 #ifndef __EMSCRIPTEN__
-#include "json.hpp"		// nlohmann::json
+#include "nlohmann.hpp"
 #else
 #endif
 
