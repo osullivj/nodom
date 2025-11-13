@@ -3,9 +3,10 @@
 #include <queue>
 #include <vector>
 #include "static_strings.hpp"
+#include "json_cache.hpp"
 
 #ifndef __EMSCRIPTEN__
-#include "json.hpp"
+#include "json.hpp"     
 #include <boost/thread.hpp>
 #include <boost/atomic.hpp>
 
@@ -379,11 +380,6 @@ public:
 
 #else   // __EMSCRIPTEN__
 
-std::ostream& operator<<(std::ostream& os, const emscripten::val& v)
-{
-    os << v.as<std::string>();
-    return os;
-}
 
 class DuckDBWebCache : public EmptyDBCache<emscripten::val> {
 public:

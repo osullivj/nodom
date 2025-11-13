@@ -1,6 +1,7 @@
 #pragma once
+#include <iostream>
 #ifndef __EMSCRIPTEN__
-#include "json.hpp"
+#include "json.hpp"		// nlohmann::json
 #else
 #endif
 
@@ -151,6 +152,14 @@ emscripten::val JParse(const std::string& json_string) {
 	emscripten::val rv = json_global.call<emscripten::val>("parse", json_string);
 	return rv;
 }
-// emscripten::val implementations of JSON cache ops
+
+std::ostream& operator<<(std::ostream& os, const emscripten::val& v)
+{
+	emscripten::val json_global = emscripten::val::global("JSON");
+	emscripten::val json = json_global.call<emscripten::val>("stringify", v);
+	os << json.as<std::string>();
+	return os;
+}
+
 #endif
 

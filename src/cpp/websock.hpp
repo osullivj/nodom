@@ -243,7 +243,7 @@ EM_BOOL sa_ems_on_close(int eventType, const EmscriptenWebSocketCloseEvent* webs
 }
 
 EM_BOOL sa_ems_on_message(int eventType, const EmscriptenWebSocketMessageEvent* websocketEvent, void* userData) {
-    const static char* method = "ems_on_message: ";
+    const static char* method = "sa_ems_on_message: ";
     auto ws_client = reinterpret_cast<NDWebSockClient<emscripten::val, EmptyDBCache<emscripten::val>>*>(userData);
     if (websocketEvent->isText) {
         // For only ascii chars.
@@ -256,8 +256,10 @@ EM_BOOL sa_ems_on_message(int eventType, const EmscriptenWebSocketMessageEvent* 
     return EM_TRUE;
 }
 
-EM_BOOL sa_ems_on_error(int eventType, const EmscriptenWebSocketErrorEvent* websocketEvent, void* userData) {
-    auto ws_client = reinterpret_cast<NDWebSockClient<emscripten::val, EmptyDBCache<emscripten::val>>*>(userData);
+EM_BOOL sa_ems_on_error(int event_type, const EmscriptenWebSocketErrorEvent* ws_event, void* user_data) {
+    const static char* method = "sa_ems_on_error: ";
+    auto ws_client = reinterpret_cast<NDWebSockClient<emscripten::val, EmptyDBCache<emscripten::val>>*>(user_data);
+    NDLogger::cerr() << method << "event_type: " << event_type << std::endl;
     return EM_TRUE;
 }
 #endif
