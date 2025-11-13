@@ -61,7 +61,7 @@ class HomeHandler(tornado.web.RequestHandler):
         self.set_header("Access-Control-Allow-Origin", f"*")
 
     def get(self):
-        self.render("index.html", duck_db=self.application.service.is_duck_app)
+        self.render("nodom.html", duck_db=self.application.service.is_duck_app)
 
 class StaticJSFileHandler(tornado.web.StaticFileHandler):
     def set_default_headers(self, *args, **kwargs):
@@ -136,7 +136,7 @@ class WebSockHandler(tornado.websocket.WebSocketHandler):
 
 
 ND_HANDLERS = [
-    (r'/index.html', HomeHandler),
+    (r'/nodom.html', HomeHandler),
     # (r'/(index.html)', StaticFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, *web_args))),
     (r'/(.*\.js)', StaticJSFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, *web_args))),
     (r'/(.*\.wasm)', StaticWASMFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, *web_args))),

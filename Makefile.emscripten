@@ -17,7 +17,7 @@ CC = emcc
 CXX = emcc
 DWP = emdwp
 WEB_DIR = web
-EXE = $(WEB_DIR)/index.html
+EXE = $(WEB_DIR)/nodom.html
 IMGUI_DIR = imgui
 ND_SRC_DIR = src/cpp
 ND_DP_DIR = ImGuiDatePicker
@@ -110,12 +110,12 @@ serve: all
 
 $(EXE): $(OBJS) $(WEB_DIR)
 	$(CXX) -o $@ $(OBJS) $(LDFLAGS)
-	$(DWP) -e web\index.wasm -o web\index.wasm.dwp
+	$(DWP) -e web\nodom.wasm -o web\nodom.wasm.dwp
 
 clean:
 	del $(OBJS)
-	del $(WEB_DIR)\index.html
-	del $(WEB_DIR)\index.js
-	del $(WEB_DIR)\index.wasm
-	del $(WEB_DIR)\index.wasm.dwp
+	del $(WEB_DIR)\nodom.html
+	del $(WEB_DIR)\nodom.js
+	del $(WEB_DIR)\nodom.wasm
+	del $(WEB_DIR)\nodom.wasm.dwp
     
