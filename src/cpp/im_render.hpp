@@ -96,13 +96,14 @@ GLFWwindow* im_start(NDContext<JSON, DB>& ctx)
     // - Read 'docs/FONTS.md' for more instructions and details.
     // - Remember that in C/C++ if you want to include a backslash \ in a string literal you need to write a double backslash \\ !
     // NB default font is ProggyClean; scalable but slow
-    io.Fonts->AddFontDefault();
+    ImFont* font = io.Fonts->AddFontDefault();
+    ctx.register_font("Default", font);
 #ifndef __EMSCRIPTEN__
     JSON jfonts = bbcfg["fonts"];
     for (auto fit = jfonts.begin(); fit != jfonts.end(); ++fit) {
         // fonts is an untyped list of strings. so we get<std::str>()
         // to coerce and avoid extra quotes
-        ImFont* font = io.Fonts->AddFontFromFileTTF(fit.value().template get<std::string>().c_str());
+        font = io.Fonts->AddFontFromFileTTF(fit.value().template get<std::string>().c_str());
         IM_ASSERT(font != NULL);
         ctx.register_font(fit.key(), font);
     }
