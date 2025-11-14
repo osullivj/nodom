@@ -949,16 +949,20 @@ protected:
         }
         float font_size_base = 0.0;
         std::string font_name = JAsString(cspec, font_attr);
+        if (JContains(cspec, font_size_base_attr)) {
+            font_size_base = JAsFloat(cspec, font_size_base_attr);
+        }
         auto font_it = font_map.find(font_name);
         if (font_it != font_map.end()) {
-            if (JContains(cspec, font_size_base_attr)) {
-                font_size_base = JAsFloat(cspec, font_size_base_attr);
-            }
             ImGui::PushFont(font_it->second, font_size_base);
         }
         else {
-            NDLogger::cerr() << method << "bad font name in cspec in w(" << w << ")" << std::endl;
-            return false;
+            // Gotta push something as matching PopFont
+            // renders will trigger imgui asserts
+            ImFont* default_font = font_map[default_cs];
+            ImGui::PushFont(default_font, font_size_base);
+            NDLogger::cerr() << method << "bad font name in cspec in w(" << w 
+                        << "). Pushed Default instead." << std::endl;
         }
         return true;
     }
