@@ -102,7 +102,7 @@ class JSONHandler(APIHandlerBase):
 
 # flip between serving the imgui example, and nodom build
 # web_args = ['imgui', 'examples', 'example_glfw_opengl3', 'web']     # imgui example
-web_args = ['web']                                                  # nodom build
+web_args = ['bld']                                                  # nodom build
 
 # DevToolsWorkspaceHandler informs the Chrome debugger about source file dirs
 # https://chromium.googlesource.com/devtools/devtools-frontend/+/main/docs/ecosystem/automatic_workspace_folders.md
@@ -154,7 +154,7 @@ class NDApp( tornado.web.Application):
         # extra_handlers first so they get first crack at the match
         self.service = service
         handlers = extra_handlers + ND_HANDLERS
-        settings = dict(template_path=os.path.join(nd_consts.ND_ROOT_DIR, 'web'))
+        settings = dict(template_path=os.path.join(nd_consts.ND_ROOT_DIR, 'bld'))
         tornado.web.Application.__init__( self, handlers, **settings)
         self.ws_handlers = service.get_ws_handlers()
 

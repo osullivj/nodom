@@ -16,16 +16,17 @@
 CC = emcc
 CXX = emcc
 DWP = emdwp
-WEB_DIR = web
-EXE = $(WEB_DIR)/nodom.html
+BLD_DIR = bld
+EXE = $(BLD_DIR)/nodom.html
 IMGUI_DIR = imgui
 ND_SRC_DIR = src/cpp
+ND_WEB_DIR = src/web
 ND_DP_DIR = ImGuiDatePicker
 SOURCES = $(ND_SRC_DIR)/main_bb_duck.cpp
 SOURCES += $(ND_DP_DIR)/ImGuiDatePicker.cpp
 SOURCES += $(IMGUI_DIR)/imgui.cpp $(IMGUI_DIR)/imgui_demo.cpp $(IMGUI_DIR)/imgui_draw.cpp $(IMGUI_DIR)/imgui_tables.cpp $(IMGUI_DIR)/imgui_widgets.cpp
 SOURCES += $(IMGUI_DIR)/backends/imgui_impl_glfw.cpp $(IMGUI_DIR)/backends/imgui_impl_opengl3.cpp
-OBJS = $(addsuffix .o, $(basename $(notdir $(SOURCES))))
+OBJS = $(addsuffix .o, $(addprefix bld/,$(basename $(notdir $(SOURCES)))))
 # UNAME_S := $(shell uname -s)
 CPPFLAGS = -I $(IMGUI_DIR)/examples/libs/emscripten -I $(ND_DP_DIR)
 LDFLAGS =
@@ -77,45 +78,43 @@ CPPFLAGS += -I$(IMGUI_DIR) -I$(IMGUI_DIR)/backends
 # https://emscripten.org/docs/porting/Debugging.html#debugging
 DBGFLAGS += -g -gdwarf-5 -gsplit-dwarf -gpubnames
 CPPFLAGS += $(DBGFLAGS) -Wall -Wformat -Os $(EMS)
-LDFLAGS += --shell-file ${IMGUI_DIR}/examples/libs/emscripten/shell_minimal.html
+LDFLAGS += --shell-file ${ND_WEB_DIR}/shell_minimal.html
 LDFLAGS += $(EMS) $(DBGFLAGS)
 
 ##---------------------------------------------------------------------
 ## BUILD RULES
 ##---------------------------------------------------------------------
 
-%.o:%.cpp
+$(BLD_DIR)/%.o:%.cpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
 
-%.o:$(IMGUI_DIR)/%.cpp
+$(BLD_DIR)/%.o:$(IMGUI_DIR)/%.cpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
 
-%.o:$(IMGUI_DIR)/backends/%.cpp
+$(BLD_DIR)/%.o:$(IMGUI_DIR)/backends/%.cpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
 
-%.o:$(ND_SRC_DIR)/%.cpp
+$(BLD_DIR)/%.o:$(ND_SRC_DIR)/%.cpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
 
-%.o:$(ND_DP_DIR)/%.cpp
+$(BLD_DIR)/%.o:$(ND_DP_DIR)/%.cpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
 
 all: $(EXE)
+	copy src\web\favicon.ico bld\favicon.ico
 	@echo Build complete for $(EXE)
 
-$(WEB_DIR):
+$(BLD_DIR):
 	mkdir $@
 
-serve: all
-	python3 -m http.server -d $(WEB_DIR)
-
-$(EXE): $(OBJS) $(WEB_DIR)
+$(EXE): $(OBJS) $(BLD_DIR)
 	$(CXX) -o $@ $(OBJS) $(LDFLAGS)
-	$(DWP) -e web\nodom.wasm -o web\nodom.wasm.dwp
+	$(DWP) -e $(BLD_DIR)\nodom.wasm -o $(BLD_DIR)\nodom.wasm.dwp
 
 clean:
 	del $(OBJS)
-	del $(WEB_DIR)\nodom.html
-	del $(WEB_DIR)\nodom.js
-	del $(WEB_DIR)\nodom.wasm
-	del $(WEB_DIR)\nodom.wasm.dwp
+	del $(BLD_DIR)\nodom.html
+	del $(BLD_DIR)\nodom.js
+	del $(BLD_DIR)\nodom.wasm
+	del $(BLD_DIR)\nodom.wasm.dwp
     
