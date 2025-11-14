@@ -18,7 +18,7 @@ logr = nd_utils.init_logging(NDAPP, console=True)
 
 ADDITION_LAYOUT = [
     dict(rname="Home",
-        cspec=dict(title='Server side addition', font='Arial'),
+        cspec=dict(title='Server side addition', title_font='Arial'),
         children=[
             dict(rname="PushFont", cspec=dict(font='Courier')),
             dict(rname='InputInt', cspec=dict(cname='op1', step=1)),
