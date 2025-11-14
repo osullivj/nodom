@@ -191,6 +191,7 @@ protected:
         std::cout << "NDWebSockClient::on_message: hdl( " << h.lock().get()
             << ") msg: " << payload << std::endl;
         nlohmann::json msg_json = nlohmann::json::parse(payload);
+        // emplace(), not push(), as we trust the nlohmann move semantics
         server_responses.emplace(msg_json);
     }
 
@@ -213,7 +214,7 @@ public:
     // after all, we don't wanna use the friend keyword...
     void ems_on_message(const std::string& payload) {
         emscripten::val msg_json = JParse<emscripten::val>(payload);
-        server_responses.emplace(msg_json);
+        server_responses.push(msg_json);
         // on win32 on_timeout invokes ctx.dispatch_server_responses()
         ctx.dispatch_server_responses(server_responses);
     }
@@ -242,13 +243,13 @@ EM_BOOL sa_ems_on_close(int eventType, const EmscriptenWebSocketCloseEvent* webs
     return EM_TRUE;
 }
 
-EM_BOOL sa_ems_on_message(int eventType, const EmscriptenWebSocketMessageEvent* websocketEvent, void* userData) {
+EM_BOOL sa_ems_on_message(int event_type, const EmscriptenWebSocketMessageEvent* ws_event, void* user_data) {
     const static char* method = "sa_ems_on_message: ";
-    auto ws_client = reinterpret_cast<NDWebSockClient<emscripten::val, EmptyDBCache<emscripten::val>>*>(userData);
-    if (websocketEvent->isText) {
-        // For only ascii chars.
-        NDLogger::cout() << method << (const char*)websocketEvent->data << std::endl;
-        ws_client->ems_on_message((const char*)websocketEvent->data);
+    auto ws_client = reinterpret_cast<NDWebSockClient<emscripten::val, EmptyDBCache<emscripten::val>>*>(user_data);
+    if (ws_event->isText) {
+        std::string payload((const char*)ws_event->data);
+        NDLogger::cout() << method << payload << std::endl;
+        ws_client->ems_on_message(payload);
     }
     else {
         NDLogger::cerr() << method << "non text message!" << std::endl;
