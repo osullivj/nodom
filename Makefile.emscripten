@@ -112,7 +112,8 @@ $(EXE): $(OBJS) $(BLD_DIR)
 	$(DWP) -e $(BLD_DIR)\nodom.wasm -o $(BLD_DIR)\nodom.wasm.dwp
 
 clean:
-	del $(OBJS)
+	del $(BLD_DIR)\*.o
+	del $(BLD_DIR)\*.dwo
 	del $(BLD_DIR)\nodom.html
 	del $(BLD_DIR)\nodom.js
 	del $(BLD_DIR)\nodom.wasm
