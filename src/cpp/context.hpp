@@ -66,7 +66,7 @@ private:
     std::uint32_t font_push_count = 0;
     std::uint32_t font_pop_count = 0;
     std::uint32_t render_count = 0;
-    std::stringstream non_criticals;
+    std::deque<std::string> bad_font_pushes;
 
     ws_sender ws_send;  // ref to NDWebSockClient::send
 
@@ -108,10 +108,8 @@ public:
     void render() {
         const static char* method = "NDContext::render: ";
 
-        if (pending_pops.size() || pending_pushes.size()) {
-            NDLogger::cerr() << method << pending_pops.size() << " pending pops, " << pending_pushes.size()
-                << " pending pushes" << std::endl;
-        }
+        start_render_cycle();
+
         // address pending pops first: maintaining ordering by working from front to back
         // as that is the order they would land on the stack if not pushed during rendering
         while (!pending_pops.empty()) {
@@ -125,14 +123,7 @@ public:
             push_widget(pending_pushes.front());
             pending_pushes.pop_front();
         }
-        // Zero the font push/pop counts before rendering. This
-        // enables us to detect lopsided push/pop sequences after
-        // all widgets have rendered.
-        font_push_count = 0;
-        font_pop_count = 0;
-        // clear non critical error stream
-        non_criticals.str(std::string());
-        non_criticals.clear();
+
         // This loop used to break if we raised a modal as changing stack state
         // while this iter is live segfaults. JS lets us get away with that in 
         // main.ts:render (imgui-js based Typescript NDContext).
@@ -146,15 +137,42 @@ public:
             const JSON& widget(stack[inx]);    // not {} to avoid list inits
             dispatch_render(widget);
         }
+        end_render_cycle();
+    }
+
+    void start_render_cycle() {
+        const static char* method = "NDContext::start_render_cycle: ";
+        // Zero the font push/pop counts before rendering. This
+        // enables us to detect lopsided push/pop sequences after
+        // all widgets have rendered.
+        font_push_count = 0;
+        font_pop_count = 0;
+        bad_font_pushes.clear();
+
+        if (pending_pops.size() || pending_pushes.size()) {
+            NDLogger::cerr() << method << pending_pops.size() << " pending pops, " << pending_pushes.size()
+                << " pending pushes" << std::endl;
+        }
+    }
+
+    void end_render_cycle() {
+        const static char* method = "NDContext::end_render_cycle: ";
         if (font_push_count != font_pop_count) {
             NDLogger::cerr() << method << "font_push_count: " << font_push_count
                 << ", font_pop_count: " << font_pop_count << std::endl;
         }
         if ((render_count % 300) == 0) {
-            NDLogger::cerr() << method << "START_NON_CRITICALS" << std::endl;
-            NDLogger::cerr() << non_criticals.str();
-            NDLogger::cerr() << method << "END_NON_CRITICALS" << std::endl;
+            NDLogger::cerr() << method << "bad_font_pushes: ";
+            while (!bad_font_pushes.empty()) {
+                NDLogger::cerr() << bad_font_pushes.front();
+                bad_font_pushes.pop_front();
+                if (!bad_font_pushes.empty())
+                    NDLogger::cerr() << ", ";
+            }
+            NDLogger::cerr() << std::endl;
+            NDLogger::cerr() << method << "render_count: " << render_count << std::endl;
         }
+        bad_font_pushes.clear();
         render_count++;
     }
 
@@ -207,7 +225,6 @@ public:
             else if (JAsString(resp, nd_type_cs) == data_change_cs) {
                 std::string ckey = JAsString(resp, cache_key_cs);
                 JSet(data, ckey.c_str(), resp[new_value_cs]);
-                // data[ckey] = resp[new_value_cs];
             }
             else if (JAsString(resp, nd_type_cs) == data_change_confirmed_cs) {
                 // TODO: add check that type has not mutated
@@ -979,7 +996,7 @@ protected:
             // renders will trigger imgui asserts
             ImFont* default_font = font_map[default_cs];
             ImGui::PushFont(default_font, font_size_base);
-            non_criticals << indent_cs << method << "bad font name in cspec:" << cspec << std::endl;
+            bad_font_pushes.push_back(font_name);
         }
         font_push_count++;
         return true;
