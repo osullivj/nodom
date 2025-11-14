@@ -89,9 +89,5 @@ private:
 #endif
     bool                                is_db_app;
     wchar_t                             wc_buf[ND_WC_BUF_SZ];
-
-    // these three test config strings are written once at startup
-    // time in the cpp thread, and read from the py thread
-    // std::queue<nlohmann::json>          server_responses;
     std::string                         server_url;
 };
