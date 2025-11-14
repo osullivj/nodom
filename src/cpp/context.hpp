@@ -63,12 +63,12 @@ private:
     ImColor db_status_color;
 
     std::map<std::string, ImFont*>  font_map;
+    std::uint32_t font_push_count = 0;
+    std::uint32_t font_pop_count = 0;
+    std::uint32_t render_count = 0;
+    std::stringstream non_criticals;
 
-    // default value for invoking std::find on nlohmann JSON iterators
-    std::string null_value = "null_value";
-
-    // ref to NDWebSockClient::send
-    ws_sender ws_send;
+    ws_sender ws_send;  // ref to NDWebSockClient::send
 
     GLFWwindow* glfw_window = nullptr;
 
@@ -125,6 +125,14 @@ public:
             push_widget(pending_pushes.front());
             pending_pushes.pop_front();
         }
+        // Zero the font push/pop counts before rendering. This
+        // enables us to detect lopsided push/pop sequences after
+        // all widgets have rendered.
+        font_push_count = 0;
+        font_pop_count = 0;
+        // clear non critical error stream
+        non_criticals.str(std::string());
+        non_criticals.clear();
         // This loop used to break if we raised a modal as changing stack state
         // while this iter is live segfaults. JS lets us get away with that in 
         // main.ts:render (imgui-js based Typescript NDContext).
@@ -138,6 +146,16 @@ public:
             const JSON& widget(stack[inx]);    // not {} to avoid list inits
             dispatch_render(widget);
         }
+        if (font_push_count != font_pop_count) {
+            NDLogger::cerr() << method << "font_push_count: " << font_push_count
+                << ", font_pop_count: " << font_pop_count << std::endl;
+        }
+        if ((render_count % 300) == 0) {
+            NDLogger::cerr() << method << "START_NON_CRITICALS" << std::endl;
+            NDLogger::cerr() << non_criticals.str();
+            NDLogger::cerr() << method << "END_NON_CRITICALS" << std::endl;
+        }
+        render_count++;
     }
 
     void server_request(const std::string& key) {
@@ -961,14 +979,15 @@ protected:
             // renders will trigger imgui asserts
             ImFont* default_font = font_map[default_cs];
             ImGui::PushFont(default_font, font_size_base);
-            NDLogger::cerr() << method << "bad font name in cspec in w(" << w 
-                        << "). Pushed Default instead." << std::endl;
+            non_criticals << indent_cs << method << "bad font name in cspec:" << cspec << std::endl;
         }
+        font_push_count++;
         return true;
     }
 
     void pop_font() {
         ImGui::PopFont();
+        font_pop_count++;
     }
 
 };

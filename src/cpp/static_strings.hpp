@@ -76,3 +76,4 @@ static const char* null_cs("NULL");
 static const char* db_cs("db");
 static const char* ui_pop_cs("ui_pop");
 static const char* ui_push_cs("ui_push");
+static const char* indent_cs("  ");
