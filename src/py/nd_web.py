@@ -60,8 +60,8 @@ class HomeHandler(tornado.web.RequestHandler):
         self.set_header("Content-Type", "text/html")
         self.set_header("Access-Control-Allow-Origin", f"*")
 
-    def get(self):
-        self.render("nodom.html", duck_db=self.application.service.is_duck_app)
+    def get(self, slug):
+        self.render(slug, duck_db=self.application.service.is_duck_app)
 
 class StaticJSFileHandler(tornado.web.StaticFileHandler):
     def set_default_headers(self, *args, **kwargs):
@@ -136,7 +136,7 @@ class WebSockHandler(tornado.websocket.WebSocketHandler):
 
 
 ND_HANDLERS = [
-    (r'/nodom.html', HomeHandler),
+    (r'/(.*\.html)', HomeHandler),
     # (r'/(index.html)', StaticFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, *web_args))),
     (r'/(.*\.js)', StaticJSFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, *web_args))),
     (r'/(.*\.wasm)', StaticWASMFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, *web_args))),
@@ -154,7 +154,7 @@ class NDApp( tornado.web.Application):
         # extra_handlers first so they get first crack at the match
         self.service = service
         handlers = extra_handlers + ND_HANDLERS
-        settings = dict(template_path=os.path.join(nd_consts.ND_ROOT_DIR, 'bld'))
+        settings = dict(template_path=os.path.join(nd_consts.ND_ROOT_DIR, *web_args))
         tornado.web.Application.__init__( self, handlers, **settings)
         self.ws_handlers = service.get_ws_handlers()
 
