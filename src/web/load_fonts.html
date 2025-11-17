@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no"/>
+    <title>Log Fonts</title>
+  </head>
+  <body>
+    <h1>Local Font Access API Logger</h1>
+    <section>
+      <div class="start-button-container">
+        <button>Get your local fonts</button>
+      </div>
+      <div class="select-container">
+        <label for="font-select">Choose a local font:</label>
+        <select id="font-select"></select>
+      </div>
+    </section>
+    <p class="sample-text">
+      The quick brown fox jumps over the lazy dog. Jackdaws love my big sphinx
+      of quartz. Pack my box with five dozen liquor jugs.
+    </p>
+    <script type='text/javascript'>
+    
+        function open_font_db() {
+            return new Promise((resolve, reject) => {
+                const dbName = "NoDOM";
+                const storeName = "fonts";
+                const version = 1;
+                const request = indexedDB.open(dbName, version);
+                request.onerror = (event) => {
+                    reject(`Database error: ${event.target.error}`);
+                };
+                request.onsuccess = (event) => {
+                    resolve(event.target.result);
+                };
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    // Create an object store to hold the font data. Blobs can be stored directly.
+                    // Using 'fontName' as the keyPath for easy retrieval.
+                    db.createObjectStore(storeName, { keyPath: "fontName" });
+                };
+            });
+        }
+
+        async function write_font_data(font_blob, font_name) {
+            try {
+                const db = await open_font_db();
+                const storeName = "fonts";
+                // Start a read/write transaction.
+                const transaction = db.transaction(storeName, "readwrite");
+                const store = transaction.objectStore(storeName);
+                // Put the data object into the store.
+                const fontObject = {
+                    fontName: font_name,
+                    data: font_blob,
+                    timestamp: new Date().getTime()
+                };
+                const request = store.put(fontObject);
+                request.onsuccess = () => {
+                    console.log(`Successfully stored font: ${font_name}`);
+                };
+                request.onerror = (event) => {
+                    console.error(`Error storing font: ${event.target.error}`);
+                };
+                await new Promise((resolve, reject) => {
+                    transaction.oncomplete = () => resolve();
+                    transaction.onerror = (event) => reject(event.target.error);
+                });
+                db.close();
+            } catch (error) {
+                console.error("Failed to write font data to IndexedDB:", error);
+            }
+        }
+    
+        const selectElem = document.querySelector("select");
+        const selectElemContainer = document.querySelector(".select-container");
+        const startButton = document.querySelector("button");
+        const startButtonContainer = document.querySelector(".start-button-container");
+        const sampleText = document.querySelector(".sample-text");
+        selectElemContainer.style.display = "none";
+
+        async function populate_fonts() {
+            startButton.textContent = "Fetching local fonts...";
+            startButton.disabled = true;
+            try {
+                const available_fonts = await window.queryLocalFonts();
+                console.log(available_fonts);
+                for (const font_data of available_fonts) {
+                    selectElem.innerHTML += `<option value="${font_data.family}">${font_data.fullName}</option>`;
+                    const sfnt = await font_data.blob();
+                    // Slice out only bytes we need: first 4 bytes are SFNT version
+                    // Spec: https://learn.microsoft.com/en-us/typography/opentype/spec/otff#organization-of-an-opentype-font
+                    const sfnt_version = await sfnt.slice(0, 4).text();
+                    let outline_format = "UNKNOWN";
+                    switch (sfnt_version) {
+                        case "\x00\x01\x00\x00":
+                        case "true":
+                        case "typ1":
+                            outline_format = "truetype";
+                            break;
+                        case "OTTO":
+                            outline_formatFormat = "cff";
+                            break;
+                    }
+                    console.log("fullName: " + font_data.fullName + ", format: ", outline_format);
+                    if (outline_format == "truetype") {
+                        await write_font_data(sfnt, font_data.fullName);
+                    }
+                }
+                selectElemContainer.style.display = "block";
+                startButtonContainer.style.display = "none";
+                selectElem.selectedIndex = 0;
+                selectElem.addEventListener("change", apply_font);
+                apply_font();
+            } catch (err) {
+                console.error(err.name, err.message);
+                startButton.textContent = "Get your local fonts";
+                startButton.disabled = false;
+            }
+        }
+        function apply_font() {
+            sampleText.style.fontFamily = selectElem.value;
+        }
+        startButton.addEventListener("click", populate_fonts);
+    </script>
+  </body>
+</html>
