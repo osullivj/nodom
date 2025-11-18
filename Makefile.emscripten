@@ -46,7 +46,7 @@ EMS += -s DISABLE_EXCEPTION_CATCHING=1
 # EMS += -s DISABLE_EXCEPTION_CATCHING=0
 EMS +=  --use-port=contrib.glfw3 
 LDFLAGS += -s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s NO_EXIT_RUNTIME=0
-LDFLAGS += -s ASSERTIONS=1 -lembind  -lwebsocket.js
+LDFLAGS += -s ASSERTIONS=1 -lembind  -lwebsocket.js -lidbstore.js
 
 # Build as single file (binary text encoded in .html file)
 #LDFLAGS += -sSINGLE_FILE
