@@ -7,7 +7,44 @@
 #include <GLES2/gl2.h>
 #endif
 #include <GLFW/glfw3.h> // Will drag system OpenGL headers
+#include "logger.hpp"
 
+
+#ifdef __EMSCRIPTEN__
+// callbacks for emscripten_idb_async_exists and 
+// emscripten_idb_async_load
+
+// em_arg_callback_func: typedef void (*em_arg_callback_func)(void*);
+void on_async_exists_error(void*) {
+    // NoDOM IndexedDB check fails
+    NDLogger::cerr() << "NoDOM IDB check failed" << std::endl;
+}
+
+// em_arg_callback_func: typedef void (*em_arg_callback_func)(void*);
+void on_load_error(void*) {
+    // NoDOM IndexedDB doesn't exist
+    NDLogger::cerr() << "NoDOM IDB load failed" << std::endl;
+}
+
+// em_idb_onload_func: typedef void (*em_idb_onload_func)(void*, void*, int);
+void on_load(void* c, void* buf, int sz) {
+    const char* method = "on_load: ";
+    auto ctx = reinterpret_cast<NDContext<emscripten::val, EmptyDBCache<emscripten::val>>*>(c);
+    NDLogger::cout() << method << sz << std::endl;
+}
+
+// em_idb_exists_func: typedef void (*em_idb_exists_func)(void*, int);
+void on_async_exists(void* c, int exists) {
+    const char* method = "on_async_exists: ";
+    if (exists != 0) {
+        emscripten_idb_async_load("NoDOM", "fonts", c, on_load, on_load_error);
+    }
+    else {
+        NDLogger::cout() << method << "cannot load FONTS!" << std::endl;
+    }
+}
+
+#endif
 
 inline void glfw_error_callback(int error, const char* description)
 {
@@ -108,7 +145,8 @@ GLFWwindow* im_start(NDContext<JSON, DB>& ctx)
         ctx.register_font(fit.key(), font);
     }
 #else
-    // TODO: how do we load fonts in browser?
+    // Can we load fonts from IndexedDB?
+    emscripten_idb_async_exists("NoDOM", "fonts", &ctx, on_async_exists, on_async_exists_error);
 #endif
 
     // Our state
