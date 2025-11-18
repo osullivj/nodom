@@ -161,17 +161,6 @@ public:
             NDLogger::cerr() << method << "font_push_count: " << font_push_count
                 << ", font_pop_count: " << font_pop_count << std::endl;
         }
-        if ((render_count % 300) == 0) {
-            NDLogger::cerr() << method << "bad_font_pushes: ";
-            while (!bad_font_pushes.empty()) {
-                NDLogger::cerr() << bad_font_pushes.front();
-                bad_font_pushes.pop_front();
-                if (!bad_font_pushes.empty())
-                    NDLogger::cerr() << ", ";
-            }
-            NDLogger::cerr() << std::endl;
-            NDLogger::cerr() << method << "render_count: " << render_count << std::endl;
-        }
         bad_font_pushes.clear();
         render_count++;
     }
