@@ -68,9 +68,12 @@ public:
         emscripten::val window_global = emscripten::val::global("window");
         emscripten::val location = window_global["location"];
         std::string host = location["host"].as<std::string>();
-        server_url = "ws://" + host + "/api/websock";
+        server_url = "wss://" + host + "/api/websock";
         NDLogger::cout() << method << server_url << std::endl;
     }
+
+
+
 #endif  // __EMSCRIPTEN__
     virtual         ~NDProxy() {};
 
