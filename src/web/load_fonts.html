@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no"/>
-    <title>Log Fonts</title>
+    <title>Load Fonts</title>
   </head>
   <body>
     <h1>Local Font Access API Logger</h1>
@@ -21,12 +21,11 @@
       of quartz. Pack my box with five dozen liquor jugs.
     </p>
     <script type='text/javascript'>
-    
+        const storeName = "FILE_DATA";  // match ems IDBStore.js
+        const version = 22;
         function open_font_db() {
             return new Promise((resolve, reject) => {
                 const dbName = "NoDOM";
-                const storeName = "fonts";
-                const version = 1;
                 const request = indexedDB.open(dbName, version);
                 request.onerror = (event) => {
                     reject(`Database error: ${event.target.error}`);
@@ -36,9 +35,12 @@
                 };
                 request.onupgradeneeded = (event) => {
                     const db = event.target.result;
-                    // Create an object store to hold the font data. Blobs can be stored directly.
-                    // Using 'fontName' as the keyPath for easy retrieval.
-                    db.createObjectStore(storeName, { keyPath: "fontName" });
+                    // Create an object store to hold the font data.
+                    // Blobs can be stored directly.
+                    // NB we do not supply a key as second parm as
+                    // ems IDBStore.js does not. Which means
+                    // we're using out of line keys.
+                    db.createObjectStore(storeName);
                 };
             });
         }
@@ -46,17 +48,18 @@
         async function write_font_data(font_blob, font_name) {
             try {
                 const db = await open_font_db();
-                const storeName = "fonts";
+
                 // Start a read/write transaction.
                 const transaction = db.transaction(storeName, "readwrite");
                 const store = transaction.objectStore(storeName);
                 // Put the data object into the store.
-                const fontObject = {
+                const font_object = {
                     fontName: font_name,
                     data: font_blob,
                     timestamp: new Date().getTime()
                 };
-                const request = store.put(fontObject);
+                const font_file_name = font_name.replace(/\s/g, "") + ".ttf";
+                const request = store.put(font_blob, font_file_name);
                 request.onsuccess = () => {
                     console.log(`Successfully stored font: ${font_name}`);
                 };
