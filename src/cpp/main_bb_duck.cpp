@@ -64,10 +64,16 @@ int main(int argc, char* argv[]) {
         std::cout << method << ex.what() << std::endl;
     }
 #else
-    NDProxy<EmptyDBCache<emscripten::val>> server;
-    NDContext<emscripten::val, EmptyDBCache<emscripten::val>> ctx(server);
-    NDWebSockClient<emscripten::val, EmptyDBCache<emscripten::val>> ws_client(server, ctx);
-    GLFWwindow* window = im_start(ctx);
+    using ems_val_t = emscripten::val;
+    using EmptyDB_t = EmptyDBCache<emscripten::val>;
+    using NDContext_t = NDContext<ems_val_t, EmptyDB_t>;
+    NDProxy<EmptyDB_t> server;
+    NDContext_t ctx(server);
+    NDWebSockClient<ems_val_t, EmptyDB_t> ws_client(server, ctx);
+    IDBFontCache font_cache([&ctx](const std::string& n, ImFont* f)
+                                {ctx.register_font(n, f); },
+                                { "Arial.ttf", "CourierNew.ttf" });
+    GLFWwindow* window = im_start(ctx, &font_cache);
     emscripten_set_main_loop_arg(im_loop_body, &ctx, 0, 1);
 #endif
 }
