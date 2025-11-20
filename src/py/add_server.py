@@ -23,7 +23,7 @@ ADDITION_LAYOUT = [
     dict(rname="Home",
         cspec=dict(title='Server side addition', title_font='Arial'),
         children=[
-            dict(rname="PushFont", cspec=dict(font='Courier')),
+            dict(rname="PushFont", cspec=dict(font='CourierNew')),
             dict(rname='InputInt', cspec=dict(cname='op1', step=1)),
             dict(rname='InputInt', cspec=dict(cname='op2', step=2)),
             # see src/imgui.ts for enum defns
@@ -31,7 +31,7 @@ ADDITION_LAYOUT = [
             dict(rname='InputInt', cspec=dict(cname='op1_plus_op2', flags=InputTextFlags.READ_ONLY)),
             dict(rname='Separator', cspec=dict()),
             dict(rname='PopFont'),
-            dict(rname='PushFont', cspec=dict(font='Courier', font_size_base=8)),
+            dict(rname='PushFont', cspec=dict(font='CourierNew', font_size_base=8)),
             dict(rname='Footer', cspec=dict(db=True, fps=True, demo=True, id_stack=True, memory=True)),
             dict(rname='PopFont'),
         ],
@@ -63,14 +63,11 @@ class AdditionService(nd_utils.Service):
             return [change]
         return []
 
-
-# define("port", default=8890, help="run on the given port", type=int)
-define("port", default=443, help="run on the given port", type=int)
-
 # breadboard looks out for service at the module level
 service = AdditionService(NDAPP, ADDITION_LAYOUT, ADDITION_DATA)
 
 async def http_main():
+    define("port", default=8890, help="run on the given port", type=int)
     parse_command_line()
     app = nd_web.NDApp(service)
     app.listen(options.port)
@@ -78,6 +75,7 @@ async def http_main():
     await asyncio.Event().wait()
 
 async def https_main():
+    define("port", default=443, help="run on the given port", type=int)
     parse_command_line()
     cert_path = os.path.normpath(os.path.join(nd_consts.ND_ROOT_DIR, 'cfg'))
     app = nd_web.NDApp(service)
