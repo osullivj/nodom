@@ -91,6 +91,5 @@ private:
     std::string     test_module_name;
 #endif
     bool                                is_db_app;
-    wchar_t                             wc_buf[ND_WC_BUF_SZ];
     std::string                         server_url;
 };
