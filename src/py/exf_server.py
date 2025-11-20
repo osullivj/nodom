@@ -36,7 +36,7 @@ EXF_LAYOUT = [
             title_font="Arial",
         ),
         children=[
-            dict(rname="PushFont", cspec=dict(font='Courier')),
+            dict(rname="PushFont", cspec=dict(font='CourierNew')),
             dict(
                 rname='BeginChild',
                 cspec=dict(
@@ -58,7 +58,7 @@ EXF_LAYOUT = [
                 rname='DatePicker',
                 cspec=dict(
                     cname='start_date',
-                    year_month_font='Courier',
+                    year_month_font='CourierNew',
                     year_month_font_size_base=12,
                     day_date_font='Arial',
                     day_date_font_size_base=8,
@@ -76,7 +76,7 @@ EXF_LAYOUT = [
                 rname='DatePicker',
                 cspec=dict(
                     cname='end_date',
-                    year_month_font='Courier',
+                    year_month_font='CourierNew',
                     year_month_font_size_base=12,
                     day_date_font='Arial',
                     day_date_font_size_base=8,
@@ -127,9 +127,9 @@ EXF_LAYOUT = [
         cspec=dict(
             title='Depth table',
             title_font='Arial',
-            body_font='Courier',
+            body_font='CourierNew',
             body_font_size_base=8,
-            button_font='Courier',
+            button_font='CourierNew',
             button_font_size_base=12,
             cname='depth_summary_result',
             window_flags = WindowFlags.ALWAYS_AUTO_RESIZE | WindowFlags.HORIZONTAL_SCROLLBAR
@@ -141,7 +141,7 @@ EXF_LAYOUT = [
         cspec=dict(
             title='Loading parquet...',
             title_font='Arial',
-            body_font='Courier',
+            body_font='CourierNew',
             cname='scan_urls',
             spinner_radius=20,
             spinner_thickness=4
