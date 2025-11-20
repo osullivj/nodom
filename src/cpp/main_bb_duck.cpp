@@ -37,8 +37,12 @@
 #endif
 
 #ifdef __EMSCRIPTEN__
+using ems_val_t = emscripten::val;
+using EmptyDB_t = EmptyDBCache<emscripten::val>;
+using NDContext_t = NDContext<ems_val_t, EmptyDB_t>;
+
 void im_loop_body(void* c) {
-    auto ctx = reinterpret_cast<NDContext<emscripten::val, EmptyDBCache<emscripten::val>>*>(c);
+    auto ctx = reinterpret_cast<NDContext_t*>(c);
     if (ctx && !im_render(*ctx)) im_end(ctx->get_glfw_window());
 }
 #endif
@@ -64,9 +68,6 @@ int main(int argc, char* argv[]) {
         std::cout << method << ex.what() << std::endl;
     }
 #else
-    using ems_val_t = emscripten::val;
-    using EmptyDB_t = EmptyDBCache<emscripten::val>;
-    using NDContext_t = NDContext<ems_val_t, EmptyDB_t>;
     NDProxy<EmptyDB_t> server;
     NDContext_t ctx(server);
     NDWebSockClient<ems_val_t, EmptyDB_t> ws_client(server, ctx);
