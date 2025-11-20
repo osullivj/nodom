@@ -380,6 +380,10 @@ public:
 
 #else   // __EMSCRIPTEN__
 
+EM_JS(void, ems_db_dispatch, (emscripten::EM_VAL db_request_handle), {
+    var db_request = Emval.toValue(db_request_handle);
+    window.__nodom__.duck_module.postMessage(db_request);
+});
 
 class DuckDBWebCache : public EmptyDBCache<emscripten::val> {
 public:
@@ -390,6 +394,18 @@ protected:
     std::queue<emscripten::val>          db_queries;
     std::queue<emscripten::val>          db_results;
 public:
+    // Duck specific methods to be called from a
+    // custom im_loop_body.
+    // check_duck_module: has nodom.html finished
+    // loading duck_module.js yet?
+    bool check_duck_module() {
+        // NB this is based on imgui-jswt main.ts:check_duck_module
+        // Q: has duck_module.js created window.__nodom__ ?
+        emscripten::val window_global = emscripten::val::global("window");
+        return JContains(window_global, __nodom__cs);
+    }
+
+
     void get_db_responses(std::queue<emscripten::val>& responses) {
         static const char* method = "DBCache::get_db_responses: ";
         db_results.swap(responses);
@@ -401,23 +417,7 @@ public:
     void db_dispatch(emscripten::val& db_request) {
         const static char* method = "DBCache::db_dispatch: ";
         std::cout << method << db_request << std::endl;
-        db_queries.push(db_request);
-    }
-
-
-    // db_init, db_fnls, db_loop: these three methods exec 
-    // on the DB thread
-    bool db_init() {
-        return true;
-    }
-
-    void db_fnls() {
-    }
-
-    void db_loop() {
-        db_init();
-        // while (!done) {}
-        db_fnls();
+        ems_db_dispatch(db_request.as_handle());
     }
 
     // GUI thread methods for accessing the data
