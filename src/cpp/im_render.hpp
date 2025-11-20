@@ -8,39 +8,90 @@
 #endif
 #include <GLFW/glfw3.h> // Will drag system OpenGL headers
 #include "logger.hpp"
-
+#include <functional>
 
 #ifdef __EMSCRIPTEN__
-// callbacks for emscripten_idb_async_exists and 
-// emscripten_idb_async_load
+// fwd decl funcs used by IDBFontCache::next()
+void on_async_exists_error(void* m);
+void on_async_exists(void* c, int exists);
+// Only used in ems as a font data memo passed to
+// ems IDBStore callbacks, and as a mem cache too.
+using FontRegistrar = std::function<void(const std::string& name, ImFont* font)>;
+using StringVec = std::vector<std::string>;
+struct IDBFontCache {
+    IDBFontCache(FontRegistrar fr, const StringVec& fonts) :registrar(fr), font_list(fonts) { }
+    ~IDBFontCache() { std::for_each(font_mem_vec.begin(), font_mem_vec.end(), [](auto ptr) {free(ptr); }); }
+    void next() {
+        if (font_list.empty()) return;
+        font_file_name = font_list.back();
+        font_list.pop_back();
+        emscripten_idb_async_exists("NoDOM", font_file_name.c_str(),
+            this, on_async_exists, on_async_exists_error);
+
+    }
+    FontRegistrar registrar;
+    StringVec font_list;
+    std::string font_file_name;
+    std::vector<void*> font_mem_vec;
+};
+// Callbacks for emscripten_idb_async_exists and 
+// emscripten_idb_async_load. 
 
 // em_arg_callback_func: typedef void (*em_arg_callback_func)(void*);
-void on_async_exists_error(void*) {
-    // NoDOM IndexedDB check fails
-    NDLogger::cerr() << "NoDOM IDB check failed" << std::endl;
+void on_async_exists_error(void* m) {
+    const char* method = "on_async_exists_error: ";
+    auto fm = reinterpret_cast<IDBFontCache*>(m);
+    // NoDOM IndexedDB check fails in emscripten_idb_async_exists
+    fprintf(stderr, "%sIDB exists failed: %s\n", method, fm->font_file_name.c_str());
 }
 
 // em_arg_callback_func: typedef void (*em_arg_callback_func)(void*);
-void on_load_error(void*) {
+void on_load_error(void* m) {
+    const char* method = "on_load_error: ";
+    auto fm = reinterpret_cast<IDBFontCache*>(m);
     // NoDOM IndexedDB doesn't exist
-    NDLogger::cerr() << "NoDOM IDB load failed" << std::endl;
+    fprintf(stderr, "%sIDB load failed: %s\n", method, fm->font_file_name.c_str());
 }
 
 // em_idb_onload_func: typedef void (*em_idb_onload_func)(void*, void*, int);
-void on_load(void* c, void* buf, int sz) {
+void on_load(void* m, void* buf, int sz) {
     const char* method = "on_load: ";
-    auto ctx = reinterpret_cast<NDContext<emscripten::val, EmptyDBCache<emscripten::val>>*>(c);
-    NDLogger::cout() << method << sz << std::endl;
+    auto fm = reinterpret_cast<IDBFontCache*>(m);
+    // copy the font memory as ImGui assumes it won't
+    // get freed from underneath...
+    if (sz < 100) {
+        fprintf(stderr, "%ssz=%d\n", method, sz);
+        return;
+    }
+
+    void* font_memory = malloc(sz);
+    std::memcpy(font_memory, buf, sz);
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    ImFont* font = io.Fonts->AddFontFromMemoryTTF(font_memory, sz);
+    if (font == nullptr) {
+        fprintf(stderr, "%sAddFontFromMemoryTTF failed\n", method);
+        free(font_memory);
+        return;
+    }
+    // discard the .ttf suffix for NDContext registration
+    auto fflen = fm->font_file_name.size();
+    fm->font_file_name.erase(fflen - 4, fflen);
+    fm->registrar(fm->font_file_name, font);
+    fm->font_mem_vec.push_back(font_memory);
+    printf("%s%s loaded\n", method, fm->font_file_name.c_str());
+    // kick off the next load, if there is one...
+    fm->next();
 }
 
 // em_idb_exists_func: typedef void (*em_idb_exists_func)(void*, int);
 void on_async_exists(void* c, int exists) {
     const char* method = "on_async_exists: ";
+    auto fm = reinterpret_cast<IDBFontCache*>(c);
     if (exists != 0) {
-        emscripten_idb_async_load("NoDOM", "fonts", c, on_load, on_load_error);
+        emscripten_idb_async_load("NoDOM", fm->font_file_name.c_str(), c, on_load, on_load_error);
     }
     else {
-        NDLogger::cout() << method << "cannot load FONTS!" << std::endl;
+        fprintf(stderr, "on_async_exists: cannot access NoDOM.fonts\n");
     }
 }
 
@@ -52,7 +103,7 @@ inline void glfw_error_callback(int error, const char* description)
 }
 
 template <typename JSON, typename DB>
-GLFWwindow* im_start(NDContext<JSON, DB>& ctx)
+GLFWwindow* im_start(NDContext<JSON, DB>& ctx, void* fc = nullptr)
 {
     // Setup window
     glfwSetErrorCallback(glfw_error_callback);
@@ -145,8 +196,11 @@ GLFWwindow* im_start(NDContext<JSON, DB>& ctx)
         ctx.register_font(fit.key(), font);
     }
 #else
-    // Can we load fonts from IndexedDB?
-    emscripten_idb_async_exists("NoDOM", "fonts", &ctx, on_async_exists, on_async_exists_error);
+    if (fc != nullptr) {
+        auto font_cache = reinterpret_cast<IDBFontCache*>(fc);
+        // Can we load fonts from IndexedDB?
+        font_cache->next();
+    }
 #endif
 
     // Our state
