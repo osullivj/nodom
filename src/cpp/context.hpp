@@ -241,9 +241,11 @@ public:
 
         if (!JContains(db_msg, nd_type_cs)) {
             NDLogger::cerr() << method << "no nd_type in " << db_msg << std::endl;
+            return;
         }
-        NDLogger::cout() << method << db_msg << std::endl;
         std::string nd_type = JAsString(db_msg, nd_type_cs);
+        NDLogger::cout() << method << nd_type << std::endl;
+
         if (nd_type == "ParquetScan") {
             db_status_color = amber;
         }
