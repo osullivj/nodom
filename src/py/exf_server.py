@@ -262,21 +262,30 @@ class DepthService(nd_utils.Service):
             data_cache['depth_sql'] = new_depth_sql
             return [dict(nd_type='DataChange', cache_key='depth_sql', old_value=old_depth_sql, new_value=new_depth_sql)]
 
-
-# for security reasons duck only ingests parquet via 443
-define("port", default=8890, help="run on the given port", type=int)
-
 # breadboard looks out for service at the module level
 # NB 4th param for duck app
 service = DepthService(NDAPP, EXF_LAYOUT, EXF_DATA, True)
 
-async def main():
+async def http_main():
+    define("port", default=8890, help="run on the given port", type=int)
     parse_command_line()
     app = nd_web.NDApp(service, [])
     app.listen(options.port)
     logr.info(f'{NDAPP} port:{options.port}')
     await asyncio.Event().wait()
 
+async def https_main():
+    define("port", default=443, help="run on the given port", type=int)
+    parse_command_line()
+    cert_path = os.path.normpath(os.path.join(nd_consts.ND_ROOT_DIR, 'cfg'))
+    app = nd_web.NDApp(service, EXTRA_HANDLERS)
+    https_server = tornado.httpserver.HTTPServer(app, ssl_options={
+        "certfile": os.path.join(cert_path, "ssl_cert.pem"),
+        "keyfile": os.path.join(cert_path, "ssl_key.pem"),
+    })
+    https_server.listen(options.port)
+    logr.info(f'{NDAPP} port:{options.port} cert_path:{cert_path}')
+    await asyncio.Event().wait()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(https_main())
