@@ -199,10 +199,11 @@ public:
         // list of py dicts. So use C++11 auto range...
         while (!responses.empty()) {
             JSON& resp = responses.front();
-            NDLogger::cout() << method << resp << std::endl;
+            std::string nd_type(JAsString(resp, nd_type_cs));
+            NDLogger::cout() << method << nd_type << std::endl;
             // polymorphic as types are hidden inside change
             // Is this a CacheResponse for layout or data?
-            if (JAsString(resp, nd_type_cs) == cache_response_cs) {
+            if (nd_type == cache_response_cs) {
                 if (JAsString(resp, cache_key_cs) == data_cs) {
                     data = resp[value_cs];
                 }
@@ -212,11 +213,11 @@ public:
                 }
             }
             // Is this a DataChange?
-            else if (JAsString(resp, nd_type_cs) == data_change_cs) {
+            else if (nd_type == data_change_cs) {
                 std::string ckey = JAsString(resp, cache_key_cs);
                 JSet(data, ckey.c_str(), resp[new_value_cs]);
             }
-            else if (JAsString(resp, nd_type_cs) == data_change_confirmed_cs) {
+            else if (nd_type == data_change_confirmed_cs) {
                 // TODO: add check that type has not mutated
             }
             // Duck or Parquet event...
