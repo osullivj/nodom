@@ -43,7 +43,10 @@ using NDContext_t = NDContext<ems_val_t, DuckDB_t>;
 
 void im_loop_body(void* c) {
     auto ctx = reinterpret_cast<NDContext_t*>(c);
-    if (ctx && !im_render(*ctx)) im_end(ctx->get_glfw_window());
+    if (ctx != nullptr) {
+        if (!im_render(*ctx)) im_end(ctx->get_glfw_window());
+        ctx->pump_messages();
+    }
 }
 #endif
 
@@ -72,6 +75,7 @@ int main(int argc, char* argv[]) {
     NDProxy<DuckDB_t> server;
     NDContext_t ctx(server);
     NDWebSockClient<ems_val_t, DuckDB_t> ws_client(server, ctx);
+    ctx.register_msg_pump([&ws_client]() {ws_client.pump_messages(); });
     IDBFontCache font_cache([&ctx](const std::string& n, ImFont* f)
                                 {ctx.register_font(n, f); },
                                 { "Arial.ttf", "CourierNew.ttf" });
