@@ -29,7 +29,7 @@
     </style>
   </head>
   <body>
-    <script type="module" src="./duck_module.js" defer></script>
+
     <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()"></canvas>
     <script type='text/javascript'>
       var Module = {
@@ -61,6 +61,7 @@
         console.log("onerror: " + event);
       };
     </script>
+    <script type="module" src="./duck_module.js" defer></script>
     {{{ SCRIPT }}}
   </body>
 </html>
