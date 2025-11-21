@@ -26,7 +26,8 @@
 
 static constexpr int ND_MAX_COMBO_LIST{ 16 };
 
-typedef std::function<void(const std::string&)> ws_sender;
+using WebSockSenderFunc = std::function<void(const std::string&)>;
+using MessagePumpFunc = std::function<void()>;
 
 struct GLFWwindow;
 
@@ -68,8 +69,8 @@ private:
     std::uint32_t render_count = 0;
     std::deque<std::string> bad_font_pushes;
 
-    ws_sender ws_send;  // ref to NDWebSockClient::send
-
+    WebSockSenderFunc ws_send = nullptr;  // ref to NDWebSockClient::send
+    MessagePumpFunc msg_pump = nullptr;
     GLFWwindow* glfw_window = nullptr;
 
 public:
@@ -313,7 +314,9 @@ public:
     JSON  get_breadboard_config() { return proxy.get_breadboard_config(); }
 #endif
     void register_font(const std::string& name, ImFont* f) { font_map[name] = f; }
-    void register_ws_callback(ws_sender send) { ws_send = send; }
+    void register_ws_sender(WebSockSenderFunc send) { ws_send = send; }
+    void register_msg_pump(MessagePumpFunc mpf) { msg_pump = mpf; }
+    void pump_messages() { msg_pump(); }
 
 protected:
     // w["rname"] resolve & invoke
