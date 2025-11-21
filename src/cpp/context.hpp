@@ -427,7 +427,7 @@ protected:
 
     void db_dispatch(const std::string& nd_type, const std::string& sql, const std::string& qid) {
         const static char* method = "NDContext::duck_dispatch: ";
-        JSON db_request;
+        JSON db_request = JNewObject();
         JSet(db_request, nd_type_cs, nd_type.c_str());
         JSet(db_request, sql_cs, sql.c_str());
         JSet(db_request, query_id_cs, qid.c_str());
