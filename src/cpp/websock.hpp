@@ -101,7 +101,32 @@ public:
         client.set_close_handler(bind(&NDWebSockClient::wspp_on_close, this, &client, ::_1));
         client.set_fail_handler(bind(&NDWebSockClient::wspp_on_fail, this, &client, ::_1));
 #endif
-        ctx.register_ws_callback(bind(&NDWebSockClient::send, this, std::placeholders::_1));
+        ctx.register_ws_sender(bind(&NDWebSockClient::send, this, std::placeholders::_1));
+    }
+
+    void pump_messages() {
+        // Are there any responses from the server side?
+        // NB this.server_responses will be empty at init.
+        // proxy.duck_responses may have an nd_type:DuckInstance,
+        // but no results until a scan or query happens. 
+        // get_duck_responses will swap them, then
+        // ctx.dispatch_server_responses will drain the
+        // swapped Q. Also note that NDWebSockClient::on_message
+        // is on the GUI thread and can populate server_responses,
+        // hence one check and dispatch before get_db_responses
+        if (!server_responses.empty()) {
+            // handle incoming websock from server
+            ctx.dispatch_server_responses(server_responses);
+        }
+        // win32: potential lock contention in get_db_responses()
+        // which attempts to acquire server.result_mutex, when
+        // db_loop() may be holding result_mutex to enqueue
+        // DB responses.
+        server.get_db_responses(server_responses);
+        if (!server_responses.empty()) {
+            // now handle results from DB
+            ctx.dispatch_server_responses(server_responses);
+        }
     }
 
 #ifdef __EMSCRIPTEN__
@@ -161,28 +186,7 @@ protected:
         }
         else {
             set_timer();
-            // Are there any responses from the server side?
-            // NB this.server_responses will be empty at init.
-            // proxy.duck_responses may have an nd_type:DuckInstance,
-            // but no results until a scan or query happens. 
-            // get_duck_responses will swap them, then
-            // ctx.dispatch_server_responses will drain the
-            // swapped Q. Also note that NDWebSockClient::on_message
-            // is on the GUI thread and can populate server_responses,
-            // hence one check and dispatch before get_db_responses
-            if (!server_responses.empty()) {
-                // handle incoming websock from server
-                ctx.dispatch_server_responses(server_responses);
-            }
-            // Potential lock contention in get_db_responses()
-            // which attempts to acquire server.result_mutex, when
-            // db_loop() may be holding result_mutex to enqueue
-            // DB responses.
-            server.get_db_responses(server_responses);
-            if (!server_responses.empty()) {
-                // now handle results from DB
-                ctx.dispatch_server_responses(server_responses);
-            }
+            pump_messages();
         }
     }
 
@@ -215,8 +219,6 @@ public:
     void ems_on_message(const std::string& payload) {
         emscripten::val msg_json = JParse<emscripten::val>(payload);
         server_responses.push(msg_json);
-        // on win32 on_timeout invokes ctx.dispatch_server_responses()
-        ctx.dispatch_server_responses(server_responses);
     }
 
     void ems_on_open() {
