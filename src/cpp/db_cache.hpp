@@ -404,6 +404,8 @@ public:
         return JContains(window_global, __nodom__cs);
     }
 
+    // register this function with DBResultDispatcher
+    // at startup time
     void add_db_response(emscripten::EM_VAL result_handle) {
         emscripten::val result = emscripten::val::take_ownership(result_handle);
         db_results.push(result);
@@ -454,7 +456,13 @@ public:
         return instance;
     }
     void set_dispatcher(Dispatcher df) { dispatcher_func = df; }
-    void dispatch(emscripten::EM_VAL result_handle) { dispatcher_func(result_handle); }
+    void dispatch(emscripten::EM_VAL result_handle) {
+        if (dispatcher_func == nullptr) {
+            fprintf(stderr, "NULL DBResultDispatcher func\n");
+            return;
+        }
+        dispatcher_func(result_handle);
+    }
 };
 
 extern "C" {
