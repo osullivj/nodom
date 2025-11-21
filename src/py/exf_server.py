@@ -266,17 +266,15 @@ class DepthService(nd_utils.Service):
 # NB 4th param for duck app
 service = DepthService(NDAPP, EXF_LAYOUT, EXF_DATA, True)
 
+define("port", default=8890, help="run on the given port", type=int)
+
 async def http_main():
-    define("port", default=8890, help="run on the given port", type=int)
-    parse_command_line()
     app = nd_web.NDApp(service, [])
     app.listen(options.port)
     logr.info(f'{NDAPP} port:{options.port}')
     await asyncio.Event().wait()
 
 async def https_main():
-    define("port", default=443, help="run on the given port", type=int)
-    parse_command_line()
     cert_path = os.path.normpath(os.path.join(nd_consts.ND_ROOT_DIR, 'cfg'))
     app = nd_web.NDApp(service, EXTRA_HANDLERS)
     https_server = tornado.httpserver.HTTPServer(app, ssl_options={
@@ -288,4 +286,8 @@ async def https_main():
     await asyncio.Event().wait()
 
 if __name__ == "__main__":
-    asyncio.run(https_main())
+    parse_command_line()
+    if options.port == 443:
+        asyncio.run(https_main())
+    else:
+        asyncio.run(http_main())
