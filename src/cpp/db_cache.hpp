@@ -394,10 +394,9 @@ protected:
     std::queue<emscripten::val>          db_queries;
     std::queue<emscripten::val>          db_results;
 public:
-    // Duck specific methods to be called from a
-    // custom im_loop_body.
+    // Duck specific methods
     // check_duck_module: has nodom.html finished
-    // loading duck_module.js yet?
+    // loading duck_module.js yet? Call from im_loop_body
     bool check_duck_module() {
         // NB this is based on imgui-jswt main.ts:check_duck_module
         // Q: has duck_module.js created window.__nodom__ ?
@@ -405,7 +404,12 @@ public:
         return JContains(window_global, __nodom__cs);
     }
 
+    void add_db_response(emscripten::EM_VAL result_handle) {
+        emscripten::val result = emscripten::val::take_ownership(result_handle);
+        db_results.push(result);
+    }
 
+    // standard DB methods implemented by every cache
     void get_db_responses(std::queue<emscripten::val>& responses) {
         static const char* method = "DBCache::get_db_responses: ";
         db_results.swap(responses);
@@ -436,6 +440,27 @@ public:
     char* get_datum(std::uint64_t handle, std::uint64_t colm_index, std::uint64_t row_index) {
         buffer = (char*)null_cs;
         return 0;
+    }
+};
+
+using Dispatcher = std::function<void(emscripten::EM_VAL result_handle)>;
+class DBResultDispatcher {
+private:
+    DBResultDispatcher() {};
+    Dispatcher dispatcher_func = nullptr;
+public:
+    static DBResultDispatcher& get_instance() {
+        static DBResultDispatcher instance;
+        return instance;
+    }
+    void set_dispatcher(Dispatcher df) { dispatcher_func = df; }
+    void dispatch(emscripten::EM_VAL result_handle) { dispatcher_func(result_handle); }
+};
+
+extern "C" {
+    void on_db_result(emscripten::EM_VAL result_handle) {
+        auto d = DBResultDispatcher::get_instance();
+        d.dispatch(result_handle);
     }
 };
 
