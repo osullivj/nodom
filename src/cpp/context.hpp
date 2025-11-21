@@ -654,7 +654,8 @@ protected:
                         year_month_font_size_base = JAsFloat(cspec, year_month_font_size_base_cs);
                 }
                 else {
-                    NDLogger::cerr() << method << ym_font << " not in font_map" << std::endl;
+                    // Use Default font installed by im_start instead
+                    year_month_font = font_map[default_cs];
                 }
             }
             if (JContains(cspec, day_date_font_cs)) {
@@ -666,7 +667,8 @@ protected:
                         day_date_font_size_base = JAsFloat(cspec, day_date_font_size_base_cs);
                 }
                 else {
-                    NDLogger::cerr() << method << dd_font << " not in font_map" << std::endl;
+                    // Use Default font installed by im_start instead
+                    day_date_font = font_map[default_cs];
                 }
             }
             int table_flags = default_table_flags;
