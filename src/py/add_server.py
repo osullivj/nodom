@@ -66,17 +66,16 @@ class AdditionService(nd_utils.Service):
 # breadboard looks out for service at the module level
 service = AdditionService(NDAPP, ADDITION_LAYOUT, ADDITION_DATA)
 
+# default to 8890 for http. Override to 443 for https
+define("port", default=8890, help="run on the given port", type=int)
+
 async def http_main():
-    define("port", default=8890, help="run on the given port", type=int)
-    parse_command_line()
     app = nd_web.NDApp(service)
     app.listen(options.port)
     logr.info(f'{NDAPP} port:{options.port}')
     await asyncio.Event().wait()
 
 async def https_main():
-    define("port", default=443, help="run on the given port", type=int)
-    parse_command_line()
     cert_path = os.path.normpath(os.path.join(nd_consts.ND_ROOT_DIR, 'cfg'))
     app = nd_web.NDApp(service)
     https_server = tornado.httpserver.HTTPServer(app, ssl_options={
@@ -89,4 +88,8 @@ async def https_main():
 
 
 if __name__ == "__main__":
-    asyncio.run(https_main())
+    parse_command_line()
+    if options.port==443:
+        asyncio.run(https_main())
+    else:
+        asyncio.run(http_main())
