@@ -102,6 +102,7 @@ $(BLD_DIR)/%.o:$(ND_DP_DIR)/%.cpp
 
 all: $(EXE)
 	copy src\web\favicon.ico bld\favicon.ico
+	copy src\web\duck_module.js bld\duck_module.js
 	@echo Build complete for $(EXE)
 
 $(BLD_DIR):
