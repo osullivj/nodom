@@ -50,6 +50,7 @@ window.__nodom__ = {duck_module:self, duck_db:duck_db};
 // polling of __nodom__ on each render...
 // window.postMessage({nd_type:"DuckInstance"});
 
+let on_db_result = Module.cwrap('on_db_result', 'void', ['object'])
 
 async function exec_duck_db_query(sql) {
     if (!duck_db) {
@@ -88,7 +89,7 @@ self.onmessage = async (event) => {
             // is None on success
             await exec_duck_db_query(nd_db_request.sql);
             console.log("duck_module: ParquetScan done for " + nd_db_request.query_id);
-            postMessage({nd_type:"ParquetScanResult",query_id:nd_db_request.query_id});
+            on_db_result(Emval.toHandle({nd_type:"ParquetScanResult",query_id:nd_db_request.query_id}));
             break;
         case "Query":
             arrow_table = await exec_duck_db_query(nd_db_request.sql);
@@ -98,15 +99,14 @@ self.onmessage = async (event) => {
                 nd_type:"QueryResult", 
                 query_id:nd_db_request.query_id, 
                 result:qxfer_obj};
-            postMessage(query_result); // , transfer=[query_result]);
+            on_db_result(Emval.toHandle(query_result));
             break;
         case "QueryResult":
         case "ParquetScanResult":
             // we do not process our own results!
             break;
         case "DuckInstance":
-            // repost to main.ts handler
-            postMessage({nd_type:"DuckInstance"});
+            on_db_result(Emval.toHandle({nd_type:"DuckInstance"}));
             break;
         default:
             console.error("duck_module.onmessage: unexpected request: ", event);
