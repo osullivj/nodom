@@ -260,12 +260,16 @@ public:
         else if (nd_type == "QueryResult") {
             db_status_color = green;
             std::string qid = JAsString(db_msg, query_id_cs);
+#ifndef __EMSCRIPTEN__
+            // this logic is specific to the BB DuckDBCache,
+            // where we pass a raw C ptr in a JSON array
             JSON result_handle = JSON::array();
             result_handle = db_msg[db_handle_cs];
             std::string cname = qid + "_result";
             NDLogger::cout() << method << "DBHandle: " << std::hex << result_handle 
                 << ", caddr: " << cname << std::endl;
             JSet(data, cname.c_str(), result_handle);
+#endif
         }
         else if (nd_type == "DuckInstance") {
             // TODO: q processing order means this doesn't happen so early in cpp
