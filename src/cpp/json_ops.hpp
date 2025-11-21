@@ -100,6 +100,9 @@ nlohmann::json JArray(const std::vector<V>& values) {
 	return nlohmann::json(values);
 }
 
+nlohmann::json JNewObject() { return nlohmann::json::object(); }
+
+
 #else
 
 bool JContains(const emscripten::val& obj, const char* json_string) {
@@ -152,6 +155,11 @@ emscripten::val JParse(const std::string& json_string) {
 	emscripten::val rv = json_global.call<emscripten::val>("parse", json_string);
 	return rv;
 }
+
+// no params to drive template type deduction, so we use a 
+// lambda to invoke the static object() method
+emscripten::val JNewObject() { return emscripten::val::object(); }
+
 
 std::ostream& operator<<(std::ostream& os, const emscripten::val& v)
 {
