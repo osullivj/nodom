@@ -85,6 +85,7 @@ function materialize(results) {
         // query_id:qid,
         // result_type:rtype,
         arrow_table:results,
+        row_count:results.numRows,
         names:results.schema.fields.map((d) => d.name),
         types:results.schema.fields.map((d) => d.type)
     }
