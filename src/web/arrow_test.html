@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no"/>
+    <title>DuckDB WASM Arrow Test</title>
+  </head>
+  <body>
+    <h1>DuckDB WASM Arrow Test</h1>
+    <section>
+
+      <div class="query-text-container">
+        <label for="query-text">SQL:</label>
+        <textarea id="query-text" rows="3" cols="20">summarize select * from depth;</textarea>
+        <label for="scan-text">Scan:</label>
+        <textarea id="scan-text" rows="3" cols="50">
+        BEGIN; DROP TABLE IF EXISTS depth; CREATE TABLE depth as select * from parquet_scan([
+        "https://localhost/api/parquet/FGBMU8_20080901.parquet",
+        "https://localhost/api/parquet/FGBMU8_20080902.parquet",
+        "https://localhost/api/parquet/FGBMU8_20080903.parquet"
+        ]); COMMIT;
+        </textarea>
+      </div>
+      <div class="query-button-container">
+        <button id="query-button">Query</button>
+        <button id="scan-button">Scan</button>
+      </div>
+    </section>
+    <script type='text/javascript'>
+      const query_button = document.querySelector("#query-button");
+      const scan_button = document.querySelector("#scan-button");
+      const query_text_area = document.querySelector("#query-text");
+      const scan_text_area = document.querySelector("#scan-text");
+      function execute_query(sql) {
+        console.log("SQL:" + sql + "\n");
+        let db_request = {
+          nd_type:"Query",
+          query_id:"select",
+          sql:sql
+        };
+        if (typeof window.__nodom__.duck_module !== 'undefined') {
+          window.__nodom__.duck_module.postMessage(db_request);
+        }
+        else {
+          console.log("Please wait for DuckDB instantiation\n");
+        }
+      }
+      function on_query_button() {
+        execute_query(query_text_area.value);
+      }
+      function on_scan_button() {
+        execute_query(scan_text_area.value);
+      }
+      query_button.addEventListener("click", on_query_button);
+      scan_button.addEventListener("click", on_scan_button);
+    </script>
+    <script type="module" src="./duck_module.js" defer></script>
+  </body>
+</html>
