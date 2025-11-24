@@ -31,13 +31,9 @@
       const scan_button = document.querySelector("#scan-button");
       const query_text_area = document.querySelector("#query-text");
       const scan_text_area = document.querySelector("#scan-text");
-      function execute_query(sql) {
+      function execute_query(_nd_type, qid, sql) {
         console.log("SQL:" + sql + "\n");
-        let db_request = {
-          nd_type:"Query",
-          query_id:"select",
-          sql:sql
-        };
+        let db_request = { nd_type:_nd_type, query_id:qid, sql:sql};
         if (typeof window.__nodom__.duck_module !== 'undefined') {
           window.__nodom__.duck_module.postMessage(db_request);
         }
@@ -46,10 +42,10 @@
         }
       }
       function on_query_button() {
-        execute_query(query_text_area.value);
+        execute_query("Query", "Q1", query_text_area.value);
       }
       function on_scan_button() {
-        execute_query(scan_text_area.value);
+        execute_query("ParquetScan", "Q2", scan_text_area.value);
       }
       query_button.addEventListener("click", on_query_button);
       scan_button.addEventListener("click", on_scan_button);
