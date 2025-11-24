@@ -100,20 +100,15 @@ class JSONHandler(APIHandlerBase):
         self.write(response_json)
         self.finish()
 
-# flip between serving the imgui example, and nodom build
-# web_args = ['imgui', 'examples', 'example_glfw_opengl3', 'web']     # imgui example
-web_args = ['bld']                                                  # nodom build
-
 # DevToolsWorkspaceHandler informs the Chrome debugger about source file dirs
 # https://chromium.googlesource.com/devtools/devtools-frontend/+/main/docs/ecosystem/automatic_workspace_folders.md
 class DevToolsWorkspaceHandler(APIHandlerBase):
     def get(self):
-        wsdict = dict(root=os.path.join(nd_consts.ND_ROOT_DIR, *web_args), uuid=str(uuid.uuid4()))
+        wsdict = dict(root=self.application.nodom_path, uuid=str(uuid.uuid4()))
         logr.info(f'DevToolsWorkspaceHandler.get: {wsdict}')
         response_json = json.dumps(dict(workspace=wsdict))
         self.write(response_json)
         self.finish()
-
 
 class WebSockHandler(tornado.websocket.WebSocketHandler):
     def check_origin(self, origin):
@@ -135,26 +130,29 @@ class WebSockHandler(tornado.websocket.WebSocketHandler):
         self.application.on_ws_message(self, msg_dict)
 
 
-ND_HANDLERS = [
-    (r'/(.*\.html)', HomeHandler),
-    # (r'/(index.html)', StaticFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, *web_args))),
-    (r'/(.*\.js)', StaticJSFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, *web_args))),
-    (r'/(.*\.wasm)', StaticWASMFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, *web_args))),
-    (r'/(.*\.wasm.dwp)', StaticWASMFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, *web_args))),
-    (r'/(.*\.ico)', StaticICOFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, *web_args))),
-    (r'/.well-known/appspecific/com.chrome.devtools.json', DevToolsWorkspaceHandler),
-    (r'/api/websock', WebSockHandler),
-    (r'/api/(.*)', JSONHandler),
-    (r'/ui/duckjournal/(.*)', DuckJournalHandler),
-    (r'/fonts/(.*)', StaticFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, 'imgui', 'misc', 'fonts'))),
-]
+def NDHandlers(template_path):
+    # template_path: ['bld'] or ['src', 'web']
+    return [
+        (r'/(.*\.html)', HomeHandler),
+        # (r'/(index.html)', StaticFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, *template_path))),
+        (r'/(.*\.js)', StaticJSFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, *template_path))),
+        (r'/(.*\.wasm)', StaticWASMFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, *template_path))),
+        (r'/(.*\.wasm.dwp)', StaticWASMFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, *template_path))),
+        (r'/(.*\.ico)', StaticICOFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, *template_path))),
+        (r'/.well-known/appspecific/com.chrome.devtools.json', DevToolsWorkspaceHandler),
+        (r'/api/websock', WebSockHandler),
+        (r'/api/(.*)', JSONHandler),
+        (r'/ui/duckjournal/(.*)', DuckJournalHandler),
+        (r'/fonts/(.*)', StaticFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, 'imgui', 'misc', 'fonts'))),
+    ]
 
 class NDApp( tornado.web.Application):
-    def __init__( self, service, extra_handlers = []):
+    def __init__( self, service, extra_handlers = [], web_args=['bld'], debug=False):
         # extra_handlers first so they get first crack at the match
         self.service = service
-        handlers = extra_handlers + ND_HANDLERS
-        settings = dict(template_path=os.path.join(nd_consts.ND_ROOT_DIR, *web_args))
+        handlers = extra_handlers + NDHandlers(web_args)
+        self.nodom_path = os.path.join(nd_consts.ND_ROOT_DIR, *web_args)
+        settings = dict(template_path=self.nodom_path, debug=debug)
         tornado.web.Application.__init__( self, handlers, **settings)
         self.ws_handlers = service.get_ws_handlers()
 
