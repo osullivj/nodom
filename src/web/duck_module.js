@@ -50,7 +50,17 @@ window.__nodom__ = {duck_module:self, duck_db:duck_db};
 // polling of __nodom__ on each render...
 // window.postMessage({nd_type:"DuckInstance"});
 
-let on_db_result = Module.cwrap('on_db_result', 'void', ['object'])
+let on_db_result = function(result_object) {
+    console.log("on_db_result: " + JSON.stringify(result_object));
+};
+
+if (typeof Module !== 'undefined') {
+    let on_db_result_cpp = Module.cwrap('on_db_result', 'void', ['object']);
+    let on_db_result = function(result_object) {
+        let result_handle = Emval.toHandle(result_object);
+        on_db_result_cpp(result_handle);
+    };
+}
 
 async function exec_duck_db_query(sql) {
     if (!duck_db) {
@@ -74,7 +84,7 @@ function materialize(results) {
     return {
         // query_id:qid,
         // result_type:rtype,
-        rows:results.toArray().map(Object.fromEntries),
+        arrow_table:results,
         names:results.schema.fields.map((d) => d.name),
         types:results.schema.fields.map((d) => d.type)
     }
@@ -89,7 +99,7 @@ self.onmessage = async (event) => {
             // is None on success
             await exec_duck_db_query(nd_db_request.sql);
             console.log("duck_module: ParquetScan done for " + nd_db_request.query_id);
-            on_db_result(Emval.toHandle({nd_type:"ParquetScanResult",query_id:nd_db_request.query_id}));
+            on_db_result({nd_type:"ParquetScanResult",query_id:nd_db_request.query_id});
             break;
         case "Query":
             arrow_table = await exec_duck_db_query(nd_db_request.sql);
@@ -99,14 +109,14 @@ self.onmessage = async (event) => {
                 nd_type:"QueryResult", 
                 query_id:nd_db_request.query_id, 
                 result:qxfer_obj};
-            on_db_result(Emval.toHandle(query_result));
+            on_db_result(query_result);
             break;
         case "QueryResult":
         case "ParquetScanResult":
             // we do not process our own results!
             break;
         case "DuckInstance":
-            on_db_result(Emval.toHandle({nd_type:"DuckInstance"}));
+            on_db_result({nd_type:"DuckInstance"});
             break;
         default:
             console.error("duck_module.onmessage: unexpected request: ", event);
