@@ -17,7 +17,7 @@ NDAPP='dev_server'
 logr = nd_utils.init_logging(NDAPP)
 
 EXTRA_HANDLERS = [
-    (r'/log_fonts.html', nd_web.HomeHandler),
+    (r'/api/parquet/(.*)', nd_web.ParquetHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, 'dat')))
 ]
 
 # for security reasons duck only ingests parquet via 443
@@ -28,9 +28,7 @@ service = nd_utils.Service(NDAPP, {}, {}, False)
 async def main():
     parse_command_line()
     cert_path = os.path.normpath(os.path.join(nd_consts.ND_ROOT_DIR, 'cfg'))
-    # fix the template path before the NDApp ctor fires
-    nd_web.web_args = ['src', 'web']
-    app = nd_web.NDApp(service, EXTRA_HANDLERS)
+    app = nd_web.NDApp(service, extra_handlers=EXTRA_HANDLERS, web_args=['src', 'web'], debug=True)
     https_server = tornado.httpserver.HTTPServer(app, ssl_options={
         "certfile": os.path.join(cert_path, "ssl_cert.pem"),
         "keyfile": os.path.join(cert_path, "ssl_key.pem"),
