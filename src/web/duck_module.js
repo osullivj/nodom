@@ -85,7 +85,6 @@ function materialize(results) {
         // query_id:qid,
         // result_type:rtype,
         arrow_table:results,
-        row_count:results.numRows,
         names:results.schema.fields.map((d) => d.name),
         types:results.schema.fields.map((d) => d.type)
     }
@@ -104,12 +103,12 @@ self.onmessage = async (event) => {
             break;
         case "Query":
             arrow_table = await exec_duck_db_query(nd_db_request.sql);
-            let qxfer_obj = materialize(arrow_table);
-            console.log("duck_module: QueryResult: ", qxfer_obj);
+            // let qxfer_obj = materialize(arrow_table);
+            console.log("duck_module: QueryResult: " + nd_db_request.query_id + " has row count " + arrow_table.numRows + "\n");
             let query_result = {
                 nd_type:"QueryResult", 
                 query_id:nd_db_request.query_id, 
-                result:qxfer_obj};
+                result:materialize(arrow_table)};
             on_db_result(query_result);
             break;
         case "QueryResult":
