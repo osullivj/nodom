@@ -32,7 +32,7 @@ public:
 
     // Data access methods called by tables in NDContext. All DBCache
     // impls must provide these, even EmptyDBCache...
-    std::uint64_t get_handle(JSON handle_array) { return 0; }
+    std::uint64_t get_handle(JSON& ctx_data, const std::string& cname) { return 0; }
     std::uint64_t get_row_count(std::uint64_t handle) { return 0; }
     bool get_meta_data(std::uint64_t handle, std::uint64_t column_count) {return false;}
     char* get_datum(std::uint64_t handle, std::uint64_t colm_index, std::uint64_t row_index) { return "NULL"; }
@@ -224,11 +224,10 @@ public:
                         db_response[error_cs] = 0;
                         duckdb_data_chunk chunk = duckdb_fetch_chunk(dbresult);
                         std::uint64_t chunk_ptr = reinterpret_cast<std::uint64_t>(chunk);
-                        nlohmann::json chunk_array = nlohmann::json::array({ std::uint32_t(chunk_ptr), std::uint32_t(chunk_ptr >> 32) });
-                        std::cout << method << qid << " chunk_ptr: " << std::hex << chunk_ptr 
-                            << ", chunk_array: " << chunk_array << std::endl;
+                        nlohmann::json handle(chunk_ptr);
+                        std::cout << method << qid << " chunk_ptr: " << std::hex << chunk_ptr << std::endl;
                         // std::uint32_t will discard the hi 32 bits
-                        db_response[db_handle_cs] = chunk_array;
+                        db_response[db_handle_cs] = handle;
                     }
                 }
                 // lock the result queue and post back to the GUI thread
@@ -244,9 +243,12 @@ public:
     }
 
     // GUI thread methods for accessing the data
-    std::uint64_t get_handle(nlohmann::json handle_array) {
+    std::uint64_t get_handle(nlohmann::json& ctx_data, const std::string& cname) {
         static const char* method = "DuckDBCache::get_handle: ";
-        // std::cout << method << "handle_array: " << handle_array << std::endl;
+
+        nlohmann::json handle(ctx_data[cname]);
+        return handle.get<std::uint64_t>();
+        /* TODO: rm as this is now redundant given uint64
         if (handle_array.type() != nlohmann::json::value_t::array) {
             std::cerr << method << "handle_array: " << handle_array 
                 << "isn't an array!" << std::endl;
@@ -270,7 +272,8 @@ public:
         std::cout << method << "chunk_ptr: " << chunk_hi << "," << chunk_lo << std::endl;
         std::cout << method << "chunk_ptr: " << std::hex << chunk_ptr << std::endl;
         duckdb_data_chunk chunk = reinterpret_cast<duckdb_data_chunk>(chunk_ptr);
-        return reinterpret_cast<std::uint64_t>(chunk);
+        return reinterpret_cast<std::uint64_t>(chunk); */
+        return 0;
     }
 
     std::uint64_t get_row_count(std::uint64_t handle) {
@@ -389,7 +392,9 @@ class DuckDBWebCache : public EmptyDBCache<emscripten::val> {
 public:
     char* buffer{ 0 };
 private:
-    // DuckDB-WASM state vars here
+    std::unordered_map<std::uint64_t, std::vector<emscripten::val>> column_map;
+    std::unordered_map<std::uint64_t, std::vector<int>> type_map;
+
 protected:
     std::queue<emscripten::val>          db_queries;
     std::queue<emscripten::val>          db_results;
@@ -427,15 +432,34 @@ public:
     }
 
     // GUI thread methods for accessing the data
-    std::uint64_t get_handle(emscripten::val handle_array) {
-        return 0;
+    std::uint64_t get_handle(emscripten::val& ctx_data, const std::string& cname) {
+        emscripten::val results(ctx_data[cname]);
+        // return the EM_VAL handle...
+        return reinterpret_cast<std::uint64_t>(results.as_handle());
     }
 
     std::uint64_t get_row_count(std::uint64_t handle) {
-        return 0;
+        emscripten::val results = emscripten::val::take_ownership(reinterpret_cast<emscripten::EM_VAL>(handle));
+        emscripten::val arrow_table(results["arrow_table"]);
+        std::uint64_t row_count = arrow_table["numRows"].template as<std::uint64_t>();
+        return row_count;
     }
 
     bool get_meta_data(std::uint64_t handle, std::uint64_t column_count) {
+        emscripten::val results = emscripten::val::take_ownership(reinterpret_cast<emscripten::EM_VAL>(handle));
+        emscripten::val types(results["types"]);
+        emscripten::val names(results["names"]);
+        std::vector<std::string> colm_names = emscripten::vecFromJSArray<std::string>(names);
+        std::vector<int> colm_types = emscripten::convertJSArrayToNumberVector< int>(types);
+        type_map[handle] = colm_types;
+        std::vector<emscripten::val>& columns(column_map[handle]);
+        emscripten::val arrow_table(results["arrow_table"]);
+        for (std::uint64_t index = 0; index < column_count; ++index) {
+            const std::string& colm_name(colm_names[column_count]);
+            emscripten::val colm = 
+                arrow_table.call<emscripten::val>("getColumn", colm_names[index]);
+            columns.push_back(colm);
+        }
         return true;
     }
 
