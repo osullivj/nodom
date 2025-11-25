@@ -45,7 +45,7 @@ EMS =
 EMS += -s DISABLE_EXCEPTION_CATCHING=1
 # EMS += -s DISABLE_EXCEPTION_CATCHING=0
 EMS +=  --use-port=contrib.glfw3 
-EMS += -sEXPORTED_FUNCTIONS=_main,_on_db_result -sEXPORTED_RUNTIME_METHODS=ccall,cwrap
+LDFLAGS += -sEXPORTED_FUNCTIONS=_main,_on_db_result -sEXPORTED_RUNTIME_METHODS=ccall,cwrap
 LDFLAGS += -s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s NO_EXIT_RUNTIME=0
 LDFLAGS += -s ASSERTIONS=1 -lembind  -lwebsocket.js -lidbstore.js
 
