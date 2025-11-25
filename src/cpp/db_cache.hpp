@@ -464,6 +464,15 @@ public:
     }
 
     char* get_datum(std::uint64_t handle, std::uint64_t colm_index, std::uint64_t row_index) {
+        std::vector<emscripten::val>& columns(column_map[handle]);
+        std::vector<int> types(type_map[handle]);
+        int datum_type = types[colm_index];
+        emscripten::val& colm(columns[colm_index]);
+        emscripten::val datum = colm.call<emscripten::val>("get", row_index);
+        switch (datum_type) {
+
+        }
+
         buffer = (char*)null_cs;
         return 0;
     }
