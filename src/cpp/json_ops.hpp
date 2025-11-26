@@ -45,6 +45,12 @@ JSON JArray(const std::vector<V>& values) {
 	return JSON(values);
 }
 
+// DB handles need an array[2] on nlohmann::json
+// as we can only get 32 bit int into an atomic
+// For ems::val, we just have an object(arrow_table)
+template <typename JSON>
+JSON JAsHandle(const JSON& data, const char* key);
+
 #ifndef __EMSCRIPTEN__
 // nlohmann::json implementations of JSON cache ops
 // nlohmann::json JSON cache ops only run in breadboard,
@@ -100,8 +106,14 @@ nlohmann::json JArray(const std::vector<V>& values) {
 	return nlohmann::json(values);
 }
 
-nlohmann::json JNewObject() { return nlohmann::json::object(); }
+template <>
+nlohmann::json JAsHandle(const nlohmann::json& data, const char* key) {
+	nlohmann::json handle_array = nlohmann::json::array();
+	handle_array = data[key];
+	return handle_array;
+}
 
+nlohmann::json JNewObject() { return nlohmann::json::object(); }
 
 #else
 
@@ -156,10 +168,14 @@ emscripten::val JParse(const std::string& json_string) {
 	return rv;
 }
 
+template <>
+emscripten::val JAsHandle(const emscripten::val& data, const char* key) {
+	return data[key];
+}
+
 // no params to drive template type deduction, so we use a 
 // lambda to invoke the static object() method
 emscripten::val JNewObject() { return emscripten::val::object(); }
-
 
 std::ostream& operator<<(std::ostream& os, const emscripten::val& v)
 {
