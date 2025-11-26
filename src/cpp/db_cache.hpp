@@ -34,7 +34,7 @@ public:
     // impls must provide these, even EmptyDBCache...
     std::uint64_t get_handle(JSON& ctx_data, const std::string& cname) { return 0; }
     std::uint64_t get_row_count(std::uint64_t handle) { return 0; }
-    bool get_meta_data(std::uint64_t handle, std::uint64_t column_count) {return false;}
+    bool get_meta_data(std::uint64_t handle, std::uint64_t& column_count, std::uint64_t& row_count) {return false;}
     char* get_datum(std::uint64_t handle, std::uint64_t colm_index, std::uint64_t row_index) { return "NULL"; }
 
     // Query submission and response handling methods
@@ -281,8 +281,10 @@ public:
         return duckdb_data_chunk_get_size(chunk);
     }
 
-    bool get_meta_data(std::uint64_t handle, std::uint64_t column_count) {
+    bool get_meta_data(std::uint64_t handle, std::uint64_t& column_count, std::uint64_t& row_count) {
         duckdb_data_chunk chunk = reinterpret_cast<duckdb_data_chunk>(handle);
+        row_count = duckdb_data_chunk_get_size(chunk);
+        column_count = duckdb_data_chunk_get_column_count(chunk);
         // yes, these fire default ctor on 1st visit
         std::vector<duckdb_vector>& columns(column_map[handle]);
         std::vector<uint64_t*>& validities(validity_map[handle]);
@@ -445,15 +447,17 @@ public:
         return row_count;
     }
 
-    bool get_meta_data(std::uint64_t handle, std::uint64_t column_count) {
+    bool get_meta_data(std::uint64_t handle, std::uint64_t& column_count, std::uint64_t& row_count) {
         emscripten::val results = emscripten::val::take_ownership(reinterpret_cast<emscripten::EM_VAL>(handle));
         emscripten::val types(results["types"]);
         emscripten::val names(results["names"]);
         std::vector<std::string> colm_names = emscripten::vecFromJSArray<std::string>(names);
         std::vector<int> colm_types = emscripten::convertJSArrayToNumberVector< int>(types);
+        column_count = colm_types.size();
         type_map[handle] = colm_types;
         std::vector<emscripten::val>& columns(column_map[handle]);
         emscripten::val arrow_table(results["arrow_table"]);
+        row_count = arrow_table["numRows"].template as<std::uint64_t>();
         for (std::uint64_t index = 0; index < column_count; ++index) {
             const std::string& colm_name(colm_names[column_count]);
             emscripten::val colm = 
