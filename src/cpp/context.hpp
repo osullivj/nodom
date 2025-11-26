@@ -265,8 +265,8 @@ public:
             JSON result_handle = JAsHandle(db_msg, db_handle_cs);
             // result_handle = db_msg[db_handle_cs];
             std::string cname = qid + "_result";
-            NDLogger::cout() << method << "DBHandle: " << std::hex << result_handle[0]
-                << "," << result_handle[1] << ", caddr: " << cname << std::endl;
+            NDLogger::cout() << method << "DBHandle: " << std::hex << result_handle
+                << ", caddr: " << cname << std::endl;
             JSet(data, cname.c_str(), result_handle);
         }
         else if (nd_type == "DuckInstance") {
