@@ -504,7 +504,7 @@ public:
 };
 
 extern "C" {
-    void on_db_result(emscripten::EM_VAL result_handle) {
+    void on_db_result_cpp(emscripten::EM_VAL result_handle) {
         auto d = DBResultDispatcher::get_instance();
         d.dispatch(result_handle);
     }
