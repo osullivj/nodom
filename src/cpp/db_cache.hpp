@@ -224,10 +224,12 @@ public:
                         db_response[error_cs] = 0;
                         duckdb_data_chunk chunk = duckdb_fetch_chunk(dbresult);
                         std::uint64_t chunk_ptr = reinterpret_cast<std::uint64_t>(chunk);
-                        nlohmann::json handle(chunk_ptr);
-                        std::cout << method << qid << " chunk_ptr: " << std::hex << chunk_ptr << std::endl;
-                        // std::uint32_t will discard the hi 32 bits
-                        db_response[db_handle_cs] = handle;
+                        // NB [0] is the low word, and has the top 32bits sliced off
+                        //    [1] is the high word, so we right shift by 32bits to discard the bottom 32 
+                        nlohmann::json chunk_array = nlohmann::json::array({ std::uint32_t(chunk_ptr), std::uint32_t(chunk_ptr >> 32) });
+                        std::cout << method << qid << " chunk_ptr: " << std::hex << chunk_ptr
+                            << ", chunk_array: " << chunk_array << std::endl;
+                        db_response[db_handle_cs] = chunk_array;
                     }
                 }
                 // lock the result queue and post back to the GUI thread
@@ -246,9 +248,9 @@ public:
     std::uint64_t get_handle(nlohmann::json& ctx_data, const std::string& cname) {
         static const char* method = "DuckDBCache::get_handle: ";
 
-        nlohmann::json handle(ctx_data[cname]);
-        return handle.get<std::uint64_t>();
-        /* TODO: rm as this is now redundant given uint64
+        nlohmann::json handle_array = nlohmann::json::array();
+        handle_array = ctx_data[cname];
+
         if (handle_array.type() != nlohmann::json::value_t::array) {
             std::cerr << method << "handle_array: " << handle_array 
                 << "isn't an array!" << std::endl;
@@ -272,8 +274,7 @@ public:
         std::cout << method << "chunk_ptr: " << chunk_hi << "," << chunk_lo << std::endl;
         std::cout << method << "chunk_ptr: " << std::hex << chunk_ptr << std::endl;
         duckdb_data_chunk chunk = reinterpret_cast<duckdb_data_chunk>(chunk_ptr);
-        return reinterpret_cast<std::uint64_t>(chunk); */
-        return 0;
+        return reinterpret_cast<std::uint64_t>(chunk);
     }
 
     std::uint64_t get_row_count(std::uint64_t handle) {
