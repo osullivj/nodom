@@ -248,8 +248,7 @@ public:
     std::uint64_t get_handle(nlohmann::json& ctx_data, const std::string& cname) {
         static const char* method = "DuckDBCache::get_handle: ";
 
-        nlohmann::json handle_array = nlohmann::json::array();
-        handle_array = ctx_data[cname];
+        nlohmann::json handle_array = JAsHandle(ctx_data, cname.c_str());
 
         if (handle_array.type() != nlohmann::json::value_t::array) {
             std::cerr << method << "handle_array: " << handle_array 
@@ -436,6 +435,8 @@ public:
 
     // GUI thread methods for accessing the data
     std::uint64_t get_handle(emscripten::val& ctx_data, const std::string& cname) {
+        // DB handles are atomic in ems, unlike nlohmann where we split
+        // the DuckDB C API 64bit ptr into two std::uint32
         emscripten::val results(ctx_data[cname]);
         // return the EM_VAL handle...
         return reinterpret_cast<std::uint64_t>(results.as_handle());
