@@ -48,15 +48,18 @@ window.__nodom__ = {duck_module:self, duck_db:duck_db};
 // tried document.postMessage(), window.postMessage and self.postMessage
 // non get thru to main.ts, so we have to stick with the inefficient
 // polling of __nodom__ on each render...
+// 2025-11-26: we've dropped TypeScript, but still want to minimize
+// dependence on browser JS msg infra
 // window.postMessage({nd_type:"DuckInstance"});
 
-let on_db_result = function(result_object) {
+// var on_db_result to allow redefinition if emscripten Module is defined
+var on_db_result = function(result_object) {
     console.log("on_db_result: " + JSON.stringify(result_object));
 };
 
 if (typeof Module !== 'undefined') {
-    let on_db_result_cpp = Module.cwrap('on_db_result', 'void', ['object']);
-    let on_db_result = function(result_object) {
+    let on_db_result_cpp = Module.cwrap('on_db_result_cpp', 'void', ['object']);
+    on_db_result = function(result_object) {
         let result_handle = Emval.toHandle(result_object);
         on_db_result_cpp(result_handle);
     };
