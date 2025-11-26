@@ -387,7 +387,16 @@ public:
 
 EM_JS(void, ems_db_dispatch, (emscripten::EM_VAL db_request_handle), {
     var db_request = Emval.toValue(db_request_handle);
-    window.__nodom__.duck_module.postMessage(db_request);
+    // duck_module.js is a deferred load, so may not have
+    // completed by the time WASM starts running. So
+    // by the time we get here window.__nodom__ will be
+    // defined, but the duck_module will not have been set.
+    // Suspect wasm doesn't see assignments that happen
+    // after WASM start. However, if we send to window,
+    // it looks like the event is shared with duck_module
+    // as it gets through to the onmessage handler...
+    // window.__nodom__.duck_module.postMessage(db_request);
+    window.postMessage(db_request);
 });
 
 class DuckDBWebCache : public EmptyDBCache<emscripten::val> {
@@ -437,7 +446,9 @@ public:
     std::uint64_t get_handle(emscripten::val& ctx_data, const std::string& cname) {
         // DB handles are atomic in ems, unlike nlohmann where we split
         // the DuckDB C API 64bit ptr into two std::uint32
-        emscripten::val results(ctx_data[cname]);
+        // NB also note materialize is duck_module; the real
+        // handle is one level down...
+        emscripten::val results(ctx_data[cname][db_handle_cs]);
         // return the EM_VAL handle...
         return reinterpret_cast<std::uint64_t>(results.as_handle());
     }
