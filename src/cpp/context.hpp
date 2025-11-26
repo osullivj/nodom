@@ -774,7 +774,7 @@ protected:
         auto center = vp->GetCenter();
         ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, { 0.5, 0.5 });
 
-        int colm_count = SMRY_COLM_CNT;
+        std::uint64_t colm_count = SMRY_COLM_CNT;
         int colm_index = 0;
         bool body_pop = false;
         if (ImGui::BeginPopupModal(title.c_str(), nullptr, window_flags)) {
@@ -795,7 +795,7 @@ protected:
                 }
                 ImGui::TableHeadersRow();
                 std::uint64_t row_count = proxy.get_row_count(result_handle);
-                proxy.get_meta_data(result_handle, colm_count);
+                proxy.get_meta_data(result_handle, colm_count, row_count);
                 for (int row_index = 0; row_index < row_count; row_index++) {
                     ImGui::TableNextRow();
                     for (colm_index = 0; colm_index < colm_count; colm_index++) {
