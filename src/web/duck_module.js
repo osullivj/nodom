@@ -111,7 +111,7 @@ self.onmessage = async (event) => {
             let query_result = {
                 nd_type:"QueryResult", 
                 query_id:nd_db_request.query_id, 
-                result:materialize(arrow_table)};
+                DBHandle:materialize(arrow_table)};
             on_db_result(query_result);
             break;
         case "QueryResult":
