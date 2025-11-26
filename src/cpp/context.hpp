@@ -262,11 +262,11 @@ public:
             std::string qid = JAsString(db_msg, query_id_cs);
             // this logic is specific to the BB DuckDBCache,
             // where we pass a raw C ptr in a JSON array
-            JSON result_handle = JSON::array();
-            result_handle = db_msg[db_handle_cs];
+            JSON result_handle = JAsHandle(db_msg, db_handle_cs);
+            // result_handle = db_msg[db_handle_cs];
             std::string cname = qid + "_result";
-            NDLogger::cout() << method << "DBHandle: " << std::hex << result_handle 
-                << ", caddr: " << cname << std::endl;
+            NDLogger::cout() << method << "DBHandle: " << std::hex << result_handle[0]
+                << "," << result_handle[1] << ", caddr: " << cname << std::endl;
             JSet(data, cname.c_str(), result_handle);
         }
         else if (nd_type == "DuckInstance") {
@@ -432,7 +432,7 @@ protected:
 
     void db_dispatch(const std::string& nd_type, const std::string& sql, const std::string& qid) {
         const static char* method = "NDContext::duck_dispatch: ";
-        JSON db_request = JNewObject();
+        auto db_request = JNewObject();
         JSet(db_request, nd_type_cs, nd_type.c_str());
         JSet(db_request, sql_cs, sql.c_str());
         JSet(db_request, query_id_cs, qid.c_str());
