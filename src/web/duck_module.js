@@ -52,6 +52,9 @@ window.__nodom__ = {duck_module:self, duck_db:duck_db};
 // dependence on browser JS msg infra
 // window.postMessage({nd_type:"DuckInstance"});
 
+// JSON serialization monkey poatch for BigInt supplied in DuckDB results
+BigInt.prototype.toJSON = function() {return this.toString(10);};
+
 // var on_db_result to allow redefinition if emscripten Module is defined
 var on_db_result = function(result_object) {
     console.log("on_db_result: " + JSON.stringify(result_object));
