@@ -292,14 +292,8 @@ public:
         // Fonts appear in layout now. JOS 2025-07-29
         int layout_length = JSize(layout);
         for (int inx=0; inx < layout_length; inx++) {
-        // for (typename JSON::const_iterator it = layout.begin(); it != layout.end(); it++) {
             const JSON& w(layout[inx]);
             NDLogger::cout() << method << "CHILD: " << w << std::endl;
-            // NB we used it->value("wiget_id", "") in nlohmann::json
-            // to extract child value. emscripten::val doesn't implement
-            // operator->, so we lean on JSON::iterator::operator*, which
-            // both support.
-
             if (JContains(w, widget_id_cs)) {
                 std::string widget_id = JAsString(w, widget_id_cs);
                 if (!widget_id.empty()) {
