@@ -181,8 +181,7 @@ std::ostream& operator<<(std::ostream& os, const emscripten::val& v)
 {
 	emscripten::val json_global = emscripten::val::global("JSON");
 	emscripten::val json = json_global.call<emscripten::val>("stringify", v);
-	emscripten::val json_type = json.typeOf();
-	os << json_type.as<std::string>();
+	os << json.as<std::string>();
 	return os;
 }
 
