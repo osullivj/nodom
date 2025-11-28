@@ -50,7 +50,7 @@ window.__nodom__ = {duck_module:self, duck_db:duck_db};
 // polling of __nodom__ on each render...
 // 2025-11-26: we've dropped TypeScript, but still want to minimize
 // dependence on browser JS msg infra
-// window.postMessage({nd_type:"DuckInstance"});
+window.postMessage({nd_type:"DuckInstance"});
 
 // JSON serialization monkey poatch for BigInt supplied in DuckDB results
 BigInt.prototype.toJSON = function() {return this.toString(10);};
@@ -78,10 +78,26 @@ async function exec_duck_db_query(sql) {
         duck_conn = await duck_db.connect();
     }
     console.log("exec_duck_dq_query: " + sql);
-    const arrow_table = await duck_conn.query(sql);
-    return arrow_table;
+    let duck_result = await duck_conn.send(sql);
+    return duck_result;
 }
 
+function batch_materializer(batch) {
+    return {
+        // query_id:qid,
+        // result_type:rtype,
+        chunk:batch.toArray(),
+        names:batch.schema.fields.map((d) => d.name),
+        types:batch.schema.fields.map((d) => d.type)
+    }
+}
+
+async function* batch_generator(duck_result) {
+    for await (const batch of duck_result) {
+        // toArray materializes the batch
+        yield await batch_materializer(batch);  
+    }
+}
 
 function materialize(results) {
     return {
@@ -93,8 +109,11 @@ function materialize(results) {
     }
 }
 
+let global_query_map = new Map();
+
 self.onmessage = async (event) => {
-    let arrow_table = null;
+    let duck_result = null;
+    let batch_gen = null;
     const nd_db_request = event.data;
     switch (nd_db_request.nd_type) {
         case "ParquetScan":
@@ -105,17 +124,30 @@ self.onmessage = async (event) => {
             on_db_result({nd_type:"ParquetScanResult",query_id:nd_db_request.query_id});
             break;
         case "Query":
-            arrow_table = await exec_duck_db_query(nd_db_request.sql);
-            // let qxfer_obj = materialize(arrow_table);
-            console.log("duck_module: QueryResult: " + nd_db_request.query_id + " has row count " + arrow_table.numRows + "\n");
-            let query_result = {
-                nd_type:"QueryResult", 
-                query_id:nd_db_request.query_id, 
-                DBHandle:materialize(arrow_table)};
+            duck_result = await exec_duck_db_query(nd_db_request.sql);
+            console.log("duck_module: QueryResult: " + nd_db_request.query_id + "\n");
+            batch_gen = await batch_generator(duck_result);
+            global_query_map.set(nd_db_request.query_id, batch_gen);
+            let query_result = {nd_type:"QueryResult",query_id:nd_db_request.query_id};
             on_db_result(query_result);
+            break;
+        case "BatchRequest":
+            if (global_query_map.has(nd_db_request.query_id)) {
+                batch_gen = global_query_map.get(nd_db_request.query_id);
+                let batch = batch_gen.next();
+                let batch_result = {nd_type:"BatchResponse",
+                                    query_id:nd_db_request.query_id,
+                                    done:batch_result.done,
+                                    chunk:batch_result.value};
+                on_db_result(batch_result);
+            }
+            else {
+                on_db_result({nd_type:"BatchResponse",query_id:nd_db_request.query_id, error:"unknown"});
+            }
             break;
         case "QueryResult":
         case "ParquetScanResult":
+        case "BatchResponse":
             // we do not process our own results!
             break;
         case "DuckInstance":
