@@ -57,7 +57,7 @@ BigInt.prototype.toJSON = function() {return this.toString(10);};
 
 // var on_db_result to allow redefinition if emscripten Module is defined
 var on_db_result = function(result_object) {
-    console.log("on_db_result: " + JSON.stringify(result_object));
+    console.log("on_db_result: " + JSON.stringify(result_object, null, 2));
 };
 
 if (typeof Module !== 'undefined') {
@@ -138,7 +138,7 @@ self.onmessage = async (event) => {
                 let batch_result = {nd_type:"BatchResponse",
                                     query_id:nd_db_request.query_id,
                                     done:batch.done,
-                                    chunk:batch.value};
+                                    chunk:batch.value==='undefined'?null:batch.value.chunk};
                 on_db_result(batch_result);
             }
             else {
