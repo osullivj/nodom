@@ -3,15 +3,13 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no"/>
-    <title>DuckDB WASM Arrow Test</title>
+    <title>DuckDB WASM Scan Test</title>
   </head>
   <body>
-    <h1>DuckDB WASM Arrow Test</h1>
+    <h1>DuckDB WASM Scan Test</h1>
     <section>
 
       <div class="query-text-container">
-        <label for="query-text">SQL:</label>
-        <textarea id="query-text" rows="3" cols="20">summarize select * from depth;</textarea>
         <label for="scan-text">Scan:</label>
         <textarea id="scan-text" rows="3" cols="50">
         BEGIN; DROP TABLE IF EXISTS depth; CREATE TABLE depth as select * from parquet_scan([
@@ -20,10 +18,12 @@
         "https://localhost/api/parquet/FGBMU8_20080903.parquet"
         ]); COMMIT;
         </textarea>
+        <label for="query-text">SQL:</label>
+        <textarea id="query-text" rows="3" cols="20">summarize select * from depth;</textarea>
       </div>
       <div class="query-button-container">
-        <button id="query-button">Query</button>
         <button id="scan-button">Scan</button>
+        <button id="query-button">Query</button>
       </div>
     </section>
     <script type='text/javascript'>
