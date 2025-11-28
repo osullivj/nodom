@@ -95,7 +95,7 @@ function batch_materializer(batch) {
 async function* batch_generator(duck_result) {
     for await (const batch of duck_result) {
         // toArray materializes the batch
-        yield await batch_materializer(batch);  
+        yield batch_materializer(batch);  
     }
 }
 
@@ -126,7 +126,7 @@ self.onmessage = async (event) => {
         case "Query":
             duck_result = await exec_duck_db_query(nd_db_request.sql);
             console.log("duck_module: QueryResult: " + nd_db_request.query_id + "\n");
-            batch_gen = await batch_generator(duck_result);
+            batch_gen = batch_generator(duck_result);
             global_query_map.set(nd_db_request.query_id, batch_gen);
             let query_result = {nd_type:"QueryResult",query_id:nd_db_request.query_id};
             on_db_result(query_result);
@@ -134,11 +134,11 @@ self.onmessage = async (event) => {
         case "BatchRequest":
             if (global_query_map.has(nd_db_request.query_id)) {
                 batch_gen = global_query_map.get(nd_db_request.query_id);
-                let batch = batch_gen.next();
+                let batch = await batch_gen.next();
                 let batch_result = {nd_type:"BatchResponse",
                                     query_id:nd_db_request.query_id,
-                                    done:batch_result.done,
-                                    chunk:batch_result.value};
+                                    done:batch.done,
+                                    chunk:batch.value};
                 on_db_result(batch_result);
             }
             else {
