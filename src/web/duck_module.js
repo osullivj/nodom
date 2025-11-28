@@ -82,9 +82,6 @@ async function exec_duck_db_query(sql) {
     return arrow_table;
 }
 
-var summary_request = function(tbl) {
-    return {nd_type: "Summarize", sql: "summarize select * from " + tbl + ";", table: tbl};
-};
 
 function materialize(results) {
     return {
