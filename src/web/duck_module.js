@@ -138,7 +138,10 @@ self.onmessage = async (event) => {
                 let batch_result = {nd_type:"BatchResponse",
                                     query_id:nd_db_request.query_id,
                                     done:batch.done,
-                                    chunk:batch.value==='undefined'?null:batch.value.chunk};
+                                    chunk:null};
+                if (batch.done === false) {
+                    batch_result['chunk'] = batch.value.chunk;
+                }
                 on_db_result(batch_result);
             }
             else {
