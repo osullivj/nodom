@@ -446,17 +446,16 @@ public:
     std::uint64_t get_handle(emscripten::val& ctx_data, const std::string& cname) {
         // DB handles are atomic in ems, unlike nlohmann where we split
         // the DuckDB C API 64bit ptr into two std::uint32
-        // NB also note materialize is duck_module; the real
+        // NB also note materialize in duck_module; the real
         // handle is one level down...
-        emscripten::val results(ctx_data[cname][db_handle_cs]);
+        const emscripten::val& chunk(ctx_data[cname][chunk_cs]);
         // return the EM_VAL handle...
-        return reinterpret_cast<std::uint64_t>(results.as_handle());
+        return reinterpret_cast<std::uint64_t>(chunk.as_handle());
     }
 
     std::uint64_t get_row_count(std::uint64_t handle) {
-        emscripten::val results = emscripten::val::take_ownership(reinterpret_cast<emscripten::EM_VAL>(handle));
-        emscripten::val arrow_table(results["arrow_table"]);
-        std::uint64_t row_count = arrow_table["numRows"].template as<std::uint64_t>();
+        emscripten::val batch = emscripten::val::take_ownership(reinterpret_cast<emscripten::EM_VAL>(handle));
+        std::uint64_t row_count = batch["rwcnt"].template as<std::uint64_t>();
         return row_count;
     }
 
@@ -469,8 +468,8 @@ public:
         column_count = colm_types.size();
         type_map[handle] = colm_types;
         std::vector<emscripten::val>& columns(column_map[handle]);
-        emscripten::val arrow_table(results["arrow_table"]);
-        row_count = arrow_table["numRows"].template as<std::uint64_t>();
+        emscripten::val chunk(results[chunk_cs]);
+        row_count = chunk["rwcnt"].template as<std::uint64_t>();
         for (std::uint64_t index = 0; index < column_count; ++index) {
             const std::string& colm_name(colm_names[column_count]);
             emscripten::val colm = 
@@ -481,16 +480,17 @@ public:
     }
 
     char* get_datum(std::uint64_t handle, std::uint64_t colm_index, std::uint64_t row_index) {
-        std::vector<emscripten::val>& columns(column_map[handle]);
-        std::vector<int> types(type_map[handle]);
-        int datum_type = types[colm_index];
-        emscripten::val& colm(columns[colm_index]);
-        emscripten::val datum = colm.call<emscripten::val>("get", row_index);
-        switch (datum_type) {
-
-        }
-
-        buffer = (char*)null_cs;
+        // bear in mind the chunk is a materialized array, and is a list of dicts
+        emscripten::val batch = emscripten::val::take_ownership(reinterpret_cast<emscripten::EM_VAL>(handle));
+        emscripten::val chunk = batch[chunk_cs];
+        emscripten::val row = chunk[row_index];
+        emscripten::val datum = row[colm_index];
+        const std::vector<int>& types(type_map[handle]);
+        // int datum_type = types[colm_index];
+        // switch (datum_type) {}
+        const std::string sdatum = datum.template as<std::string>();
+        sprintf(string_buffer, "%s", sdatum.c_str());
+        buffer = string_buffer;
         return 0;
     }
 };
