@@ -87,6 +87,7 @@ function batch_materializer(batch) {
         // query_id:qid,
         // result_type:rtype,
         chunk:batch.toArray(),
+        rwcnt:batch.numRows,
         names:batch.schema.fields.map((d) => d.name),
         types:batch.schema.fields.map((d) => d.type)
     }
