@@ -178,9 +178,11 @@
     </ClInclude>
     <ClInclude Include="context.hpp" />
     <ClInclude Include="db_cache.hpp" />
+    <ClInclude Include="facade.hpp" />
     <ClInclude Include="im_render.hpp" />
     <ClInclude Include="json_ops.hpp" />
-    <ClInclude Include="Logger.hpp" />
+    <ClInclude Include="logger.hpp" />
+    <ClInclude Include="nd_types.hpp" />
     <ClInclude Include="nlohmann.hpp" />
     <ClInclude Include="proxy.hpp" />
     <ClInclude Include="static_strings.hpp" />
