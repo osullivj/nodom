@@ -5,15 +5,13 @@
 #include <filesystem>
 #include <map>
 #include <queue>
+#include "nd_types.hpp"
 #include "logger.hpp"
 #ifdef __EMSCRIPTEN__
 #include <emscripten/val.h>
 #else
 #include "nlohmann.hpp"
 #endif
-
-#define ND_WC_BUF_SZ 256
-
 
 // NDProxy encapsulates the server side.
 template <typename DB>
@@ -71,9 +69,6 @@ public:
         server_url = "wss://" + host + "/api/websock";
         NDLogger::cout() << method << server_url << std::endl;
     }
-
-
-
 #endif  // __EMSCRIPTEN__
     virtual         ~NDProxy() {};
 
