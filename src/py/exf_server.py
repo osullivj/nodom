@@ -113,7 +113,8 @@ EXF_LAYOUT = [
                     child_flags=ChildFlags.BORDERS | ChildFlags.RESIZE_X
                 )
             ),
-            dict(rname='Table', cspec=dict(title='Depth grid', cname='depth_query_result')),
+            # The DepthGrid table shows one row of depth at a time with 5 bids and asks
+            dict(rname='Table', cspec=dict(title='Depth grid', cname='depth_query_row', geom='Depth')),
             dict(rname='EndChild'),
             dict(rname='Separator', cspec=dict()),
             dict(rname='Footer', cspec=dict(db=True, fps=True, demo=True, id_stack=True, memory=True)),
@@ -132,6 +133,7 @@ EXF_LAYOUT = [
             button_font='CourierNew',
             button_font_size_base=12,
             cname='depth_summary_result',
+            geom='Vanilla',     # redundant as summary table is always Vanilla
             window_flags = WindowFlags.ALWAYS_AUTO_RESIZE | WindowFlags.HORIZONTAL_SCROLLBAR
         ),
     ),
@@ -150,7 +152,8 @@ EXF_LAYOUT = [
 ]
 
 SCAN_SQL = 'BEGIN; DROP TABLE IF EXISTS depth; CREATE TABLE depth as select * from parquet_scan(%(scan_urls)s); COMMIT;'
-DEPTH_SQL = 'select * from depth where SeqNo > 0 order by CaptureTS limit 10 offset %(depth_offset)s;'
+# DEPTH_SQL = 'select * from depth where SeqNo > 0 order by CaptureTS limit 10 offset %(depth_offset)s;'
+DEPTH_SQL = 'select * from depth where LastTradeSize!=0 and AskQty5!=0 and BidQty5!=0 order by SeqNo;'
 SUMMARY_SQL = 'summarize select * from depth;'
 
 EXF_DATA = dict(
@@ -168,7 +171,7 @@ EXF_DATA = dict(
     summary_sql = SUMMARY_SQL,
     # empty placeholder: see main.ts:on_duck_event for hardwiring of db_summary_ prefix
     db_summary_depth = dict(),
-    depth_tick = dict(),
+    depth_tick_size = 0.005,
     depth_offset = 0,
     depth_results = nd_consts.EMPTY_TABLE,
     actions = {
