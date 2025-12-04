@@ -74,6 +74,7 @@ static const char* duck_table_summary_modal_cs("DuckTableSummaryModal");
 static const char* duck_instance_cs("DuckInstance");
 static const char* null_cs("NULL");
 static const char* db_cs("db");
+static const char* chunk_cs("chunk");
 static const char* ui_pop_cs("ui_pop");
 static const char* ui_push_cs("ui_push");
 static const char* indent_cs("  ");
