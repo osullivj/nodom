@@ -2,6 +2,7 @@
 #include <iostream>
 #include <queue>
 #include <vector>
+#include "nd_types.hpp"
 #include "static_strings.hpp"
 #include "json_ops.hpp"
 
@@ -20,7 +21,6 @@
 #endif  // __EMSCRIPTEN__
 
 
-typedef std::function<void(const std::string&)> ws_sender;
 
 #define STR_BUF_LEN 256
 #define FMT_BUF_LEN 16
@@ -405,8 +405,8 @@ public:
 private:
     std::unordered_map<std::uint64_t, std::vector<emscripten::val>> column_map;
     std::unordered_map<std::uint64_t, std::vector<int>> type_map;
-
 protected:
+    char string_buffer[STR_BUF_LEN];
     std::queue<emscripten::val>          db_queries;
     std::queue<emscripten::val>          db_results;
 public:
@@ -473,7 +473,7 @@ public:
         for (std::uint64_t index = 0; index < column_count; ++index) {
             const std::string& colm_name(colm_names[column_count]);
             emscripten::val colm = 
-                arrow_table.call<emscripten::val>("getColumn", colm_names[index]);
+                chunk.call<emscripten::val>("getColumn", colm_names[index]);
             columns.push_back(colm);
         }
         return true;
