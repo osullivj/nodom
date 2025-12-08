@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no"/>
+    <title>DuckDB WASM Materialize Test</title>
+  </head>
+  <body>
+    <h1>DuckDB WASM Materialize Test</h1>
+    <section>
+
+      <div class="query-text-container">
+        <label for="scan-text">Scan:</label>
+        <textarea id="scan-text" rows="3" cols="50">
+        BEGIN; DROP TABLE IF EXISTS depth; CREATE TABLE depth as select * from parquet_scan([
+        "https://localhost/api/parquet/FGBMU8_20080901.parquet",
+        "https://localhost/api/parquet/FGBMU8_20080902.parquet",
+        "https://localhost/api/parquet/FGBMU8_20080903.parquet"
+        ]); COMMIT;
+        </textarea>
+        <label for="query-text">SQL:</label>
+        <textarea id="query-text" rows="3" cols="20">select * from depth;</textarea>
+      </div>
+      <div class="query-button-container">
+        <button id="scan-button">Scan</button>
+        <button id="query-button">Query</button>
+        <button id="batch-button">Batch</button>
+      </div>
+    </section>
+    <script type='text/javascript'>
+      // Emscripten init
+      var Module = {
+        preRun: [],
+        postRun: [],
+        print: (function() {
+            return function(text) {
+                text = Array.prototype.slice.call(arguments).join(' ');
+                console.log(text);
+            };
+        })(),
+        printErr: function(text) {
+            text = Array.prototype.slice.call(arguments).join(' ');
+            console.error(text);
+        },
+        canvas: (function() {
+            var canvas = document.getElementById('canvas');
+            //canvas.addEventListener("webglcontextlost", function(e) { alert('FIXME: WebGL context lost, please reload the page'); e.preventDefault(); }, false);
+            return canvas;
+        })(),
+        setStatus: function(text) {
+            console.log("status: " + text);
+        },
+        monitorRunDependencies: function(left) {
+            // no run dependencies to log
+        }
+      };
+      window.onerror = function() {
+        console.log("onerror: " + event);
+      };
+    
+      // Test init
+      const query_button = document.querySelector("#query-button");
+      const scan_button = document.querySelector("#scan-button");
+      const batch_button = document.querySelector("#batch-button");
+      const query_text_area = document.querySelector("#query-text");
+      const scan_text_area = document.querySelector("#scan-text");
+      function execute_query(_nd_type, qid, sql) {
+        console.log("SQL:" + sql + "\n");
+        let db_request = { nd_type:_nd_type, query_id:qid, sql:sql};
+        if (typeof window.__nodom__.duck_module !== 'undefined') {
+          window.__nodom__.duck_module.postMessage(db_request);
+        }
+        else {
+          console.log("Please wait for DuckDB instantiation\n");
+        }
+      }
+      function on_query_button() {
+        execute_query("Query", "Q1", query_text_area.value);
+      }
+      function on_scan_button() {
+        execute_query("ParquetScan", "Q0", scan_text_area.value);
+      }
+      function on_batch_button() {
+        execute_query("BatchRequest", "Q1", "");
+      }
+      query_button.addEventListener("click", on_query_button);
+      scan_button.addEventListener("click", on_scan_button);
+      batch_button.addEventListener("click", on_batch_button);
+    </script>
+    <script type="module" src="./duck_module.js" defer></script>
+    {{{ SCRIPT }}}
+  </body>
+</html>
