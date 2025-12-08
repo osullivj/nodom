@@ -22,19 +22,21 @@ EXTRA_HANDLERS = [
 
 # for security reasons duck only ingests parquet via 443
 define("port", default=443, help="run on the given port", type=int)
+define("sdir", default='src/web', help="source dir", type=str)
 
 service = nd_utils.Service(NDAPP, {}, {}, False)
 
 async def main():
     parse_command_line()
     cert_path = os.path.normpath(os.path.join(nd_consts.ND_ROOT_DIR, 'cfg'))
-    app = nd_web.NDApp(service, extra_handlers=EXTRA_HANDLERS, web_args=['src', 'web'], debug=True)
+    web_args = options.sdir.split('/')
+    app = nd_web.NDApp(service, extra_handlers=EXTRA_HANDLERS, web_args=web_args, debug=True)
     https_server = tornado.httpserver.HTTPServer(app, ssl_options={
         "certfile": os.path.join(cert_path, "ssl_cert.pem"),
         "keyfile": os.path.join(cert_path, "ssl_key.pem"),
     })
     https_server.listen(options.port)
-    logr.info(f'{NDAPP} port:{options.port} cert_path:{cert_path}')
+    logr.info(f'{NDAPP} port:{options.port} cert_path:{cert_path} web_args:{web_args}')
     await asyncio.Event().wait()
 
 
