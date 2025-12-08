@@ -134,6 +134,7 @@ self.onmessage = async (event) => {
             break;
         case "BatchRequest":
             if (global_query_map.has(nd_db_request.query_id)) {
+                console.log("duck_module: BatchRequest: " + nd_db_request.query_id + "\n");
                 batch_gen = global_query_map.get(nd_db_request.query_id);
                 let batch = await batch_gen.next();
                 let batch_result = {nd_type:"BatchResponse",
