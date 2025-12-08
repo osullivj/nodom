@@ -1,0 +1,124 @@
+#
+# Makefile to use with GLFW+emscripten
+# See https://emscripten.org/docs/getting_started/downloads.html
+# for installation instructions.
+#
+# This Makefile assumes you have loaded emscripten's environment.
+# (On Windows, you may need to execute emsdk_env.bat or encmdprompt.bat ahead)
+#
+# Running `make -f Makefile.emscripten` will produce three files:
+#  - web/index.html
+#  - web/index.js
+#  - web/index.wasm
+#
+# All three are needed to run the demo.
+
+CC = emcc
+CXX = emcc
+DWP = emdwp
+BLD_DIR = bld
+EXE = $(BLD_DIR)/duck_materialize.html
+IMGUI_DIR = imgui
+ND_SRC_DIR = src/cpp
+ND_WEB_DIR = src/web
+ND_TST_DIR = test/unit/cpp
+ND_DP_DIR = ImGuiDatePicker
+SOURCES = $(ND_TST_DIR)/duck_materialize.cpp
+OBJS = $(addsuffix .o, $(addprefix bld/,$(basename $(notdir $(SOURCES)))))
+# UNAME_S := $(shell uname -s)
+CPPFLAGS = -I $(IMGUI_DIR)/examples/libs/emscripten -I $(ND_DP_DIR)
+LDFLAGS =
+EMS =
+
+##---------------------------------------------------------------------
+## EMSCRIPTEN OPTIONS
+##---------------------------------------------------------------------
+
+# ("EMS" options gets added to both CPPFLAGS and LDFLAGS, whereas some options are for linker only)
+# Note: For glfw, we use emscripten-glfw port (contrib.glfw3) instead of ('-s USE_GLFW=3' in LDFLAGS) to get a better support for High DPI displays.
+# NDNote: NoDOM uses emscripten websockets, so we need -lwebsocket.js. See this URL...
+# https://emscripten.org/docs/porting/networking.html#emscripten-websockets-api
+# -fno-exceptions disables exception throwing, but we have code that throws
+# exceptions
+EMS += -s DISABLE_EXCEPTION_CATCHING=1
+# EMS += -s DISABLE_EXCEPTION_CATCHING=0
+# EMS +=  --use-port=contrib.glfw3 
+LDFLAGS += -sEXPORTED_FUNCTIONS=_on_db_result_cpp -sEXPORTED_RUNTIME_METHODS=ccall,cwrap
+LDFLAGS += -s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s NO_EXIT_RUNTIME=0
+LDFLAGS += -s ASSERTIONS=1 -lembind  -lwebsocket.js -lidbstore.js
+
+# Build as single file (binary text encoded in .html file)
+#LDFLAGS += -sSINGLE_FILE
+
+# Uncomment next line to fix possible rendering bugs with Emscripten version older then 1.39.0 (https://github.com/ocornut/imgui/issues/2877)
+#EMS += -s BINARYEN_TRAP_MODE=clamp
+#EMS += -s SAFE_HEAP=1    ## Adds overhead
+
+# Emscripten allows preloading a file or folder to be accessible at runtime.
+# The Makefile for this example project suggests embedding the misc/fonts/ folder into our application, it will then be accessible as "/fonts"
+# See documentation for more details: https://emscripten.org/docs/porting/files/packaging_files.html
+# (Default value is 0. Set to 1 to enable file-system and include the misc/fonts/ folder as part of the build.)
+USE_FILE_SYSTEM ?= 0
+ifeq ($(USE_FILE_SYSTEM), 0)
+LDFLAGS += -s NO_FILESYSTEM=1
+CPPFLAGS += -DIMGUI_DISABLE_FILE_FUNCTIONS
+endif
+ifeq ($(USE_FILE_SYSTEM), 1)
+LDFLAGS += --no-heap-copy --preload-file ../../misc/fonts@/fonts
+endif
+
+##---------------------------------------------------------------------
+## FINAL BUILD FLAGS
+##---------------------------------------------------------------------
+
+CPPFLAGS += -I$(IMGUI_DIR) -I$(IMGUI_DIR)/backends
+# Comment in for debug info! And add to LDFLAGS...
+# See emscripten notes on DWARF debugging
+# https://emscripten.org/docs/porting/Debugging.html#debugging
+DBGFLAGS += -g -gdwarf-5 -gsplit-dwarf -gpubnames
+CPPFLAGS += $(DBGFLAGS) -Wall -Wformat -Os $(EMS)
+LDFLAGS += --shell-file ${ND_WEB_DIR}/shell_materialize.html
+LDFLAGS += $(EMS) $(DBGFLAGS)
+
+##---------------------------------------------------------------------
+## BUILD RULES
+##---------------------------------------------------------------------
+
+$(BLD_DIR)/%.o:%.cpp
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
+
+$(BLD_DIR)/%.o:$(IMGUI_DIR)/%.cpp
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
+
+$(BLD_DIR)/%.o:$(IMGUI_DIR)/backends/%.cpp
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
+
+$(BLD_DIR)/%.o:$(ND_SRC_DIR)/%.cpp
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
+
+$(BLD_DIR)/%.o:$(ND_TST_DIR)/%.cpp
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
+
+$(BLD_DIR)/%.o:$(ND_DP_DIR)/%.cpp
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
+
+all: $(EXE)
+	copy src\web\favicon.ico bld\favicon.ico
+	copy src\web\duck_module.js bld\duck_module.js
+	@echo Build complete for $(EXE)
+
+$(BLD_DIR):
+	mkdir $@
+
+$(EXE): $(OBJS) $(BLD_DIR)
+	$(CXX) -o $@ $(OBJS) $(LDFLAGS)
+	$(DWP) -e $(BLD_DIR)\duck_materialize.wasm -o $(BLD_DIR)\duck_materialize.wasm.dwp
+
+clean:
+	del $(BLD_DIR)\*.o
+	del $(BLD_DIR)\*.dwo
+	del $(BLD_DIR)\duck_materialize.html
+	del $(BLD_DIR)\duck_materialize.js
+	del $(BLD_DIR)\duck_materialize.wasm
+	del $(BLD_DIR)\duck_materialize.wasm.dwp
+    
