@@ -229,7 +229,7 @@ public:
                         nlohmann::json chunk_array = nlohmann::json::array({ std::uint32_t(chunk_ptr), std::uint32_t(chunk_ptr >> 32) });
                         std::cout << method << qid << " chunk_ptr: " << std::hex << chunk_ptr
                             << ", chunk_array: " << chunk_array << std::endl;
-                        db_response[db_handle_cs] = chunk_array;
+                        db_response[chunk_cs] = chunk_array;
                     }
                 }
                 // lock the result queue and post back to the GUI thread
@@ -403,7 +403,7 @@ class DuckDBWebCache : public EmptyDBCache<emscripten::val> {
 public:
     char* buffer{ 0 };
 private:
-    std::unordered_map<std::uint64_t, std::vector<emscripten::val>> column_map;
+    std::unordered_map<std::uint64_t, std::vector<std::string>> column_map;
     std::unordered_map<std::uint64_t, std::vector<int>> type_map;
 protected:
     char string_buffer[STR_BUF_LEN];
@@ -448,7 +448,9 @@ public:
         // the DuckDB C API 64bit ptr into two std::uint32
         // NB also note materialize in duck_module; the real
         // handle is one level down...
-        const emscripten::val& chunk(ctx_data[cname][chunk_cs]);
+        emscripten::val results(ctx_data[cname]);
+        emscripten::val chunk(results[chunk_cs]);
+        // const emscripten::val& chunk(ctx_data[cname][chunk_cs]);
         // return the EM_VAL handle...
         return reinterpret_cast<std::uint64_t>(chunk.as_handle());
     }
@@ -467,15 +469,9 @@ public:
         std::vector<int> colm_types = emscripten::convertJSArrayToNumberVector< int>(types);
         column_count = colm_types.size();
         type_map[handle] = colm_types;
-        std::vector<emscripten::val>& columns(column_map[handle]);
+        column_map[handle] = colm_names;
         emscripten::val chunk(results[chunk_cs]);
         row_count = chunk["rwcnt"].template as<std::uint64_t>();
-        for (std::uint64_t index = 0; index < column_count; ++index) {
-            const std::string& colm_name(colm_names[column_count]);
-            emscripten::val colm = 
-                chunk.call<emscripten::val>("getColumn", colm_names[index]);
-            columns.push_back(colm);
-        }
         return true;
     }
 

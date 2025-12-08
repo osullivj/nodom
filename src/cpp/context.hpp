@@ -262,7 +262,7 @@ public:
             std::string qid = JAsString(db_msg, query_id_cs);
             // this logic is specific to the BB DuckDBCache,
             // where we pass a raw C ptr in a JSON array
-            JSON result_handle = JAsHandle(db_msg, db_handle_cs);
+            JSON result_handle = JAsHandle(db_msg, chunk_cs);
             // result_handle = db_msg[db_handle_cs];
             std::string cname = qid + "_result";
             NDLogger::cout() << method << "query " << qid << "@" << cname << std::endl;
