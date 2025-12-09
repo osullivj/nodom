@@ -100,16 +100,6 @@ async function* batch_generator(duck_result) {
     }
 }
 
-function materialize(results) {
-    return {
-        // query_id:qid,
-        // result_type:rtype,
-        arrow_table:results,
-        names:results.schema.fields.map((d) => d.name),
-        types:results.schema.fields.map((d) => d.type)
-    }
-}
-
 let global_query_map = new Map();
 
 self.onmessage = async (event) => {
