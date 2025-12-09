@@ -62,6 +62,8 @@ var on_db_result = function(result_object) {
 
 if (typeof Module !== 'undefined') {
     let on_db_result_cpp = Module.cwrap('on_db_result_cpp', 'void', ['object']);
+    let get_chunk_cpp = Module.cwrap('get_chunk_cpp', 'number', ['number']);
+    let on_chunk_cpp = Module.cwrap('on_chunk_cpp', 'void', ['number']);
     on_db_result = function(result_object) {
         let result_handle = Emval.toHandle(result_object);
         on_db_result_cpp(result_handle);
@@ -82,20 +84,57 @@ async function exec_duck_db_query(sql) {
     return duck_result;
 }
 
+
 function batch_materializer(batch) {
-    return {
-        // query_id:qid,
-        // result_type:rtype,
-        chunk:batch.toArray(),
-        rwcnt:batch.numRows,
-        names:batch.schema.fields.map((d) => d.name),
-        types:batch.schema.fields.map((d) => d.type)
-    }
+    let row_count = batch.numRows;
+    let types = batch.schema.fields.map((d) => d.type);
+    let names = batch.schema.fields.map((d) => d.name);
+    // 2048 rows per chunk. Assume each col is 64bits wide...
+    // row_count * types.length * 8 (bytes per word)
+    // types.length for type info
+    // sum(strlen+1) for names
+    let names_sum_length = names.reduce((accumulator, current_value) => {
+        return accumulator + current_value.length + 1;
+    }, 0);
+    // space for columns, assuming 64bit wide
+    let buffer_size = row_count * types.length * 8;
+    // one byte for each type, and space for col names, and one
+    // byte for column count
+    buffer_size += types.length + names_sum_length + 1;
+    // create buffer and view to load the buffer
+    // let array_buffer = new ArrayBuffer(buffer_size);
+    // buffer_offset is just an index into Module.HEAPU8
+    // let buffer_offset = Module._malloc(buffer_size);
+    // let buffer_offset = get_chunk_cpp(buffer_size);
+    // cwrapped funcs not recognised inside the generator...
+    let buffer_offset = Module.ccall('get_chunk_cpp', 'number', ['number'], [buffer_size]);
+    // let data_view = new DataView(array_buffer, 0);
+    let heap_view = new Uint8Array(Module.HEAPU8.buffer, buffer_offset, buffer_size);
+    // load the data: first number of cols, then rows
+    let buffer_position = 0;
+    // data_view.setUint8(buffer_position++, types.length);
+    // data_view.setUint8(buffer_position++, row_count);
+    heap_view[buffer_position++] = types.length;
+    heap_view[buffer_position++] = row_count;
+    types.forEach((tipe) => {heap_view[buffer_position++] = tipe;});
+    names.forEach((name) => {
+        for (var i = 0; i < name.length; i++) {
+            // 3rd parm is true for little endian as wasm is little endian
+            heap_view[buffer_position++] = name.charCodeAt(i);
+        }
+        // null terminator for string
+        heap_view[buffer_position++] = 0;
+    });
+    // on_chunk_cpp(buffer_offset);
+    Module.ccall('on_chunk_cpp', 'void', ['number'], [buffer_offset]);
+    console.log('batch_materializer: buffer_offset='+buffer_offset+'\n');
+    // return heap_view;
+    // Effectively, return the pointer from get_chunk_cpp
+    return buffer_offset;
 }
 
 async function* batch_generator(duck_result) {
     for await (const batch of duck_result) {
-        // toArray materializes the batch
         yield batch_materializer(batch);  
     }
 }
@@ -146,7 +185,7 @@ self.onmessage = async (event) => {
             // we do not process our own results!
             break;
         case "DuckInstance":
-            on_db_result({nd_type:"DuckInstance"});
+            on_db_result({nd_type:"DuckInstance", query_id:"TEST_QUERY_0"});
             break;
         default:
             console.error("duck_module.onmessage: unexpected request: ", event);
