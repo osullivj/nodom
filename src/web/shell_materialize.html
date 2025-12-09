@@ -65,7 +65,11 @@
       const query_text_area = document.querySelector("#query-text");
       const scan_text_area = document.querySelector("#scan-text");
       function execute_query(_nd_type, qid, sql) {
-        console.log("SQL:" + sql + "\n");
+        console.log("shell QID:" + qid);
+        if (_nd_type !== "BatchRequest") {
+          console.log(", SQL:" + sql);
+        }
+        console.log("\n");
         let db_request = { nd_type:_nd_type, query_id:qid, sql:sql};
         if (typeof window.__nodom__.duck_module !== 'undefined') {
           window.__nodom__.duck_module.postMessage(db_request);
