@@ -87,7 +87,7 @@ async function exec_duck_db_query(sql) {
 
 function batch_materializer(batch) {
     let row_count = batch.numRows;
-    let types = batch.schema.fields.map((d) => d.type);
+    let types = batch.schema.fields.map((d) => d.type.typeId);
     let names = batch.schema.fields.map((d) => d.name);
     console.log('batch_materializer: types='+types+', names='+names+'\n');
     // Usually 2048 rows per chunk. Assume each col is 64bits wide...
