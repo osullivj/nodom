@@ -89,38 +89,39 @@ function batch_materializer(batch) {
     let row_count = batch.numRows;
     let types = batch.schema.fields.map((d) => d.type);
     let names = batch.schema.fields.map((d) => d.name);
+    console.log('batch_materializer: types='+types+', names='+names+'\n');
     // Usually 2048 rows per chunk. Assume each col is 64bits wide...
     // row_count * types.length * 8 (bytes per word)
     // types.length for type info
     // sum(strlen+1) for names
-    // Assuming 16bit words...
+    // Assuming 32bit words...
     let names_sum_length = names.reduce((accumulator, current_value) => {
         return accumulator + current_value.length + 1;
     }, 0);
     // space for columns, assuming 64bit wide
-    let buffer_size = row_count * types.length * 4;
+    let buffer_size = row_count * types.length * 2; // 32bit word *2 = 64bits
     // 16bits for each type, and 16bit chars for col names,
     // and 16bits for column count
-    buffer_size += (types.length) + names_sum_length + 3;
-    // Get C++ wassm to create buffer. NB cwrapped funcs not
+    buffer_size += (types.length + names_sum_length) + 3; // 3 for done, cols, row_count
+    // Get C++ wasm to create buffer. NB cwrapped funcs not
     // recognised inside the generator, so we Module.ccall
     let buffer_offset = Module.ccall('get_chunk_cpp', 'number', ['number'], [buffer_size]);
     // Now create Uint8Array with underlying storage buffer_offset, which is a ptr,
     // and therefore just an index into Module.HEAPU8 WASM memory
-    let heap_view16 = new Uint16Array(Module.HEAPU16.buffer, buffer_offset, buffer_size);
+    let heap_view = new Uint32Array(Module.HEAPU32.buffer, buffer_offset, buffer_size);
     // load the data: first number of cols, then rows
-    let bptr16 = 0;
-    heap_view16[bptr16++] = batch.done;
-    heap_view16[bptr16++] = types.length;
-    heap_view16[bptr16++] = row_count;
-    types.forEach((tipe) => {heap_view16[bptr16++] = tipe;});
+    let bptr = 0;
+    heap_view[bptr++] = batch.done;
+    heap_view[bptr++] = types.length;
+    heap_view[bptr++] = row_count;
+    types.forEach((tipe) => {heap_view[bptr++] = tipe;});
     names.forEach((name) => {
         for (var i = 0; i < name.length; i++) {
             // 3rd parm is true for little endian as wasm is little endian
-            heap_view16[bptr16++] = name.charCodeAt(i);
+            heap_view[bptr++] = name.charCodeAt(i);
         }
         // null terminator for string
-        heap_view16[bptr16++] = 0;
+        heap_view[bptr++] = 0;
     });
     // Let C++ WASM code know we've populated the chunk
     // We pass buffer_offset as number/int, and cast to uint8_t on
