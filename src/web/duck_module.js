@@ -89,47 +89,45 @@ function batch_materializer(batch) {
     let row_count = batch.numRows;
     let types = batch.schema.fields.map((d) => d.type);
     let names = batch.schema.fields.map((d) => d.name);
-    // 2048 rows per chunk. Assume each col is 64bits wide...
+    // Usually 2048 rows per chunk. Assume each col is 64bits wide...
     // row_count * types.length * 8 (bytes per word)
     // types.length for type info
     // sum(strlen+1) for names
+    // Assuming 16bit words...
     let names_sum_length = names.reduce((accumulator, current_value) => {
         return accumulator + current_value.length + 1;
     }, 0);
     // space for columns, assuming 64bit wide
-    let buffer_size = row_count * types.length * 8;
-    // one byte for each type, and space for col names, and one
-    // byte for column count
-    buffer_size += types.length + names_sum_length + 1;
-    // create buffer and view to load the buffer
-    // let array_buffer = new ArrayBuffer(buffer_size);
-    // buffer_offset is just an index into Module.HEAPU8
-    // let buffer_offset = Module._malloc(buffer_size);
-    // let buffer_offset = get_chunk_cpp(buffer_size);
-    // cwrapped funcs not recognised inside the generator...
+    let buffer_size = row_count * types.length * 4;
+    // 16bits for each type, and 16bit chars for col names,
+    // and 16bits for column count
+    buffer_size += (types.length) + names_sum_length + 3;
+    // Get C++ wassm to create buffer. NB cwrapped funcs not
+    // recognised inside the generator, so we Module.ccall
     let buffer_offset = Module.ccall('get_chunk_cpp', 'number', ['number'], [buffer_size]);
-    // let data_view = new DataView(array_buffer, 0);
-    let heap_view = new Uint8Array(Module.HEAPU8.buffer, buffer_offset, buffer_size);
+    // Now create Uint8Array with underlying storage buffer_offset, which is a ptr,
+    // and therefore just an index into Module.HEAPU8 WASM memory
+    let heap_view16 = new Uint16Array(Module.HEAPU16.buffer, buffer_offset, buffer_size);
     // load the data: first number of cols, then rows
-    let buffer_position = 0;
-    // data_view.setUint8(buffer_position++, types.length);
-    // data_view.setUint8(buffer_position++, row_count);
-    heap_view[buffer_position++] = types.length;
-    heap_view[buffer_position++] = row_count;
-    types.forEach((tipe) => {heap_view[buffer_position++] = tipe;});
+    let bptr16 = 0;
+    heap_view16[bptr16++] = batch.done;
+    heap_view16[bptr16++] = types.length;
+    heap_view16[bptr16++] = row_count;
+    types.forEach((tipe) => {heap_view16[bptr16++] = tipe;});
     names.forEach((name) => {
         for (var i = 0; i < name.length; i++) {
             // 3rd parm is true for little endian as wasm is little endian
-            heap_view[buffer_position++] = name.charCodeAt(i);
+            heap_view16[bptr16++] = name.charCodeAt(i);
         }
         // null terminator for string
-        heap_view[buffer_position++] = 0;
+        heap_view16[bptr16++] = 0;
     });
-    // on_chunk_cpp(buffer_offset);
+    // Let C++ WASM code know we've populated the chunk
+    // We pass buffer_offset as number/int, and cast to uint8_t on
+    // the C++ side
     Module.ccall('on_chunk_cpp', 'void', ['number'], [buffer_offset]);
-    console.log('batch_materializer: buffer_offset='+buffer_offset+'\n');
-    // return heap_view;
-    // Effectively, return the pointer from get_chunk_cpp
+    console.log('batch_materializer: buffer_offset='+buffer_offset+', row_count='+row_count+'\n');
+    if (batch.done) return 0;
     return buffer_offset;
 }
 
@@ -165,14 +163,10 @@ self.onmessage = async (event) => {
             if (global_query_map.has(nd_db_request.query_id)) {
                 console.log("duck_module: BatchRequest: " + nd_db_request.query_id + "\n");
                 batch_gen = global_query_map.get(nd_db_request.query_id);
-                let batch = await batch_gen.next();
+                let batch_addr = await batch_gen.next();
                 let batch_result = {nd_type:"BatchResponse",
                                     query_id:nd_db_request.query_id,
-                                    done:batch.done,
-                                    chunk:null};
-                if (batch.done === false) {
-                    batch_result['chunk'] = batch.value.chunk;
-                }
+                                    chunk:(batch_addr/1)};
                 on_db_result(batch_result);
             }
             else {
