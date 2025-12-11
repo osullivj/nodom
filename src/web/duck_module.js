@@ -84,8 +84,39 @@ async function exec_duck_db_query(sql) {
     return duck_result;
 }
 
+// 2: Int32: 4 bytes
+// 3: Float64: 8 bytes
+// 10: Timestamp_ms: 4 bytes
+function get_duck_type_size(tipe) {
+    switch (tipe) {
+        case 2:         // Int32
+        case 10:        // Timestamp_micro
+            return 4;   // 4 bytes wide
+        case 3:         // Float64
+            return 8;   // 8 bytes wide
+    };
+    return 0;
+}
+
+function create_column_uint_array(sz, bptr, row_count) {
+    console.log('create_column_uint_array: sz='+sz+', bptr='+bptr
+                +',bptr%4='+bptr%4+'\n');
+    // NB bptr is an element ptr, and the elements in our main
+    // array are 4 byte words eg 32 bits. 
+    let bytes_offset = bptr * 4;
+    switch (sz) {
+        case 4:
+            return new Uint32Array(Module.HEAPU32.buffer, bytes_offset, row_count);
+        case 8:
+            if (bytes_offset % 8) bytes_offset += 4;
+            return new BigUint64Array(Module.HEAPU64.buffer, bytes_offset, row_count);
+    }
+    console.error('batch_materializer: bad size! sz='+sz+'\n');
+    return null;
+}
 
 function batch_materializer(batch) {
+    // First, extract metadata from batch...
     let row_count = batch.numRows;
     let types = batch.schema.fields.map((d) => d.type.typeId);
     let type_objs = batch.schema.fields.map((d) => d.type);
@@ -93,6 +124,7 @@ function batch_materializer(batch) {
     console.log('batch_materializer: types='+types);
     console.log('batch_materializer: typ_o='+type_objs);
     console.log('batch_materializer: names='+names+'\n');
+    // ...second, calc batch size in mem
     // Usually 2048 rows per chunk. Assume each col is 64bits wide...
     // row_count * types.length * 8 (bytes per word)
     // types.length for type info
@@ -112,20 +144,40 @@ function batch_materializer(batch) {
     // Now create Uint8Array with underlying storage buffer_offset, which is a ptr,
     // and therefore just an index into Module.HEAPU8 WASM memory
     let heap_view = new Uint32Array(Module.HEAPU32.buffer, buffer_offset, buffer_size);
-    // load the data: first number of cols, then rows
+    // Write the metadata: done, number of cols, then row count
     let bptr = 0;
     heap_view[bptr++] = batch.done;
     heap_view[bptr++] = types.length;
     heap_view[bptr++] = row_count;
+    // Now column types and names
     types.forEach((tipe) => {heap_view[bptr++] = tipe;});
     names.forEach((name) => {
         for (var i = 0; i < name.length; i++) {
-            // 3rd parm is true for little endian as wasm is little endian
             heap_view[bptr++] = name.charCodeAt(i);
         }
         // null terminator for string
         heap_view[bptr++] = 0;
     });
+    // Now write the columns into the wasm chunk...
+    for (var ic = 0; ic < types.length; ic++) {
+        let vec = batch.getChildAt(ic);
+        let tipe = types[ic]
+        let sz = get_duck_type_size(tipe);
+        console.log('batch_materializer: tipe='+tipe+', sz='+sz+'\n');
+ 
+        // tipe(32) and count(32) as sanity checks at head of col
+        heap_view[bptr++] = tipe;
+        heap_view[bptr++] = sz;
+        // Create a U*Array with same stride size as column
+        let col_view = create_column_uint_array(sz, bptr, row_count);
+        for (var ir = 0; ir < row_count; ir++) {
+            col_view[ir] = vec[ir];
+        }
+        // Dividing col_view.BYTES_PER_ELEMENT by 4 normalises to 4 byte
+        // words, which is the heap_view stride length. Obviously if
+        // we're using 8 byte data, bptr moves twice as much
+        bptr += row_count * col_view.BYTES_PER_ELEMENT/4;
+    }
     // Let C++ WASM code know we've populated the chunk
     // We pass buffer_offset as number/int, and cast to uint8_t on
     // the C++ side
