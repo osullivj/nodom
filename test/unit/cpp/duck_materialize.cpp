@@ -4,16 +4,41 @@
 #include <iostream>
 #include <emscripten/val.h>
 
+// types = 2, 10, 3, 2, 3, 3, 2, 2, 10, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2, 10, 10
+// typ_o = Int32, Timestamp<MICROSECOND>, Float64, Int32, Float64, Float64, Int32, Int32, Timestamp<MICROSECOND>, Int32, Int32, Int32, Int32, Int32, Int32, Int32, Int32, Int32, Int32, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Int32, Timestamp<MICROSECOND>, Timestamp<MICROSECOND>
+// batch_materializer JS code stores type as uint32
+enum DuckType : uint32_t {
+    Int32 = 2,
+    Timestamp_ms = 10,
+    Float64 = 3
+};
+
+const char* DuckTypeToString(DuckType dt) {
+    switch (dt) {
+    case DuckType::Int32:
+        return "Int32";
+    case DuckType::Float64:
+        return "Float64";
+    case DuckType::Timestamp_ms:
+        return "Timestamp_ms";
+    default:
+        return "Unknown";
+    }
+
+}
+
+void printf_comma(int i, int col_count) {
+    if (i == col_count - 1) printf("\n");
+    else printf(",");
+}
+
+
 extern "C" {
     void on_db_result_cpp(emscripten::EM_VAL result_handle) {
         const static char* method = "on_db_result_cpp: ";
-    // void on_db_result_cpp(void* result_handle) {
         emscripten::val result = emscripten::val::take_ownership(result_handle);
         std::string nd_type = result["nd_type"].template as<std::string>();
         std::string query_id = result["query_id"].template as<std::string>();
-        // auto int_vec = emscripten::convertJSArrayToNumberVector<int>(result["types"]);
-        // auto str_vec = emscripten::vecFromJSArray<std::string>(result["names"]);
-        // auto row_count = result["rwcnt"].template as<int>();
         std::cout << method << "nd_type: " << nd_type << ", qid: " << query_id;
         if (nd_type == "BatchResponse") {
             int addr = result["chunk"].template as<int>();
@@ -44,18 +69,23 @@ extern "C" {
         int row_count = chunk_ptr[bptr++];
         printf("%s: done: %d, col_count: %d, row_count: %d\n", method, done, col_count, row_count);
         // next col_count bytes are the types
+        printf("%s: types:", method);
         for (int i = 0; i < col_count; i++) {
-            int tipe = chunk_ptr[bptr++];
-            printf("%s: type: %d\n", method, tipe);
+            DuckType tipe{ chunk_ptr[bptr++] };
+            const char* dt = DuckTypeToString(tipe);
+            printf("%d/%s", tipe, dt);
+            printf_comma(i, col_count);
         }
         // next col_count zero terminated ASCII strings
+        printf("%s: names:", method);
         for (int i = 0; i < col_count; i++) {
             std::string name;
             while (chunk[bptr] != 0) {
                 name.push_back(chunk[bptr]);
                 bptr++;
             }
-            printf("%s: name: %s\n", method, name.c_str());
+            printf("%s", name.c_str());
+            printf_comma(i, col_count);
             bptr++;
         }
     }
