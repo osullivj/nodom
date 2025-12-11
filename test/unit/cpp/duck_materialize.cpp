@@ -7,9 +7,10 @@
 // types = 2, 10, 3, 2, 3, 3, 2, 2, 10, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2, 10, 10
 // typ_o = Int32, Timestamp<MICROSECOND>, Float64, Int32, Float64, Float64, Int32, Int32, Timestamp<MICROSECOND>, Int32, Int32, Int32, Int32, Int32, Int32, Int32, Int32, Int32, Int32, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Int32, Timestamp<MICROSECOND>, Timestamp<MICROSECOND>
 // batch_materializer JS code stores type as uint32
+// ND these enums are not the same as duckdb.h!
 enum DuckType : uint32_t {
     Int32 = 2,
-    Timestamp_ms = 10,
+    Timestamp_micro = 10,
     Float64 = 3
 };
 
@@ -19,12 +20,22 @@ const char* DuckTypeToString(DuckType dt) {
         return "Int32";
     case DuckType::Float64:
         return "Float64";
-    case DuckType::Timestamp_ms:
-        return "Timestamp_ms";
-    default:
-        return "Unknown";
+    case DuckType::Timestamp_micro:
+        return "Timestamp_micro";
     }
+    return "Unknown";
+}
 
+int DuckTypeToSize(DuckType dt) {
+    switch (dt) {
+    case DuckType::Int32:
+        return 4;
+    case DuckType::Float64:
+        return 8;
+    case DuckType::Timestamp_micro:
+        return 4;
+    }
+    return 0;
 }
 
 void printf_comma(int i, int col_count) {
@@ -32,6 +43,34 @@ void printf_comma(int i, int col_count) {
     else printf(",");
 }
 
+int sprintf_value(char* cbuf, uint32_t* chunk_ptr, int bptr, uint32_t tipe, int row_index) {
+    DuckType dt{ tipe };
+    uint32_t* ui32data = &(chunk_ptr[bptr]);
+    int32_t* i32data = nullptr;
+    double* dbldata = nullptr;
+    time_t* timdata = nullptr;
+    tm* tmdata = nullptr;
+
+    switch (dt) {
+    case DuckType::Int32:
+        i32data = reinterpret_cast<int32_t*>(ui32data);
+        sprintf(cbuf, "[%d]=%d", row_index, *i32data);
+        return DuckTypeToSize(dt);
+    case DuckType::Float64:
+        dbldata = reinterpret_cast<double*>(ui32data);
+        sprintf(cbuf, "[%d]=%f", row_index, *dbldata);
+        return DuckTypeToSize(dt);
+    case DuckType::Timestamp_micro:
+        timdata = reinterpret_cast<time_t*>(ui32data);
+        tmdata = gmtime(timdata);
+        sprintf(cbuf, "[%d]=", row_index);
+        strftime(cbuf+strlen(cbuf), sizeof(cbuf), "%Y%m%dT%I:%M:%S.%p", tmdata);
+        return DuckTypeToSize(dt);
+    default:
+        sprintf(cbuf, "[%d]=%s", row_index, "unk");
+        return 0;
+    }
+}
 
 extern "C" {
     void on_db_result_cpp(emscripten::EM_VAL result_handle) {
@@ -62,6 +101,7 @@ extern "C" {
     void on_chunk_cpp(int* chunk) {
         const static char* method = "on_chunk_cpp";
         uint32_t* chunk_ptr = reinterpret_cast<uint32_t*>(chunk);
+        printf("%s: METADATA\n", method);
         // First 3 words are done, col_count, row_count
         int bptr = 0;
         int done = chunk_ptr[bptr++];
@@ -77,6 +117,7 @@ extern "C" {
             printf_comma(i, col_count);
         }
         // next col_count zero terminated ASCII strings
+        std::vector<std::string> col_names;
         printf("%s: names:", method);
         for (int i = 0; i < col_count; i++) {
             std::string name;
@@ -87,6 +128,23 @@ extern "C" {
             printf("%s", name.c_str());
             printf_comma(i, col_count);
             bptr++;
+            col_names.push_back(name);
+        }
+        // And now the columns themselves. Each one has
+        // a type(32),row_count(32) preamble
+        printf("%s: COLUMNS\n", method);
+        char cbuf[128];
+        for (int i = 0; i < col_count; i++) {
+            int tipe = chunk_ptr[bptr++];
+            uint32_t row_count = chunk_ptr[bptr++];
+            const std::string& name(col_names[i]);
+            int sz = sprintf_value(cbuf, chunk_ptr, bptr, tipe, 0);
+            printf("%s type(%d) sz(%d) rows(%d)\n", name.c_str(), tipe, sz, row_count);
+            int stride = sz / 4;    // 1 for 4 bytes, 2 for 8 bytes
+            sprintf_value(cbuf, chunk_ptr, bptr+stride, tipe, 1);
+            sprintf_value(cbuf, chunk_ptr, bptr+(stride*(row_count-1)), tipe, row_count-1);
+            sprintf_value(cbuf, chunk_ptr, bptr+(stride*row_count), tipe, row_count);
+            bptr += stride * row_count;
         }
     }
 };
