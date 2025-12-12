@@ -516,6 +516,24 @@ extern "C" {
         auto d = DBResultDispatcher::get_instance();
         d.dispatch(result_handle);
     }
+
+    int get_chunk_cpp(int size) {
+        // size in 64bit words
+        const static char* method = "get_chunk_cpp";
+        // batch_materializer calls us to get a handle on WASM memory
+        // https://stackoverflow.com/questions/56010390/emscripten-how-to-get-uint8-t-array-from-c-to-javascript
+        // Real impl will use some kind of mem pooling
+        uint64_t* buffer = new uint64_t[size];
+        memset(buffer, 0, size * 8);
+        int buffer_address = reinterpret_cast<int>(buffer);
+        printf("%s: size: %d, buffer_address: %d\n", method, size, buffer_address);
+        return buffer_address;
+    }
+
+    void on_chunk_cpp(int* chunk) {
+        const static char* method = "on_chunk_cpp";
+        printf("%s: chunk=%d\n", method, chunk);
+    }
 };
 
 #endif  // __EMSCRIPTEN__
