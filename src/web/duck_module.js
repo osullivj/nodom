@@ -98,22 +98,14 @@ function get_duck_type_size(tipe) {
     return 0;
 }
 
-function create_column_uint_array(sz, bptr, row_count) {
-    console.log('create_column_uint_array: sz='+sz+', bptr='+bptr
-                +',bptr%4='+bptr%4+'\n');
-    // NB bptr is an element ptr, and the elements in our main
-    // array are 4 byte words eg 32 bits. 
-    let bytes_offset = bptr * 4;
-    switch (sz) {
-        case 4:
-            return new Uint32Array(Module.HEAPU32.buffer, bytes_offset, row_count);
-        case 8:
-            if (bytes_offset % 8) bytes_offset += 4;
-            return new BigUint64Array(Module.HEAPU64.buffer, bytes_offset, row_count);
+
+function get_value(x) {
+    if (typeof x?.valueOf === 'function') {
+        return x.valueOf();
     }
-    console.error('batch_materializer: bad size! sz='+sz+'\n');
-    return null;
+    return x;
 }
+
 
 function batch_materializer(batch) {
     // First, extract metadata from batch...
@@ -135,29 +127,36 @@ function batch_materializer(batch) {
     }, 0);
     // space for columns, assuming 64bit wide
     let buffer_size = row_count * types.length * 2; // 32bit word *2 = 64bits
-    // 16bits for each type, and 16bit chars for col names,
-    // and 16bits for column count
+    // 32bits for each type, and 32bit chars for col names,
+    // and 32bits for column count
     buffer_size += (types.length + names_sum_length) + 3; // 3 for done, cols, row_count
     // Get C++ wasm to create buffer. NB cwrapped funcs not
     // recognised inside the generator, so we Module.ccall
     let buffer_offset = Module.ccall('get_chunk_cpp', 'number', ['number'], [buffer_size]);
-    // Now create Uint8Array with underlying storage buffer_offset, which is a ptr,
-    // and therefore just an index into Module.HEAPU8 WASM memory
-    let heap_view = new Uint32Array(Module.HEAPU32.buffer, buffer_offset, buffer_size);
-    // Write the metadata: done, number of cols, then row count
+    // Now create Uint64Array with underlying storage buffer_offset, which is a uint64_t ptr,
+    // so guaranteed to be on an 8 byte boundary. So we know that will work for
+    // 32,16 and 8 arrays. Note the element count adjustment in buffer_size/2.
+    // Obviously half as many array elements in same size for 64 vs 32.
+    let dbl_heap64 = new Float64Array(Module.HEAPU64.buffer, buffer_offset, buffer_size/2);
+    let bui_heap64 = new BigUint64Array(Module.HEAPU64.buffer, buffer_offset, buffer_size/2);
+    let heap32 = new Uint32Array(Module.HEAPU32.buffer, buffer_offset, buffer_size);
+    // Now write the first block; metadata done, number of cols, then row count
     let bptr = 0;
-    heap_view[bptr++] = batch.done;
-    heap_view[bptr++] = types.length;
-    heap_view[bptr++] = row_count;
+    heap32[bptr++] = batch.done;
+    heap32[bptr++] = types.length;
+    heap32[bptr++] = row_count;
     // Now column types and names
-    types.forEach((tipe) => {heap_view[bptr++] = tipe;});
+    types.forEach((tipe) => {heap32[bptr++] = tipe;});
     names.forEach((name) => {
         for (var i = 0; i < name.length; i++) {
-            heap_view[bptr++] = name.charCodeAt(i);
+            heap32[bptr++] = name.charCodeAt(i);
         }
         // null terminator for string
-        heap_view[bptr++] = 0;
+        heap32[bptr++] = 0;
     });
+    // Now write a block for each column, starting on 8 byte boundary
+    // bptr has 32bit/4byte stride, so if it's odd it's not on 8 byte boundary
+    if (bptr % 2) bptr++;
     // Now write the columns into the wasm chunk...
     for (var ic = 0; ic < types.length; ic++) {
         let vec = batch.getChildAt(ic);
@@ -166,17 +165,29 @@ function batch_materializer(batch) {
         console.log('batch_materializer: tipe='+tipe+', sz='+sz+'\n');
  
         // tipe(32) and count(32) as sanity checks at head of col
-        heap_view[bptr++] = tipe;
-        heap_view[bptr++] = sz;
-        // Create a U*Array with same stride size as column
-        let col_view = create_column_uint_array(sz, bptr, row_count);
-        for (var ir = 0; ir < row_count; ir++) {
-            col_view[ir] = vec[ir];
+        heap32[bptr++] = tipe;
+        heap32[bptr++] = sz;
+        // Use heap32 or heap64 depending on column size
+        if (sz == 4) {          // continue with heap32
+            for (var ir = 0; ir < row_count; ir++) {
+                heap32[bptr+ir] = vec[ir];
+            }
+            bptr += row_count;
         }
-        // Dividing col_view.BYTES_PER_ELEMENT by 4 normalises to 4 byte
-        // words, which is the heap_view stride length. Obviously if
-        // we're using 8 byte data, bptr moves twice as much
-        bptr += row_count * col_view.BYTES_PER_ELEMENT/4;
+        else if (sz == 8) {     // switch to heap64
+            // At this point we know bptr is on an 8 byte boundary
+            // because col block starts on 8 boundary, and we've
+            // just written 8 above, so bptr/2 gives us the heap64
+            // addr...
+            let bptr64 = bptr/2;
+            for (var ir = 0; ir < row_count; ir++) {
+                dbl_heap64[bptr64+ir] = get_value(vec.get(ir));
+            }
+            bptr += row_count * 2;
+        }
+        else {
+            console.error('batch_materializer: bad sz!\n');
+        }
     }
     // Let C++ WASM code know we've populated the chunk
     // We pass buffer_offset as number/int, and cast to uint8_t on
