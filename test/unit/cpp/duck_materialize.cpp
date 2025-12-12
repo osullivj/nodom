@@ -91,8 +91,8 @@ extern "C" {
         // batch_materializer calls us to get a handle on WASM memory
         // https://stackoverflow.com/questions/56010390/emscripten-how-to-get-uint8-t-array-from-c-to-javascript
         // Real impl will use some kind of mem pooling
-        uint32_t* buffer = new uint32_t[size];
-        memset(buffer, 0, size*4);
+        uint64_t* buffer = new uint64_t[size];
+        memset(buffer, 0, size*8);
         int buffer_address = reinterpret_cast<int>(buffer);
         printf("%s: size: %d, buffer_address: %d\n", method, size, buffer_address);
         return buffer_address;
@@ -131,16 +131,19 @@ extern "C" {
             col_names.push_back(name);
         }
         // And now the columns themselves. Each one has
-        // a type(32),row_count(32) preamble
+        // a type(32),row_count(32) preamble.
         printf("%s: COLUMNS\n", method);
         char cbuf[128];
         for (int i = 0; i < col_count; i++) {
+            // mv bptr fwd to next 8 byte boundary
+            if (bptr % 2) bptr++;
             int tipe = chunk_ptr[bptr++];
-            uint32_t row_count = chunk_ptr[bptr++];
+            int stored_sz = chunk_ptr[bptr++];
             const std::string& name(col_names[i]);
-            int sz = sprintf_value(cbuf, chunk_ptr, bptr, tipe, 0);
-            printf("%s type(%d) sz(%d) rows(%d)\n", name.c_str(), tipe, sz, row_count);
-            int stride = sz / 4;    // 1 for 4 bytes, 2 for 8 bytes
+            int calced_sz = sprintf_value(cbuf, chunk_ptr, bptr, tipe, 0);
+            assert(stored_sz == calced_sz);
+            printf("%s type(%d) sz(%d) rows(%d)\n", name.c_str(), tipe, stored_sz, row_count);
+            int stride = stored_sz / 4;    // 1 for 4 bytes, 2 for 8 bytes
             sprintf_value(cbuf, chunk_ptr, bptr+stride, tipe, 1);
             sprintf_value(cbuf, chunk_ptr, bptr+(stride*(row_count-1)), tipe, row_count-1);
             sprintf_value(cbuf, chunk_ptr, bptr+(stride*row_count), tipe, row_count);
