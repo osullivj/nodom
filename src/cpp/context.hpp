@@ -45,7 +45,7 @@ private:
 
     // top level layout widgets with widget_id eg modals are in pushables
     std::unordered_map<std::string, JSON> pushable;
-    // main.ts:action_dispatch is called while rendering, and changes
+    // action_dispatch is called while rendering, and changes
     // the size of the render stack. JS will let us do that in the root
     // render() method. But in C++ we use an STL iterator in the root render
     // method, and that segfaults. So in C++ we have pending pushes done
@@ -244,28 +244,31 @@ public:
             return;
         }
         std::string nd_type = JAsString(db_msg, nd_type_cs);
-        NDLogger::cout() << method << nd_type << std::endl;
+        std::string qid = JAsString(db_msg, query_id_cs);
+        NDLogger::cout() << method << nd_type << " QID: " << qid << std::endl;
 
-        if (nd_type == "ParquetScan") {
+        if (nd_type == parquet_scan_cs) {
             db_status_color = amber;
         }
-        else if (nd_type == "Query") {
+        else if (nd_type == query_cs) {
             db_status_color = amber;
         }
-        else if (nd_type == "ParquetScanResult") {
+        else if (nd_type == parquet_scan_result_cs) {
             db_status_color = green;
-            std::string qid = JAsString(db_msg, query_id_cs);
             action_dispatch(qid, nd_type);
         }
-        else if (nd_type == "QueryResult") {
+        else if (nd_type == query_result_cs) {
             db_status_color = green;
-            std::string qid = JAsString(db_msg, query_id_cs);
+            // Typically, a QueryResult is followed by dispatch
+            // of a BatchRequest
+            action_dispatch(qid, nd_type);
+        }
+        else if (nd_type == batch_response_cs) {
+            db_status_color = green;
             // this logic is specific to the BB DuckDBCache,
             // where we pass a raw C ptr in a JSON array
             JSON result_handle = JAsHandle(db_msg, chunk_cs);
-            // result_handle = db_msg[db_handle_cs];
             std::string cname = qid + "_result";
-            NDLogger::cout() << method << "query " << qid << "@" << cname << std::endl;
             JSet(data, cname.c_str(), result_handle);
         }
         else if (nd_type == "DuckInstance") {
@@ -275,7 +278,7 @@ public:
             // so we can just flip status button color here
             db_status_color = amber;
             // send a test query
-            db_dispatch("Query", "select 1729;", "ramanujan");
+            db_dispatch("Query", "ramanujan", "select 1729;");
         }
         else {
             NDLogger::cerr() << "NDContext::on_db_event: unexpected nd_type in " << db_msg << std::endl;
@@ -404,30 +407,48 @@ protected:
             // Finally, do we have a DB op to handle?
             if (JContains(action_defn, db_cs)) {
                 const JSON& db_op(action_defn[db_cs]);
-                if (!JContains(db_op, sql_cname_cs) || !JContains(db_op, query_id_cs) || !JContains(db_op, action_cs)) {
-                    NDLogger::cerr() << method << "db(" << db_op << ") missing sql_cname|query_id|action" << std::endl;
+                if (!JContains(db_op, query_id_cs) || !JContains(db_op, action_cs)) {
+                    NDLogger::cerr() << method << "db(" << db_op << ") missing query_id|action!" << std::endl;
+                    return;
+                }
+                std::string db_action(JAsString(db_op, action_cs));
+                std::string query_id(JAsString(db_op, query_id_cs));
+                if (db_action == batch_request_cs) {
+                    db_dispatch(db_action, query_id);
                 }
                 else {
+                    if (!JContains(db_op, sql_cname_cs)) {
+                        NDLogger::cerr() << method << "db(" << db_op << ") missing sql_cname" << std::endl;
+                        return;
+                    }
                     std::string sql_cache_key(JAsString(db_op, sql_cname_cs));
                     if (!JContains(data, sql_cache_key.c_str())) {
-                        NDLogger::cerr() << method << "db(" << db_op << ") sql_cname(" << sql_cache_key << ") does not resolve" << std::endl;
+                        NDLogger::cerr() << method << "db(" << db_op << ") sql_cname(" << sql_cache_key << ") does not resolve!" << std::endl;
+                        return;
                     }
                     else {
                         std::string sql(JAsString(data, sql_cache_key.c_str()));
-                        std::string db_action(JAsString(db_op, action_cs));
-                        std::string query_id(JAsString(db_op, query_id_cs));
-                        db_dispatch(db_action, sql, query_id);
+                        db_dispatch(db_action, query_id, sql);
                     }
                 }
             }
         }
     }
 
-    void db_dispatch(const std::string& nd_type, const std::string& sql, const std::string& qid) {
-        const static char* method = "NDContext::duck_dispatch: ";
+    void db_dispatch(const std::string& nd_type, const std::string& qid, 
+                    const std::string& sql) {
+        const static char* method = "NDContext::db_dispatch: ";
         auto db_request = JNewObject();
         JSet(db_request, nd_type_cs, nd_type.c_str());
         JSet(db_request, sql_cs, sql.c_str());
+        JSet(db_request, query_id_cs, qid.c_str());
+        proxy.db_dispatch(db_request);
+    }
+
+    void db_dispatch(const std::string& nd_type, const std::string& qid) {
+        const static char* method = "NDContext::db_dispatch: ";
+        auto db_request = JNewObject();
+        JSet(db_request, nd_type_cs, nd_type.c_str());
         JSet(db_request, query_id_cs, qid.c_str());
         proxy.db_dispatch(db_request);
     }
