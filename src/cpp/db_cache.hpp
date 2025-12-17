@@ -504,7 +504,7 @@ public:
     void set_dispatcher(Dispatcher df) { dispatcher_func = df; }
     void dispatch(emscripten::EM_VAL result_handle) {
         if (dispatcher_func == nullptr) {
-            fprintf(stderr, "NULL DBResultDispatcher func\n");
+            fprintf(stdout, "NULL DBResultDispatcher func\n");
             return;
         }
         dispatcher_func(result_handle);
