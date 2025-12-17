@@ -199,14 +199,13 @@ EXF_DATA = dict(
             )
         ),
         # match on completion (QueryResult) of summary query (SUMMARY_QID)
-        # the query will prime the depth data
+        # the BatchRequest will get the first and only chunk
         SUMMARY_QID:dict(
         # "disable":dict(
             nd_events=["QueryResult"],
             db=dict(
-                action='Query',
-                sql_cname='depth_sql',
-                query_id=SELECT_QID,
+                action='BatchRequest',
+                query_id=SUMMARY_QID,
             )
         ),
         SUMMARY_BUTTON_TEXT:dict(
