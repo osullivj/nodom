@@ -65,6 +65,8 @@ static const char* parquet_scan_cs("ParquetScan");
 static const char* query_cs("Query");
 static const char* parquet_scan_result_cs("ParquetScanResult");
 static const char* query_result_cs("QueryResult");
+static const char* batch_request_cs("BatchRequest");
+static const char* batch_response_cs("BatchResponse");
 static const char* error_cs("Error");
 static const char* default_cs("Default");
 static const char* ok_cs("OK");
