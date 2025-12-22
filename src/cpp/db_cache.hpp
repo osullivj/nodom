@@ -412,44 +412,6 @@ EM_JS(void, ems_db_dispatch, (emscripten::EM_VAL db_request_handle), {
     window.postMessage(db_request);
 });
 
-// types = 2, 10, 3, 2, 3, 3, 2, 2, 10, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2, 10, 10
-// typ_o = Int32, Timestamp<MICROSECOND>, Float64, Int32, Float64, Float64, Int32, Int32, Timestamp<MICROSECOND>, Int32, Int32, Int32, Int32, Int32, Int32, Int32, Int32, Int32, Int32, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Int32, Timestamp<MICROSECOND>, Timestamp<MICROSECOND>
-// batch_materializer JS code stores type as uint32
-// ND these enums are not the same as duckdb.h!
-enum DuckType : uint32_t {
-    Int32 = 2,
-    Timestamp_micro = 10,
-    Float64 = 3,
-    Utf8 = 5
-};
-
-const char* DuckTypeToString(DuckType dt) {
-    switch (dt) {
-    case DuckType::Int32:
-        return "Int32";
-    case DuckType::Float64:
-        return "Float64";
-    case DuckType::Timestamp_micro:
-        return "Timestamp_micro";
-    case DuckType::Utf8:
-        return "Utf8";
-    }
-    return "Unknown";
-}
-
-int DuckTypeToSize(DuckType dt) {
-    switch (dt) {
-    case DuckType::Int32:
-        return 4;
-    case DuckType::Float64:
-        return 8;
-    case DuckType::Timestamp_micro:
-        return 4;
-    case DuckType::Utf8:
-        return 0;
-    }
-    return -1;
-}
 
 class DuckDBWebCache : public EmptyDBCache<emscripten::val> {
 public:
@@ -503,7 +465,7 @@ public:
         // handle is one level down...
         emscripten::val results(ctx_data[cname]);
         int chunk_addr = JAsInt(results, chunk_cs);
-        return reinterpret_cast<std::uint64_t>(chunk_addr);
+        return static_cast<std::uint64_t>(chunk_addr);
     }
 
     std::uint64_t get_row_count(std::uint64_t handle) {
@@ -516,9 +478,9 @@ public:
     bool get_meta_data(std::uint64_t handle, std::uint64_t& column_count, std::uint64_t& row_count) {
         // First 3 32 bit words are done, ncols, nrows
         uint32_t* chunk_ptr = reinterpret_cast<uint32_t*>(handle);
-        bool done = reinterpret_cast<bool>(*chunk_ptr++);
-        column_count = reinterpret_cast<bool>(*chunk_ptr++);
-        row_count = reinterpret_cast<bool>(*chunk_ptr++);
+        bool done = static_cast<bool>(*chunk_ptr++);
+        column_count = reinterpret_cast<uint32_t>(*chunk_ptr++);
+        row_count = reinterpret_cast<uint32_t>(*chunk_ptr++);
         // Next we have types, one 32bit int per col
         std::vector<int>& tipes = type_map[handle];
         tipes.clear();
@@ -527,7 +489,7 @@ public:
             tipes.push_back(tipe);
         }
         // Column addresses: one 32 bit word per col
-        std::vector<uint32_t>& caddrs = addr_map[handle];
+        std::vector<uint32_t>& caddrs = caddr_map[handle];
         for (int i = 0; i < column_count; i++) {
             uint32_t* col_addr = reinterpret_cast<uint32_t*>(*chunk_ptr++);
         }
@@ -560,7 +522,7 @@ public:
         uint32_t col_type = *chunk_ptr++;
         uint32_t col_size = *chunk_ptr++;
         if (col_type != tipes[colm_index]) {
-            sprintf(stderr, "%s: col type mismatch, col:%d, mtype:%d, stype:%d\n", 
+            fprintf(stderr, "%s: col type mismatch, col:%d, mtype:%d, stype:%d\n", 
                 colm_index, col_type, tipes[colm_index]);
         }
         // stride 1 for 32bit data and 2 for 64bit inc str
