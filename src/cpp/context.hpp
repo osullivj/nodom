@@ -245,7 +245,7 @@ public:
         }
         std::string nd_type = JAsString(db_msg, nd_type_cs);
         std::string qid = JAsString(db_msg, query_id_cs);
-        NDLogger::cout() << method << nd_type << " QID: " << qid << std::endl;
+        NDLogger::cout() << method << nd_type << ", QID: " << qid << std::endl;
 
         if (nd_type == parquet_scan_cs) {
             db_status_color = amber;
