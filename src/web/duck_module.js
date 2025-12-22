@@ -253,7 +253,8 @@ self.onmessage = async (event) => {
                 let batch_addr = await batch_gen.next();
                 let batch_result = {nd_type:"BatchResponse",
                                     query_id:nd_db_request.query_id,
-                                    chunk:(batch_addr/1)};
+                                    chunk:batch_addr/1};
+                console.log("duck_module: BatchResponse: " + batch_result + "\n");                                    
                 on_db_result(batch_result);
             }
             else {
