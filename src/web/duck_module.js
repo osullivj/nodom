@@ -94,8 +94,10 @@ function get_duck_type_size(tipe) {
             return 4;   // 4 bytes wide
         case 3:         // Float64
             return 8;   // 8 bytes wide
+        case 5:
+            return 0;   // varchar undefnd len
     };
-    return 0;
+    return -1;
 }
 
 
@@ -145,8 +147,12 @@ function batch_materializer(batch) {
     heap32[bptr++] = batch.done;
     heap32[bptr++] = types.length;
     heap32[bptr++] = row_count;
-    // Now column types and names
+    // Now column types, addresses and names
     types.forEach((tipe) => {heap32[bptr++] = tipe;});
+    // Memoize the start of the col addresses as 0 until we
+    // can calc caddrs below...
+    let caddr = bptr;
+    types.forEach((tipe) => {heap32[bptr++] = 0;});
     names.forEach((name) => {
         for (var i = 0; i < name.length; i++) {
             heap32[bptr++] = name.charCodeAt(i);
@@ -163,8 +169,9 @@ function batch_materializer(batch) {
         let tipe = types[ic]
         let sz = get_duck_type_size(tipe);
         console.log('batch_materializer: tipe='+tipe+', sz='+sz+'\n');
- 
-        // tipe(32) and count(32) as sanity checks at head of col
+        // record the addr of the column
+        heap32[caddr+ic] = bptr;
+         // tipe(32) and count(32) as sanity checks at head of col
         heap32[bptr++] = tipe;
         heap32[bptr++] = sz;
         // Use heap32 or heap64 depending on column size
@@ -185,7 +192,20 @@ function batch_materializer(batch) {
             }
             bptr += row_count * 2;
         }
+        else if (sz == 0) {
+            // varchar: variable length. We'll take 8 or less bytes,
+            // and store them via stringToUTF8
+            let bptr8 = bptr * 4;
+            for (var ir = 0; ir < row_count; ir++) {
+                let sval = JSON.stringify(vec.get(ir));
+                // bptr is the HEAPU32 ptr, 
+                // so div 4 to address as bytes
+                stringToUTF8(sval, bptr8, 8);
+            }
+            bptr += row_count * 2;
+        }
         else {
+            let val = get_value(vec.get(0));
             console.error('batch_materializer: bad sz!\n');
         }
     }
