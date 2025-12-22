@@ -26,7 +26,7 @@ ND_DP_DIR = ImGuiDatePicker
 SOURCES = $(ND_TST_DIR)/duck_materialize.cpp
 OBJS = $(addsuffix .o, $(addprefix bld/,$(basename $(notdir $(SOURCES)))))
 # UNAME_S := $(shell uname -s)
-CPPFLAGS = -I $(IMGUI_DIR)/examples/libs/emscripten -I $(ND_DP_DIR)
+CPPFLAGS = -I $(IMGUI_DIR)/examples/libs/emscripten -I $(ND_SRC_DIR)
 LDFLAGS =
 EMS =
 
