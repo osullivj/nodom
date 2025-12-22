@@ -110,10 +110,12 @@ class DuckDBCache : public BreadBoardDBCache {
 private:
     duckdb_database                     duck_db;
     duckdb_connection                   duck_conn;
+
     std::unordered_map<std::uint64_t, std::vector<duckdb_vector>> column_map;
     std::unordered_map<std::uint64_t, std::vector<uint64_t*>> validity_map;
     std::unordered_map<std::uint64_t, std::vector<duckdb_type>> type_map;
     std::unordered_map<std::uint64_t, std::vector<duckdb_logical_type>> logical_type_map;
+
     int16_t* sidata = nullptr;
     int32_t* idata = nullptr;
     int64_t* bidata = nullptr;
@@ -155,7 +157,10 @@ public:
         }
         else {
             // lock the result queue and post back to the GUI thread
-            nlohmann::json db_instance = { {nd_type_cs, duck_instance_cs} };
+            nlohmann::json db_instance = {
+                {nd_type_cs, duck_instance_cs},
+                {query_id_cs, "TEST_QUERY_0"}
+            };
             boost::unique_lock<boost::mutex> results_lock(result_mutex);
             // send nd_type:DuckInstance
             db_results.push(db_instance);
@@ -189,30 +194,27 @@ public:
                     std::cerr << method << "nd_type missing: " << db_request << std::endl;
                     continue;
                 }
-                if (!db_request.contains(sql_cs)) {
+                const std::string& nd_type(db_request[nd_type_cs]);
+                if ((nd_type == parquet_scan_cs || nd_type == query_cs)
+                    && !db_request.contains(sql_cs)) {
                     std::cerr << method << "sql missing: " << db_request << std::endl;
                     continue;
                 }
-                const std::string& nd_type(db_request[nd_type_cs]);
-                const std::string& sql(db_request[sql_cs]);
                 const std::string& qid(db_request[query_id_cs]);
                 nlohmann::json db_response = { {query_id_cs, qid}, { error_cs, 0 } };
                 // ParquetScan request do not produce a result set, unlike queries
                 if (nd_type == parquet_scan_cs) {
+                    const std::string& sql(db_request[sql_cs]);
                     dbstate = duckdb_query(duck_conn, sql.c_str(), nullptr);
                     db_response[nd_type_cs] = parquet_scan_result_cs;
                     if (dbstate == DuckDBError) {
                         std::cerr << method << "ParquetScan failed: " << db_request << std::endl;
                         db_response[error_cs] = 1;
                     }
-                    else {
-                        db_response[error_cs] = 0;
-                    }
                 }
-                else {
-                    // yes, this fires the duckdb_result default ctor the 1st
-                    // time a query_id is presented
-                    duckdb_result& dbresult(result_map[qid]);
+                else if (nd_type == query_cs) {
+                    const std::string& sql(db_request[sql_cs]);
+                    duckdb_result dbresult;
                     dbstate = duckdb_query(duck_conn, sql.c_str(), &dbresult);
                     std::cout << method << "QID: " << qid << ", SQL: " << sql << std::endl;
                     db_response[nd_type_cs] = query_result_cs;
@@ -221,8 +223,18 @@ public:
                         db_response[error_cs] = 1;
                     }
                     else {
+                        result_map[qid] = dbresult;
+                    }
+                }
+                else if (nd_type == batch_request_cs) {
+                    auto result_iter = result_map.find(qid);
+                    if (result_iter == result_map.end()) {
+                        db_response[error_cs] = 1;
+                        std::cerr << method << "BatchRequest failed: " << db_request << std::endl;
+                    }
+                    else {
                         db_response[error_cs] = 0;
-                        duckdb_data_chunk chunk = duckdb_fetch_chunk(dbresult);
+                        duckdb_data_chunk chunk = duckdb_fetch_chunk(result_iter->second);
                         std::uint64_t chunk_ptr = reinterpret_cast<std::uint64_t>(chunk);
                         // NB [0] is the low word, and has the top 32bits sliced off
                         //    [1] is the high word, so we right shift by 32bits to discard the bottom 32 
@@ -230,6 +242,7 @@ public:
                         std::cout << method << qid << " chunk_ptr: " << std::hex << chunk_ptr
                             << ", chunk_array: " << chunk_array << std::endl;
                         db_response[chunk_cs] = chunk_array;
+                        db_response[nd_type_cs] = batch_response_cs;
                     }
                 }
                 // lock the result queue and post back to the GUI thread
