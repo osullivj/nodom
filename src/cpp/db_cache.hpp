@@ -412,12 +412,52 @@ EM_JS(void, ems_db_dispatch, (emscripten::EM_VAL db_request_handle), {
     window.postMessage(db_request);
 });
 
+// types = 2, 10, 3, 2, 3, 3, 2, 2, 10, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2, 10, 10
+// typ_o = Int32, Timestamp<MICROSECOND>, Float64, Int32, Float64, Float64, Int32, Int32, Timestamp<MICROSECOND>, Int32, Int32, Int32, Int32, Int32, Int32, Int32, Int32, Int32, Int32, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Int32, Timestamp<MICROSECOND>, Timestamp<MICROSECOND>
+// batch_materializer JS code stores type as uint32
+// ND these enums are not the same as duckdb.h!
+enum DuckType : uint32_t {
+    Int32 = 2,
+    Timestamp_micro = 10,
+    Float64 = 3,
+    Utf8 = 5
+};
+
+const char* DuckTypeToString(DuckType dt) {
+    switch (dt) {
+    case DuckType::Int32:
+        return "Int32";
+    case DuckType::Float64:
+        return "Float64";
+    case DuckType::Timestamp_micro:
+        return "Timestamp_micro";
+    case DuckType::Utf8:
+        return "Utf8";
+    }
+    return "Unknown";
+}
+
+int DuckTypeToSize(DuckType dt) {
+    switch (dt) {
+    case DuckType::Int32:
+        return 4;
+    case DuckType::Float64:
+        return 8;
+    case DuckType::Timestamp_micro:
+        return 4;
+    case DuckType::Utf8:
+        return 0;
+    }
+    return -1;
+}
+
 class DuckDBWebCache : public EmptyDBCache<emscripten::val> {
 public:
     char* buffer{ 0 };
 private:
     std::unordered_map<std::uint64_t, std::vector<std::string>> column_map;
     std::unordered_map<std::uint64_t, std::vector<int>> type_map;
+    std::unordered_map<std::uint64_t, std::vector<std::uint32_t>> caddr_map;
 protected:
     char string_buffer[STR_BUF_LEN];
     std::queue<emscripten::val>          db_queries;
@@ -442,7 +482,7 @@ public:
 
     // standard DB methods implemented by every cache
     void get_db_responses(std::queue<emscripten::val>& responses) {
-        static const char* method = "DBCache::get_db_responses: ";
+        static const char* method = "DuckDBWebCache::get_db_responses: ";
         db_results.swap(responses);
         if (!responses.empty()) {
             std::cout << method << responses.size() << " responses" << std::endl;
@@ -450,7 +490,7 @@ public:
     }
 
     void db_dispatch(emscripten::val& db_request) {
-        const static char* method = "DBCache::db_dispatch: ";
+        const static char* method = "DuckDBWebCache::db_dispatch: ";
         std::cout << method << db_request << std::endl;
         ems_db_dispatch(db_request.as_handle());
     }
@@ -462,44 +502,99 @@ public:
         // NB also note materialize in duck_module; the real
         // handle is one level down...
         emscripten::val results(ctx_data[cname]);
-        emscripten::val chunk(results[chunk_cs]);
-        // const emscripten::val& chunk(ctx_data[cname][chunk_cs]);
-        // return the EM_VAL handle...
-        return reinterpret_cast<std::uint64_t>(chunk.as_handle());
+        int chunk_addr = JAsInt(results, chunk_cs);
+        return reinterpret_cast<std::uint64_t>(chunk_addr);
     }
 
     std::uint64_t get_row_count(std::uint64_t handle) {
-        emscripten::val batch = emscripten::val::take_ownership(reinterpret_cast<emscripten::EM_VAL>(handle));
-        std::uint64_t row_count = batch["rwcnt"].template as<std::uint64_t>();
+        // First 3 32 bit words are done, ncols, nrows
+        uint32_t* chunk_ptr = reinterpret_cast<uint32_t*>(handle);
+        std::uint64_t row_count = *(chunk_ptr + 2);
         return row_count;
     }
 
     bool get_meta_data(std::uint64_t handle, std::uint64_t& column_count, std::uint64_t& row_count) {
-        emscripten::val results = emscripten::val::take_ownership(reinterpret_cast<emscripten::EM_VAL>(handle));
-        emscripten::val types(results["types"]);
-        emscripten::val names(results["names"]);
-        std::vector<std::string> colm_names = emscripten::vecFromJSArray<std::string>(names);
-        std::vector<int> colm_types = emscripten::convertJSArrayToNumberVector< int>(types);
-        column_count = colm_types.size();
-        type_map[handle] = colm_types;
-        column_map[handle] = colm_names;
-        emscripten::val chunk(results[chunk_cs]);
-        row_count = chunk["rwcnt"].template as<std::uint64_t>();
-        return true;
+        // First 3 32 bit words are done, ncols, nrows
+        uint32_t* chunk_ptr = reinterpret_cast<uint32_t*>(handle);
+        bool done = reinterpret_cast<bool>(*chunk_ptr++);
+        column_count = reinterpret_cast<bool>(*chunk_ptr++);
+        row_count = reinterpret_cast<bool>(*chunk_ptr++);
+        // Next we have types, one 32bit int per col
+        std::vector<int>& tipes = type_map[handle];
+        tipes.clear();
+        for (int i = 0; i < column_count; i++) {
+            DuckType tipe{ *chunk_ptr++ };
+            tipes.push_back(tipe);
+        }
+        // Column addresses: one 32 bit word per col
+        std::vector<uint32_t>& caddrs = addr_map[handle];
+        for (int i = 0; i < column_count; i++) {
+            uint32_t* col_addr = reinterpret_cast<uint32_t*>(*chunk_ptr++);
+        }
+        // After types we have column names
+        std::vector<std::string>& colm_names = column_map[handle];
+        colm_names.clear();
+        for (int i = 0; i < column_count; i++) {
+            std::string name;
+            // Build name str one char at a time
+            while (*chunk_ptr != 0)
+                name.push_back(*chunk_ptr++);
+            // Skip over null term
+            chunk_ptr++;
+            colm_names.push_back(name);
+        }
+        return done;
     }
 
     char* get_datum(std::uint64_t handle, std::uint64_t colm_index, std::uint64_t row_index) {
-        // bear in mind the chunk is a materialized array, and is a list of dicts
-        emscripten::val batch = emscripten::val::take_ownership(reinterpret_cast<emscripten::EM_VAL>(handle));
-        emscripten::val chunk = batch[chunk_cs];
-        emscripten::val row = chunk[row_index];
-        emscripten::val datum = row[colm_index];
-        const std::vector<int>& types(type_map[handle]);
-        // int datum_type = types[colm_index];
-        // switch (datum_type) {}
-        const std::string sdatum = datum.template as<std::string>();
-        sprintf(string_buffer, "%s", sdatum.c_str());
+        const static char* method = "DuckDBWebCache::db_dispatch: ";
+        // First block in a chunk is metadata, so calc the skip fwd...
+        uint32_t* chunk_ptr = reinterpret_cast<uint32_t*>(handle);
+        std::vector<int>& tipes = type_map[handle];
+        std::vector<std::string>& colm_names = column_map[handle];
+        // ffwd past done,ncols,nrows,types to the col addresses
+        // and get the column ptr
+        chunk_ptr += 3 + tipes.size();
+        uint32_t* col_addr = chunk_ptr + colm_index;
+        // sanity check column type
+        uint32_t col_type = *chunk_ptr++;
+        uint32_t col_size = *chunk_ptr++;
+        if (col_type != tipes[colm_index]) {
+            sprintf(stderr, "%s: col type mismatch, col:%d, mtype:%d, stype:%d\n", 
+                colm_index, col_type, tipes[colm_index]);
+        }
+        // stride 1 for 32bit data and 2 for 64bit inc str
+        uint32_t stride = col_size / 4;
+        DuckType dt{ col_type };
+        int32_t* i32data = nullptr;
+        double* dbldata = nullptr;
+        time_t* timdata = nullptr;
+        tm* tmdata = nullptr;
+        // In most cases we'll copy into string_buffer, or
+        // use sprintf to format into buffer. 
         buffer = string_buffer;
+        switch (dt) {
+        case DuckType::Int32:
+            i32data = reinterpret_cast<int32_t*>(chunk_ptr);
+            sprintf(string_buffer, "%f", i32data[row_index]);
+            return 0;
+        case DuckType::Float64:
+            dbldata = reinterpret_cast<double*>(chunk_ptr);
+            sprintf(string_buffer, "%f", dbldata[row_index]);
+            return 0;
+        case DuckType::Timestamp_micro:
+            timdata = reinterpret_cast<time_t*>(chunk_ptr);
+            tmdata = gmtime(timdata);
+            strftime(string_buffer, sizeof(string_buffer), "%Y%m%dT%I:%M:%S.%p", tmdata);
+            return 0;
+        case DuckType::Utf8:    // null term trunc to 8 bytes
+            dbldata = reinterpret_cast<double*>(chunk_ptr);
+            sprintf(string_buffer, "%s", dbldata[row_index]);
+            return 0;
+        default:
+            sprintf(string_buffer, "%s", "UNK");
+            return 0;
+        }
         return 0;
     }
 };
