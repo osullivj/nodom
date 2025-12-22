@@ -11,7 +11,8 @@
 enum DuckType : uint32_t {
     Int32 = 2,
     Timestamp_micro = 10,
-    Float64 = 3
+    Float64 = 3,
+    Utf8 = 5
 };
 
 const char* DuckTypeToString(DuckType dt) {
@@ -22,6 +23,8 @@ const char* DuckTypeToString(DuckType dt) {
         return "Float64";
     case DuckType::Timestamp_micro:
         return "Timestamp_micro";
+    case DuckType::Utf8:
+        return "Utf8";
     }
     return "Unknown";
 }
@@ -34,8 +37,10 @@ int DuckTypeToSize(DuckType dt) {
         return 8;
     case DuckType::Timestamp_micro:
         return 4;
+    case DuckType::Utf8:
+        return 0;
     }
-    return 0;
+    return -1;
 }
 
 void printf_comma(int i, int col_count) {
@@ -108,12 +113,19 @@ extern "C" {
         int col_count = chunk_ptr[bptr++];
         int row_count = chunk_ptr[bptr++];
         printf("%s: done: %d, col_count: %d, row_count: %d\n", method, done, col_count, row_count);
-        // next col_count bytes are the types
+        // next col_count words are the types
         printf("%s: types:", method);
         for (int i = 0; i < col_count; i++) {
             DuckType tipe{ chunk_ptr[bptr++] };
             const char* dt = DuckTypeToString(tipe);
             printf("%d/%s", tipe, dt);
+            printf_comma(i, col_count);
+        }
+        // next col_count words are the col addrs
+        printf("%s: caddr:", method);
+        for (int i = 0; i < col_count; i++) {
+            uint32_t* col_addr = reinterpret_cast<uint32_t*>(chunk_ptr[bptr++]);
+            printf("%d/%d", i, col_addr);
             printf_comma(i, col_count);
         }
         // next col_count zero terminated ASCII strings
