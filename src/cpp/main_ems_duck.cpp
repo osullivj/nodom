@@ -76,7 +76,11 @@ int main(int argc, char* argv[]) {
     NDContext_t ctx(server);
     NDWebSockClient<ems_val_t, DuckDB_t> ws_client(server, ctx);
     ctx.register_msg_pump([&ws_client]() {ws_client.pump_messages();});
-    DBResultDispatcher::get_instance().set_dispatcher([&server](emscripten::EM_VAL v) {server.add_db_response(v); });
+    DBResultDispatcher& dbrd(DBResultDispatcher::get_instance());
+    dbrd.set_dispatcher([&server](emscripten::EM_VAL v)
+                                    {server.add_db_response(v); });
+    dbrd.set_reg_chunk([&server](const std::string& qid, int sz, int addr)
+                                    {server.register_chunk(qid.c_str(), sz, addr); });
     IDBFontCache font_cache([&ctx](const std::string& n, ImFont* f)
                                 {ctx.register_font(n, f); },
                                 { "Arial.ttf", "CourierNew.ttf" });
