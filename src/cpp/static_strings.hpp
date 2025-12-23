@@ -22,6 +22,7 @@ static const char* sql_cs("sql");
 static const char* sql_cname_cs("sql_cname");
 static const char* cspec_cs("cspec");
 static const char* cname_cs("cname");
+static const char* qname_cs("qname");
 static const char* rname_cs("rname");
 static const char* title_cs("title");
 static const char* text_cs("text");
