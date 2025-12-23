@@ -132,7 +132,7 @@ EXF_LAYOUT = [
             body_font_size_base=8,
             button_font='CourierNew',
             button_font_size_base=12,
-            cname='depth_summary_result',
+            qname='depth_summary',
             geom='Vanilla',     # redundant as summary table is always Vanilla
             window_flags = WindowFlags.ALWAYS_AUTO_RESIZE | WindowFlags.HORIZONTAL_SCROLLBAR
         ),
