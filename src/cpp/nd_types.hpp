@@ -8,7 +8,18 @@
 class Facade;
 using FacadeMap = std::map<std::string, Facade*>;
 
-typedef std::function<void(const std::string&)> ws_sender;
+using WebSockSenderFunc = std::function<void(const std::string&)>;
+using MessagePumpFunc = std::function<void()>;
+
+// DuckDBWebCache chunk helpers
+using RegChunkFunc = std::function<void(const std::string&, int, int)>;
+struct Chunk {
+    Chunk(int sz, int address) :size(sz), addr(address) {}
+    int size;
+    int addr;
+};
+using ChunkVec = std::vector<Chunk>;
+using ChunkMap = std::map<std::string, ChunkVec>;
 
 // DuckDB helpers for DuckDB-WASM.
 // types = 2, 10, 3, 2, 3, 3, 2, 2, 10, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2, 10, 10
