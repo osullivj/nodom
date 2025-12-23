@@ -23,11 +23,7 @@
 // wesock API. See emscripten/websocket.h and 
 // https://gist.github.com/nus/564e9e57e4c107faa1a45b8332c265b9
 
-
 static constexpr int ND_MAX_COMBO_LIST{ 16 };
-
-using WebSockSenderFunc = std::function<void(const std::string&)>;
-using MessagePumpFunc = std::function<void()>;
 
 struct GLFWwindow;
 
@@ -514,7 +510,6 @@ protected:
         // copy local copy back into cache
         if (input_integer != old_val) {
             JSet(data, cname_cache_addr.c_str(), input_integer);
-            // TODO: mv semantics so notify_server can own the params
             JSON j_old_val(old_val);
             JSON j_input_int(input_integer);
             notify_server(cname_cache_addr, j_old_val, j_input_int);
@@ -607,8 +602,6 @@ protected:
             return;
         }
         const JSON& cspec(w[cspec_cs]);
-        // TODO: optimise local vars: these cspec are not cache refs so could
-        // bound at startup time...
         bool db = JAsBool(cspec, "db");
         bool fps = JAsBool(cspec, "fps");
         // TODO: config demo mode so it can be switched on/off in prod
@@ -621,7 +614,7 @@ protected:
             // Push colour styling for the DB button
             ImGui::PushStyleColor(ImGuiCol_Button, (ImU32)db_status_color);
             if (ImGui::Button("DB")) {
-                // TODO: main.ts raises a new browser tab here...
+                // TODO: browser tab for DuckDB shell
             }
             ImGui::PopStyleColor(1);
         }
@@ -755,13 +748,13 @@ protected:
             "cnt", "null"   // DUCKDB_TYPE_BIGINT, DUCKDB_TYPE_DECIMAL
         };
 
-        if (!JContains(w, cspec_cs) || !JContains(w[cspec_cs], cname_cs) || !JContains(w[cspec_cs], title_cs)) {
+        if (!JContains(w, cspec_cs) || !JContains(w[cspec_cs], qname_cs) || !JContains(w[cspec_cs], title_cs)) {
             NDLogger::cerr() << method << "bad cspec in: " << w << std::endl;
             return;
         }
         const JSON& cspec(w[cspec_cs]);
-        const std::string cname(JAsString(cspec, cname_cs));
-        std::string title(cname);
+        const std::string qname(JAsString(cspec, qname_cs));
+        std::string title(qname);
         if (JContains(cspec, title_cs))
             title = JAsString(cspec, title_cs);
 
@@ -783,7 +776,7 @@ protected:
         // Always center this window when appearing
         ImGuiViewport* vp = ImGui::GetMainViewport();
         if (!vp) {
-            NDLogger::cerr() << method << cname << ": null viewport ptr!" << std::endl;
+            NDLogger::cerr() << method << qname << ": null viewport ptr!" << std::endl;
             return;
         }
         auto center = vp->GetCenter();
@@ -798,13 +791,13 @@ protected:
                 body_pop = push_font(w, body_font_cs, body_font_size_base_cs);
 
             // JSON handle(data[cname]);
-            std::uint64_t result_handle = proxy.get_handle(data, cname);
+            std::uint64_t result_handle = proxy.get_handle(data, qname);
             // NDLogger::cout() << method << "result_handle: " << std::hex << result_handle << std::endl;
             if (!result_handle) {
-                NDLogger::cerr() << method << cname << ": null result_handle!" << std::endl;
+                NDLogger::cerr() << method << qname << ": null result_handle!" << std::endl;
                 return;
             }
-            if (ImGui::BeginTable(cname.c_str(), colm_count, table_flags)) {
+            if (ImGui::BeginTable(qname.c_str(), colm_count, table_flags)) {
                 for (colm_index = 0; colm_index < colm_count; colm_index++) {
                     ImGui::TableSetupColumn(colm_names[colm_index]);
                 }
