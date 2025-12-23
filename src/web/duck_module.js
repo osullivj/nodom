@@ -62,7 +62,7 @@ var on_db_result = function(result_object) {
 
 if (typeof Module !== 'undefined') {
     let on_db_result_cpp = Module.cwrap('on_db_result_cpp', 'void', ['object']);
-    let get_chunk_cpp = Module.cwrap('get_chunk_cpp', 'number', ['number']);
+    let get_chunk_cpp = Module.cwrap('get_chunk_cpp', 'number', ['string', 'number']);
     let on_chunk_cpp = Module.cwrap('on_chunk_cpp', 'void', ['number']);
     on_db_result = function(result_object) {
         let result_handle = Emval.toHandle(result_object);
@@ -109,7 +109,7 @@ function get_value(x) {
 }
 
 
-function batch_materializer(batch) {
+function batch_materializer(qid, batch) {
     // First, extract metadata from batch...
     let row_count = batch.numRows;
     let types = batch.schema.fields.map((d) => d.type.typeId);
@@ -134,7 +134,7 @@ function batch_materializer(batch) {
     buffer_size += (types.length + names_sum_length) + 3; // 3 for done, cols, row_count
     // Get C++ wasm to create buffer. NB cwrapped funcs not
     // recognised inside the generator, so we Module.ccall
-    let buffer_offset = Module.ccall('get_chunk_cpp', 'number', ['number'], [buffer_size]);
+    let buffer_offset = Module.ccall('get_chunk_cpp', 'number', ['string', 'number'], [qid, buffer_size]);
     // Now create Uint64Array with underlying storage buffer_offset, which is a uint64_t ptr,
     // so guaranteed to be on an 8 byte boundary. So we know that will work for
     // 32,16 and 8 arrays. Note the element count adjustment in buffer_size/2.
@@ -218,9 +218,9 @@ function batch_materializer(batch) {
     return buffer_offset;
 }
 
-async function* batch_generator(duck_result) {
+async function* batch_generator(query_id, duck_result) {
     for await (const batch of duck_result) {
-        yield batch_materializer(batch);  
+        yield batch_materializer(query_id, batch);  
     }
 }
 
@@ -241,7 +241,7 @@ self.onmessage = async (event) => {
         case "Query":
             duck_result = await exec_duck_db_query(nd_db_request.sql);
             console.log("duck_module: QueryResult: " + nd_db_request.query_id + "\n");
-            batch_gen = batch_generator(duck_result);
+            batch_gen = batch_generator(nd_db_request.query_id, duck_result);
             global_query_map.set(nd_db_request.query_id, batch_gen);
             let query_result = {nd_type:"QueryResult",query_id:nd_db_request.query_id};
             on_db_result(query_result);
