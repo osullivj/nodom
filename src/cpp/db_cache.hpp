@@ -70,7 +70,7 @@ protected:
     boost::condition_variable           query_cond;
     boost::thread                       db_thread;
     // ref to NDWebSockClient::send
-    ws_sender                           ws_send;
+    WebSockSenderFunc                   ws_send;
     bool                                done{ false };
 public:
     BreadBoardDBCache() {
@@ -261,6 +261,7 @@ public:
     std::uint64_t get_handle(nlohmann::json& ctx_data, const std::string& cname) {
         static const char* method = "DuckDBCache::get_handle: ";
 
+        // TODO: get handle from ChunkVec
         nlohmann::json handle_array = JAsHandle(ctx_data, cname.c_str());
 
         if (handle_array.type() != nlohmann::json::value_t::array) {
@@ -420,6 +421,7 @@ private:
     std::unordered_map<std::uint64_t, std::vector<std::string>> column_map;
     std::unordered_map<std::uint64_t, std::vector<int>> type_map;
     std::unordered_map<std::uint64_t, std::vector<std::uint32_t>> caddr_map;
+    ChunkMap    chunk_map;
 protected:
     char string_buffer[STR_BUF_LEN];
     std::queue<emscripten::val>          db_queries;
@@ -435,11 +437,16 @@ public:
         return JContains(window_global, __nodom__cs);
     }
 
-    // register this function with DBResultDispatcher
-    // at startup time
+    // register with DBResultDispatcher at startup time
     void add_db_response(emscripten::EM_VAL result_handle) {
         emscripten::val result = emscripten::val::take_ownership(result_handle);
         db_results.push(result);
+    }
+
+    void register_chunk(const char* qid, int size, int addr) {
+        // Will ctor ChunkVec on first batch...
+        ChunkVec& chunk_vector = chunk_map[qid];
+        chunk_vector.emplace_back(Chunk(size, addr));
     }
 
     // standard DB methods implemented by every cache
@@ -458,14 +465,21 @@ public:
     }
 
     // GUI thread methods for accessing the data
-    std::uint64_t get_handle(emscripten::val& ctx_data, const std::string& cname) {
+    std::uint64_t get_handle(emscripten::val& ctx_data, const std::string& qname) {
         // DB handles are atomic in ems, unlike nlohmann where we split
         // the DuckDB C API 64bit ptr into two std::uint32
         // NB also note materialize in duck_module; the real
         // handle is one level down...
+        /*
         emscripten::val results(ctx_data[cname]);
         int chunk_addr = JAsInt(results, chunk_cs);
-        return static_cast<std::uint64_t>(chunk_addr);
+        return static_cast<std::uint64_t>(chunk_addr); */
+        auto cv_iter = chunk_map.find(qname);
+        if (cv_iter == chunk_map.end()) return 0;
+        ChunkVec& chunk_vector = chunk_map[qname];
+        if (chunk_vector.empty()) return 0;
+        Chunk& chunk(chunk_vector.back());
+        return chunk.addr;
     }
 
     std::uint64_t get_row_count(std::uint64_t handle) {
@@ -566,18 +580,21 @@ class DBResultDispatcher {
 private:
     DBResultDispatcher() {};
     Dispatcher dispatcher_func = nullptr;
+    RegChunkFunc reg_chunk_func = nullptr;
 public:
     static DBResultDispatcher& get_instance() {
         static DBResultDispatcher instance;
         return instance;
     }
     void set_dispatcher(Dispatcher df) { dispatcher_func = df; }
+    void set_reg_chunk(RegChunkFunc cf) { reg_chunk_func = cf; }
     void dispatch(emscripten::EM_VAL result_handle) {
-        if (dispatcher_func == nullptr) {
-            fprintf(stdout, "NULL DBResultDispatcher func\n");
-            return;
-        }
-        dispatcher_func(result_handle);
+        if (dispatcher_func != nullptr) dispatcher_func(result_handle);
+        else fprintf(stdout, "NULL DBResultDispatcher func\n");
+    }
+    void register_chunk(const std::string& qid, int sz, int addr) {
+        if (reg_chunk_func != nullptr) reg_chunk_func(qid, sz, addr);
+        else fprintf(stdout, "NULL RegChunkFunc func\n");       
     }
 };
 
@@ -587,7 +604,7 @@ extern "C" {
         d.dispatch(result_handle);
     }
 
-    int get_chunk_cpp(int size) {
+    int get_chunk_cpp(const char* qid, int size) {
         // size in 64bit words
         const static char* method = "get_chunk_cpp";
         // batch_materializer calls us to get a handle on WASM memory
@@ -597,6 +614,8 @@ extern "C" {
         memset(buffer, 0, size * 8);
         int buffer_address = reinterpret_cast<int>(buffer);
         printf("%s: size: %d, buffer_address: %d\n", method, size, buffer_address);
+        auto d = DBResultDispatcher::get_instance();
+        d.register_chunk(qid, size, buffer_address);
         return buffer_address;
     }
 
