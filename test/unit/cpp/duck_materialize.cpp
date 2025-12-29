@@ -11,7 +11,7 @@ void printf_comma(int i, int col_count) {
     else printf(",");
 }
 
-int sprintf_value(char* cbuf, uint32_t* chunk_ptr, int bptr, uint32_t tipe, int row_index) {
+void sprintf_value(char* cbuf, uint32_t* chunk_ptr, int bptr, uint32_t tipe, int row_index) {
     DuckType dt{ tipe };
     uint32_t* ui32data = &(chunk_ptr[bptr]);
     int32_t* i32data = nullptr;
@@ -23,21 +23,27 @@ int sprintf_value(char* cbuf, uint32_t* chunk_ptr, int bptr, uint32_t tipe, int 
     case DuckType::Int32:
         i32data = reinterpret_cast<int32_t*>(ui32data);
         sprintf(cbuf, "[%d]=%d", row_index, *i32data);
-        return DuckTypeToSize(dt);
+        break;
     case DuckType::Float64:
         dbldata = reinterpret_cast<double*>(ui32data);
         sprintf(cbuf, "[%d]=%f", row_index, *dbldata);
-        return DuckTypeToSize(dt);
+        break;
+    case DuckType::Utf8:    // null term trunc to 8 bytes
+        // dbldata = reinterpret_cast<double*>(ui32data);
+        sprintf(cbuf, "[%d]=%s", row_index, ui32data);
+        break;
     case DuckType::Timestamp_micro:
         timdata = reinterpret_cast<time_t*>(ui32data);
         tmdata = gmtime(timdata);
         sprintf(cbuf, "[%d]=", row_index);
         strftime(cbuf+strlen(cbuf), sizeof(cbuf), "%Y%m%dT%I:%M:%S.%p", tmdata);
-        return DuckTypeToSize(dt);
+        break;
     default:
         sprintf(cbuf, "[%d]=%s", row_index, "unk");
-        return 0;
+        break;
     }
+    printf(cbuf);
+    printf("\n");
 }
 
 extern "C" {
@@ -54,7 +60,7 @@ extern "C" {
         std::cout << std::endl;
     }
 
-    int get_chunk_cpp(int size) {
+    int get_chunk_cpp(const char* qid, int size) {
         const static char* method = "get_chunk_cpp";
         // batch_materializer calls us to get a handle on WASM memory
         // https://stackoverflow.com/questions/56010390/emscripten-how-to-get-uint8-t-array-from-c-to-javascript
@@ -62,7 +68,7 @@ extern "C" {
         uint64_t* buffer = new uint64_t[size];
         memset(buffer, 0, size*8);
         int buffer_address = reinterpret_cast<int>(buffer);
-        printf("%s: size: %d, buffer_address: %d\n", method, size, buffer_address);
+        printf("%s: size: %d, buffer_address: %d, qid: %s\n", method, size, buffer_address, qid);
         return buffer_address;
     }
 
@@ -115,10 +121,9 @@ extern "C" {
             int tipe = chunk_ptr[bptr++];
             int stored_sz = chunk_ptr[bptr++];
             const std::string& name(col_names[i]);
-            int calced_sz = sprintf_value(cbuf, chunk_ptr, bptr, tipe, 0);
-            assert(stored_sz == calced_sz);
             printf("%s type(%d) sz(%d) rows(%d)\n", name.c_str(), tipe, stored_sz, row_count);
             int stride = stored_sz / 4;    // 1 for 4 bytes, 2 for 8 bytes
+            sprintf_value(cbuf, chunk_ptr, bptr, tipe, 0);
             sprintf_value(cbuf, chunk_ptr, bptr+stride, tipe, 1);
             sprintf_value(cbuf, chunk_ptr, bptr+(stride*(row_count-1)), tipe, row_count-1);
             sprintf_value(cbuf, chunk_ptr, bptr+(stride*row_count), tipe, row_count);
