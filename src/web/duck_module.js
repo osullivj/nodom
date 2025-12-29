@@ -86,6 +86,7 @@ async function exec_duck_db_query(sql) {
 
 // 2: Int32: 4 bytes
 // 3: Float64: 8 bytes
+// 5:
 // 10: Timestamp_ms: 4 bytes
 function get_duck_type_size(tipe) {
     switch (tipe) {
@@ -95,7 +96,7 @@ function get_duck_type_size(tipe) {
         case 3:         // Float64
             return 8;   // 8 bytes wide
         case 5:
-            return 0;   // varchar undefnd len
+            return 8;   // varchar trunc/pad to 8
     };
     return -1;
 }
@@ -168,14 +169,26 @@ function batch_materializer(qid, batch) {
         let vec = batch.getChildAt(ic);
         let tipe = types[ic]
         let sz = get_duck_type_size(tipe);
-        console.log('batch_materializer: tipe='+tipe+', sz='+sz+'\n');
+        console.log('batch_materializer: ic='+ic+', bptr='+bptr+', tipe='+tipe+', sz='+sz+'\n');
         // record the addr of the column
         heap32[caddr+ic] = bptr;
          // tipe(32) and count(32) as sanity checks at head of col
         heap32[bptr++] = tipe;
         heap32[bptr++] = sz;
         // Use heap32 or heap64 depending on column size
-        if (sz == 4) {          // continue with heap32
+        if (tipe == 5) {    // string
+            // varchar: variable length. We'll take 8 or less bytes,
+            // and store them via stringToUTF8
+            let bptr8 = bptr * 4;
+            for (var ir = 0; ir < row_count; ir++) {
+                let sval = JSON.stringify(vec.get(ir));
+                // bptr is the HEAPU32 ptr, 
+                // so div 4 to address as bytes
+                stringToUTF8(sval, bptr8, 8);
+            }
+            bptr += row_count * 2;
+        }
+        else if (sz == 4) {          // continue with heap32
             for (var ir = 0; ir < row_count; ir++) {
                 heap32[bptr+ir] = vec[ir];
             }
@@ -189,18 +202,6 @@ function batch_materializer(qid, batch) {
             let bptr64 = bptr/2;
             for (var ir = 0; ir < row_count; ir++) {
                 dbl_heap64[bptr64+ir] = get_value(vec.get(ir));
-            }
-            bptr += row_count * 2;
-        }
-        else if (sz == 0) {
-            // varchar: variable length. We'll take 8 or less bytes,
-            // and store them via stringToUTF8
-            let bptr8 = bptr * 4;
-            for (var ir = 0; ir < row_count; ir++) {
-                let sval = JSON.stringify(vec.get(ir));
-                // bptr is the HEAPU32 ptr, 
-                // so div 4 to address as bytes
-                stringToUTF8(sval, bptr8, 8);
             }
             bptr += row_count * 2;
         }
