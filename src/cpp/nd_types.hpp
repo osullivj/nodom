@@ -56,7 +56,7 @@ int DuckTypeToSize(DuckType dt) {
     case DuckType::Timestamp_micro:
         return 4;
     case DuckType::Utf8:
-        return 0;
+        return 8;
     }
     return -1;
 }
