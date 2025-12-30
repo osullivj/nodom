@@ -106,6 +106,7 @@ nlohmann::json JArray(const std::vector<V>& values) {
 	return nlohmann::json(values);
 }
 
+// TODO: rm JAsHandle
 template <>
 nlohmann::json JAsHandle(const nlohmann::json& data, const char* key) {
 	nlohmann::json handle_array = nlohmann::json::array();
