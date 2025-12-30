@@ -32,7 +32,7 @@ public:
 
     // Data access methods called by tables in NDContext. All DBCache
     // impls must provide these, even EmptyDBCache...
-    std::uint64_t get_handle(JSON& ctx_data, const std::string& cname) { return 0; }
+    std::uint64_t get_handle(const std::string& qid) { return 0; }
     std::uint64_t get_row_count(std::uint64_t handle) { return 0; }
     bool get_meta_data(std::uint64_t handle, std::uint64_t& column_count, std::uint64_t& row_count) {return false;}
     char* get_datum(std::uint64_t handle, std::uint64_t colm_index, std::uint64_t row_index) { return "NULL"; }
@@ -106,10 +106,15 @@ public:
 
 static constexpr int MAX_COLUMNS = 256;
 
+using ChunkDeque = std::deque<duckdb_data_chunk>;
+
 class DuckDBCache : public BreadBoardDBCache {
 private:
     duckdb_database                     duck_db;
     duckdb_connection                   duck_conn;
+
+    std::unordered_map<std::string, duckdb_result>  result_map;
+    std::unordered_map<std::string, ChunkDeque>     chunk_map;
 
     std::unordered_map<std::uint64_t, std::vector<duckdb_vector>> column_map;
     std::unordered_map<std::uint64_t, std::vector<uint64_t*>> validity_map;
@@ -169,7 +174,6 @@ public:
 
         nlohmann::json response_list_j = nlohmann::json::array();
         duckdb_state dbstate;
-        std::unordered_map<std::string, duckdb_result> result_map;
 
         // https://www.boost.org/doc/libs/1_34_0/doc/html/boost/condition.html
         // A condition object is always used in conjunction with a mutex object (an object
@@ -227,6 +231,7 @@ public:
                     }
                 }
                 else if (nd_type == batch_request_cs) {
+                    db_response[nd_type_cs] = batch_response_cs;
                     auto result_iter = result_map.find(qid);
                     if (result_iter == result_map.end()) {
                         db_response[error_cs] = 1;
@@ -235,6 +240,9 @@ public:
                     else {
                         db_response[error_cs] = 0;
                         duckdb_data_chunk chunk = duckdb_fetch_chunk(result_iter->second);
+                        ChunkDeque& chunk_deck(chunk_map[qid]);
+                        chunk_deck.push_back(chunk);
+                        /*
                         std::uint64_t chunk_ptr = reinterpret_cast<std::uint64_t>(chunk);
                         // NB [0] is the low word, and has the top 32bits sliced off
                         //    [1] is the high word, so we right shift by 32bits to discard the bottom 32 
@@ -242,7 +250,7 @@ public:
                         std::cout << method << qid << " chunk_ptr: " << std::hex << chunk_ptr
                             << ", chunk_array: " << chunk_array << std::endl;
                         db_response[chunk_cs] = chunk_array;
-                        db_response[nd_type_cs] = batch_response_cs;
+                        */
                     }
                 }
                 // lock the result queue and post back to the GUI thread
@@ -258,36 +266,12 @@ public:
     }
 
     // GUI thread methods for accessing the data
-    std::uint64_t get_handle(nlohmann::json& ctx_data, const std::string& cname) {
+    std::uint64_t get_handle(const std::string& qid) {
         static const char* method = "DuckDBCache::get_handle: ";
-
-        // TODO: get handle from ChunkVec
-        nlohmann::json handle_array = JAsHandle(ctx_data, cname.c_str());
-
-        if (handle_array.type() != nlohmann::json::value_t::array) {
-            std::cerr << method << "handle_array: " << handle_array 
-                << "isn't an array!" << std::endl;
+        ChunkDeque& chunk_deck(chunk_map[qid]);
+        if (chunk_deck.empty())
             return 0;
-        }
-        if (handle_array.size() != 2) {
-            std::cerr << method << "handle_array: " << handle_array
-                << "isn't two elements!" << std::endl;
-            return 0;
-        }
-        if (handle_array[0].type() != nlohmann::json::value_t::number_unsigned
-            || handle_array[1].type() != nlohmann::json::value_t::number_unsigned) {
-            std::cerr << method << "handle_array: " << handle_array
-                << "isn't two number_unsigned!" << std::endl;
-            return 0;
-        }
-
-        std::uint64_t chunk_lo = handle_array[0];
-        std::uint64_t chunk_hi = static_cast<uint64_t>(handle_array[1]) << 32;
-        std::uint64_t chunk_ptr = chunk_hi + chunk_lo;
-        std::cout << method << "chunk_ptr: " << chunk_hi << "," << chunk_lo << std::endl;
-        std::cout << method << "chunk_ptr: " << std::hex << chunk_ptr << std::endl;
-        duckdb_data_chunk chunk = reinterpret_cast<duckdb_data_chunk>(chunk_ptr);
-        return reinterpret_cast<std::uint64_t>(chunk);
+        return reinterpret_cast<std::uint64_t>(chunk_deck.back());
     }
 
     std::uint64_t get_row_count(std::uint64_t handle) {
