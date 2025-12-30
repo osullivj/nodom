@@ -261,11 +261,6 @@ public:
         }
         else if (nd_type == batch_response_cs) {
             db_status_color = green;
-            // this logic is specific to the BB DuckDBCache,
-            // where we pass a raw C ptr in a JSON array
-            JSON result_handle = JAsHandle(db_msg, chunk_cs);
-            std::string cname = qid + "_result";
-            JSet(data, cname.c_str(), result_handle);
         }
         else if (nd_type == "DuckInstance") {
             // TODO: q processing order means this doesn't happen so early in cpp
@@ -790,8 +785,7 @@ protected:
             if (JContains(cspec, (body_font_cs)))
                 body_pop = push_font(w, body_font_cs, body_font_size_base_cs);
 
-            // JSON handle(data[cname]);
-            std::uint64_t result_handle = proxy.get_handle(data, qname);
+            std::uint64_t result_handle = proxy.get_handle(qname);
             // NDLogger::cout() << method << "result_handle: " << std::hex << result_handle << std::endl;
             if (!result_handle) {
                 NDLogger::cerr() << method << qname << ": null result_handle!" << std::endl;
