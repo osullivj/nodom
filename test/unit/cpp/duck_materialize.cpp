@@ -133,8 +133,8 @@ extern "C" {
             int stride = stored_sz / 4;    // 1 for 4 bytes, 2 for 8 bytes
             sprintf_value(cbuf, chunk_ptr, bptr, tipe, 0);
             sprintf_value(cbuf, chunk_ptr, bptr+stride, tipe, 1);
+            sprintf_value(cbuf, chunk_ptr, bptr+(stride*(row_count-2)), tipe, row_count-2);
             sprintf_value(cbuf, chunk_ptr, bptr+(stride*(row_count-1)), tipe, row_count-1);
-            sprintf_value(cbuf, chunk_ptr, bptr+(stride*row_count), tipe, row_count);
             bptr += stride * row_count;
         }
     }
