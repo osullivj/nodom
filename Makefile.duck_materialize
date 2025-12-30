@@ -43,7 +43,7 @@ EMS =
 EMS += -s DISABLE_EXCEPTION_CATCHING=1
 # EMS += -s DISABLE_EXCEPTION_CATCHING=0
 # EMS +=  --use-port=contrib.glfw3 
-LDFLAGS += -sEXPORTED_FUNCTIONS=_on_db_result_cpp,_malloc,_get_chunk_cpp,_on_chunk_cpp -sEXPORTED_RUNTIME_METHODS=ccall,cwrap,HEAPU8,HEAPU16,HEAPU32,HEAPU64
+LDFLAGS += -sEXPORTED_FUNCTIONS=_on_db_result_cpp,_malloc,_get_chunk_cpp,_on_chunk_cpp -sEXPORTED_RUNTIME_METHODS=ccall,cwrap,HEAPU8,HEAPU16,HEAPU32,HEAPU64,stringToUTF8
 LDFLAGS += -s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s NO_EXIT_RUNTIME=0
 LDFLAGS += -s ASSERTIONS=1 -lembind  -lwebsocket.js -lidbstore.js
 
