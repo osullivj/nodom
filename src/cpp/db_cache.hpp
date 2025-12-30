@@ -449,15 +449,7 @@ public:
     }
 
     // GUI thread methods for accessing the data
-    std::uint64_t get_handle(emscripten::val& ctx_data, const std::string& qname) {
-        // DB handles are atomic in ems, unlike nlohmann where we split
-        // the DuckDB C API 64bit ptr into two std::uint32
-        // NB also note materialize in duck_module; the real
-        // handle is one level down...
-        /*
-        emscripten::val results(ctx_data[cname]);
-        int chunk_addr = JAsInt(results, chunk_cs);
-        return static_cast<std::uint64_t>(chunk_addr); */
+    std::uint64_t get_handle(const std::string& qname) {
         auto cv_iter = chunk_map.find(qname);
         if (cv_iter == chunk_map.end()) return 0;
         ChunkVec& chunk_vector = chunk_map[qname];
@@ -507,7 +499,7 @@ public:
     }
 
     char* get_datum(std::uint64_t handle, std::uint64_t colm_index, std::uint64_t row_index) {
-        const static char* method = "DuckDBWebCache::db_dispatch: ";
+        const static char* method = "DuckDBWebCache::get_datum: ";
         // First block in a chunk is metadata, so calc the skip fwd...
         uint32_t* chunk_ptr = reinterpret_cast<uint32_t*>(handle);
         std::vector<int>& tipes = type_map[handle];
