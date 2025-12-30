@@ -112,12 +112,17 @@ extern "C" {
             col_names.push_back(name);
         }
         // And now the columns themselves. Each one has
-        // a type(32),row_count(32) preamble.
-        printf("%s: COLUMNS\n", method);
+        // a type(32),row_count(32) preamble. We check the
+        // lo bit of bptr first to see if it's "odd" ie on
+        // a 4 byte boundary.
+        printf("%s: COLUMNS bptr(%d)\n", method, bptr);
         char cbuf[128];
         for (int i = 0; i < col_count; i++) {
             // mv bptr fwd to next 8 byte boundary
-            if (bptr % 2) bptr++;
+            if (bptr & 1) {
+                bptr++;
+                printf("%s: incremented bptr to %d");
+            }
             int tipe = chunk_ptr[bptr++];
             int stored_sz = chunk_ptr[bptr++];
             const std::string& name(col_names[i]);
