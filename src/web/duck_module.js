@@ -179,7 +179,7 @@ function batch_materializer(qid, batch) {
         if (tipe == 5) {    // string
             // varchar: variable length. We'll take 8 or less bytes,
             // and store them via stringToUTF8
-            let bptr8 = bptr * 4;
+            let bptr8 = buffer_offset + (bptr * 4);
             for (var ir = 0; ir < row_count; ir++) {
                 let sval = JSON.stringify(vec.get(ir));
                 // bptr is the HEAPU32 ptr, 
