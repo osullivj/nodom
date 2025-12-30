@@ -121,7 +121,10 @@ extern "C" {
             // mv bptr fwd to next 8 byte boundary
             if (bptr & 1) {
                 bptr++;
-                printf("%s: incremented bptr to %d");
+                printf("%s: incremented bptr to %d\n", method, bptr);
+            }
+            else {
+                printf("%s:             bptr on %d\n", method, bptr);
             }
             int tipe = chunk_ptr[bptr++];
             int stored_sz = chunk_ptr[bptr++];
