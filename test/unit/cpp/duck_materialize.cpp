@@ -29,7 +29,6 @@ void sprintf_value(char* cbuf, uint32_t* chunk_ptr, int bptr, uint32_t tipe, int
         sprintf(cbuf, "[%d]=%f", row_index, *dbldata);
         break;
     case DuckType::Utf8:    // null term trunc to 8 bytes
-        // dbldata = reinterpret_cast<double*>(ui32data);
         sprintf(cbuf, "[%d]=%s", row_index, ui32data);
         break;
     case DuckType::Timestamp_micro:
