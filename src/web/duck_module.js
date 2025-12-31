@@ -196,8 +196,16 @@ function batch_materializer(qid, batch) {
             bptr += row_count * 2;
         }
         else if (sz == 4) {          // continue with heap32
-            for (var ir = 0; ir < row_count; ir++) {
-                heap32[bptr+ir] = vec.get(ir);
+            if (tipe == 10) {   // timestamp
+                for (var ir = 0; ir < row_count; ir++) {
+                    let tval = vec.get(ir);
+                    heap32[bptr+ir] = JSON.stringify(tval);
+                }
+            }
+            else {              // Int32
+                for (var ir = 0; ir < row_count; ir++) {
+                    heap32[bptr+ir] = vec.get(ir);
+                }
             }
             bptr += row_count;
         }
