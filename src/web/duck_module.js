@@ -55,6 +55,8 @@ window.postMessage({nd_type:"DuckInstance"});
 // JSON serialization monkey poatch for BigInt supplied in DuckDB results
 BigInt.prototype.toJSON = function() {return this.toString(10);};
 
+const nd_null = "null";
+
 // var on_db_result to allow redefinition if emscripten Module is defined
 var on_db_result = function(result_object) {
     console.log("on_db_result: " + JSON.stringify(result_object, null, 2));
@@ -181,7 +183,11 @@ function batch_materializer(qid, batch) {
             // and store them via stringToUTF8
             let bptr8 = buffer_offset + (bptr * 4);
             for (var ir = 0; ir < row_count; ir++) {
+                // JSON.stringify handles vec.get(ir) returning
+                // null gracefully, unlike toString()
                 let sval = JSON.stringify(vec.get(ir));
+                // strip away quotes
+                sval = sval.replaceAll('"','');
                 // we'll use 8 bytes per str to show a max
                 // of 7 chars to keep a regular stride,
                 stringToUTF8(sval, bptr8, 8);
