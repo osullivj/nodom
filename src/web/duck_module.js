@@ -182,9 +182,10 @@ function batch_materializer(qid, batch) {
             let bptr8 = buffer_offset + (bptr * 4);
             for (var ir = 0; ir < row_count; ir++) {
                 let sval = JSON.stringify(vec.get(ir));
-                // stringToUTF8 returns bytes written,
-                // not including null term, hence +1
-                bptr8 += 1 + stringToUTF8(sval, bptr8, 8);
+                // we'll use 8 bytes per str to show a max
+                // of 7 chars to keep a regular stride,
+                stringToUTF8(sval, bptr8, 8);
+                bptr8 += 8;
             }
             bptr += row_count * 2;
         }
