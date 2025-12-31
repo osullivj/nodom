@@ -197,7 +197,7 @@ function batch_materializer(qid, batch) {
         }
         else if (sz == 4) {          // continue with heap32
             for (var ir = 0; ir < row_count; ir++) {
-                heap32[bptr+ir] = vec[ir];
+                heap32[bptr+ir] = vec.get(ir);
             }
             bptr += row_count;
         }
