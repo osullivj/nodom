@@ -22,23 +22,23 @@ using ChunkVec = std::vector<Chunk>;
 using ChunkMap = std::map<std::string, ChunkVec>;
 
 // DuckDB helpers for DuckDB-WASM.
-// types = 2, 10, 3, 2, 3, 3, 2, 2, 10, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2, 10, 10
-// typ_o = Int32, Timestamp<MICROSECOND>, Float64, Int32, Float64, Float64, Int32, Int32, Timestamp<MICROSECOND>, Int32, Int32, Int32, Int32, Int32, Int32, Int32, Int32, Int32, Int32, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Float64, Int32, Timestamp<MICROSECOND>, Timestamp<MICROSECOND>
-// batch_materializer JS code stores type as uint32
-// ND these enums are not the same as duckdb.h!
+// ND these enums are not the same as duckdb.h
+// These are arrow-js enums...
+// https://github.com/apache/arrow-js/blob/main/src/enum.ts
+// ...so do not make size explicit like C/C++ types.
 enum DuckType : uint32_t {
-    Int32 = 2,
-    Timestamp_micro = 10,
-    Float64 = 3,
-    Utf8 = 5
+    Int = 2,
+    Float = 3,
+    Utf8 = 5,
+    Timestamp_micro = 10
 };
 
 const char* DuckTypeToString(DuckType dt) {
     switch (dt) {
-    case DuckType::Int32:
-        return "Int32";
-    case DuckType::Float64:
-        return "Float64";
+    case DuckType::Int:
+        return "Int";
+    case DuckType::Float:
+        return "Float";
     case DuckType::Timestamp_micro:
         return "Timestamp_micro";
     case DuckType::Utf8:
@@ -49,16 +49,16 @@ const char* DuckTypeToString(DuckType dt) {
 
 int DuckTypeToSize(DuckType dt) {
     switch (dt) {
-    case DuckType::Int32:
+    case DuckType::Int:
         return 4;
-    case DuckType::Float64:
+    case DuckType::Float:
         return 8;
     case DuckType::Timestamp_micro:
-        return 4;
+        return 8;
     case DuckType::Utf8:
         return 8;
     }
-    return -1;
+    return 0;
 }
 
 
