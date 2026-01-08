@@ -3,6 +3,7 @@
 #include <string>
 #include <iostream>
 #include <emscripten/val.h>
+#include <time.h>
 #include "nd_types.hpp"
 
 
@@ -15,25 +16,33 @@ void sprintf_value(char* cbuf, uint32_t* chunk_ptr, int bptr, uint32_t tipe, int
     DuckType dt{ tipe };
     uint32_t* ui32data = &(chunk_ptr[bptr]);
     int32_t* i32data = nullptr;
+    int64_t* i64data = nullptr;
     double* dbldata = nullptr;
-    time_t* timdata = nullptr;
+    // time_t* timdata = nullptr;
     tm* tmdata = nullptr;
+    static time_t timdata{ 0 };
+    static double dubble{ 0.0 };
+    static uint32_t uint32{ 0 };
 
     switch (dt) {
-    case DuckType::Int32:
+    case DuckType::Int:     // stride 4
         i32data = reinterpret_cast<int32_t*>(ui32data);
         sprintf(cbuf, "[%d]=%d", row_index, *i32data);
         break;
-    case DuckType::Float64:
+    case DuckType::Float:   // stride 8
         dbldata = reinterpret_cast<double*>(ui32data);
         sprintf(cbuf, "[%d]=%f", row_index, *dbldata);
         break;
     case DuckType::Utf8:    // null term trunc to 8 bytes
-        sprintf(cbuf, "[%d]=%s", row_index, ui32data);
+        sprintf(cbuf, "[%d]=%s", row_index, (char*)ui32data);
         break;
-    case DuckType::Timestamp_micro:
-        timdata = reinterpret_cast<time_t*>(ui32data);
-        tmdata = gmtime(timdata);
+    case DuckType::Timestamp_micro: // stored as dbl64...
+        // ...but value is Unix micros since epoch
+        dbldata = reinterpret_cast<double*>(ui32data);
+        dubble = *dbldata;
+        uint32 = static_cast<uint32_t>(dubble);
+        timdata = static_cast<time_t>(uint32);
+        tmdata = gmtime(&timdata);
         sprintf(cbuf, "[%d]=", row_index);
         strftime(cbuf+strlen(cbuf), sizeof(cbuf), "%Y%m%dT%I:%M:%S.%p", tmdata);
         break;
