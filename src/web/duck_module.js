@@ -37,7 +37,14 @@ await duck_db.instantiate(bundle.mainModule, bundle.pthreadWorker);
 URL.revokeObjectURL(db_worker_url);
 await duck_db.open({
     query: { 
-        // castBigIntToDouble: true, 
+        // DuckDB config: we take TS as dbl not BigInt
+        // BigInt holding TS micro eg 1,220,227,200,000===2008-09-01 TS
+        // and needs 47 bits: 011C 1B35 7400. So will fit in JS number.
+        // castTimestampToDate
+        //     true:Date64<millis>
+        //     false:Timestamp<microsecond>
+        castTimestampToDate: false,
+        castBigIntToDouble: true, 
         castDecimalToDouble: true
     },
 });
@@ -86,25 +93,28 @@ async function exec_duck_db_query(sql) {
     return duck_result;
 }
 
-// 2: Int32: 4 bytes
-// 3: Float64: 8 bytes
-// 5:
-// 10: Timestamp_ms: 4 bytes
+// DuckDB-WASM uses Apache Arrow JS as the result set API
+// Which is NOT isomorphic with the DuckDB C API as there
+// is no [u]int8, [u]int16, [u]int32, [u]int64 etc.
+// https://github.com/apache/arrow-js/blob/main/src/enum.ts
+// Here we decide how many WASM bytes are used to store
+// the arrow-js type
 function get_duck_type_size(tipe) {
     switch (tipe) {
-        case 2:         // Int32
-        case 10:        // Timestamp_micro
-            return 4;   // 4 bytes wide
-        case 3:         // Float64
+        case 3:         // Float
+        case 5:         // Utf8
+        case 8:         // Date: int32_t days or int64_t milliseconds since the UNIX epoch
+        case 10:        // Timestamp: Exact timestamp encoded with int64 since UNIX epoch (Default unit millisecond)
             return 8;   // 8 bytes wide
-        case 5:
-            return 8;   // varchar trunc/pad to 8
+        case 2:         // Int: Signed or unsigned 8, 16, 32, or 64-bit little-endian integer
+            return 4;   // 4 bytes wide
     };
-    return -1;
+    return 0;
 }
 
 
-function get_value(x) {
+function get_value(x, tipe) {
+
     if (typeof x?.valueOf === 'function') {
         return x.valueOf();
     }
@@ -196,32 +206,34 @@ function batch_materializer(qid, batch) {
             bptr += row_count * 2;
         }
         else if (sz == 4) {          // continue with heap32
-            if (tipe == 10) {   // timestamp
-                for (var ir = 0; ir < row_count; ir++) {
-                    let tval = vec.get(ir);
-                    heap32[bptr+ir] = JSON.stringify(tval);
-                }
-            }
-            else {              // Int32
-                for (var ir = 0; ir < row_count; ir++) {
-                    heap32[bptr+ir] = vec.get(ir);
-                }
+            for (var ir = 0; ir < row_count; ir++) {
+                heap32[bptr+ir] = vec.get(ir);
             }
             bptr += row_count;
         }
         else if (sz == 8) {     // switch to heap64
+            // tipe:3|8|10,dbl,date,ts
             // At this point we know bptr is on an 8 byte boundary
             // because col block starts on 8 boundary, and we've
             // just written 8 above, so bptr/2 gives us the heap64
             // addr...
             let bptr64 = bptr/2;
             for (var ir = 0; ir < row_count; ir++) {
-                dbl_heap64[bptr64+ir] = get_value(vec.get(ir));
+                switch (tipe) {
+                case 3:     // Float
+                    dbl_heap64[bptr64+ir] = get_value(vec.get(ir), tipe);
+                    break;
+                case 8:     // Date
+                    break;
+                case 10:    // Timestamp stored as dbl
+                    dbl_heap64[bptr64+ir] = get_value(vec.get(ir), tipe);                
+                    break;
+                }
             }
             bptr += row_count * 2;
         }
         else {
-            let val = get_value(vec.get(0));
+            let val = get_value(vec.get(0), tipe);
             console.error('batch_materializer: bad sz!\n');
         }
     }
