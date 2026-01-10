@@ -1,29 +1,30 @@
 {
   "name": "nodom",
-  "version": "0.0.1",
-  "description": "NoDOM Web GUI",
-  "jest": {
-    "testPathIgnorePatterns": [
-      "<rootDir>\\node_modules",
-      "<rootDir>\\src",
-      "<rootDir>\\cfg",
-      "<rootDir>\\dat"
-    ],
-    "testRegex": "(.*(-|\\.)(test|spec)s?)\\.(ts|js)$",
-    "verbose": true
-  },
+  "version": "1.0.0",
+  "description": "NoDOM Web GUI: the [imgui-jswt](https://github.com/osullivj/imgui-jswt)\r and [h3gui](https://github.com/osullivj/h3gui) repos will be merged here.",
   "main": "index.js",
   "directories": {
     "test": "test"
   },
   "scripts": {
-    "test": "jest"
+    "test": "vitest"
   },
-  "author": "osullivj",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/osullivj/nodom.git"
+  },
+  "keywords": [],
+  "author": "",
   "license": "MIT",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/osullivj/nodom/issues"
+  },
+  "homepage": "https://github.com/osullivj/nodom#readme",
+  "devDependencies": {
+    "vitest": "^4.0.16"
+  },
   "dependencies": {
-    "apache-arrow": "^17.0.0",
-    "jest": "^30.2.0",
-    "jest-cli": "^30.2.0"
+    "apache-arrow": "^21.1.0"
   }
 }
