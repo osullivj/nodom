@@ -1,7 +1,7 @@
 {
   "name": "nodom",
   "version": "1.0.0",
-  "description": "NoDOM Web GUI: the [imgui-jswt](https://github.com/osullivj/imgui-jswt)\r and [h3gui](https://github.com/osullivj/h3gui) repos will be merged here.",
+  "description": "NoDOM WASM Web GUI",
   "main": "index.js",
   "directories": {
     "test": "test"
@@ -22,6 +22,7 @@
   },
   "homepage": "https://github.com/osullivj/nodom#readme",
   "devDependencies": {
+    "@vitest/ui": "^4.0.16",
     "vitest": "^4.0.16"
   },
   "dependencies": {
