@@ -14,6 +14,8 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
+
+// hacked to run in JS, not TS. JOS 2026-01-13
 import { describe, expect, test } from 'vitest';
 import { ArrowType, Binary,
     Bool, DateDay, DateMillisecond, Dictionary, Float64, Int32,
