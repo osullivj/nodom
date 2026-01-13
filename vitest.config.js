@@ -1,0 +1,21 @@
+import { defineConfig } from 'vitest/config';
+
+export default defineConfig({
+  test: {
+    // Enable jest-like global APIs (describe, it, expect)
+    globals: true,
+    // The environment where tests will run (e.g., 'node' or 'jsdom' for React/Vue)
+    environment: 'node',
+    // Path to setup files that run before each test file
+    // setupFiles: './vitest.setup.js',
+    // Pattern to find test files
+    include: ['./test/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    // Coverage configuration
+    coverage: {
+      provider: 'v8', // or 'istanbul'
+      reporter: ['text', 'json', 'html'],
+    },
+    reporters: ['default', 'html'], 
+    outputFile: './nodom_test_unit_js_results.json',
+  },
+});
