@@ -43,6 +43,7 @@ void sprintf_value(char* cbuf, uint32_t* chunk_ptr, int bptr, uint32_t tipe, int
         uint32 = static_cast<uint32_t>(dubble);
         timdata = static_cast<time_t>(uint32);
         tmdata = gmtime(&timdata);
+        fprintf(stdout, "TS_micro: dubble(%f) uint32(%d)", dubble, uint32);
         sprintf(cbuf, "[%d]=", row_index);
         strftime(cbuf+strlen(cbuf), sizeof(cbuf), "%Y%m%dT%I:%M:%S.%p", tmdata);
         break;
