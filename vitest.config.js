@@ -4,6 +4,8 @@ export default defineConfig({
   test: {
     // Enable jest-like global APIs (describe, it, expect)
     globals: true,
+    // Bail out and emit report on 1st failure
+    bail: 1,
     // The environment where tests will run (e.g., 'node' or 'jsdom' for React/Vue)
     environment: 'node',
     // Path to setup files that run before each test file
