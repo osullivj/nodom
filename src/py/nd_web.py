@@ -133,6 +133,7 @@ class WebSockHandler(tornado.websocket.WebSocketHandler):
 def NDHandlers(template_path):
     # template_path: ['bld'] or ['src', 'web']
     return [
+        (r'/log/(.*)', StaticFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, 'log'))),
         (r'/(.*\.html)', HomeHandler),
         # (r'/(index.html)', StaticFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, *template_path))),
         (r'/(.*\.js)', StaticJSFileHandler, dict(path=os.path.join(nd_consts.ND_ROOT_DIR, *template_path))),
