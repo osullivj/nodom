@@ -13,9 +13,9 @@ export default defineConfig({
     // Coverage configuration
     coverage: {
       provider: 'v8', // or 'istanbul'
-      reporter: ['text', 'json', 'html'],
+      reporter: ['text', 'html'],
     },
     reporters: ['default', 'html'], 
-    outputFile: './nodom_test_unit_js_results.json',
+    outputFile: './log/nodom_test_unit_js_results.html',
   },
 });
