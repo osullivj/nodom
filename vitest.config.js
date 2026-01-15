@@ -5,7 +5,8 @@ export default defineConfig({
     // Enable jest-like global APIs (describe, it, expect)
     globals: true,
     // Bail out and emit report on 1st failure
-    bail: 1,
+    // Set Bail:0 and use Zed F4 Atttach to debug
+    bail: 0,
     verbose: true,
     transform: {
       include: ["**/*.js"],
