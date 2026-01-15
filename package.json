@@ -22,7 +22,9 @@
   },
   "homepage": "https://github.com/osullivj/nodom#readme",
   "devDependencies": {
+    "@vitest/runner": "^4.0.17",
     "@vitest/ui": "^4.0.16",
+    "jsdom": "^27.4.0",
     "vitest": "^4.0.16"
   },
   "dependencies": {
