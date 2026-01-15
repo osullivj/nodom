@@ -455,6 +455,9 @@ function testAndValidateVector(
   typed /*: T['TArray']*/,
   values /*: any[] = [...typed]*/,
 ) {
+  if (typeof values === "undefined") {
+    values = [...typed];
+  }
   gets_expected_values(vector, typed, values);
   iterates_expected_values(vector, typed, values);
   indexof_returns_expected_values(vector, typed, values);
