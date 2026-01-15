@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
@@ -6,18 +6,23 @@ export default defineConfig({
     globals: true,
     // Bail out and emit report on 1st failure
     bail: 1,
+    verbose: true,
+    transform: {
+      include: ["**/*.js"],
+      exclude: ["**/node_modules/**"],
+    },
     // The environment where tests will run (e.g., 'node' or 'jsdom' for React/Vue)
-    environment: 'node',
+    environment: "node",
     // Path to setup files that run before each test file
     // setupFiles: './vitest.setup.js',
     // Pattern to find test files
-    include: ['./test/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    include: ["./test/**/*.test.js"],
     // Coverage configuration
     coverage: {
-      provider: 'v8', // or 'istanbul'
-      reporter: ['text', 'html'],
+      provider: "v8", // or 'istanbul'
+      reporter: ["text", "html"],
     },
-    reporters: ['default', 'html'], 
-    outputFile: './log/nodom_test_unit_js_results.html',
+    reporters: ["default", "html"],
+    outputFile: "./log/nodom_test_unit_js_results.html",
   },
 });
