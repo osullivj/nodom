@@ -4,6 +4,7 @@ package-lock.json
 imgui.ini
 **/*.o
 **/*.dwo
+**/*.vcxproj.user
 web/*.js
 web/*.wasm
 web/*.wasm.dwp
