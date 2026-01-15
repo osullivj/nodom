@@ -8,3 +8,5 @@ web/*.js
 web/*.wasm
 web/*.wasm.dwp
 web/*.html
+log/*.html
+log/*.js
