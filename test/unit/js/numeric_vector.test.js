@@ -80,9 +80,7 @@ const testValuesBuffer = joinUint8Arrays(
 // const bigIntValuesTyped = <T extends BigIntArray>(ArrayType: BigIntArrayConstructor<T>) => new ArrayType(testValuesBuffer);
 // const bigIntValuesArray = <T extends BigIntArray>(ArrayType: BigIntArrayConstructor<T>) => [...bigIntValuesTyped<T>(ArrayType)];
 
-function checkDType(tipe, val) {
-  expect(val.type).toBeInstanceOf(tipe);
-}
+const checkDtype = (Ctor, v) => expect(v.type).toBeInstanceOf(Ctor);
 const valuesArray = (ArrayType) => [...valuesTyped(ArrayType)];
 const valuesTyped = (ArrayType) => new ArrayType(testValuesBuffer);
 
