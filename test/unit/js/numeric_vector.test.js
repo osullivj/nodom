@@ -50,30 +50,23 @@ import {
 } from "apache-arrow/interfaces";
 
 // const { joinUint8Arrays, float64ToUint16, uint16ToFloat64 } = util;
-import {
-  joinUint8Arrays,
-  float64ToUint16,
-} from "./node_modules/apache-arrow/util/buffer.js";
+import { joinUint8Arrays } from "./node_modules/apache-arrow/util/buffer.js";
 
-import { uint16ToFloat64 } from "./node_modules/apache-arrow/util/math.js";
+import {
+  uint16ToFloat64,
+  float64ToUint16,
+} from "./node_modules/apache-arrow/util/math.js";
 
 const uint16ToFloat64Array = (b) =>
   new Float64Array(new Uint16Array(b).map((x) => uint16ToFloat64(x)));
-/*
-const _randomBytes = (n) => new Uint16Array([
-    ...Uint16Array.from([0, 65_535]),
-    ...Uint16Array.from({ length: (n / 2) - 2 }, () => Math.trunc(Math.random() * 65_536)),
-]).buffer;
-*/
 
-function randomBytes(n) {
-  let uint16array = new Uint16Array(65536 * 2);
-  let inx = 0;
-  while (inx < 65536) uint16array[inx] = inx++;
-  while (inx < 65536 * 2)
-    uint16array[inx++] = Math.trunc(Math.random() * 65_536);
-  return uint16array.buffer;
-}
+const randomBytes = (n) =>
+  new Uint16Array([
+    ...Uint16Array.from([0, 65_535]),
+    ...Uint16Array.from({ length: n / 2 - 2 }, () =>
+      Math.trunc(Math.random() * 65_536),
+    ),
+  ]).buffer;
 
 const testValueBuffers = Array.from({ length: 5 }, () => randomBytes(64));
 const testValuesBuffer = joinUint8Arrays(
@@ -90,16 +83,8 @@ const testValuesBuffer = joinUint8Arrays(
 function checkDType(tipe, val) {
   expect(val.type).toBeInstanceOf(tipe);
 }
-
-function valuesArray(tipe) {
-  return new tipe();
-}
-
-function valuesTyped(tipe, func) {
-  var aray = new tipe();
-  aray.map((x) => func(x));
-  return aray;
-}
+const valuesArray = (ArrayType) => [...valuesTyped(ArrayType)];
+const valuesTyped = (ArrayType) => new ArrayType(testValuesBuffer);
 
 describe(`FloatVector`, () => {
   describe(`makeVector infers the type from the input TypedArray`, () => {
