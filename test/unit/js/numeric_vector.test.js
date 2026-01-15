@@ -53,8 +53,9 @@ import {
 import {
   joinUint8Arrays,
   float64ToUint16,
-  uint16ToFloat64,
 } from "./node_modules/apache-arrow/util/buffer.js";
+
+import { uint16ToFloat64 } from "./node_modules/apache-arrow/util/math.js";
 
 const uint16ToFloat64Array = (b) =>
   new Float64Array(new Uint16Array(b).map((x) => uint16ToFloat64(x)));
