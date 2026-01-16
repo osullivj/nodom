@@ -28,6 +28,6 @@
     "vitest": "^4.0.16"
   },
   "dependencies": {
-    "apache-arrow": "^21.1.0"
+    "apache-arrow": "17.0.0"
   }
 }
