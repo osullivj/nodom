@@ -131,11 +131,11 @@ async function exec_duck_db_query(sql) {
 function get_duck_type_size(tipe) {
   switch (tipe) {
     case Type.Float: // 3: // ArrowType.Float:
-    case 5: // ArrowType.Utf8:
-    case 8: // ArrowType.Date:
-    case 10: // ArrowType.Timestamp: // 10: // Timestamp: Exact timestamp encoded with int64 since UNIX epoch (Default unit millisecond)
+    case Type.Utf8: // 5: // ArrowType.Utf8:
+    case Type.Date: // 8: // ArrowType.Date:
+    case Type.Timestamp: // 10: // Timestamp: Exact timestamp encoded with int64 since UNIX epoch (Default unit millisecond)
       return 8; // 8 bytes wide
-    case 2: // ArrowType.Int: Signed or unsigned 8, 16, 32, or 64-bit little-endian integer
+    case Type.Int: // 2: // ArrowType.Int: Signed or unsigned 8, 16, 32, or 64-bit little-endian integer
       return 4; // 4 bytes wide
   }
   return 0;
