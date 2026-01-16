@@ -21,7 +21,27 @@ let duck_conn = null;
 // import * as duck from "https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@latest/+esm";
 import * as ts from "./tslib-2-6-3.js";
 import * as flatbuffers from "./flatbuffers-24-3-25.js";
-import * as arrow from "./apache-arrow-17-0-0.js";
+import {
+  Type,
+  Binary,
+  Bool,
+  DateDay,
+  DateMillisecond,
+  Dictionary,
+  Float64,
+  Int32,
+  List,
+  makeVector,
+  Struct,
+  Utf8,
+  LargeUtf8,
+  util,
+  Vector,
+  vectorFromArray,
+  makeData,
+  FixedSizeList,
+  Field,
+} from "./apache-arrow-17-0-0.js";
 import * as duck from "./duckdb-duckdb-wasm-1-33-1-dev18-0.js";
 
 const JSDELIVR_BUNDLES = duck.getJsDelivrBundles();
@@ -62,35 +82,6 @@ window.__nodom__ = { duck_module: self, duck_db: duck_db };
 // 2025-11-26: we've dropped TypeScript, but still want to minimize
 // dependence on browser JS msg infra
 window.postMessage({ nd_type: "DuckInstance" });
-
-/*
-// async imports above should have completed. DuckDB will have
-// pulled in Apache Arrow...
-import {
-  ArrowType,
-  Binary,
-  Bool,
-  DateDay,
-  DateMillisecond,
-  Dictionary,
-  Float64,
-  Int32,
-  List,
-  makeVector,
-  Struct,
-  Utf8,
-  LargeUtf8,
-  Utf8View,
-  BinaryView,
-  util,
-  Vector,
-  vectorFromArray,
-  makeData,
-  FixedSizeList,
-  Field,
-  } from "./Arrow.dom.js"; */
-// from "./apache-arrow";
-// "./node_modules/apache-arrow/Arrow.dom.js";
 
 // JSON serialization monkey poatch for BigInt supplied in DuckDB results
 BigInt.prototype.toJSON = function () {
@@ -139,7 +130,7 @@ async function exec_duck_db_query(sql) {
 // the arrow-js type
 function get_duck_type_size(tipe) {
   switch (tipe) {
-    case 3: // ArrowType.Float:
+    case Type.Float: // 3: // ArrowType.Float:
     case 5: // ArrowType.Utf8:
     case 8: // ArrowType.Date:
     case 10: // ArrowType.Timestamp: // 10: // Timestamp: Exact timestamp encoded with int64 since UNIX epoch (Default unit millisecond)
