@@ -12,16 +12,16 @@ void printf_comma(int i, int col_count) {
     else printf(",");
 }
 
-void sprintf_value(char* cbuf, uint32_t* chunk_ptr, int bptr, uint32_t tipe, int row_index) {
-    DuckType dt{ tipe };
+void sprintf_value(char* cbuf, uint32_t* chunk_ptr, int bptr, int32_t tipe, int row_index) {
+    DuckType dt{ static_cast<int32_t>(tipe) };
     uint32_t* ui32data = &(chunk_ptr[bptr]);
     int32_t* i32data = nullptr;
     int64_t* i64data = nullptr;
     double* dbldata = nullptr;
-    // time_t* timdata = nullptr;
-    tm* tmdata = nullptr;
-    static time_t timdata{ 0 };
-    static double dubble{ 0.0 };
+
+    static tm       tmdata{ 0 };
+    static time_t   timdata{ 0 };
+    static double   dubble{ 0.0 };
     static uint32_t uint32{ 0 };
 
     switch (dt) {
@@ -36,16 +36,19 @@ void sprintf_value(char* cbuf, uint32_t* chunk_ptr, int bptr, uint32_t tipe, int
     case DuckType::Utf8:    // null term trunc to 8 bytes
         sprintf(cbuf, "[%d]=%s", row_index, (char*)ui32data);
         break;
-    case DuckType::Timestamp_micro: // stored as dbl64...
+    case DuckType::Timestamp:
+    case DuckType::Timestamp_s:
+    case DuckType::Timestamp_ms:
+    case DuckType::Timestamp_us:
+    case DuckType::Timestamp_ns:
         // ...but value is Unix micros since epoch
         dbldata = reinterpret_cast<double*>(ui32data);
         dubble = *dbldata;
-        uint32 = static_cast<uint32_t>(dubble);
-        timdata = static_cast<time_t>(uint32);
-        tmdata = gmtime(&timdata);
-        fprintf(stdout, "TS_micro: dubble(%f) uint32(%d)", dubble, uint32);
+        timdata = static_cast<time_t>(dubble);
+        gmtime_r(&timdata, &tmdata);
+        fprintf(stdout, "%s: dubble(%f)", tipe, dubble);
         sprintf(cbuf, "[%d]=", row_index);
-        strftime(cbuf+strlen(cbuf), sizeof(cbuf), "%Y%m%dT%I:%M:%S.%p", tmdata);
+        strftime(cbuf+strlen(cbuf), sizeof(cbuf), "%Y%m%dT%I:%M:%S.%p", &tmdata);
         break;
     default:
         sprintf(cbuf, "[%d]=%s", row_index, "unk");
@@ -94,7 +97,7 @@ extern "C" {
         // next col_count words are the types
         printf("%s: types:", method);
         for (int i = 0; i < col_count; i++) {
-            DuckType tipe{ chunk_ptr[bptr++] };
+            DuckType tipe{ static_cast<int32_t>(chunk_ptr[bptr++]) };
             const char* dt = DuckTypeToString(tipe);
             printf("%d/%s", tipe, dt);
             printf_comma(i, col_count);
@@ -135,8 +138,8 @@ extern "C" {
             else {
                 printf("%s:             bptr on %d\n", method, bptr);
             }
-            int tipe = chunk_ptr[bptr++];
-            int stored_sz = chunk_ptr[bptr++];
+            int32_t tipe = chunk_ptr[bptr++];
+            uint32_t stored_sz = chunk_ptr[bptr++];
             const std::string& name(col_names[i]);
             printf("%s type(%d) sz(%d) rows(%d)\n", name.c_str(), tipe, stored_sz, row_count);
             int stride = stored_sz / 4;    // 1 for 4 bytes, 2 for 8 bytes
