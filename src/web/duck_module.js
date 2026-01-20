@@ -41,6 +41,16 @@ import {
   makeData,
   FixedSizeList,
   Field,
+  TimeUnit,
+  TimeMicrosecond,
+  TimeMillisecond,
+  TimeNanosecond,
+  TimeSecond,
+  Timestamp,
+  TimestampSecond,
+  TimestampMillisecond,
+  TimestampMicrosecond,
+  TimestampNanosecond,
 } from "./apache-arrow-17-0-0.js";
 import * as duck from "./duckdb-duckdb-wasm-1-33-1-dev18-0.js";
 
@@ -141,7 +151,8 @@ function get_duck_type_size(tipe) {
   return 0;
 }
 
-function get_value(x, tipe) {
+function get_value(vec, inx, tipe) {
+  let x = vec.get(inx);
   if (typeof x?.valueOf === "function") {
     return x.valueOf();
   }
@@ -153,9 +164,11 @@ function batch_materializer(qid, batch) {
   let row_count = batch.numRows;
   let types = batch.schema.fields.map((d) => d.type.typeId);
   let type_objs = batch.schema.fields.map((d) => d.type);
+  let type_units = batch.schema.fields.map((d) => d.type.unit);
   let names = batch.schema.fields.map((d) => d.name);
   console.log("batch_materializer: types=" + types);
   console.log("batch_materializer: typ_o=" + type_objs);
+  console.log("batch_materializer: units=" + type_units);
   console.log("batch_materializer: names=" + names + "\n");
   // ...second, calc batch size in mem
   // Usually 2048 rows per chunk. Assume each col is 64bits wide...
@@ -228,6 +241,7 @@ function batch_materializer(qid, batch) {
     let vec = batch.getChildAt(ic);
     let tipe = types[ic];
     let sz = get_duck_type_size(tipe);
+    let unit = type_units[ic];
     console.log(
       "batch_materializer: ic=" +
         ic +
@@ -235,6 +249,8 @@ function batch_materializer(qid, batch) {
         bptr +
         ", tipe=" +
         tipe +
+        ", unit=" +
+        unit +
         ", sz=" +
         sz +
         "\n",
@@ -242,11 +258,27 @@ function batch_materializer(qid, batch) {
     // record the addr of the column
     heap32[caddr + ic] = bptr;
     // tipe(32) and count(32) as sanity checks at head of col
-    heap32[bptr++] = tipe;
+    if (tipe == Type.Timestamp) {
+      switch (unit) {
+        case 0:
+          heap32[bptr++] = Type.TimestampSecond;
+          break;
+        case 1:
+          heap32[bptr++] = Type.TimestampMillisecond;
+          break;
+        case 2:
+          heap32[bptr++] = Type.TimestampMicrosecond;
+          break;
+        case 3:
+          heap32[bptr++] = Type.TimestampNanosecond;
+          break;
+      }
+    } else {
+      heap32[bptr++] = tipe;
+    }
     heap32[bptr++] = sz;
     // Use heap32 or heap64 depending on column size
-    if (tipe == 5) {
-      // string
+    if (tipe == Type.Utf8) {
       // varchar: variable length. We'll take 8 or less bytes,
       // and store them via stringToUTF8
       let bptr8 = buffer_offset + bptr * 4;
@@ -278,19 +310,16 @@ function batch_materializer(qid, batch) {
       let bptr64 = bptr / 2;
       for (var ir = 0; ir < row_count; ir++) {
         switch (tipe) {
-          case 3: // Float
-            dbl_heap64[bptr64 + ir] = get_value(vec.get(ir), tipe);
-            break;
-          case 8: // Date
-            break;
-          case 10: // Timestamp stored as dbl
-            dbl_heap64[bptr64 + ir] = get_value(vec.get(ir), tipe);
+          case Type.Float:
+          case Type.Date:
+          case Type.Timestamp:
+            dbl_heap64[bptr64 + ir] = get_value(vec, ir, tipe);
             break;
         }
       }
       bptr += row_count * 2;
     } else {
-      let val = get_value(vec.get(0), tipe);
+      let val = get_value(vec, 0, tipe);
       console.error("batch_materializer: bad sz!\n");
     }
   }
