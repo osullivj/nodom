@@ -26,11 +26,15 @@ using ChunkMap = std::map<std::string, ChunkVec>;
 // These are arrow-js enums...
 // https://github.com/apache/arrow-js/blob/main/src/enum.ts
 // ...so do not make size explicit like C/C++ types.
-enum DuckType : uint32_t {
+enum DuckType : int32_t {
     Int = 2,
     Float = 3,
     Utf8 = 5,
-    Timestamp_micro = 10
+    Timestamp = 10,
+    Timestamp_s = -15,
+    Timestamp_ms = -16,
+    Timestamp_us = -17,
+    Timestamp_ns = -18
 };
 
 const char* DuckTypeToString(DuckType dt) {
@@ -39,8 +43,16 @@ const char* DuckTypeToString(DuckType dt) {
         return "Int";
     case DuckType::Float:
         return "Float";
-    case DuckType::Timestamp_micro:
-        return "Timestamp_micro";
+    case DuckType::Timestamp:
+        return "TS";
+    case DuckType::Timestamp_s:
+        return "TS_s";
+    case DuckType::Timestamp_ms:
+        return "TS_ms";
+    case DuckType::Timestamp_us:
+        return "TS_us";
+    case DuckType::Timestamp_ns:
+        return "TS_ns";
     case DuckType::Utf8:
         return "Utf8";
     }
@@ -52,9 +64,11 @@ int DuckTypeToSize(DuckType dt) {
     case DuckType::Int:
         return 4;
     case DuckType::Float:
-        return 8;
-    case DuckType::Timestamp_micro:
-        return 8;
+    case DuckType::Timestamp:
+    case DuckType::Timestamp_s:
+    case DuckType::Timestamp_ms:
+    case DuckType::Timestamp_us:
+    case DuckType::Timestamp_ns:
     case DuckType::Utf8:
         return 8;
     }
