@@ -1,6 +1,10 @@
 // Test harness for materializing chunks and
-// passing them to C++ WASM
+// passing them to C++ WASM. Remember, this is
+// never compiled to x64 by MSVC, it is only
+// ever compiled by EMS, so we're Posix not
+// Win32 here.
 #include <string>
+#include <map>
 #include <iostream>
 #include <emscripten/val.h>
 #include <time.h>
@@ -13,16 +17,33 @@ void printf_comma(int i, int col_count) {
 }
 
 void sprintf_value(char* cbuf, uint32_t* chunk_ptr, int bptr, int32_t tipe, int row_index) {
-    DuckType dt{ static_cast<int32_t>(tipe) };
+    DuckType dt{ tipe };
     uint32_t* ui32data = &(chunk_ptr[bptr]);
     int32_t* i32data = nullptr;
     int64_t* i64data = nullptr;
     double* dbldata = nullptr;
 
-    static tm       tmdata{ 0 };
-    static time_t   timdata{ 0 };
+    static tm       tm_data{ 0 };
+    static time_t   tm_time_t{ 0 };
     static double   dubble{ 0.0 };
-    static uint32_t uint32{ 0 };
+    static uint32_t ts_secs{ 0 };
+    static double   ts_fraction{ 0.0 };
+    static uint32_t scale{ 1 };
+    static uint32_t preamble_length{ 0 };
+    static uint32_t date_length{ 17 };
+    static const char*    decimal_fmt{ nullptr };
+    static std::map<DuckType, int32_t>  timestamp_scale_map{
+        {Timestamp_s, 1},
+        {Timestamp_ms, 1e3},
+        {Timestamp_us, 1e6},
+        {Timestamp_ns, 1e9}
+    };
+    static std::map<DuckType, const char*> timestamp_dec_fmt_map{
+        {Timestamp_s, nullptr},
+        {Timestamp_ms, "%03.3f"},
+        {Timestamp_us, "%06.6f"},
+        {Timestamp_ns, "%09.9f"}
+    };
 
     switch (dt) {
     case DuckType::Int:     // stride 4
@@ -36,19 +57,32 @@ void sprintf_value(char* cbuf, uint32_t* chunk_ptr, int bptr, int32_t tipe, int 
     case DuckType::Utf8:    // null term trunc to 8 bytes
         sprintf(cbuf, "[%d]=%s", row_index, (char*)ui32data);
         break;
-    case DuckType::Timestamp:
-    case DuckType::Timestamp_s:
-    case DuckType::Timestamp_ms:
-    case DuckType::Timestamp_us:
+    // but value is Unix seconds/millis/micros/nanos since epoch
     case DuckType::Timestamp_ns:
-        // ...but value is Unix micros since epoch
+    case DuckType::Timestamp_us:
+    case DuckType::Timestamp_ms:
+    case DuckType::Timestamp_s:
+        scale = timestamp_scale_map[dt];
+        decimal_fmt = timestamp_dec_fmt_map[dt];
         dbldata = reinterpret_cast<double*>(ui32data);
         dubble = *dbldata;
-        timdata = static_cast<time_t>(dubble);
-        gmtime_r(&timdata, &tmdata);
-        fprintf(stdout, "%s: dubble(%f)", tipe, dubble);
+        // cast dubble to 64 bit signed int before dividing
+        // by 1e[1,3,6,9]
+        ts_secs = static_cast<uint64_t>(dubble) / scale;
+        ts_fraction = dubble - static_cast<double>(ts_secs);
+        tm_time_t = static_cast<time_t>(ts_secs);
+        gmtime_r(&tm_time_t, &tm_data);
+        fprintf(stdout, "%s: dubble(%f) ts_secs(%d) ts_frac(%f)", DuckTypeToString(dt), dubble, ts_secs, ts_fraction);
         sprintf(cbuf, "[%d]=", row_index);
-        strftime(cbuf+strlen(cbuf), sizeof(cbuf), "%Y%m%dT%I:%M:%S.%p", &tmdata);
+        preamble_length = strlen(cbuf);
+        // date_length:20260121T10:57:33 is 17 chars
+        if (decimal_fmt) {
+            sprintf(cbuf + preamble_length + date_length, decimal_fmt, ts_fraction);
+        }
+        strftime(cbuf+preamble_length, sizeof(cbuf)-preamble_length, "%Y%m%dT%I:%M:%S", &tm_data);
+        break;
+    case DuckType::Timestamp:
+        sprintf(cbuf, "[%d]=%s", row_index, "TSu");
         break;
     default:
         sprintf(cbuf, "[%d]=%s", row_index, "unk");
