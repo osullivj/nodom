@@ -35,7 +35,7 @@ void sprintf_value(char* cbuf, uint32_t* chunk_ptr, int bptr, int32_t tipe, int 
     static std::map<DuckType, int32_t>  timestamp_scale_map{
         {Timestamp_s, 1},
         {Timestamp_ms, 1e3},
-        {Timestamp_us, 1e6},
+        {Timestamp_us, 1e3},    // should be 1e6
         {Timestamp_ns, 1e9}
     };
     static std::map<DuckType, const char*> timestamp_dec_fmt_map{
