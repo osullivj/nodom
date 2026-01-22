@@ -26,12 +26,15 @@ void sprintf_value(char* cbuf, uint32_t* chunk_ptr, int bptr, int32_t tipe, int 
     static tm       tm_data{ 0 };
     static time_t   tm_time_t{ 0 };
     static double   dubble{ 0.0 };
-    static uint32_t ts_secs{ 0 };
+    static double   ts_secs_f{ 0.0 };
+    static uint32_t ts_secs_i{ 0 };
     static double   ts_fraction{ 0.0 };
     static uint32_t scale{ 1 };
     static uint32_t preamble_length{ 0 };
-    static uint32_t date_length{ 17 };
+    static uint32_t date_length{ 19 };
     static const char*    decimal_fmt{ nullptr };
+    // TODO: unkludge the ms/us bug. We import at PyArrow TS milli (ms)
+    // and the result comes back as arrow js TS micro (us).
     static std::map<DuckType, int32_t>  timestamp_scale_map{
         {Timestamp_s, 1},
         {Timestamp_ms, 1e3},
@@ -41,7 +44,7 @@ void sprintf_value(char* cbuf, uint32_t* chunk_ptr, int bptr, int32_t tipe, int 
     static std::map<DuckType, const char*> timestamp_dec_fmt_map{
         {Timestamp_s, nullptr},
         {Timestamp_ms, "%03.3f"},
-        {Timestamp_us, "%06.6f"},
+        {Timestamp_us, "%03.3f"},   // should be 06.6f
         {Timestamp_ns, "%09.9f"}
     };
 
@@ -68,18 +71,19 @@ void sprintf_value(char* cbuf, uint32_t* chunk_ptr, int bptr, int32_t tipe, int 
         dubble = *dbldata;
         // cast dubble to 64 bit signed int before dividing
         // by 1e[1,3,6,9]
-        ts_secs = static_cast<uint64_t>(dubble) / scale;
-        ts_fraction = dubble - static_cast<double>(ts_secs);
-        tm_time_t = static_cast<time_t>(ts_secs);
+        ts_secs_i = static_cast<uint64_t>(dubble) / scale;
+        ts_secs_f = dubble / static_cast<double>(scale);
+        ts_fraction = ts_secs_f - ts_secs_i;
+        tm_time_t = static_cast<time_t>(ts_secs_i);
         gmtime_r(&tm_time_t, &tm_data);
-        fprintf(stdout, "%s: dubble(%f) ts_secs(%d) ts_frac(%f)", DuckTypeToString(dt), dubble, ts_secs, ts_fraction);
+        // fprintf(stdout, "%s: ts_secs_f(%f) ts_secs_i(%d) ts_frac(%f)", DuckTypeToString(dt), ts_secs_f, ts_secs_i, ts_fraction);
         sprintf(cbuf, "[%d]=", row_index);
         preamble_length = strlen(cbuf);
-        // date_length:20260121T10:57:33 is 17 chars
+        strftime(cbuf + preamble_length, sizeof(cbuf) - preamble_length, "%Y-%m-%d %I:%M:%S", &tm_data);
+        // date_length:2026-01-21 10:57:33 is 19 chars
         if (decimal_fmt) {
-            sprintf(cbuf + preamble_length + date_length, decimal_fmt, ts_fraction);
+            sprintf(cbuf + strlen(cbuf), decimal_fmt, ts_fraction);
         }
-        strftime(cbuf+preamble_length, sizeof(cbuf)-preamble_length, "%Y%m%dT%I:%M:%S", &tm_data);
         break;
     case DuckType::Timestamp:
         sprintf(cbuf, "[%d]=%s", row_index, "TSu");
