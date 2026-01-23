@@ -93,7 +93,7 @@ void JAsStringVec(const nlohmann::json& obj, const char* key, std::vector<std::s
 
 template <>
 int JSize(const nlohmann::json& obj) {
-	return obj.size();
+	return (int)obj.size();
 }
 
 template <typename V>
