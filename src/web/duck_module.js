@@ -234,14 +234,15 @@ function batch_materializer(qid, batch) {
     heap32[bptr++] = 0;
   });
   // Now write a block for each column, starting on 8 byte boundary
-  // bptr has 32bit/4byte stride, so if it's odd it's not on 8 byte boundary
-  if (bptr % 2) bptr++;
   // Now write the columns into the wasm chunk...
   for (var ic = 0; ic < types.length; ic++) {
     let vec = batch.getChildAt(ic);
     let tipe = types[ic];
     let sz = get_duck_type_size(tipe);
     let unit = type_units[ic];
+    // Column must start on 8 byte boundary; bptr has 32bit/4byte stride,
+    //  so if it's odd it's not on 8 byte boundary
+    if (bptr % 2) bptr++;
     console.log(
       "batch_materializer: ic=" +
         ic +
@@ -260,16 +261,16 @@ function batch_materializer(qid, batch) {
     // tipe(32) and count(32) as sanity checks at head of col
     if (tipe == Type.Timestamp) {
       switch (unit) {
-        case 0:
+        case 1: // see the unit enum; diff from typeId
           heap32[bptr++] = Type.TimestampSecond;
           break;
-        case 1:
+        case 2:
           heap32[bptr++] = Type.TimestampMillisecond;
           break;
-        case 2:
+        case 3:
           heap32[bptr++] = Type.TimestampMicrosecond;
           break;
-        case 3:
+        case 4:
           heap32[bptr++] = Type.TimestampNanosecond;
           break;
       }
