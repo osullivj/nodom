@@ -42,7 +42,8 @@ public:
             is_db_app = bb_config["db_app"];
         }
         catch (nlohmann::json::exception& ex) {
-
+            sprintf("cannot load breadboard.json\n%s\n", ex.what());
+            exit(1);
         }
         catch (...) {
             printf("cannot load breadboard.json");
