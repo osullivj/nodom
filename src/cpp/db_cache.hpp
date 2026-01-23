@@ -404,7 +404,7 @@ public:
 private:
     std::unordered_map<std::uint64_t, std::vector<std::string>> column_map;
     std::unordered_map<std::uint64_t, std::vector<int>> type_map;
-    std::unordered_map<std::uint64_t, std::vector<std::uint32_t>> caddr_map;
+    std::unordered_map<std::uint64_t, std::vector<std::uint32_t*>> caddr_map;
     ChunkMap    chunk_map;
 protected:
     char string_buffer[STR_BUF_LEN];
@@ -490,9 +490,10 @@ public:
             tipes.push_back(tipe);
         }
         // Column addresses: one 32 bit word per col
-        std::vector<uint32_t>& caddrs = caddr_map[handle];
+        auto& caddrs = caddr_map[handle];
         for (int i = 0; i < column_count; i++) {
             uint32_t* col_addr = reinterpret_cast<uint32_t*>(*chunk_ptr++);
+            caddrs.push_back(col_addr);
         }
         // After types we have column names
         std::vector<std::string>& colm_names = column_map[handle];
@@ -511,15 +512,13 @@ public:
 
     const char* get_datum(std::uint64_t handle, std::uint64_t colm_index, std::uint64_t row_index) {
         const static char* method = "DuckDBWebCache::get_datum: ";
+        static double   dubble{ 0.0 };
         static tm       tm_data{ 0 };
         static time_t   tm_time_t{ 0 };
-        static double   dubble{ 0.0 };
         static double   ts_secs_f{ 0.0 };
         static uint32_t ts_secs_i{ 0 };
         static double   ts_fraction{ 0.0 };
         static uint32_t scale{ 1 };
-        static uint32_t preamble_length{ 0 };
-        static uint32_t date_length{ 19 };
         static const char* decimal_fmt{ nullptr };
         static std::map<DuckType, int32_t>  timestamp_scale_map{
             {Timestamp_s, 1},
@@ -533,17 +532,17 @@ public:
             {Timestamp_us, "%06.6f"},
             {Timestamp_ns, "%09.9f"}
         };
+        static int error_count{ 0};
         // type_map and column_map have been populated by an
         // earlier invocation of get_meta_data()
-        std::vector<int>& tipes = type_map[handle];
-        std::vector<std::string>& colm_names = column_map[handle];
-
+        auto& tipes = type_map[handle];
+        auto& colm_addrs = caddr_map[handle];
         // First block in a chunk is metadata, so calc how far we
         // skip fwd to get to the col block addrs
         uint32_t* base_chunk_ptr = reinterpret_cast<uint32_t*>(handle);
-
         // ffwd past done,ncols,nrows,types to the col addresses
         // and point to the colm_index col addr
+        uint32_t* colm_addr = colm_addrs[colm_index];
         uint32_t* colm_ptr = base_chunk_ptr + 3 + tipes.size() + colm_index;
         // set chunk_ptr to col addr. NB addr is written after
         // 64bit bump, so we don't need to recorrect.
@@ -551,24 +550,28 @@ public:
         // sanity check column type
         int32_t col_type = *chunk_ptr++;
         uint32_t col_size = *chunk_ptr++;
+        int32_t col_type2 = *colm_addr++;
+        uint32_t col_size2 = *colm_addr++;
+
         if (col_type != tipes[colm_index]) {
-            fprintf(stderr, "%s: col type mismatch: base_chunk:%d, col:%d, col_addr:%d, mtype:%d, stype:%d\n", 
-                method, base_chunk_ptr, colm_index, colm_ptr, col_type, tipes[colm_index]);
+            fprintf(stderr, "%s: col type mismatch: base_chunk:%d, col:%d, col_ptr:%d, col_addr:%d, mtype:%d, stype:%d\n", 
+                method, (int)base_chunk_ptr, (int)colm_index, (int)colm_ptr, (int)colm_addr, col_type, tipes[colm_index]);
+            error_count++;
+            if (error_count == 5)
+                exit(1);
         }
         // stride 1 for 32bit data and 2 for 64bit inc str
         uint32_t stride = col_size / 4;
         DuckType dt{ col_type };
         int32_t* i32data = nullptr;
         double* dbldata = nullptr;
-        time_t* timdata = nullptr;
-        tm* tmdata = nullptr;
         // In most cases we'll copy into string_buffer, or
         // use sprintf to format into buffer. 
         buffer = string_buffer;
         switch (dt) {
         case DuckType::Int:
             i32data = reinterpret_cast<int32_t*>(chunk_ptr);
-            sprintf(string_buffer, "%f", i32data[row_index]);
+            sprintf(string_buffer, "%d", i32data[row_index]);
             return 0;
         case DuckType::Float:
             dbldata = reinterpret_cast<double*>(chunk_ptr);
@@ -596,7 +599,7 @@ public:
             }            return 0;
         case DuckType::Utf8:    // null term trunc to 8 bytes
             dbldata = reinterpret_cast<double*>(chunk_ptr);
-            sprintf(string_buffer, "%s", dbldata[row_index]);
+            sprintf(string_buffer, "%s", (char*)&(dbldata[row_index]));
             return 0;
         default:
             sprintf(string_buffer, "%s", "UNK");
@@ -652,7 +655,7 @@ extern "C" {
 
     void on_chunk_cpp(int* chunk) {
         const static char* method = "on_chunk_cpp";
-        printf("%s: chunk=%d\n", method, chunk);
+        printf("%s: chunk=%d\n", method, (int)chunk);
     }
 };
 
