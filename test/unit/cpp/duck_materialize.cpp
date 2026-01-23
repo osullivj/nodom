@@ -33,18 +33,16 @@ void sprintf_value(char* cbuf, uint32_t* chunk_ptr, int bptr, int32_t tipe, int 
     static uint32_t preamble_length{ 0 };
     static uint32_t date_length{ 19 };
     static const char*    decimal_fmt{ nullptr };
-    // TODO: unkludge the ms/us bug. We import at PyArrow TS milli (ms)
-    // and the result comes back as arrow js TS micro (us).
     static std::map<DuckType, int32_t>  timestamp_scale_map{
         {Timestamp_s, 1},
         {Timestamp_ms, 1e3},
-        {Timestamp_us, 1e3},    // should be 1e6
+        {Timestamp_us, 1e6},
         {Timestamp_ns, 1e9}
     };
     static std::map<DuckType, const char*> timestamp_dec_fmt_map{
         {Timestamp_s, nullptr},
         {Timestamp_ms, "%03.3f"},
-        {Timestamp_us, "%03.3f"},   // should be 06.6f
+        {Timestamp_us, "%06.6f"},
         {Timestamp_ns, "%09.9f"}
     };
 
