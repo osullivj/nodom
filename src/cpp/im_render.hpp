@@ -91,7 +91,7 @@ void on_async_exists(void* c, int exists) {
         emscripten_idb_async_load("NoDOM", fm->font_file_name.c_str(), c, on_load, on_load_error);
     }
     else {
-        fprintf(stderr, "on_async_exists: cannot access NoDOM.fonts\n");
+        fprintf(stderr, "%s: cannot access NoDOM.fonts\n", method);
     }
 }
 
