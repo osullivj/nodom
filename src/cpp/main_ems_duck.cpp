@@ -52,6 +52,7 @@ void im_loop_body(void* c) {
 
 int main(int argc, char* argv[]) {
     const static char* method = "main: ";
+
 #ifndef __EMSCRIPTEN__
     NDProxy<DuckDBCache> server(argc, argv);
     NDContext<nlohmann::json, DuckDBCache> ctx(server);
@@ -85,6 +86,10 @@ int main(int argc, char* argv[]) {
                                 {ctx.register_font(n, f); },
                                 { "Arial.ttf", "CourierNew.ttf" });
     GLFWwindow* window = im_start(ctx, &font_cache);
+    if (window == nullptr) {
+        std::cout << method << "im_start failed" << std::endl;
+        exit(1);
+    }
     emscripten_set_main_loop_arg(im_loop_body, &ctx, 0, 1);
 #endif
 }
