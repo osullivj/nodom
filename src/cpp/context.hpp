@@ -723,7 +723,7 @@ protected:
     }
 
     constexpr static int SMRY_COLM_CNT = 12;
-
+    
     void render_duck_table_summary_modal(const JSON& w) {
         const static char* method = "NDContext::render_duck_table_summary_modal: ";
         static int default_summary_table_flags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY;
@@ -894,7 +894,75 @@ protected:
         if (tpop) pop_font();
     }
 
-    void render_table(const JSON&) {}
+    void render_table(const JSON& w) {
+        const static char* method = "NDContext::render_table: ";
+        static int default_summary_table_flags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY;
+        static int default_window_flags = ImGuiWindowFlags_AlwaysAutoResize;
+
+        const static char* colm_names[SMRY_COLM_CNT] = {
+            "name", "type", // DUCKDB_TYPE_VARCHAR, DUCKDB_TYPE_VARCHAR, 
+            "min", "max",   // DUCKDB_TYPE_VARCHAR, DUCKDB_TYPE_VARCHAR,
+            "apxu", "avg",  // DUCKDB_TYPE_BIGINT, DUCKDB_TYPE_DOUBLE,
+            "std", "q25",   // DUCKDB_TYPE_DOUBLE, DUCKDB_TYPE_VARCHAR,
+            "q50", "q75",   // DUCKDB_TYPE_VARCHAR, DUCKDB_TYPE_VARCHAR,
+            "cnt", "null"   // DUCKDB_TYPE_BIGINT, DUCKDB_TYPE_DECIMAL
+        };
+
+        if (!JContains(w, cspec_cs) || !JContains(w[cspec_cs], qname_cs)) {
+            NDLogger::cerr() << method << "bad cspec in: " << w << std::endl;
+            return;
+        }
+        const JSON& cspec(w[cspec_cs]);
+        const std::string qname(JAsString(cspec, qname_cs));
+
+        int table_flags = default_summary_table_flags;
+        if (JContains(cspec, table_flags_cs)) {
+            table_flags = JAsInt(cspec, table_flags_cs);
+        }
+
+        int window_flags = default_window_flags;
+        if (JContains(cspec, window_flags_cs)) {
+            window_flags = JAsInt(cspec, window_flags_cs);
+        }
+
+        // TODO: recode proxy.get_meta_data() to lazy load 
+        // and report geom
+        std::uint64_t colm_count = 0;
+        int colm_index = 0;
+        bool body_pop = false;
+
+        if (JContains(cspec, (body_font_cs)))
+            body_pop = push_font(w, body_font_cs, body_font_size_base_cs);
+
+        std::uint64_t result_handle = proxy.get_handle(qname);
+        // NDLogger::cout() << method << "result_handle: " << std::hex << result_handle << std::endl;
+        if (!result_handle) {
+            NDLogger::cerr() << method << qname << ": null result_handle!" << std::endl;
+           return;
+        }
+        if (ImGui::BeginTable(qname.c_str(), (int)colm_count, table_flags)) {
+            for (colm_index = 0; colm_index < colm_count; colm_index++) {
+                ImGui::TableSetupColumn(colm_names[colm_index]);
+            }
+            ImGui::TableHeadersRow();
+            std::uint64_t row_count = proxy.get_row_count(result_handle);
+            proxy.get_meta_data(result_handle, colm_count, row_count);
+            for (int row_index = 0; row_index < row_count; row_index++) {
+                ImGui::TableNextRow();
+                for (colm_index = 0; colm_index < colm_count; colm_index++) {
+                    ImGui::TableSetColumnIndex(colm_index);
+                    const char* endchar = proxy.get_datum(result_handle, colm_index, row_index);
+                    if (endchar) {
+                        ImGui::TextUnformatted(proxy.buffer, endchar);
+                    }
+                    else {
+                        ImGui::TextUnformatted(proxy.buffer);
+                    }
+                }
+            }
+            ImGui::EndTable();
+        }
+    }
 
     void render_push_font(const JSON& w) {
         push_font(w, font_cs, font_size_base_cs);
