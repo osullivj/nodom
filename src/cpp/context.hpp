@@ -127,7 +127,7 @@ public:
         // That's why modals are dealt with by pending_pushes/pops so they can
         // push/pop outside the context of the loop below. JOS 2025-01-31
         // And we avoid live iterators so far down the stack too...
-        int stack_length = stack.size();
+        int stack_length = (int)stack.size();
         for (int inx = 0; inx < stack_length; inx++) {
             // deref it for clarity and to rename as widget for
             // cross ref with main.ts logic
@@ -225,7 +225,7 @@ public:
     }
 
     bool db_app() { return proxy.db_app(); }
-    void set_done(bool d) { proxy.set_done(true); }
+    void set_done(bool d) { proxy.set_done(d); }
 
     void on_ws_open() {
         server_request("data");
@@ -585,7 +585,7 @@ protected:
 
     }
 
-    void render_separator(const JSON& w) {
+    void render_separator(const JSON&) {
         ImGui::Separator();
     }
 
@@ -632,7 +632,7 @@ protected:
         } */
     }
 
-    void render_same_line(const JSON& w) {
+    void render_same_line(const JSON&) {
         ImGui::SameLine();
     }
 
@@ -658,7 +658,7 @@ protected:
                 if (font_it != font_map.end()) {
                     year_month_font = font_it->second;
                     if (JContains(cspec, year_month_font_size_base_cs))
-                        year_month_font_size_base = JAsFloat(cspec, year_month_font_size_base_cs);
+                        year_month_font_size_base = JAsInt(cspec, year_month_font_size_base_cs);
                 }
                 else {
                     // Use Default font installed by im_start instead
@@ -671,7 +671,7 @@ protected:
                 if (font_it != font_map.end()) {
                     day_date_font = font_it->second;
                     if (JContains(cspec, day_date_font_size_base_cs))
-                        day_date_font_size_base = JAsFloat(cspec, day_date_font_size_base_cs);
+                        day_date_font_size_base = JAsInt(cspec, day_date_font_size_base_cs);
                 }
                 else {
                     // Use Default font installed by im_start instead
@@ -791,7 +791,7 @@ protected:
                 NDLogger::cerr() << method << qname << ": null result_handle!" << std::endl;
                 return;
             }
-            if (ImGui::BeginTable(qname.c_str(), colm_count, table_flags)) {
+            if (ImGui::BeginTable(qname.c_str(), (int)colm_count, table_flags)) {
                 for (colm_index = 0; colm_index < colm_count; colm_index++) {
                     ImGui::TableSetupColumn(colm_names[colm_index]);
                 }
@@ -802,7 +802,7 @@ protected:
                     ImGui::TableNextRow();
                     for (colm_index = 0; colm_index < colm_count; colm_index++) {
                         ImGui::TableSetColumnIndex(colm_index);
-                        char* endchar = proxy.get_datum(result_handle, colm_index, row_index);
+                        const char* endchar = proxy.get_datum(result_handle, colm_index, row_index);
                         if (endchar) {
                             ImGui::TextUnformatted(proxy.buffer, endchar);
                         }
@@ -890,7 +890,7 @@ protected:
                 spinner_radius = JAsInt(cspec, spinner_radius_cs);
             if (JContains(cspec, spinner_thickness_cs))
                 spinner_thickness = JAsInt(cspec, spinner_thickness_cs);
-            if (!ImGui::Spinner("parquet_loading_spinner", spinner_radius, spinner_thickness, 0)) {
+            if (!ImGui::Spinner("parquet_loading_spinner", (float)spinner_radius, spinner_thickness, 0)) {
                 // TODO: spinner always fails IsClippedEx on first render
                 NDLogger::cerr() << "render_duck_parquet_loading_modal: spinner fail" << std::endl;
             }
@@ -899,13 +899,13 @@ protected:
         if (tpop) pop_font();
     }
 
-    void render_table(const JSON& w) {}
+    void render_table(const JSON&) {}
 
     void render_push_font(const JSON& w) {
         push_font(w, font_cs, font_size_base_cs);
     }
 
-    void render_pop_font(const JSON& w) {
+    void render_pop_font(const JSON&) {
         pop_font();
     }
 
@@ -931,21 +931,21 @@ protected:
         if (JContains(cspec, size_cs)) {
             JSON size_tup2 = JSON::array();
             size_tup2 = cspec[size_cs];
-            size[0] = JAsInt(size_tup2, 0);
-            size[1] = JAsInt(size_tup2, 1);
+            size[0] = (float)JAsInt(size_tup2, 0);
+            size[1] = (float)JAsInt(size_tup2, 1);
         }
         ImGui::BeginChild(title.c_str(), size, child_flags);
     }
 
-    void render_end_child(const JSON& w) {
+    void render_end_child(const JSON&) {
         ImGui::EndChild();
     }
 
-    void render_begin_group(const JSON& w) {
+    void render_begin_group(const JSON&) {
         ImGui::BeginGroup();
     }
 
-    void render_end_group(const JSON& w) {
+    void render_end_group(const JSON&) {
         ImGui::EndGroup();
     }
 
