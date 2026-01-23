@@ -35,7 +35,7 @@ public:
     std::uint64_t get_handle(const std::string& qid) { return 0; }
     std::uint64_t get_row_count(std::uint64_t handle) { return 0; }
     bool get_meta_data(std::uint64_t handle, std::uint64_t& column_count, std::uint64_t& row_count) {return false;}
-    char* get_datum(std::uint64_t handle, std::uint64_t colm_index, std::uint64_t row_index) { return "NULL"; }
+    const char* get_datum(std::uint64_t handle, std::uint64_t colm_index, std::uint64_t row_index) { return "NULL"; }
 
     // Query submission and response handling methods
     void get_db_responses(std::queue<JSON>& responses) {
@@ -305,7 +305,7 @@ public:
         return true;
     }
 
-    char* get_datum(std::uint64_t handle, std::uint64_t colm_index, std::uint64_t row_index) {
+    const char* get_datum(std::uint64_t handle, std::uint64_t colm_index, std::uint64_t row_index) {
         std::vector<duckdb_vector>& columns(column_map[handle]);
         std::vector<uint64_t*> validities(validity_map[handle]);
         std::vector<duckdb_type> types(type_map[handle]);
@@ -428,7 +428,9 @@ public:
     }
 
     void register_chunk(const char* qid, int size, int addr) {
+        static const char* method = "DuckDBWebCache::register_chunk: ";
         // Will ctor ChunkVec on first batch...
+        std::cout << method << "QID: " << qid << ", sz:" << size << ", addr: " << addr << std::endl;
         ChunkVec& chunk_vector = chunk_map[qid];
         chunk_vector.emplace_back(Chunk(size, addr));
     }
@@ -450,10 +452,19 @@ public:
 
     // GUI thread methods for accessing the data
     std::uint64_t get_handle(const std::string& qname) {
+        const static char* method = "DuckDBWebCache::get_handle: ";
         auto cv_iter = chunk_map.find(qname);
-        if (cv_iter == chunk_map.end()) return 0;
+        if (cv_iter == chunk_map.end()) {
+            fprintf(stderr, "%s: no chunk_map element for %s\n",
+                method, qname.c_str());
+            return 0;
+        }
         ChunkVec& chunk_vector = chunk_map[qname];
-        if (chunk_vector.empty()) return 0;
+        if (chunk_vector.empty()) {
+            fprintf(stderr, "%s: %s chunk_map empty!\n",
+                method, qname.c_str());
+            return 0;
+        }
         Chunk& chunk(chunk_vector.back());
         return chunk.addr;
     }
@@ -475,7 +486,7 @@ public:
         std::vector<int>& tipes = type_map[handle];
         tipes.clear();
         for (int i = 0; i < column_count; i++) {
-            DuckType tipe{ *chunk_ptr++ };
+            DuckType tipe{ static_cast<int32_t>(*chunk_ptr++) };
             tipes.push_back(tipe);
         }
         // Column addresses: one 32 bit word per col
@@ -498,22 +509,51 @@ public:
         return done;
     }
 
-    char* get_datum(std::uint64_t handle, std::uint64_t colm_index, std::uint64_t row_index) {
+    const char* get_datum(std::uint64_t handle, std::uint64_t colm_index, std::uint64_t row_index) {
         const static char* method = "DuckDBWebCache::get_datum: ";
-        // First block in a chunk is metadata, so calc the skip fwd...
-        uint32_t* chunk_ptr = reinterpret_cast<uint32_t*>(handle);
+        static tm       tm_data{ 0 };
+        static time_t   tm_time_t{ 0 };
+        static double   dubble{ 0.0 };
+        static double   ts_secs_f{ 0.0 };
+        static uint32_t ts_secs_i{ 0 };
+        static double   ts_fraction{ 0.0 };
+        static uint32_t scale{ 1 };
+        static uint32_t preamble_length{ 0 };
+        static uint32_t date_length{ 19 };
+        static const char* decimal_fmt{ nullptr };
+        static std::map<DuckType, int32_t>  timestamp_scale_map{
+            {Timestamp_s, 1},
+            {Timestamp_ms, 1e3},
+            {Timestamp_us, 1e6},
+            {Timestamp_ns, 1e9}
+        };
+        static std::map<DuckType, const char*> timestamp_dec_fmt_map{
+            {Timestamp_s, nullptr},
+            {Timestamp_ms, "%03.3f"},
+            {Timestamp_us, "%06.6f"},
+            {Timestamp_ns, "%09.9f"}
+        };
+        // type_map and column_map have been populated by an
+        // earlier invocation of get_meta_data()
         std::vector<int>& tipes = type_map[handle];
         std::vector<std::string>& colm_names = column_map[handle];
+
+        // First block in a chunk is metadata, so calc how far we
+        // skip fwd to get to the col block addrs
+        uint32_t* base_chunk_ptr = reinterpret_cast<uint32_t*>(handle);
+
         // ffwd past done,ncols,nrows,types to the col addresses
-        // and get the column ptr
-        chunk_ptr += 3 + tipes.size();
-        uint32_t* col_addr = chunk_ptr + colm_index;
+        // and point to the colm_index col addr
+        uint32_t* colm_ptr = base_chunk_ptr + 3 + tipes.size() + colm_index;
+        // set chunk_ptr to col addr. NB addr is written after
+        // 64bit bump, so we don't need to recorrect.
+        uint32_t* chunk_ptr = reinterpret_cast<uint32_t*>(*colm_ptr);
         // sanity check column type
-        uint32_t col_type = *chunk_ptr++;
+        int32_t col_type = *chunk_ptr++;
         uint32_t col_size = *chunk_ptr++;
         if (col_type != tipes[colm_index]) {
-            fprintf(stderr, "%s: col type mismatch, col:%d, mtype:%d, stype:%d\n", 
-                colm_index, col_type, tipes[colm_index]);
+            fprintf(stderr, "%s: col type mismatch: base_chunk:%d, col:%d, col_addr:%d, mtype:%d, stype:%d\n", 
+                method, base_chunk_ptr, colm_index, colm_ptr, col_type, tipes[colm_index]);
         }
         // stride 1 for 32bit data and 2 for 64bit inc str
         uint32_t stride = col_size / 4;
@@ -526,19 +566,34 @@ public:
         // use sprintf to format into buffer. 
         buffer = string_buffer;
         switch (dt) {
-        case DuckType::Int32:
+        case DuckType::Int:
             i32data = reinterpret_cast<int32_t*>(chunk_ptr);
             sprintf(string_buffer, "%f", i32data[row_index]);
             return 0;
-        case DuckType::Float64:
+        case DuckType::Float:
             dbldata = reinterpret_cast<double*>(chunk_ptr);
             sprintf(string_buffer, "%f", dbldata[row_index]);
             return 0;
-        case DuckType::Timestamp_micro:
-            timdata = reinterpret_cast<time_t*>(chunk_ptr);
-            tmdata = gmtime(timdata);
-            strftime(string_buffer, sizeof(string_buffer), "%Y%m%dT%I:%M:%S.%p", tmdata);
-            return 0;
+        case DuckType::Timestamp_ns:
+        case DuckType::Timestamp_us:
+        case DuckType::Timestamp_ms:
+        case DuckType::Timestamp_s:
+            scale = timestamp_scale_map[dt];
+            decimal_fmt = timestamp_dec_fmt_map[dt];
+            dbldata = reinterpret_cast<double*>(i32data);
+            dubble = *dbldata;
+            // cast dubble to 64 bit signed int before dividing
+            // by 1e[1,3,6,9]
+            ts_secs_i = static_cast<uint64_t>(dubble) / scale;
+            ts_secs_f = dubble / static_cast<double>(scale);
+            ts_fraction = ts_secs_f - ts_secs_i;
+            tm_time_t = static_cast<time_t>(ts_secs_i);
+            gmtime_r(&tm_time_t, &tm_data);
+            strftime(string_buffer, STR_BUF_LEN, "%Y-%m-%d %I:%M:%S", &tm_data);
+            // date_length:2026-01-21 10:57:33 is 19 chars
+            if (decimal_fmt) {
+                sprintf(string_buffer + strlen(string_buffer), decimal_fmt, ts_fraction);
+            }            return 0;
         case DuckType::Utf8:    // null term trunc to 8 bytes
             dbldata = reinterpret_cast<double*>(chunk_ptr);
             sprintf(string_buffer, "%s", dbldata[row_index]);
@@ -566,11 +621,11 @@ public:
     void set_reg_chunk(RegChunkFunc cf) { reg_chunk_func = cf; }
     void dispatch(emscripten::EM_VAL result_handle) {
         if (dispatcher_func != nullptr) dispatcher_func(result_handle);
-        else fprintf(stdout, "NULL DBResultDispatcher func\n");
+        else fprintf(stderr, "NULL DBResultDispatcher func\n");
     }
     void register_chunk(const std::string& qid, int sz, int addr) {
         if (reg_chunk_func != nullptr) reg_chunk_func(qid, sz, addr);
-        else fprintf(stdout, "NULL RegChunkFunc func\n");       
+        else fprintf(stderr, "NULL RegChunkFunc func\n");       
     }
 };
 
