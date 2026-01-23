@@ -103,8 +103,6 @@ public:
 
     // invoked by main loop
     void render() {
-        const static char* method = "NDContext::render: ";
-
         start_render_cycle();
 
         // address pending pops first: maintaining ordering by working from front to back
@@ -428,7 +426,6 @@ protected:
 
     void db_dispatch(const std::string& nd_type, const std::string& qid, 
                     const std::string& sql) {
-        const static char* method = "NDContext::db_dispatch: ";
         auto db_request = JNewObject();
         JSet(db_request, nd_type_cs, nd_type.c_str());
         JSet(db_request, sql_cs, sql.c_str());
@@ -437,7 +434,6 @@ protected:
     }
 
     void db_dispatch(const std::string& nd_type, const std::string& qid) {
-        const static char* method = "NDContext::db_dispatch: ";
         auto db_request = JNewObject();
         JSet(db_request, nd_type_cs, nd_type.c_str());
         JSet(db_request, query_id_cs, qid.c_str());
@@ -529,9 +525,8 @@ protected:
         }
         const JSON& cspec = w["cspec"];
         std::string label(nodom_cs);
-        if (JContains(cspec, text_cs)) label = JAsString(cspec, text_cs);
-        // params by value
         int step = 1;
+        if (JContains(cspec, text_cs)) label = JAsString(cspec, text_cs);
         if (JContains(cspec, step_cs)) step = JAsInt(cspec, step_cs);
         // no value params in layout here; all combo layout is data cache refs
         // /cspec/cname should give us a data cache addr for the combo list
