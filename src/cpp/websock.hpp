@@ -80,7 +80,7 @@ private:
 
 public:
     NDWebSockClient(NDProxy<DB>& svr, NDContext<JSON, DB>& c)
-        :uri(svr.get_server_url()), server(svr), ctx(c) {
+        :ctx(c), server(svr), uri(svr.get_server_url()) {
 #ifdef __EMSCRIPTEN__
         ws_attrs.url = uri.c_str();
         ws_handle = emscripten_websocket_new(&ws_attrs);
@@ -241,7 +241,8 @@ EM_BOOL sa_ems_on_open(int eventType, const EmscriptenWebSocketOpenEvent* websoc
 }
 
 EM_BOOL sa_ems_on_close(int eventType, const EmscriptenWebSocketCloseEvent* websocketEvent, void* userData) {
-    auto ws_client = reinterpret_cast<NDWebSockClient<emscripten::val, EmptyDBCache<emscripten::val>>*>(userData);
+    // auto ws_client = reinterpret_cast<NDWebSockClient<emscripten::val, EmptyDBCache<emscripten::val>>*>(userData);
+    // TODO add handling for WS close event
     return EM_TRUE;
 }
 
@@ -261,7 +262,7 @@ EM_BOOL sa_ems_on_message(int event_type, const EmscriptenWebSocketMessageEvent*
 
 EM_BOOL sa_ems_on_error(int event_type, const EmscriptenWebSocketErrorEvent* ws_event, void* user_data) {
     const static char* method = "sa_ems_on_error: ";
-    auto ws_client = reinterpret_cast<NDWebSockClient<emscripten::val, EmptyDBCache<emscripten::val>>*>(user_data);
+    // auto ws_client = reinterpret_cast<NDWebSockClient<emscripten::val, EmptyDBCache<emscripten::val>>*>(user_data);
     NDLogger::cerr() << method << "event_type: " << event_type << std::endl;
     return EM_TRUE;
 }
