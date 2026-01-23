@@ -103,7 +103,11 @@ inline void glfw_error_callback(int error, const char* description)
 }
 
 template <typename JSON, typename DB>
+#ifdef __EMSCRIPTEN__
 GLFWwindow* im_start(NDContext<JSON, DB>& ctx, void* fc = nullptr)
+#else
+GLFWwindow* im_start(NDContext<JSON, DB>& ctx)
+#endif
 {
     // Setup window
     glfwSetErrorCallback(glfw_error_callback);
