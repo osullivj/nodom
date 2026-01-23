@@ -404,7 +404,7 @@ public:
 private:
     std::unordered_map<std::uint64_t, std::vector<std::string>> column_map;
     std::unordered_map<std::uint64_t, std::vector<int>> type_map;
-    std::unordered_map<std::uint64_t, std::vector<std::uint32_t*>> caddr_map;
+    std::unordered_map<std::uint64_t, std::vector<std::uint32_t>> caddr_map;
     ChunkMap    chunk_map;
 protected:
     char string_buffer[STR_BUF_LEN];
@@ -492,8 +492,8 @@ public:
         // Column addresses: one 32 bit word per col
         auto& caddrs = caddr_map[handle];
         for (int i = 0; i < column_count; i++) {
-            uint32_t* col_addr = reinterpret_cast<uint32_t*>(*chunk_ptr++);
-            caddrs.push_back(col_addr);
+            uint32_t col_offset = *chunk_ptr++;
+            caddrs.push_back(col_offset);
         }
         // After types we have column names
         std::vector<std::string>& colm_names = column_map[handle];
@@ -542,20 +542,17 @@ public:
         uint32_t* base_chunk_ptr = reinterpret_cast<uint32_t*>(handle);
         // ffwd past done,ncols,nrows,types to the col addresses
         // and point to the colm_index col addr
-        uint32_t* colm_addr = colm_addrs[colm_index];
-        uint32_t* colm_ptr = base_chunk_ptr + 3 + tipes.size() + colm_index;
+        uint32_t colm_addr_offset = colm_addrs[colm_index];
         // set chunk_ptr to col addr. NB addr is written after
         // 64bit bump, so we don't need to recorrect.
-        uint32_t* chunk_ptr = reinterpret_cast<uint32_t*>(*colm_ptr);
+        uint32_t* chunk_ptr = base_chunk_ptr + colm_addr_offset;
         // sanity check column type
         int32_t col_type = *chunk_ptr++;
         uint32_t col_size = *chunk_ptr++;
-        int32_t col_type2 = *colm_addr++;
-        uint32_t col_size2 = *colm_addr++;
 
         if (col_type != tipes[colm_index]) {
-            fprintf(stderr, "%s: col type mismatch: base_chunk:%d, col:%d, col_ptr:%d, col_addr:%d, mtype:%d, stype:%d\n", 
-                method, (int)base_chunk_ptr, (int)colm_index, (int)colm_ptr, (int)colm_addr, col_type, tipes[colm_index]);
+            fprintf(stderr, "%s: col type mismatch: base_chunk:%d, col:%d, col_addr_off:%d, mtype:%d, stype:%d\n", 
+                method, (int)base_chunk_ptr, (int)colm_index, (int)colm_addr_offset, col_type, tipes[colm_index]);
             error_count++;
             if (error_count == 5)
                 exit(1);
@@ -583,8 +580,8 @@ public:
         case DuckType::Timestamp_s:
             scale = timestamp_scale_map[dt];
             decimal_fmt = timestamp_dec_fmt_map[dt];
-            dbldata = reinterpret_cast<double*>(i32data);
-            dubble = *dbldata;
+            dbldata = reinterpret_cast<double*>(chunk_ptr);
+            dubble = dbldata[row_index];
             // cast dubble to 64 bit signed int before dividing
             // by 1e[1,3,6,9]
             ts_secs_i = static_cast<uint64_t>(dubble) / scale;
