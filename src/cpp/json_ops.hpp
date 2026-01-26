@@ -4,7 +4,7 @@
 #include "nlohmann.hpp"
 #else
 #endif
-
+#include "nd_types.hpp"
 // non specialised func decls: no impl
 // because same logic cannot work for
 // both nlohmann::json and emscripten::val
@@ -28,7 +28,7 @@ template <typename JSON>
 bool JAsBool(const JSON& obj, const char* key);
 
 template <typename JSON>
-void JAsStringVec(const JSON& obj, const char* key, std::vector<std::string>& vec);
+void JAsStringVec(const JSON& obj, const char* key, StringVec& vec);
 
 template <typename JSON>
 int JSize(const JSON& obj);
@@ -87,7 +87,7 @@ bool JAsBool(const nlohmann::json& obj, const char* key) {
 }
 
 template <>
-void JAsStringVec(const nlohmann::json& obj, const char* key, std::vector<std::string>& vec) {
+void JAsStringVec(const nlohmann::json& obj, const char* key, StringVec& vec) {
 	vec = obj[key];
 }
 
@@ -143,7 +143,7 @@ bool JAsBool(const emscripten::val& obj, const char* key) {
 }
 
 template <>
-void JAsStringVec(const emscripten::val& obj, const char* key, std::vector<std::string>& vec) {
+void JAsStringVec(const emscripten::val& obj, const char* key, StringVec& vec) {
 	vec = emscripten::vecFromJSArray<std::string>(obj[key]);
 }
 
