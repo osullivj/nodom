@@ -69,8 +69,6 @@ protected:
     boost::mutex                        result_mutex;
     boost::condition_variable           query_cond;
     boost::thread                       db_thread;
-    // ref to NDWebSockClient::send
-    WebSockSenderFunc                   ws_send;
     bool                                done{ false };
 public:
     BreadBoardDBCache() {
@@ -106,7 +104,8 @@ public:
 
 static constexpr int MAX_COLUMNS = 256;
 
-using ChunkDeque = std::deque<duckdb_data_chunk>;
+using ResultHandle = std::uint64_t; // == &duckdb_result
+using Bobbin = std::deque<duckdb_data_chunk>;
 
 class DuckDBCache : public BreadBoardDBCache {
 private:
@@ -114,12 +113,15 @@ private:
     duckdb_connection                   duck_conn;
 
     std::unordered_map<std::string, duckdb_result>  result_map;
-    std::unordered_map<std::string, ChunkDeque>     chunk_map;
+    std::unordered_map<ResultHandle, Bobbin>        bobbin_map;
 
-    std::unordered_map<std::uint64_t, std::vector<duckdb_vector>> column_map;
-    std::unordered_map<std::uint64_t, std::vector<uint64_t*>> validity_map;
+    std::unordered_map<std::uint64_t, StringVec> col_names_map;
     std::unordered_map<std::uint64_t, std::vector<duckdb_type>> type_map;
     std::unordered_map<std::uint64_t, std::vector<duckdb_logical_type>> logical_type_map;
+
+    // these two need to move into the Bobbin
+    // std::unordered_map<std::uint64_t, std::vector<duckdb_vector>> column_map;
+    // std::unordered_map<std::uint64_t, std::vector<uint64_t*>> validity_map;
 
     int16_t* sidata = nullptr;
     int32_t* idata = nullptr;
@@ -240,17 +242,9 @@ public:
                     else {
                         db_response[error_cs] = 0;
                         duckdb_data_chunk chunk = duckdb_fetch_chunk(result_iter->second);
-                        ChunkDeque& chunk_deck(chunk_map[qid]);
+                        ResultHandle handle = reinterpret_cast<std::uint64_t>(&(result_iter->second));
+                        Bobbin& chunk_deck(bobbin_map[handle]);
                         chunk_deck.push_back(chunk);
-                        /*
-                        std::uint64_t chunk_ptr = reinterpret_cast<std::uint64_t>(chunk);
-                        // NB [0] is the low word, and has the top 32bits sliced off
-                        //    [1] is the high word, so we right shift by 32bits to discard the bottom 32 
-                        nlohmann::json chunk_array = nlohmann::json::array({ std::uint32_t(chunk_ptr), std::uint32_t(chunk_ptr >> 32) });
-                        std::cout << method << qid << " chunk_ptr: " << std::hex << chunk_ptr
-                            << ", chunk_array: " << chunk_array << std::endl;
-                        db_response[chunk_cs] = chunk_array;
-                        */
                     }
                 }
                 // lock the result queue and post back to the GUI thread
@@ -268,79 +262,138 @@ public:
     // GUI thread methods for accessing the data
     std::uint64_t get_handle(const std::string& qid) {
         static const char* method = "DuckDBCache::get_handle: ";
-        ChunkDeque& chunk_deck(chunk_map[qid]);
-        if (chunk_deck.empty())
+        auto res_iter = result_map.find(qid);
+        if (res_iter != result_map.end()) {
+            ResultHandle handle = reinterpret_cast<std::uint64_t>(&(res_iter->second));
+            return handle;
+        }
+        return 0;
+    }
+
+    std::uint64_t get_total_row_count(std::uint64_t h) {
+        duckdb_result* result_ptr = reinterpret_cast<duckdb_result*>(h);
+        return duckdb_row_count(result_ptr);
+    }
+
+    std::uint64_t get_bobbin_row_count(std::uint64_t h) {
+        ResultHandle handle = static_cast<ResultHandle>(h);
+        auto bob_iter = bobbin_map.find(handle);
+        std::uint64_t row_count = 0;
+        if (bob_iter == bobbin_map.end())
             return 0;
-        return reinterpret_cast<std::uint64_t>(chunk_deck.back());
+        Bobbin& bob = bobbin_map[handle];
+        auto chunk_iter = bob.begin();
+        while (chunk_iter != bob.end())
+            row_count += duckdb_data_chunk_get_size(*chunk_iter);
+        return row_count;
     }
 
-    std::uint64_t get_row_count(std::uint64_t handle) {
-        duckdb_data_chunk chunk = reinterpret_cast<duckdb_data_chunk>(handle);
-        return duckdb_data_chunk_get_size(chunk);
+    StringVec& get_col_names(std::uint64_t handle) {
+        // First 3 32 bit words are done, ncols, nrows
+        uint64_t* chunk_ptr = reinterpret_cast<uint64_t*>(handle);
+        StringVec& colm_names = col_names_map[handle];
+        return colm_names;
     }
 
-    bool get_meta_data(std::uint64_t handle, std::uint64_t& column_count, std::uint64_t& row_count) {
-        duckdb_data_chunk chunk = reinterpret_cast<duckdb_data_chunk>(handle);
-        row_count = duckdb_data_chunk_get_size(chunk);
-        column_count = duckdb_data_chunk_get_column_count(chunk);
+    bool get_meta_data(std::uint64_t h, std::uint64_t& column_count, std::uint64_t& row_count) {
+        duckdb_result* result_ptr = reinterpret_cast<duckdb_result*>(h);
+        ResultHandle handle = static_cast<ResultHandle>(h);
+
+        column_count = duckdb_column_count(result_ptr);
+        row_count = get_bobbin_row_count(h);
+
+        // duckdb_data_chunk chunk = reinterpret_cast<duckdb_data_chunk>(handle);
         // yes, these fire default ctor on 1st visit
-        std::vector<duckdb_vector>& columns(column_map[handle]);
-        std::vector<uint64_t*>& validities(validity_map[handle]);
+        // std::vector<duckdb_vector>& columns(column_map[handle]);
+        // std::vector<uint64_t*>& validities(validity_map[handle]);
         std::vector<duckdb_type>& types(type_map[handle]);
         std::vector<duckdb_logical_type>& logical_types(logical_type_map[handle]);
-        columns.clear();
-        validities.clear();
-        types.clear();
-        logical_types.clear();
-        duckdb_vector colm{};
-        duckdb_logical_type type_l{};
-        for (std::uint64_t index = 0; index < column_count; ++index) {
-            colm = duckdb_data_chunk_get_vector(chunk, index);
-            columns.push_back(colm);
-            validities.push_back(duckdb_vector_get_validity(colm));
-            type_l = duckdb_vector_get_column_type(colm);
-            logical_types.push_back(type_l);
-            types.push_back(duckdb_get_type_id(type_l));
+        StringVec& col_names = col_names_map[handle];
+        if (types.empty()) {
+            // columns.clear();
+            // validities.clear();
+            types.clear();
+            logical_types.clear();
+            col_names.clear();
+            // duckdb_vector colm{};
+            duckdb_logical_type type_l{};
+            for (std::uint64_t index = 0; index < column_count; ++index) {
+                // colm = duckdb_data_chunk_get_vector(chunk, index);
+                // columns.push_back(colm);
+                // validities.push_back(duckdb_vector_get_validity(colm));
+                type_l = duckdb_column_logical_type(result_ptr, index);
+                logical_types.push_back(type_l);
+                types.push_back(duckdb_get_type_id(type_l));
+                col_names.push_back(duckdb_column_name(result_ptr, index));
+            }
         }
         return true;
     }
 
-    const char* get_datum(std::uint64_t handle, std::uint64_t colm_index, std::uint64_t row_index) {
-        std::vector<duckdb_vector>& columns(column_map[handle]);
-        std::vector<uint64_t*> validities(validity_map[handle]);
-        std::vector<duckdb_type> types(type_map[handle]);
-        std::vector<duckdb_logical_type> logical_types(logical_type_map[handle]);
+    const char* get_datum(std::uint64_t h, std::uint64_t colm_index, std::uint64_t row_index) {
+        duckdb_result* result_ptr = reinterpret_cast<duckdb_result*>(h);
+        ResultHandle handle = static_cast<ResultHandle>(h);
+
+        // column_count = duckdb_column_count(result_ptr);
+        // row_count = get_bobbin_row_count(h);
+
+        // Which chunk on the reel has the datum?
+        Bobbin& bob = bobbin_map[handle];
+        int start_index = 0;
+        int end_index = 0;
+        int rel_index = 0;
+        auto bob_iter = bob.begin();
+        duckdb_data_chunk chunk;
+        while (bob_iter != bob.end()) {
+            chunk = *bob_iter;
+            end_index = start_index + duckdb_data_chunk_get_size(chunk);
+            if (row_index < end_index && row_index >= start_index) {
+                rel_index = row_index - start_index;
+                break;
+            }
+            else {
+                start_index = end_index;
+            }
+        }
+        if (bob_iter == bob.end()) {    // row_index not on Bobbin
+            buffer = (char*)null_cs;
+            return 0;
+        }
+        duckdb_vector colm = duckdb_data_chunk_get_vector(chunk, colm_index);
+        uint64_t* validities = duckdb_vector_get_validity(colm);
+        // get type metadata for the colm vector and validities
+        std::vector<duckdb_type>& types(type_map[handle]);
+        std::vector<duckdb_logical_type>& logical_types(logical_type_map[handle]);
         duckdb_type colm_type(types[colm_index]);
         duckdb_logical_type colm_type_l(logical_types[colm_index]);
-        duckdb_vector colm(columns[colm_index]);
         // In most cases we'll copy into string_buffer, or
         // use sprintf to format into buffer. But for long
         // strings we may want to hand back Duck's start
         // and end char*
         buffer = string_buffer;
-        if (duckdb_validity_row_is_valid(validities[colm_index], row_index)) {
+        if (duckdb_validity_row_is_valid(validities, rel_index)) {
             switch (colm_type) {
             case DUCKDB_TYPE_VARCHAR:
                 vcdata = (duckdb_string_t*)duckdb_vector_get_data(colm);
-                if (duckdb_string_is_inlined(vcdata[row_index])) {
+                if (duckdb_string_is_inlined(vcdata[rel_index])) {
                     // if inlined is 12 chars, there will be no zero terminator
-                    memcpy(string_buffer, vcdata[row_index].value.inlined.inlined, vcdata[row_index].value.inlined.length);
-                    string_buffer[vcdata[row_index].value.inlined.length] = 0;
+                    memcpy(string_buffer, vcdata[rel_index].value.inlined.inlined, vcdata[rel_index].value.inlined.length);
+                    string_buffer[vcdata[rel_index].value.inlined.length] = 0;
                 }
                 else {
                     // NB ptr arithmetic using length to calc the end
                     // ptr as these strings may be packed without 0 terminators
-                    buffer = vcdata[row_index].value.pointer.ptr;
-                    return vcdata[row_index].value.pointer.ptr + vcdata[row_index].value.pointer.length;
+                    buffer = vcdata[rel_index].value.pointer.ptr;
+                    return vcdata[rel_index].value.pointer.ptr + vcdata[rel_index].value.pointer.length;
                 }
                 break;
             case DUCKDB_TYPE_BIGINT:
                 bidata = (int64_t*)duckdb_vector_get_data(colm);
-                sprintf(string_buffer, "%I64d", bidata[row_index]);
+                sprintf(string_buffer, "%I64d", bidata[rel_index]);
                 break;
             case DUCKDB_TYPE_DOUBLE:
                 dbldata = (double_t*)duckdb_vector_get_data(colm);
-                sprintf(string_buffer, "%f", dbldata[row_index]);
+                sprintf(string_buffer, "%f", dbldata[rel_index]);
                 break;
             case DUCKDB_TYPE_DECIMAL:
                 decimal_width = duckdb_decimal_width(colm_type_l);
@@ -351,19 +404,19 @@ public:
                 switch (decimal_type) {
                 case DUCKDB_TYPE_SMALLINT:  // int16_t
                     sidata = (int16_t*)duckdb_vector_get_data(colm);
-                    decimal_value = (double)sidata[row_index] / decimal_divisor;
+                    decimal_value = (double)sidata[rel_index] / decimal_divisor;
                     break;
                 case DUCKDB_TYPE_INTEGER:   // int32_t
                     idata = (int32_t*)duckdb_vector_get_data(colm);
-                    decimal_value = (double)idata[row_index] / decimal_divisor;
+                    decimal_value = (double)idata[rel_index] / decimal_divisor;
                     break;
                 case DUCKDB_TYPE_BIGINT:    // int64_t
                     bidata = (int64_t*)duckdb_vector_get_data(colm);
-                    decimal_value = (double)bidata[row_index] / decimal_divisor;
+                    decimal_value = (double)bidata[rel_index] / decimal_divisor;
                     break;
                 case DUCKDB_TYPE_HUGEINT:   // duckdb_hugeint: 128
                     hidata = (duckdb_hugeint*)duckdb_vector_get_data(colm);
-                    decimal_value = duckdb_hugeint_to_double(hidata[row_index]) / decimal_divisor;
+                    decimal_value = duckdb_hugeint_to_double(hidata[rel_index]) / decimal_divisor;
                     break;
                 }
                 // decimal scale 2 means we want "%.2f"
@@ -402,7 +455,7 @@ class DuckDBWebCache : public EmptyDBCache<emscripten::val> {
 public:
     char* buffer{ 0 };
 private:
-    std::unordered_map<std::uint64_t, std::vector<std::string>> column_map;
+    std::unordered_map<std::uint64_t, StringVec column_map;
     std::unordered_map<std::uint64_t, std::vector<int>> type_map;
     std::unordered_map<std::uint64_t, std::vector<std::uint32_t>> caddr_map;
     ChunkMap    chunk_map;
@@ -476,38 +529,56 @@ public:
         return row_count;
     }
 
-    bool get_meta_data(std::uint64_t handle, std::uint64_t& column_count, std::uint64_t& row_count) {
+    StringVec& get_col_names(std::uint64_t handle) {
+        // First 3 32 bit words are done, ncols, nrows
+        uint32_t* chunk_ptr = reinterpret_cast<uint32_t*>(handle);
+        StringVec& colm_names = column_map[handle];
+        return colm_names;
+    }
+
+    IntVec& get_col_types(std::uint64_t handle) {
+        // First 3 32 bit words are done, ncols, nrows
+        uint32_t* chunk_ptr = reinterpret_cast<uint32_t*>(handle);
+        IntVec& colm_types = type_map[handle];
+        return colm_types;
+    }
+
+    bool get_meta_data(std::uint64_t handle, std::uint64_t& colm_count, std::uint64_t& row_count) {
         // First 3 32 bit words are done, ncols, nrows
         uint32_t* chunk_ptr = reinterpret_cast<uint32_t*>(handle);
         bool done = static_cast<bool>(*chunk_ptr++);
         column_count = reinterpret_cast<uint32_t>(*chunk_ptr++);
         row_count = reinterpret_cast<uint32_t>(*chunk_ptr++);
         // Next we have types, one 32bit int per col
+        // Have we already populated types and names?
         std::vector<int>& tipes = type_map[handle];
-        tipes.clear();
-        for (int i = 0; i < column_count; i++) {
-            DuckType tipe{ static_cast<int32_t>(*chunk_ptr++) };
-            tipes.push_back(tipe);
+        if (tipes.empty()) {
+            tipes.clear();
+            for (int i = 0; i < column_count; i++) {
+                DuckType tipe{ static_cast<int32_t>(*chunk_ptr++) };
+                tipes.push_back(tipe);
+            }
+            // Column addresses: one 32 bit word per col
+            auto& caddrs = caddr_map[handle];
+            caddrs.clear();
+            for (int i = 0; i < column_count; i++) {
+                uint32_t col_offset = *chunk_ptr++;
+                caddrs.push_back(col_offset);
+            }
+            // After types we have column names
+            StringVec& colm_names = column_map[handle];
+            colm_names.clear();
+            for (int i = 0; i < column_count; i++) {
+                std::string name;
+                // Build name str one char at a time
+                while (*chunk_ptr != 0)
+                    name.push_back(*chunk_ptr++);
+                // Skip over null term
+                chunk_ptr++;
+                colm_names.push_back(name);
+            }
         }
-        // Column addresses: one 32 bit word per col
-        auto& caddrs = caddr_map[handle];
-        for (int i = 0; i < column_count; i++) {
-            uint32_t col_offset = *chunk_ptr++;
-            caddrs.push_back(col_offset);
-        }
-        // After types we have column names
-        std::vector<std::string>& colm_names = column_map[handle];
-        colm_names.clear();
-        for (int i = 0; i < column_count; i++) {
-            std::string name;
-            // Build name str one char at a time
-            while (*chunk_ptr != 0)
-                name.push_back(*chunk_ptr++);
-            // Skip over null term
-            chunk_ptr++;
-            colm_names.push_back(name);
-        }
-        return done;
+        return &column_names;
     }
 
     const char* get_datum(std::uint64_t handle, std::uint64_t colm_index, std::uint64_t row_index) {
