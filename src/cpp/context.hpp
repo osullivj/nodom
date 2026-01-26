@@ -360,7 +360,7 @@ protected:
                 NDLogger::cerr() << method << "no nd_events in actions." << action << " in data!" << std::endl;
                 return;
             }
-            std::vector<std::string> nd_events_vec;
+            StringVec nd_events_vec;
             JAsStringVec(action_defn, nd_events_cs, nd_events_vec);
             auto nd_events_iter = std::find(nd_events_vec.begin(), nd_events_vec.end(), nd_event);
             bool event_match = nd_events_iter != nd_events_vec.end();
@@ -513,7 +513,7 @@ protected:
         // NB single GUI thread!
         // No malloc at runtime, but we will clear the array with a memset
         // on each visit. JOS 2025-01-26
-        static std::vector<std::string> combo_list;
+        static StringVec combo_list;
         static const char* cs_combo_list[ND_MAX_COMBO_LIST];
         static int combo_selection;
         memset(cs_combo_list, 0, ND_MAX_COMBO_LIST * sizeof(char*));
@@ -868,7 +868,7 @@ protected:
         ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, position);
 
         // Get the parquet url list
-        std::vector<std::string> pq_url_vec;
+        StringVec pq_url_vec;
         JAsStringVec(data, cname_cache_addr.c_str(), pq_url_vec);
 
         if (ImGui::BeginPopupModal(title.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
@@ -899,15 +899,6 @@ protected:
         static int default_summary_table_flags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY;
         static int default_window_flags = ImGuiWindowFlags_AlwaysAutoResize;
 
-        const static char* colm_names[SMRY_COLM_CNT] = {
-            "name", "type", // DUCKDB_TYPE_VARCHAR, DUCKDB_TYPE_VARCHAR, 
-            "min", "max",   // DUCKDB_TYPE_VARCHAR, DUCKDB_TYPE_VARCHAR,
-            "apxu", "avg",  // DUCKDB_TYPE_BIGINT, DUCKDB_TYPE_DOUBLE,
-            "std", "q25",   // DUCKDB_TYPE_DOUBLE, DUCKDB_TYPE_VARCHAR,
-            "q50", "q75",   // DUCKDB_TYPE_VARCHAR, DUCKDB_TYPE_VARCHAR,
-            "cnt", "null"   // DUCKDB_TYPE_BIGINT, DUCKDB_TYPE_DECIMAL
-        };
-
         if (!JContains(w, cspec_cs) || !JContains(w[cspec_cs], qname_cs)) {
             NDLogger::cerr() << method << "bad cspec in: " << w << std::endl;
             return;
@@ -928,6 +919,7 @@ protected:
         // TODO: recode proxy.get_meta_data() to lazy load 
         // and report geom
         std::uint64_t colm_count = 0;
+        std::uint64_t row_count = 0;
         int colm_index = 0;
         bool body_pop = false;
 
@@ -935,18 +927,20 @@ protected:
             body_pop = push_font(w, body_font_cs, body_font_size_base_cs);
 
         std::uint64_t result_handle = proxy.get_handle(qname);
-        // NDLogger::cout() << method << "result_handle: " << std::hex << result_handle << std::endl;
-        if (!result_handle) {
-            NDLogger::cerr() << method << qname << ": null result_handle!" << std::endl;
-           return;
+        if (result_handle == 0) {
+            NDLogger::cerr() << method << "NULL result_handle for QID: " << qname << std::endl;
+            return;
         }
+        if (!proxy.get_meta_data(result_handle, colm_count, row_count)) {
+            NDLogger::cerr() << method << "get_meta_data fail for QID: " << qname << std::endl;
+            return;
+        }
+        StringVec& colm_names = proxy.get_col_names(result_handle);
         if (ImGui::BeginTable(qname.c_str(), (int)colm_count, table_flags)) {
             for (colm_index = 0; colm_index < colm_count; colm_index++) {
-                ImGui::TableSetupColumn(colm_names[colm_index]);
+                ImGui::TableSetupColumn(colm_names[colm_index].c_str());
             }
             ImGui::TableHeadersRow();
-            std::uint64_t row_count = proxy.get_row_count(result_handle);
-            proxy.get_meta_data(result_handle, colm_count, row_count);
             for (int row_index = 0; row_index < row_count; row_index++) {
                 ImGui::TableNextRow();
                 for (colm_index = 0; colm_index < colm_count; colm_index++) {
