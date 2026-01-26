@@ -1,6 +1,11 @@
 #pragma once
 #include <map>
 #include <functional>
+#include <string>
+
+using StringVec = std::vector<std::string>;
+using IntVec = std::vector<int>;
+
 
 // typedefs and using defns for NoDOM universal types
 // universal types: not specific to JSON, DB etc
