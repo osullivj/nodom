@@ -166,7 +166,7 @@ public:
             // lock the result queue and post back to the GUI thread
             nlohmann::json db_instance = {
                 {nd_type_cs, duck_instance_cs},
-                {query_id_cs, "TEST_QUERY_0"}
+                {query_id_cs, db_online_cs}
             };
             boost::unique_lock<boost::mutex> results_lock(result_mutex);
             // send nd_type:DuckInstance
@@ -455,7 +455,7 @@ class DuckDBWebCache : public EmptyDBCache<emscripten::val> {
 public:
     char* buffer{ 0 };
 private:
-    std::unordered_map<std::uint64_t, StringVec column_map;
+    std::unordered_map<std::uint64_t, StringVec> column_map;
     std::unordered_map<std::uint64_t, std::vector<int>> type_map;
     std::unordered_map<std::uint64_t, std::vector<std::uint32_t>> caddr_map;
     ChunkMap    chunk_map;
