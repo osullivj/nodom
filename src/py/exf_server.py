@@ -30,7 +30,7 @@ SELECT_QID = "depth_query"
 SUMMARY_QID = "depth_summary"
 SCAN_BUTTON_TEXT = "Scan"
 SUMMARY_BUTTON_TEXT = "Summary"
-
+DB_ONLINE = "DBOnline"
 EXF_LAYOUT = [
     dict(
         rname="Home",
@@ -121,7 +121,7 @@ EXF_LAYOUT = [
             # The DepthGrid table shows one row of depth at a time with 5 bids and asks
             dict(
                 rname="Table",
-                cspec=dict(title="Depth grid", cname="depth_query_row", geom="Depth"),
+                cspec=dict(title="Depth grid", qname=SELECT_QID),
             ),
             dict(rname="EndChild"),
             dict(rname="Separator", cspec=dict()),
@@ -164,7 +164,6 @@ EXF_LAYOUT = [
 ]
 
 SCAN_SQL = "BEGIN; DROP TABLE IF EXISTS depth; CREATE TABLE depth as select * from parquet_scan(%(scan_urls)s); COMMIT;"
-# DEPTH_SQL = 'select * from depth where SeqNo > 0 order by CaptureTS limit 10 offset %(depth_offset)s;'
 DEPTH_SQL = "select * from depth where LastTradeSize!=0 and AskQty5!=0 and BidQty5!=0 order by SeqNo;"
 SUMMARY_SQL = "summarize select * from depth;"
 
@@ -222,7 +221,6 @@ EXF_DATA = dict(
         # match on completion (QueryResult) of summary query (SUMMARY_QID)
         # the BatchRequest will get the first and only chunk
         SUMMARY_QID: dict(
-            # "disable":dict(
             nd_events=["QueryResult"],
             db=dict(
                 action="BatchRequest",
@@ -235,6 +233,21 @@ EXF_DATA = dict(
             # no need for a corresponding ui_pop like
             # parquet_loading_modal
             ui_push="depth_summary_modal",
+        ),
+        DB_ONLINE: dict(
+            nd_events=["DuckInstance"],
+            db=dict(
+                action="Query",
+                sql_cname="depth_sql",
+                query_id=SELECT_QID,
+            ),
+        ),
+        SELECT_QID: dict(
+            nd_events=["QueryResult"],
+            db=dict(
+                action="BatchRequest",
+                query_id=SELECT_QID,
+            ),
         ),
     },
 )
