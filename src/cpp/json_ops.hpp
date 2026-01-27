@@ -51,6 +51,9 @@ JSON JArray(const std::vector<V>& values) {
 template <typename JSON>
 JSON JAsHandle(const JSON& data, const char* key);
 
+template <typename JSON>
+std::string JPrettyPrint(const JSON& cache_object);
+
 #ifndef __EMSCRIPTEN__
 // nlohmann::json implementations of JSON cache ops
 // nlohmann::json JSON cache ops only run in breadboard,
@@ -116,6 +119,12 @@ nlohmann::json JAsHandle(const nlohmann::json& data, const char* key) {
 
 nlohmann::json JNewObject() { return nlohmann::json::object(); }
 
+template <>
+std::string JPrettyPrint(const nlohmann::json& cache_object) {
+	std::string pp = cache_object.dump(2);
+	return pp;
+}
+
 #else
 
 bool JContains(const emscripten::val& obj, const char* json_string) {
@@ -178,6 +187,15 @@ emscripten::val JAsHandle(const emscripten::val& data, const char* key) {
 // lambda to invoke the static object() method
 emscripten::val JNewObject() { return emscripten::val::object(); }
 
+template <>
+std::string JPrettyPrint(const nlohmann::json& cache_object) {
+	emscripten::val json_global = emscripten::val::global("JSON");
+	emscripten::val json = json_global.call<emscripten::val>("stringify", v, emscripten::val::null(), 2);
+	return json.as<std::string>();
+}
+
+// no format stream operator for ems::val. nlohmann::json provides
+// operator<<, ems::val does not.
 std::ostream& operator<<(std::ostream& os, const emscripten::val& v)
 {
 	emscripten::val json_global = emscripten::val::global("JSON");
