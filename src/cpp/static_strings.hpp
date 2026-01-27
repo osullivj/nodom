@@ -6,20 +6,13 @@
 // NDContext can use
 static const char* on_data_change_cs("on_data_change");
 static const char* is_duck_app_cs("is_duck_app");
-static const char* data_change_cs("DataChange");
-static const char* data_change_confirmed_cs("DataChangeConfirmed");
 static const char* new_value_cs("new_value");
 static const char* old_value_cs("old_value");
 static const char* cache_key_cs("cache_key");
 static const char* nd_type_cs("nd_type");
-static const char* nd_events_cs("nd_events");
-static const char* actions_cs("actions");
-static const char* action_cs("action");
-static const char* query_id_cs("query_id");
 static const char* __nodom__cs("__nodom__");
 static const char* sys_cs("sys");
 static const char* sql_cs("sql");
-static const char* sql_cname_cs("sql_cname");
 static const char* cspec_cs("cspec");
 static const char* cname_cs("cname");
 static const char* qname_cs("qname");
@@ -62,21 +55,45 @@ static const char* cache_request_cs("CacheRequest");
 static const char* layout_cs("layout");
 static const char* data_cs("data");
 static const char* value_cs("value");
-static const char* parquet_scan_cs("ParquetScan");
-static const char* query_cs("Query");
-static const char* parquet_scan_result_cs("ParquetScanResult");
-static const char* query_result_cs("QueryResult");
-static const char* batch_request_cs("BatchRequest");
-static const char* batch_response_cs("BatchResponse");
 static const char* error_cs("Error");
 static const char* default_cs("Default");
 static const char* ok_cs("OK");
 static const char* cancel_cs("Cancel");
 static const char* duck_table_summary_modal_cs("DuckTableSummaryModal");
-static const char* duck_instance_cs("DuckInstance");
+
+// DB
 static const char* null_cs("NULL");
-static const char* db_cs("db");
-static const char* chunk_cs("chunk");
+
+// Actions: data.actions should be a dict
+// of dicts. Those leaf dicts should supply
+// a list of strings as the nd_events value
+// specifying which events can trigger the action.
+static const char* actions_cs("actions");
+static const char* nd_events_cs("nd_events");
+// An action can push or pop a UI element
 static const char* ui_pop_cs("ui_pop");
 static const char* ui_push_cs("ui_push");
+// An action dict may have a db subdict
+// specifying a DB action
+static const char* db_cs("db");
+// DB subdict must supply an action (ParquetScan|Query|BatchRequest),
+// a unique query ID and a cache address for the SQL in sql_cname
+static const char* action_cs("action");
+static const char* query_id_cs("query_id");
+static const char* sql_cname_cs("sql_cname");
+
+// Events: possible values for nd_type
+static const char* batch_request_cs("BatchRequest");
+static const char* batch_response_cs("BatchResponse");
+static const char* data_change_cs("DataChange");
+static const char* data_change_confirmed_cs("DataChangeConfirmed");
+static const char* db_online_cs("DBOnline");
+static const char* duck_instance_cs("DuckInstance");
+static const char* query_cs("Query");
+static const char* query_result_cs("QueryResult");
+static const char* parquet_scan_cs("ParquetScan");
+static const char* parquet_scan_result_cs("ParquetScanResult");
+
+// Misc
 static const char* indent_cs("  ");
+static const char* chunk_cs("chunk");
