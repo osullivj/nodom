@@ -21,6 +21,7 @@
 #include "context.hpp"          // NDContext template
 #include "im_render.hpp"        // im_start, im_render, im_end
 #include "db_cache.hpp"
+#include "logger.hpp"
 
 #ifndef __EMSCRIPTEN__
 // websockpp headers on win32
@@ -138,7 +139,7 @@ public:
         const static char* method = "NDWebSockClient.send: ";
         EMSCRIPTEN_RESULT result = emscripten_websocket_send_utf8_text(ws_handle, payload.c_str());
         if (result) {
-            NDLogger::cerr() << method << "send failed!" << std::endl;
+            NDLogger::cerr() << method << "SEND_FAILED" << std::endl;
         }
     }
 
@@ -150,7 +151,7 @@ public:
         error_code.clear();
         ws_client::connection_ptr con = client.get_connection(uri, error_code);
         if (error_code) {
-            std::cerr << "NDWebSockClient: could not create connection because: "
+            NDLogger::cerr() << "NDWebSockClient: CONNECTION_FAIL: "
                 << error_code.message() << std::endl;
         }
         else {
@@ -166,7 +167,7 @@ public:
         error_code.clear();
         client.send(handle, payload, websocketpp::frame::opcode::TEXT, error_code);
         if (error_code) {
-            std::cerr << "NDWebSockClient::send: failed with " << error_code << std::endl;
+            NDLogger::cerr() << "NDWebSockClient: SEND_FAILED:" << error_code << std::endl;
         }
     }
 #endif
@@ -196,7 +197,7 @@ protected:
 
     void wspp_on_message(ws_client* c, ws_handle h, message_ptr msg_ptr) {
         std::string payload(msg_ptr->get_payload());
-        std::cout << "NDWebSockClient::on_message: hdl( " << h.lock().get()
+        NDLogger::cout() << "NDWebSockClient::on_message: hdl( " << h.lock().get()
             << ") msg: " << payload << std::endl;
         nlohmann::json msg_json = nlohmann::json::parse(payload);
         // emplace(), not push(), as we trust the nlohmann move semantics
@@ -204,17 +205,17 @@ protected:
     }
 
     void wspp_on_open(ws_client* c, ws_handle h) {
-        std::cout << "NDWebSockClient::on_open: hdl:" << h.lock().get() << std::endl;
+        NDLogger::cout() << "NDWebSockClient::on_open: hdl:" << h.lock().get() << std::endl;
         handle = h;
         ctx.on_ws_open();
     }
 
     void wspp_on_close(ws_client* c, ws_handle h) {
-        std::cout << "NDWebSockClient::on_close: hdl: " << h.lock().get() << std::endl;
+        NDLogger::cout() << "NDWebSockClient::on_close: hdl: " << h.lock().get() << std::endl;
     }
 
     void wspp_on_fail(ws_client* c, ws_handle h) {
-        std::cout << "NDWebSockClient::on_fail: hdl: " << h.lock().get() << std::endl;
+        NDLogger::cout() << "NDWebSockClient::on_fail: hdl: " << h.lock().get() << std::endl;
     }
 #else   // ems
 public:
