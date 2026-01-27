@@ -9,13 +9,15 @@
 
 class NDOutBuffer : public std::stringbuf {
 public:
+	// https://en.cppreference.com/w/cpp/io/basic_streambuf/pubsync.html
 	virtual int sync() {
 #ifndef __EMSCRIPTEN__
 		std::cout << this->str();
 #else
 		emscripten_log(EM_LOG_CONSOLE | EM_LOG_INFO, "%s", this->str().c_str());
 #endif
-		// https://en.cppreference.com/w/cpp/io/basic_streambuf/pubsync.html
+		// clear buf by setting contents to empty string
+		this->str("");
 		return 0;	// success
 	}
 };
@@ -28,7 +30,8 @@ protected:
 #else
 		emscripten_log(EM_LOG_CONSOLE | EM_LOG_ERROR, "%s", this->str().c_str());
 #endif
-		// https://en.cppreference.com/w/cpp/io/basic_streambuf/pubsync.html
+		// clear buf by setting contents to empty string
+		this->str("");
 		return 0;	// success
 	}
 };
