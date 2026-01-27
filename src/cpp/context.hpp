@@ -35,6 +35,8 @@ private:
     JSON                layout; // layout and data are fetched by 
     JSON                data;   // sync c++py calls not HTTP gets
     std::deque<JSON>    stack;  // render stack
+    bool                data_loaded{ false };
+    bool                layout_loaded{ false };
 
     // map layout render func names to the actual C++ impls
     std::unordered_map<std::string, std::function<void(const JSON& w)>> rfmap;
@@ -100,6 +102,8 @@ public:
 
     GLFWwindow* get_glfw_window() { return glfw_window; }
     void        set_glfw_window(GLFWwindow* w) { glfw_window = w; }
+
+    bool        cache_loaded() { return data_loaded && layout_loaded; }
 
     // invoked by main loop
     void render() {
@@ -200,11 +204,16 @@ public:
             if (nd_type == cache_response_cs) {
                 if (JAsString(resp, cache_key_cs) == data_cs) {
                     data = resp[value_cs];
+                    on_data();
+                    data_loaded = true;
                 }
                 else if (JAsString(resp, cache_key_cs) == layout_cs) {
                     layout = resp[value_cs];
                     on_layout();
+                    layout_loaded = true;
                 }
+                if (cache_loaded())
+                    NDLogger::cout() << method << "CACHE_LOADED" << std::endl;
             }
             // Is this a DataChange?
             else if (nd_type == data_change_cs) {
@@ -260,14 +269,14 @@ public:
         else if (nd_type == batch_response_cs) {
             db_status_color = green;
         }
-        else if (nd_type == "DuckInstance") {
+        else if (nd_type == duck_instance_cs) {
             // TODO: q processing order means this doesn't happen so early in cpp
             // main.ts:on_duck_event invokes check_duck_module.
             // However, we don't need all the check_duck_module JS module stuff,
             // so we can just flip status button color here
             db_status_color = amber;
-            // send a test query
-            db_dispatch("Query", "ramanujan", "select 1729;");
+            // trigger any DuckInstance action
+            action_dispatch(db_online_cs, duck_instance_cs);
         }
         else {
             NDLogger::cerr() << "NDContext::on_db_event: unexpected nd_type in " << db_msg << std::endl;
@@ -284,20 +293,30 @@ public:
         int layout_length = JSize(layout);
         for (int inx=0; inx < layout_length; inx++) {
             const JSON& w(layout[inx]);
-            NDLogger::cout() << method << "CHILD: " << w << std::endl;
+            NDLogger::cout() << method << "LAYOUT_CHILD: " << JPrettyPrint(w) << std::endl;
             if (JContains(w, widget_id_cs)) {
                 std::string widget_id = JAsString(w, widget_id_cs);
                 if (!widget_id.empty()) {
-                    NDLogger::cout() << method << "PUSHABLE: " << widget_id << ":" << w << std::endl;
+                    NDLogger::cout() << method << "LAYOUT_PUSHABLE: " << widget_id << ":" << JPrettyPrint(w) << std::endl;
                     pushable[widget_id] = w;
                 }
                 else {
-                    NDLogger::cerr() << method << "empty widget_id in: " << w << std::endl;
+                    NDLogger::cerr() << method << "empty widget_id in: " << JPrettyPrint(w) << std::endl;
                 }
             }
         }
         // Home on the render stack
         stack.push_back(layout[0]);
+    }
+
+    void on_data() {
+        const static char* method = "NDContext::on_data: ";
+
+        NDLogger::cout() << method << "CACHE_DATA: " << JPrettyPrint(data) << std::endl;
+        if (!JContains(data, actions_cs)) {
+            NDLogger::cerr() << method << "NO_ACTIONS in data!" << std::endl;
+            return;
+        }
     }
 
 #ifndef __EMSCRIPTEN__
