@@ -2,6 +2,7 @@
 #include <iostream>
 #include <queue>
 #include <vector>
+#include <stdexcept>
 #include "nd_types.hpp"
 #include "static_strings.hpp"
 #include "json_ops.hpp"
@@ -13,6 +14,7 @@
 
 #ifdef NODOM_DUCK
 #include <duckdb.h>
+// #include <duckdb.hpp>
 #else   // sqlite
 #endif  // NODOM_DUCK
 
@@ -159,7 +161,7 @@ public:
 
         std::cout << method << "starting..." << std::endl;
         if (!db_init()) {
-            std::cout << method << "DB: init FAILED" << std::endl;
+            std::cout << method << "DB_INIT_FAILED" << std::endl;
             exit(1);
         }
         else {
@@ -195,6 +197,7 @@ public:
             std::cout << method << "db_queries depth : " << db_queries.size() << std::endl;
             while (!db_queries.empty()) {
                 nlohmann::json db_request(db_queries.front());
+                std::cout << method << "processing " << db_request.dump() << std::endl;
                 db_queries.pop();
                 if (!db_request.contains(nd_type_cs)) {
                     std::cerr << method << "nd_type missing: " << db_request << std::endl;
@@ -211,10 +214,19 @@ public:
                 // ParquetScan request do not produce a result set, unlike queries
                 if (nd_type == parquet_scan_cs) {
                     const std::string& sql(db_request[sql_cs]);
-                    dbstate = duckdb_query(duck_conn, sql.c_str(), nullptr);
-                    db_response[nd_type_cs] = parquet_scan_result_cs;
+                    // Duck scans may throw duckdb.HTTPException
+                    // All duck exceptions are derived from std::runtime_error
+                    try {
+                        dbstate = duckdb_query(duck_conn, sql.c_str(), nullptr);
+                        db_response[nd_type_cs] = parquet_scan_result_cs;
+                    }
+                    catch (std::runtime_error& ex) {
+                        std::cerr << method << "PARQUET_SCAN_FAIL: " << db_request << std::endl;
+                        std::cerr << method << ex.what() << std::endl;
+                        db_response[error_cs] = 1;
+                    }
                     if (dbstate == DuckDBError) {
-                        std::cerr << method << "ParquetScan failed: " << db_request << std::endl;
+                        std::cerr << method << "PARQUET_SCAN_FAIL: " << db_request << std::endl;
                         db_response[error_cs] = 1;
                     }
                 }
@@ -246,6 +258,11 @@ public:
                         Bobbin& chunk_deck(bobbin_map[handle]);
                         chunk_deck.push_back(chunk);
                     }
+                }
+                else {
+                    // unrecognised nd_type error!
+                    std::cerr << method << "BAD_ND_TYPE: " << nd_type << std::endl;
+                    continue;
                 }
                 // lock the result queue and post back to the GUI thread
                 boost::unique_lock<boost::mutex> results_lock(result_mutex);
