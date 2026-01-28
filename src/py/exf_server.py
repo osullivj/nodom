@@ -164,13 +164,15 @@ EXF_LAYOUT = [
 ]
 
 SCAN_SQL = "BEGIN; DROP TABLE IF EXISTS depth; CREATE TABLE depth as select * from parquet_scan(%(scan_urls)s); COMMIT;"
-DEPTH_SQL = "select * from depth where LastTradeSize!=0 and AskQty5!=0 and BidQty5!=0 order by SeqNo;"
+QUERY_SQL = "select * from depth where LastTradeSize!=0 and AskQty5!=0 and BidQty5!=0 order by SeqNo;"
 SUMMARY_SQL = "summarize select * from depth;"
+
+INIT_URL = "https://localhost/api/parquet/depth20080901.parquet"
 
 EXF_DATA = dict(
     home_title="FGB",
     start_date=[2008, 9, 1],  # 3 tuple YMD. But! JSON doesn't know about tuples,
-    end_date=[2008, 9, 1],  # so we use lists...
+    end_date=[2008, 9, 2],  # so we use lists. NB default 1 day span
     # NB tuple gives us Array in TS, and list gives us Object
     instruments=(
         "FGBMU8",
@@ -184,13 +186,11 @@ EXF_DATA = dict(
     ),
     selected_instrument=0,
     # depth scan SQL, ID and URLs
-    scan_sql=SCAN_SQL % dict(scan_urls=[]),
-    scan_urls=[],
+    scan_sql=SCAN_SQL % dict(scan_urls=[INIT_URL]),
+    scan_urls=[INIT_URL],
     # depth query SQL and ID
-    depth_sql=DEPTH_SQL % dict(depth_offset=0),
+    query_sql=QUERY_SQL % dict(depth_offset=0),
     summary_sql=SUMMARY_SQL,
-    # empty placeholder: see main.ts:on_duck_event for hardwiring of db_summary_ prefix
-    db_summary_depth=dict(),
     depth_tick_size=0.005,
     depth_offset=0,
     depth_results=None,
@@ -237,9 +237,9 @@ EXF_DATA = dict(
         DB_ONLINE: dict(
             nd_events=["DuckInstance"],
             db=dict(
-                action="Query",
-                sql_cname="depth_sql",
-                query_id=SELECT_QID,
+                action="ParquetScan",
+                sql_cname="scan_sql",
+                query_id=SCAN_QID,
             ),
         ),
         SELECT_QID: dict(
@@ -325,12 +325,12 @@ class DepthService(nd_utils.Service):
         elif is_depth_offset_change(client_change):
             # front end has hit fwd or back button, so recompose depth query
             old_depth_sql = data_cache["depth_sql"]
-            new_depth_sql = DEPTH_SQL % data_cache
-            data_cache["depth_sql"] = new_depth_sql
+            new_depth_sql = QUERY_SQL % data_cache
+            data_cache["query_sql"] = new_depth_sql
             return [
                 dict(
                     nd_type="DataChange",
-                    cache_key="depth_sql",
+                    cache_key="query_sql",
                     old_value=old_depth_sql,
                     new_value=new_depth_sql,
                 )
