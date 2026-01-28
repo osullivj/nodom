@@ -196,9 +196,9 @@ public:
         // server_changes will be a list of json obj copied out of a pybind11
         // list of py dicts. So use C++11 auto range...
         while (!responses.empty()) {
-            JSON& resp = responses.front();
+            const JSON& resp = responses.front();
+            NDLogger::cout() << method << resp.dump() << std::endl;
             std::string nd_type(JAsString(resp, nd_type_cs));
-            NDLogger::cout() << method << nd_type << std::endl;
             // polymorphic as types are hidden inside change
             // Is this a CacheResponse for layout or data?
             if (nd_type == cache_response_cs) {
