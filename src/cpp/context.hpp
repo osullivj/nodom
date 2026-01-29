@@ -263,7 +263,7 @@ public:
         else if (nd_type == query_result_cs) {
             db_status_color = green;
             // Typically, a QueryResult is followed by dispatch
-            // of a BatchRequest
+            // of a BatchRequest. 
             action_dispatch(qid, nd_type);
         }
         else if (nd_type == batch_response_cs) {
@@ -947,11 +947,11 @@ protected:
 
         std::uint64_t result_handle = proxy.get_handle(qname);
         if (result_handle == 0) {
-            NDLogger::cerr() << method << "NULL result_handle for QID: " << qname << std::endl;
+            NDLogger::cout() << method << "RESULT_HANDLE_FAIL for QID: " << qname << std::endl;
             return;
         }
         if (!proxy.get_meta_data(result_handle, colm_count, row_count)) {
-            NDLogger::cerr() << method << "get_meta_data fail for QID: " << qname << std::endl;
+            NDLogger::cout() << method << "GET_META_DATA_FAIL for QID: " << qname << std::endl;
             return;
         }
         StringVec& colm_names = proxy.get_col_names(result_handle);
@@ -1029,18 +1029,39 @@ protected:
         stack.push_back(w);
     }
 
-    void pop_widget(const std::string& rname = "") {
-        // if rname is empty we pop without checks
+    void pop_widget(const std::string& widget_id_or_render_name = "") {
+        const static char* method = "NDContext::pop_widget: ";
         // if rname specifies a class we check the
         //      popped widget rname
-        if (!rname.empty()) {
+        if (!widget_id_or_render_name.empty()) {
             const JSON& w(stack.back());
-            std::string wrname = JAsString(w, rname_cs);
-            if (wrname != rname) {
-                NDLogger::cerr() << "pop mismatch w.rname(" << wrname << ") rname("
-                    << rname << ")" << std::endl;
+            std::string render_name = JAsString(w, rname_cs);
+            if (JContains(w, widget_id_cs)) {
+                std::string widget_id = JAsString(w, widget_id_cs);
+                if (render_name != widget_id_or_render_name &&
+                    widget_id != widget_id_or_render_name) {
+                    NDLogger::cerr() << method << "POP_FAIL mismatch rname("
+                        << render_name << ") widget_id("
+                        << widget_id << ") widget_id_or_render_name("
+                        << widget_id_or_render_name << ")" << std::endl;
+                }
+                else {
+                    stack.pop_back();
+                }
             }
-            stack.pop_back();
+            else {
+                if (render_name != widget_id_or_render_name) {
+                    NDLogger::cerr() << method << "POP_FAIL mismatch rname("
+                        << render_name << ") widget_id_or_render_name("
+                        << widget_id_or_render_name << ")" << std::endl;
+                }
+                else {
+                    stack.pop_back();
+                }
+            }
+        }
+        else {
+            NDLogger::cerr() << method << "POP_FAIL empty widget_id_or_render_name(" << widget_id_or_render_name << ")" << std::endl;
         }
     }
 
