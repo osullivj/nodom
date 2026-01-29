@@ -109,6 +109,8 @@ static constexpr int MAX_COLUMNS = 256;
 using ResultHandle = std::uint64_t; // == &duckdb_result
 using Bobbin = std::deque<duckdb_data_chunk>;
 
+
+
 class DuckDBCache : public BreadBoardDBCache {
 private:
     duckdb_database                     duck_db;
@@ -161,7 +163,7 @@ public:
 
         std::cout << method << "starting..." << std::endl;
         if (!db_init()) {
-            std::cout << method << "DB_INIT_FAILED" << std::endl;
+            std::cout << method << "DB_INIT_FAIL" << std::endl;
             exit(1);
         }
         else {
@@ -177,7 +179,6 @@ public:
         }
 
         nlohmann::json response_list_j = nlohmann::json::array();
-        duckdb_state dbstate;
 
         // https://www.boost.org/doc/libs/1_34_0/doc/html/boost/condition.html
         // A condition object is always used in conjunction with a mutex object (an object
@@ -213,27 +214,32 @@ public:
                 nlohmann::json db_response = { {query_id_cs, qid}, { error_cs, 0 } };
                 // ParquetScan request do not produce a result set, unlike queries
                 if (nd_type == parquet_scan_cs) {
+                    duckdb_state dbstate;
                     const std::string& sql(db_request[sql_cs]);
-                    // Duck scans may throw duckdb.HTTPException
-                    // All duck exceptions are derived from std::runtime_error
+                    // Duck C API scans may throw C++ duckdb.HTTPException
+                    std::exception_ptr active_exception;
                     try {
                         dbstate = duckdb_query(duck_conn, sql.c_str(), nullptr);
                         db_response[nd_type_cs] = parquet_scan_result_cs;
                     }
-                    catch (std::runtime_error& ex) {
-                        std::cerr << method << "PARQUET_SCAN_FAIL: " << db_request << std::endl;
-                        std::cerr << method << ex.what() << std::endl;
+                    catch (...) {
+                        // DuckDB C API can throw exceptions from the parquet
+                        // extension. 
+                        std::cerr << method << "PARQUET_SCAN_FAIL: " << db_request.dump() << std::endl;
                         db_response[error_cs] = 1;
                     }
+                    // dbstate should be defaulted to DuckDBSuccess if an 
+                    // exception was thrown above, so this is the non except
+                    // error path
                     if (dbstate == DuckDBError) {
-                        std::cerr << method << "PARQUET_SCAN_FAIL: " << db_request << std::endl;
+                        std::cerr << method << "PARQUET_SCAN_FAIL: " << db_request.dump() << std::endl;
                         db_response[error_cs] = 1;
                     }
                 }
                 else if (nd_type == query_cs) {
                     const std::string& sql(db_request[sql_cs]);
                     duckdb_result dbresult;
-                    dbstate = duckdb_query(duck_conn, sql.c_str(), &dbresult);
+                    duckdb_state dbstate = duckdb_query(duck_conn, sql.c_str(), &dbresult);
                     std::cout << method << "QID: " << qid << ", SQL: " << sql << std::endl;
                     db_response[nd_type_cs] = query_result_cs;
                     if (dbstate == DuckDBError) {
