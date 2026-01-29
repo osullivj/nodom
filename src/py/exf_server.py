@@ -167,7 +167,7 @@ SCAN_SQL = "BEGIN; DROP TABLE IF EXISTS depth; CREATE TABLE depth as select * fr
 QUERY_SQL = "select * from depth where LastTradeSize!=0 and AskQty5!=0 and BidQty5!=0 order by SeqNo;"
 SUMMARY_SQL = "summarize select * from depth;"
 
-INIT_URL = "https://localhost/api/parquet/depth20080901.parquet"
+INIT_URL = "https://localhost/api/parquet/FGBMU8_20080901_pd.parquet"
 
 EXF_DATA = dict(
     home_title="FGB",
@@ -211,7 +211,7 @@ EXF_DATA = dict(
         # summary of depth table
         SCAN_QID: dict(
             nd_events=["ParquetScanResult"],
-            ui_pop="DuckParquetLoadingModal",
+            ui_pop="parquet_loading_modal",
             db=dict(
                 action="Query",
                 sql_cname="summary_sql",
@@ -236,6 +236,7 @@ EXF_DATA = dict(
         ),
         DB_ONLINE: dict(
             nd_events=["DuckInstance"],
+            ui_push="parquet_loading_modal",
             db=dict(
                 action="ParquetScan",
                 sql_cname="scan_sql",
