@@ -50,8 +50,6 @@ static const char* spinner_radius_cs("spinner_radius");
 static const char* size_cs("size");
 static const char* widget_id_cs("widget_id");
 static const char* spinner_thickness_cs("spinner_thickness");
-static const char* cache_response_cs("CacheResponse");
-static const char* cache_request_cs("CacheRequest");
 static const char* layout_cs("layout");
 static const char* data_cs("data");
 static const char* value_cs("value");
@@ -85,6 +83,8 @@ static const char* sql_cname_cs("sql_cname");
 // Events: possible values for nd_type
 static const char* batch_request_cs("BatchRequest");
 static const char* batch_response_cs("BatchResponse");
+static const char* cache_response_cs("CacheResponse");
+static const char* cache_request_cs("CacheRequest");
 static const char* data_change_cs("DataChange");
 static const char* data_change_confirmed_cs("DataChangeConfirmed");
 static const char* db_online_cs("DBOnline");
