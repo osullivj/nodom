@@ -132,6 +132,7 @@ public:
             // now handle results from DB
             ctx.dispatch_server_responses(server_responses);
         }
+        std::cout << ".";
     }
 
 #ifdef __EMSCRIPTEN__
@@ -139,7 +140,7 @@ public:
         const static char* method = "NDWebSockClient.send: ";
         EMSCRIPTEN_RESULT result = emscripten_websocket_send_utf8_text(ws_handle, payload.c_str());
         if (result) {
-            NDLogger::cerr() << method << "SEND_FAILED" << std::endl;
+            NDLogger::cerr() << method << "SEND_FAIL" << std::endl;
         }
     }
 
@@ -167,7 +168,7 @@ public:
         error_code.clear();
         client.send(handle, payload, websocketpp::frame::opcode::TEXT, error_code);
         if (error_code) {
-            NDLogger::cerr() << "NDWebSockClient: SEND_FAILED:" << error_code << std::endl;
+            NDLogger::cerr() << "NDWebSockClient: SEND_FAIL:" << error_code << std::endl;
         }
     }
 #endif
