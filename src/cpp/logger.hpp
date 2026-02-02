@@ -5,13 +5,23 @@
 #include <sstream>
 #ifdef __EMSCRIPTEN__
 #include <emscripten/emscripten.h>
+#else
+#include <boost/thread.hpp>
+#endif
+
+// On Windows in Breadboard, we need to serialize access to the log
+// Otherwise log lines get interleaved, making troubleshooting harder
+// Leaning on the static init guarantee here...
+#ifndef __EMSCRIPTEN__
+static boost::mutex log_mutex;
 #endif
 
 class NDOutBuffer : public std::stringbuf {
-public:
+protected:
 	// https://en.cppreference.com/w/cpp/io/basic_streambuf/pubsync.html
 	virtual int sync() {
 #ifndef __EMSCRIPTEN__
+		boost::unique_lock<boost::mutex> log_lock(log_mutex);
 		std::cout << this->str();
 #else
 		emscripten_log(EM_LOG_CONSOLE | EM_LOG_INFO, "%s", this->str().c_str());
@@ -26,6 +36,7 @@ class NDErrBuffer : public std::stringbuf {
 protected:
 	virtual int sync() {
 #ifndef __EMSCRIPTEN__
+		boost::unique_lock<boost::mutex> log_lock(log_mutex);
 		std::cerr << this->str();
 #else
 		emscripten_log(EM_LOG_CONSOLE | EM_LOG_ERROR, "%s", this->str().c_str());
