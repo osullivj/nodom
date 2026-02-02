@@ -132,7 +132,6 @@ public:
             // now handle results from DB
             ctx.dispatch_server_responses(server_responses);
         }
-        std::cout << ".";
     }
 
 #ifdef __EMSCRIPTEN__
