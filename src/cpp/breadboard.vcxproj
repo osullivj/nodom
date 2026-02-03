@@ -108,6 +108,7 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
       <PreprocessorDefinitions>NODOM_DUCK;_WIN32_WINNT=0x0601;BOOST_BIND_GLOBAL_PLACEHOLDERS;_CRT_SECURE_NO_WARNINGS;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessToFile>false</PreprocessToFile>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
