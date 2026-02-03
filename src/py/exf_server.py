@@ -29,7 +29,9 @@ SCAN_QID = "depth_scan"
 SELECT_QID = "depth_query"
 SUMMARY_QID = "depth_summary"
 SCAN_BUTTON_TEXT = "Scan"
+SCAN_BUTTON_ID = "scan_button"
 SUMMARY_BUTTON_TEXT = "Summary"
+SUMMARY_BUTTON_ID = "summary_button"
 DB_ONLINE = "DBOnline"
 EXF_LAYOUT = [
     dict(
@@ -100,6 +102,7 @@ EXF_LAYOUT = [
                 rname="Button",
                 cspec=dict(
                     text=SCAN_BUTTON_TEXT,
+                    widget_id=SCAN_BUTTON_ID,
                 ),
             ),
             dict(rname="SameLine"),
@@ -169,6 +172,47 @@ SUMMARY_SQL = "summarize select * from depth;"
 
 INIT_URL = "https://localhost/api/parquet/FGBMU8_20080901_pd.parquet"
 
+LAUNCH_SCAN = dict(  # raise scanning modal, send scan request to DuckDB
+    ui_push="parquet_loading_modal",
+    db_action="ParquetScan",
+    query_id=SCAN_QID,
+    sql_cname="scan_sql",
+)
+
+LAUNCH_SUMMARY = dict(  # close scanning modal, send query request to DuckDB
+    ui_pop="parquet_loading_modal",
+    db_action="Query",
+    query_id=SUMMARY_QID,
+    sql_cname="summary_sql",
+)
+
+LAUNCH_SELECT = dict(  # send depth query request to DuckDB
+    db_action="Query",
+    query_id=SELECT_QID,
+    sql_cname="select_sql",
+)
+
+LAUNCH_SUMMARY_BATCH = dict(
+    db_action="BatchRequest",
+    query_id=SUMMARY_QID,
+)
+
+LAUNCH_SELECT_BATCH = dict(
+    db_action="BatchRequest",
+    query_id=SELECT_QID,
+)
+
+SUMMARY_SEQUENCE = [
+    LAUNCH_SCAN,
+    LAUNCH_SUMMARY,
+    LAUNCH_SUMMARY_BATCH,
+]
+
+SELECT_SEQUENCE = [
+    LAUNCH_SELECT,
+    LAUNCH_SELECT_BATCH,
+]
+
 EXF_DATA = dict(
     home_title="FGB",
     start_date=[2008, 9, 1],  # 3 tuple YMD. But! JSON doesn't know about tuples,
@@ -195,61 +239,18 @@ EXF_DATA = dict(
     depth_offset=0,
     depth_results=None,
     actions={
-        # match on scan button (SCAN_BUTTON_TEXT) click (Button)
-        SCAN_BUTTON_TEXT: dict(
-            # raise scanning modal and send scan request
-            # to duckDB when Scan
-            nd_events=["Button"],  # fired from Scan button
-            ui_push="parquet_loading_modal",
-            db=dict(
-                action="ParquetScan",
-                sql_cname="scan_sql",
-                query_id=SCAN_QID,
-            ),
-        ),
+        # match on scan button click
+        f"{SCAN_BUTTON_ID}.Click": SUMMARY_SEQUENCE,
         # match on completion (ParquetScanResult) of scan (SCAN_QID)
         # summary of depth table
-        SCAN_QID: dict(
-            nd_events=["ParquetScanResult"],
-            ui_pop="parquet_loading_modal",
-            db=dict(
-                action="Query",
-                sql_cname="summary_sql",
-                query_id=SUMMARY_QID,
-            ),
-        ),
-        # match on completion (QueryResult) of summary query (SUMMARY_QID)
-        # the BatchRequest will get the first and only chunk
-        SUMMARY_QID: dict(
-            nd_events=["QueryResult"],
-            db=dict(
-                action="BatchRequest",
-                query_id=SUMMARY_QID,
-            ),
-        ),
-        SUMMARY_BUTTON_TEXT: dict(
-            nd_events=["Button"],
-            # depth_summary_modal is self popping, so
-            # no need for a corresponding ui_pop like
-            # parquet_loading_modal
-            ui_push="depth_summary_modal",
-        ),
-        DB_ONLINE: dict(
-            nd_events=["DuckInstance"],
-            ui_push="parquet_loading_modal",
-            db=dict(
-                action="ParquetScan",
-                sql_cname="scan_sql",
-                query_id=SCAN_QID,
-            ),
-        ),
-        SELECT_QID: dict(
-            nd_events=["QueryResult"],
-            db=dict(
-                action="BatchRequest",
-                query_id=SELECT_QID,
-            ),
-        ),
+        f"{SCAN_QID}.ParquetScanResult": SELECT_SEQUENCE,
+        f"{SUMMARY_BUTTON_ID}.Click": [
+            dict(
+                # depth_summary_modal is self popping,
+                ui_push="depth_summary_modal",
+            )
+        ],
+        f"{DB_ONLINE}.DuckInstance": SUMMARY_SEQUENCE,
     },
 )
 
