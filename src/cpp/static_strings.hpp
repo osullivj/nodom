@@ -73,7 +73,7 @@ static const char* ui_pop_cs("ui_pop");
 static const char* ui_push_cs("ui_push");
 // An action dict may have a db subdict
 // specifying a DB action
-static const char* db_cs("db");
+static const char* db_action_cs("db_action");
 // DB subdict must supply an action (ParquetScan|Query|BatchRequest),
 // a unique query ID and a cache address for the SQL in sql_cname
 static const char* action_cs("action");
@@ -85,6 +85,7 @@ static const char* batch_request_cs("BatchRequest");
 static const char* batch_response_cs("BatchResponse");
 static const char* cache_response_cs("CacheResponse");
 static const char* cache_request_cs("CacheRequest");
+static const char* click_cs("Click");
 static const char* data_change_cs("DataChange");
 static const char* data_change_confirmed_cs("DataChangeConfirmed");
 static const char* db_online_cs("DBOnline");
@@ -97,3 +98,4 @@ static const char* parquet_scan_result_cs("ParquetScanResult");
 // Misc
 static const char* indent_cs("  ");
 static const char* chunk_cs("chunk");
+static const char* period_cs(".");
