@@ -24,8 +24,22 @@
 // https://gist.github.com/nus/564e9e57e4c107faa1a45b8332c265b9
 
 static constexpr int ND_MAX_COMBO_LIST{ 16 };
-
+static constexpr int act_ev_key_buf_len{ 256 };
 struct GLFWwindow;
+
+// What comes next in a DB action_dispatch sequence?
+const char* NextEvent(const char* nd_event) {
+    if (strcmp(nd_event, parquet_scan_cs) == 0) {
+        return parquet_scan_result_cs;
+    }
+    if (strcmp(nd_event, query_cs) == 0) {
+        return query_result_cs;
+    }
+    if (strcmp(nd_event, batch_request_cs) == 0) {
+        return batch_response_cs;
+    }
+    return nullptr;
+}
 
 template <typename JSON, typename DB>
 class NDContext {
@@ -50,9 +64,10 @@ private:
     // outside the render stack walk. JOS 2025-01-31
     std::deque<JSON>        pending_pushes;
     std::deque<std::string> pending_pops;
-    // in flight action sequences
+    // In flight action sequences. Key is query_id, not query_id.event
     std::unordered_map<std::string, JSON> in_flight_seqs;
     std::unordered_map<std::string, int> in_flight_inxs;
+    std::unordered_map<std::string, const char*> in_flight_next;
 
     bool    show_demo = false;
     bool    show_id_stack = false;
@@ -75,7 +90,6 @@ private:
     GLFWwindow* glfw_window = nullptr;
 
     // Buffer for action_event compound keys
-    constexpr static int act_ev_key_buf_len = 256;
     char act_ev_key_buf[act_ev_key_buf_len];
 
 public:
@@ -375,19 +389,55 @@ protected:
             NDLogger::cerr() << method << "no actions in data!" << std::endl;
             return;
         }
-        // get hold of "actions" in data: do we have one matching action?
+        // Get hold of "actions" in data: do we have one matching action?
+        // NB if there isn't a matching action.event compound key in data.actions,
+        // then we have to check the in flight sequences...
         const JSON& actions(data[actions_cs]);
-        if (!JContains(actions, act_ev_key_buf)) {
-            NDLogger::cerr() << method << "ACT_EV_FAIL(" << act_ev_key_buf << ")" << std::endl;
-            return;
-        }
         JSON action_seq = JSON::array();
-        action_seq = actions[act_ev_key_buf];
         int action_inx = 0;
+        const char* action_next = nullptr;
+        if (JContains(actions, act_ev_key_buf)) {
+            // we have a match in data.actions to kick off a sequence
+            action_seq = actions[act_ev_key_buf];
+        }
+        else {
+            // no match in data.actions, is there an in_flight for action_id?
+            auto iter = in_flight_seqs.find(action_id);
+            if (iter == in_flight_seqs.end()) {
+                NDLogger::cerr() << method << "ACT_DISP_FAIL no data.actions for (" << act_ev_key_buf 
+                    << "), no in flight for query_id(" << action_id << ")" << std::endl;
+                return;
+            }
+            action_seq = in_flight_seqs[action_id];
+            action_inx = in_flight_inxs[action_id];
+            action_next = in_flight_next[action_id];
+        }
+
         int actions_len = JSize(action_seq);
-        if (actions_len < 1) {
-            NDLogger::cerr() << method << "ACT_EV_FAIL: actions_len(" << actions_len << ")" << std::endl;
-            return;
+        int actions_remaining = actions_len - action_inx - 1;
+
+        // Is this a continuation of an in_flight_seq?
+        if (action_next != nullptr) {
+            if (nd_event != action_next) {
+                NDLogger::cerr() << method << "ACT_DISP_FAIL in_flight expected(" << action_next
+                    << "), got (" << nd_event << ") for query_id(" << action_id << ")" << std::endl;
+                return;
+            }
+            if (actions_remaining < 0) {
+                NDLogger::cerr() << method << "ACT_DISP_FAIL: actions_len(" << actions_len
+                    << "), actions_inx(" << action_inx << "), actions_remaining("
+                    << actions_remaining << ")" << std::endl;
+                return;
+            }
+            if (actions_remaining == 0 && action_inx > 0) {
+                // sequence completed: rm in_flight entries
+                in_flight_seqs.erase(action_id);
+                in_flight_inxs.erase(action_id);
+                NDLogger::cout() << method << "ACT_DISP: seq complete for (" << action_id
+                    << "), actions_inx(" << action_inx << "), actions_remaining("
+                    << actions_remaining << ")" << std::endl;
+                return;
+            }
         }
         JSON& action_defn(action_seq[action_inx]);
      
@@ -418,13 +468,16 @@ protected:
         }
         // Finally, do we have a DB op to handle?
         // TODO: rejig!
+        std::string db_action;
+        std::string query_id;
+        std::string sql_cache_key;
         if (JContains(action_defn, db_action_cs)) {
-            std::string db_action(JAsString(action_defn, db_action_cs));
+            db_action = JAsString(action_defn, db_action_cs);
             if (!JContains(action_defn, query_id_cs)) {
                 NDLogger::cerr() << method << "ACT_DISP_FAIL db_action(" << db_action << ") missing query_id" << std::endl;
                 return;
             }
-            std::string query_id(JAsString(action_defn, query_id_cs));
+            query_id = JAsString(action_defn, query_id_cs);
             if (db_action == batch_request_cs) {
                 db_dispatch(db_action, query_id);
             }
@@ -433,7 +486,7 @@ protected:
                     NDLogger::cerr() << method << "ACT_DISP_FAIL db_action(" << db_action << ") missing sql_cname" << std::endl;
                     return;
                 }
-                std::string sql_cache_key(JAsString(action_defn, sql_cname_cs));
+                sql_cache_key = JAsString(action_defn, sql_cname_cs);
                 if (!JContains(data, sql_cache_key.c_str())) {
                     NDLogger::cerr() << method << "ACT_DISP_FAIL db_action(" << db_action << ") sql_cname(" << sql_cache_key << ") does not resolve!" << std::endl;
                     return;
@@ -442,6 +495,20 @@ protected:
                     std::string sql(JAsString(data, sql_cache_key.c_str()));
                     db_dispatch(db_action, query_id, sql);
                 }
+            }
+        }
+        // Does this sequence have a follow on?
+        // If so we must register as in flight...
+        if (actions_remaining > 1) {
+            const char* next_db_event = NextEvent(db_action.c_str());
+            if (next_db_event == nullptr) {
+                NDLogger::cerr() << method << "ACT_DISP_FAIL db_action(" << db_action << ") sql_cname(" << sql_cache_key << ")" << std::endl;
+                return;
+            }
+            else {
+                in_flight_seqs[query_id] = action_seq;
+                in_flight_inxs[query_id] = ++action_inx;
+                in_flight_next[query_id] = next_db_event;
             }
         }
     }
