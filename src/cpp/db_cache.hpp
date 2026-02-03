@@ -8,18 +8,19 @@
 #include "json_ops.hpp"
 
 #ifndef __EMSCRIPTEN__
+
 #include "nlohmann.hpp"     
 #include <boost/thread.hpp>
 #include <boost/atomic.hpp>
-
 #ifdef NODOM_DUCK
 #include <duckdb.h>
-// #include <duckdb.hpp>
 #else   // sqlite
 #endif  // NODOM_DUCK
 
 #else   // __EMSCRIPTEN__
+
 #include <emscripten/val.h>
+
 #endif  // __EMSCRIPTEN__
 
 
