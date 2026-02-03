@@ -50,6 +50,9 @@ private:
     // outside the render stack walk. JOS 2025-01-31
     std::deque<JSON>        pending_pushes;
     std::deque<std::string> pending_pops;
+    // in flight action sequences
+    std::unordered_map<std::string, JSON> in_flight_seqs;
+    std::unordered_map<std::string, int> in_flight_inxs;
 
     bool    show_demo = false;
     bool    show_id_stack = false;
@@ -70,6 +73,10 @@ private:
     WebSockSenderFunc ws_send = nullptr;  // ref to NDWebSockClient::send
     MessagePumpFunc msg_pump = nullptr;
     GLFWwindow* glfw_window = nullptr;
+
+    // Buffer for action_event compound keys
+    constexpr static int act_ev_key_buf_len = 256;
+    char act_ev_key_buf[act_ev_key_buf_len];
 
 public:
     NDContext(NDProxy<DB>& s)
@@ -345,99 +352,95 @@ protected:
         it->second(w);
     }
 
-    void action_dispatch(const std::string& action, const std::string& nd_event) {
+    void action_dispatch(const std::string& action_id, const std::string& nd_event) {
         const static char* method = "NDContext::action_dispatch: ";
 
-        NDLogger::cout() << method << "action(" << action << ")" << std::endl;
+        // First, compose the compound action sequence key from action_id and nd_event
+        // NB action_id will be a widget_id or query_id
 
-        if (action.empty()) {
-            NDLogger::cerr() << method << "no action specified!" << std::endl;
+        char* dest = act_ev_key_buf;
+        int space = act_ev_key_buf_len;
+        memset(dest, 0, space);
+        strncpy(dest, action_id.c_str(), space);
+        dest += action_id.size();
+        space -= action_id.size();
+        strncpy(dest, period_cs, space);
+        dest += strlen(period_cs);
+        space -= strlen(period_cs);
+        strncpy(dest, nd_event.c_str(), space);
+
+        NDLogger::cout() << method << "ACT_EV(" << act_ev_key_buf << ")" << std::endl;
+
+        if (!JContains(data, actions_cs)) {
+            NDLogger::cerr() << method << "no actions in data!" << std::endl;
             return;
         }
-        // Is it a pushable widget? NB this is only for self popping modals like DuckTableSummaryModal.
-        // In this case we expect nd_event to be empty as we're not driven directly by the event, but
-        // by ui_push and ui_pop action qualifiers associated with the nd_event list. JOS 2025-02-21
-        // JOS 2025-02-22
-        auto it = pushable.find(action);
-        if (it != pushable.end() && nd_event.empty()) {
-            NDLogger::cout() << method << "pushable(" << action << ")" << std::endl;
-            stack.push_back(pushable[action]);
+        // get hold of "actions" in data: do we have one matching action?
+        const JSON& actions(data[actions_cs]);
+        if (!JContains(actions, act_ev_key_buf)) {
+            NDLogger::cerr() << method << "ACT_EV_FAIL(" << act_ev_key_buf << ")" << std::endl;
+            return;
         }
-        else {
-            if (!JContains(data, actions_cs)) {
-                NDLogger::cerr() << method << "no actions in data!" << std::endl;
+        JSON action_seq = JSON::array();
+        action_seq = actions[act_ev_key_buf];
+        int action_inx = 0;
+        int actions_len = JSize(action_seq);
+        if (actions_len < 1) {
+            NDLogger::cerr() << method << "ACT_EV_FAIL: actions_len(" << actions_len << ")" << std::endl;
+            return;
+        }
+        JSON& action_defn(action_seq[action_inx]);
+     
+        // Now we have a matched action definition in hand we can look
+        // for UI push/pop and DB scan/query. If there's both push and pop,
+        // pop goes first naturally!
+        if (JContains(action_defn, ui_pop_cs)) {
+            // for pops we supply the rname, not the pushable name so
+            // the context can check the widget type on pops
+            std::string rname(JAsString(action_defn, ui_pop_cs));
+            NDLogger::cout() << method << "ui_pop(" << rname << ")" << std::endl;
+            pending_pops.push_back(rname);
+        }
+        if (JContains(action_defn, ui_push_cs)) {
+            // for pushes we supply widget_id, not the rname
+            std::string widget_id(JAsString(action_defn, ui_push_cs));
+            // salt'n'pepa in da house!
+            auto push_it = pushable.find(widget_id);
+            if (push_it != pushable.end()) {
+                NDLogger::cout() << method << "ui_push(" << widget_id << ")" << std::endl;
+                // NB action_dispatch is called by eg render_button, which ultimately is called
+                // by render(), which iterates over stack. So we cannot change stack here...
+                pending_pushes.push_back(push_it->second);
+            }
+            else {
+                NDLogger::cerr() << method << "ui_push(" << widget_id << ") no such pushable" << std::endl;
+            }
+        }
+        // Finally, do we have a DB op to handle?
+        // TODO: rejig!
+        if (JContains(action_defn, db_action_cs)) {
+            std::string db_action(JAsString(action_defn, db_action_cs));
+            if (!JContains(action_defn, query_id_cs)) {
+                NDLogger::cerr() << method << "ACT_DISP_FAIL db_action(" << db_action << ") missing query_id" << std::endl;
                 return;
             }
-            // get hold of "actions" in data: do we have one matching action?
-            const JSON& actions(data[actions_cs]);
-            if (!JContains(actions, action.c_str())) {
-                NDLogger::cerr() << method << "no actions." << action << " in data!" << std::endl;
-                return;
+            std::string query_id(JAsString(action_defn, query_id_cs));
+            if (db_action == batch_request_cs) {
+                db_dispatch(db_action, query_id);
             }
-            const JSON& action_defn(actions[action]);
-            if (!JContains(action_defn, nd_events_cs)) {
-                NDLogger::cerr() << method << "no nd_events in actions." << action << " in data!" << std::endl;
-                return;
-            }
-            StringVec nd_events_vec;
-            JAsStringVec(action_defn, nd_events_cs, nd_events_vec);
-            auto nd_events_iter = std::find(nd_events_vec.begin(), nd_events_vec.end(), nd_event);
-            bool event_match = nd_events_iter != nd_events_vec.end();
-            if (!event_match) {
-                NDLogger::cerr() << method << "no match for nd_event(" << nd_event << ") in defn(" << action_defn << ") in data!" << std::endl;
-                return;
-            }
-            // Now we have a matched action definition in hand we can look
-            // for UI push/pop and DB scan/query. If there's both push and pop,
-            // pop goes first naturally!
-            if (JContains(action_defn, ui_pop_cs)) {
-                // for pops we supply the rname, not the pushable name so
-                // the context can check the widget type on pops
-                std::string rname(JAsString(action_defn, ui_pop_cs));
-                NDLogger::cout() << method << "ui_pop(" << rname << ")" << std::endl;
-                pending_pops.push_back(rname);
-            }
-            if (JContains(action_defn, ui_push_cs)) {
-                // for pushes we supply widget_id, not the rname
-                std::string widget_id(JAsString(action_defn, ui_push_cs));
-                // salt'n'pepa in da house!
-                auto push_it = pushable.find(widget_id);
-                if (push_it != pushable.end()) {
-                    NDLogger::cout() << method << "ui_push(" << widget_id << ")" << std::endl;
-                    // NB action_dispatch is called by eg render_button, which ultimately is called
-                    // by render(), which iterates over stack. So we cannot change stack here...
-                    pending_pushes.push_back(push_it->second);
-                }
-                else {
-                    NDLogger::cerr() << method << "ui_push(" << widget_id << ") no such pushable" << std::endl;
-                }
-            }
-            // Finally, do we have a DB op to handle?
-            if (JContains(action_defn, db_cs)) {
-                const JSON& db_op(action_defn[db_cs]);
-                if (!JContains(db_op, query_id_cs) || !JContains(db_op, action_cs)) {
-                    NDLogger::cerr() << method << "db(" << db_op << ") missing query_id|action!" << std::endl;
+            else {
+                if (!JContains(action_defn, sql_cname_cs)) {
+                    NDLogger::cerr() << method << "ACT_DISP_FAIL db_action(" << db_action << ") missing sql_cname" << std::endl;
                     return;
                 }
-                std::string db_action(JAsString(db_op, action_cs));
-                std::string query_id(JAsString(db_op, query_id_cs));
-                if (db_action == batch_request_cs) {
-                    db_dispatch(db_action, query_id);
+                std::string sql_cache_key(JAsString(action_defn, sql_cname_cs));
+                if (!JContains(data, sql_cache_key.c_str())) {
+                    NDLogger::cerr() << method << "ACT_DISP_FAIL db_action(" << db_action << ") sql_cname(" << sql_cache_key << ") does not resolve!" << std::endl;
+                    return;
                 }
                 else {
-                    if (!JContains(db_op, sql_cname_cs)) {
-                        NDLogger::cerr() << method << "db(" << db_op << ") missing sql_cname" << std::endl;
-                        return;
-                    }
-                    std::string sql_cache_key(JAsString(db_op, sql_cname_cs));
-                    if (!JContains(data, sql_cache_key.c_str())) {
-                        NDLogger::cerr() << method << "db(" << db_op << ") sql_cname(" << sql_cache_key << ") does not resolve!" << std::endl;
-                        return;
-                    }
-                    else {
-                        std::string sql(JAsString(data, sql_cache_key.c_str()));
-                        db_dispatch(db_action, query_id, sql);
-                    }
+                    std::string sql(JAsString(data, sql_cache_key.c_str()));
+                    db_dispatch(db_action, query_id, sql);
                 }
             }
         }
@@ -736,8 +739,12 @@ protected:
             return;
         }
         std::string button_text = JAsString(cspec, text_cs);
+        std::string widget_id(button_text);
+        if (JContains(cspec, widget_id_cs)) {
+            widget_id = JAsString(cspec, widget_id_cs);
+        }
         if (ImGui::Button(button_text.c_str())) {
-            action_dispatch(button_text, "Button");
+            action_dispatch(widget_id, click_cs);
         }
     }
 
