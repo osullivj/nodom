@@ -7,4 +7,5 @@ set ND_GNU_HOME=c:\ProgramData\chocolatey\bin
 set ND_BOOST_HOME=c:\osullivj\bld\boost_1_79_0
 set ND_SSL_HOME=c:\osullivj\bld\openssl-3.5.3
 set ND_DUCK_HOME=c:\osullivj\bld\duckdb140
+set ND_PIX_HOME=C:\Program Files\Microsoft PIX\2601.15
 set ND_DUCK_ESM=https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@latest/+esm
