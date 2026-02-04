@@ -298,6 +298,7 @@ public:
         }
         else if (nd_type == batch_response_cs) {
             db_status_color = green;
+            action_dispatch(qid, nd_type);
         }
         else if (nd_type == duck_instance_cs) {
             // TODO: q processing order means this doesn't happen so early in cpp
