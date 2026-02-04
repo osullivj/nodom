@@ -189,7 +189,7 @@ LAUNCH_SUMMARY = dict(  # close scanning modal, send query request to DuckDB
 LAUNCH_SELECT = dict(  # send depth query request to DuckDB
     db_action="Query",
     query_id=SELECT_QID,
-    sql_cname="select_sql",
+    sql_cname="query_sql",
 )
 
 LAUNCH_SUMMARY_BATCH = dict(
