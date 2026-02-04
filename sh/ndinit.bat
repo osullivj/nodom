@@ -14,7 +14,7 @@ popd
 :: deleted, but contents were. 2 fixed that...
 set EMCC_DEBUG=2
 :: WASM bin tools, pyarrow venv dir to pick up arrow.dll
-set PATH=%ND_DUCK_HOME%;%ND_WABT_HOME%;%ND_HOME%\venv\scripts;%ND_HOME%\venv\Lib\site-packages\pyarrow;%ND_GNU_HOME%;%PATH%
+set PATH=%ND_PIX_HOME%;%ND_DUCK_HOME%;%ND_WABT_HOME%;%ND_HOME%\venv\scripts;%ND_HOME%\venv\Lib\site-packages\pyarrow;%ND_GNU_HOME%;%PATH%
 :: Required for JS unit test cmd line...
 :: C:\osullivj\src\nodom\node_modules\.bin\vitest.cmd
 set NODE_OPTIONS=--experimental-vm-modules
