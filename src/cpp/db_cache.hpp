@@ -307,8 +307,10 @@ public:
             return 0;
         Bobbin& bob = bobbin_map[handle];
         auto chunk_iter = bob.begin();
-        while (chunk_iter != bob.end())
+        while (chunk_iter != bob.end()) {
             row_count += duckdb_data_chunk_get_size(*chunk_iter);
+            chunk_iter++;
+        }
         return row_count;
     }
 
