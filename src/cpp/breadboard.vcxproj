@@ -146,15 +146,17 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>..\..;..\..\backends;..\libs\glfw\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%ND_HOME%\websocketpp;%ND_HOME%\imgui;%ND_HOME%\imgui\backends;%ND_HOME%\imgui\examples\libs\glfw\include;%ND_HOME%\imgui\examples\libs\emscripten;%ND_HOME%\ImGuiDatePicker;%ND_HOME%\venv\lib\site-packages\pyarrow\include;%ND_BOOST_HOME%;%ND_SSL_HOME%\x64\include;%ND_DUCK_HOME%;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BufferSecurityCheck>false</BufferSecurityCheck>
+      <PreprocessorDefinitions>NODOM_DUCK;_WIN32_WINNT=0x0601;BOOST_BIND_GLOBAL_PLACEHOLDERS;_CRT_SECURE_NO_WARNINGS;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>..\libs\glfw\lib-vc2010-64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opengl32.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%ND_HOME%\imgui\examples\libs\glfw\lib-vc2010-64;%ND_PY_HOME%\libs;%ND_BOOST_HOME%\stage\lib;%ND_HOME%\venv\lib\site-packages\pyarrow;%ND_DUCK_HOME%;(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opengl32.lib;glfw3.lib;arrow_python.lib;arrow.lib;duckdb.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Console</SubSystem>
       <IgnoreSpecificDefaultLibraries>
       </IgnoreSpecificDefaultLibraries>
