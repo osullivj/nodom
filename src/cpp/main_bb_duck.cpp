@@ -1,8 +1,3 @@
-// Dear ImGui: standalone example application for GLFW + OpenGL 3, using programmable pipeline
-// (GLFW is a cross-platform general purpose library for handling windows, inputs, OpenGL/Vulkan/Metal graphics context creation, etc.)
-// If you are new to Dear ImGui, read documentation from the docs/ folder + read the top of imgui.cpp.
-// Read online: https://github.com/ocornut/imgui/tree/master/docs
-
 // imgui hdrs
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -12,15 +7,14 @@
 #include <GLES2/gl2.h>
 #endif
 #include <GLFW/glfw3.h> // Will drag system OpenGL headers
-
+// nodom hdrs
 #include "static_strings.hpp"
 #include "context.hpp"
 #include "im_render.hpp"
 #include "db_cache.hpp"
 #include "websock.hpp"
-#ifdef __EMSCRIPTEN__
-#include "emscripten_mainloop_stub.h"
-#endif
+// MS PIX
+#include "pix3.h"
 
 // NoDOM: this main.cpp is intended to stay as close as possible
 // to the imgui/examples/example_glfw_opengl3/main.cpp as that's 
@@ -33,20 +27,9 @@
 #pragma comment(lib, "legacy_stdio_definitions")
 #endif
 
-#ifdef __EMSCRIPTEN__
-using ems_val_t = emscripten::val;
-using EmptyDB_t = EmptyDBCache<emscripten::val>;
-using NDContext_t = NDContext<ems_val_t, EmptyDB_t>;
-
-void im_loop_body(void* c) {
-    auto ctx = reinterpret_cast<NDContext_t*>(c);
-    if (ctx && !im_render(*ctx)) im_end(ctx->get_glfw_window());
-}
-#endif
 
 int main(int argc, char* argv[]) {
     const static char* method = "main: ";
-#ifndef __EMSCRIPTEN__
     NDProxy<DuckDBCache> server(argc, argv);
     NDContext<nlohmann::json, DuckDBCache> ctx(server);
     try {
@@ -64,15 +47,5 @@ int main(int argc, char* argv[]) {
     catch (nlohmann::json::exception& ex) {
         std::cout << method << ex.what() << std::endl;
     }
-#else
-    NDProxy<EmptyDB_t> server;
-    NDContext_t ctx(server);
-    NDWebSockClient<ems_val_t, EmptyDB_t> ws_client(server, ctx);
-    IDBFontCache font_cache([&ctx](const std::string& n, ImFont* f)
-                                {ctx.register_font(n, f); },
-                                { "Arial.ttf", "CourierNew.ttf" });
-    GLFWwindow* window = im_start(ctx, &font_cache);
-    emscripten_set_main_loop_arg(im_loop_body, &ctx, 0, 1);
-#endif
 }
 
