@@ -137,6 +137,7 @@ public:
 
     // invoked by main loop
     void render() {
+        pix_begin_render(render_count);
         start_render_cycle();
 
         // address pending pops first: maintaining ordering by working from front to back
@@ -167,6 +168,7 @@ public:
             dispatch_render(widget);
         }
         end_render_cycle();
+        pix_end_event();
     }
 
     void start_render_cycle() {
@@ -186,6 +188,7 @@ public:
 
     void end_render_cycle() {
         const static char* method = "NDContext::end_render_cycle: ";
+
         if (font_push_count != font_pop_count) {
             NDLogger::cerr() << method << "font_push_count: " << font_push_count
                 << ", font_pop_count: " << font_pop_count << std::endl;
