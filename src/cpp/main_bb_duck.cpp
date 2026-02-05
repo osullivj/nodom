@@ -13,8 +13,6 @@
 #include "im_render.hpp"
 #include "db_cache.hpp"
 #include "websock.hpp"
-// MS PIX
-#include "pix3.h"
 
 // NoDOM: this main.cpp is intended to stay as close as possible
 // to the imgui/examples/example_glfw_opengl3/main.cpp as that's 
@@ -27,11 +25,14 @@
 #pragma comment(lib, "legacy_stdio_definitions")
 #endif
 
-
 int main(int argc, char* argv[]) {
     const static char* method = "main: ";
+
+    pix_init();
+
     NDProxy<DuckDBCache> server(argc, argv);
     NDContext<nlohmann::json, DuckDBCache> ctx(server);
+
     try {
         // launch DB thread: see db_loop impls
         server.start_db_thread();

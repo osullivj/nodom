@@ -80,4 +80,9 @@ int DuckTypeToSize(DuckType dt) {
     return 0;
 }
 
-
+// decls as these are in a separate unit of compilation
+void pix_init();
+void pix_fini();
+void pix_begin_render(int render_count);
+void pix_begin_dbase();
+void pix_end_event();

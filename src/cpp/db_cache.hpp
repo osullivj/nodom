@@ -194,6 +194,7 @@ public:
         while (!done) {
             boost::unique_lock<boost::mutex> to_lock(query_mutex);
             query_cond.wait(to_lock);
+            pix_begin_dbase();
             // thead quiesces in the wait above, with query_mutex
             // unlocked so the C++ thread can add work items
             std::cout << method << "db_queries depth : " << db_queries.size() << std::endl;
@@ -274,6 +275,7 @@ public:
                 // lock the result queue and post back to the GUI thread
                 boost::unique_lock<boost::mutex> results_lock(result_mutex);
                 db_results.push(db_response);
+                pix_end_event();
             }
         }
         db_fnls();
