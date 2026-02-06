@@ -1,5 +1,6 @@
 // heavily ifdeffed so we can build Breadboard without linking PIX
 #ifdef USE_PIX
+#include "Windows.h"
 #include "pix3.h"
 #endif
 
