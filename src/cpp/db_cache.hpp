@@ -362,17 +362,13 @@ public:
         duckdb_result* result_ptr = reinterpret_cast<duckdb_result*>(h);
         ResultHandle handle = static_cast<ResultHandle>(h);
 
-        // column_count = duckdb_column_count(result_ptr);
-        // row_count = get_bobbin_row_count(h);
-
-        // Which chunk on the reel has the datum?
-        Bobbin& bob = bobbin_map[handle];
+        const Bobbin& bob{ bobbin_map.at(handle)};
         int start_index = 0;
         int end_index = 0;
         int rel_index = 0;
-        auto bob_iter = bob.begin();
+        auto bob_iter = bob.cbegin();
         duckdb_data_chunk chunk;
-        while (bob_iter != bob.end()) {
+        while (bob_iter != bob.cend()) {
             chunk = *bob_iter;
             end_index = start_index + duckdb_data_chunk_get_size(chunk);
             if (row_index < end_index && row_index >= start_index) {
@@ -383,15 +379,15 @@ public:
                 start_index = end_index;
             }
         }
-        if (bob_iter == bob.end()) {    // row_index not on Bobbin
-            buffer = (char*)null_cs;
+        if (bob_iter == bob.cend()) {    // row_index not on Bobbin
+            buffer = (char*)bad_cs;
             return 0;
         }
         duckdb_vector colm = duckdb_data_chunk_get_vector(chunk, colm_index);
         uint64_t* validities = duckdb_vector_get_validity(colm);
         // get type metadata for the colm vector and validities
-        std::vector<duckdb_type>& types(type_map[handle]);
-        std::vector<duckdb_logical_type>& logical_types(logical_type_map[handle]);
+        const std::vector<duckdb_type>& types{ type_map.at(handle) };
+        const std::vector<duckdb_logical_type>& logical_types{ logical_type_map.at(handle) };
         duckdb_type colm_type(types[colm_index]);
         duckdb_logical_type colm_type_l(logical_types[colm_index]);
         // In most cases we'll copy into string_buffer, or
