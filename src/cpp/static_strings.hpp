@@ -61,6 +61,7 @@ static const char* duck_table_summary_modal_cs("DuckTableSummaryModal");
 
 // DB
 static const char* null_cs("NULL");
+static const char* bad_cs("BAD");
 
 // Actions: data.actions should be a dict
 // of dicts. Those leaf dicts should supply
