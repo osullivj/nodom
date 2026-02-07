@@ -51,9 +51,9 @@ enum PixReportType : int32_t {
     RenderFPS = 2,
     RenderPushPC = 3,
     RenderPopPC = 4,
-    DBScans = 5,
-    DBQueries = 6,
-    DBBatches = 7
+    DBScan = 5,
+    DBQuery = 6,
+    DBBatch = 7
 };
 
 

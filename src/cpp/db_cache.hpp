@@ -136,6 +136,9 @@ private:
     uint8_t decimal_scale = 0;
     double  decimal_divisor = 1.0;
     double  decimal_value = 0.0;
+    int scan_count{ 0 };
+    int query_count{ 0 };
+    int batch_count{ 0 };
 public:
     // db_init, db_fnls, db_loop: these three methods exec 
     // on the DB thread
@@ -221,6 +224,7 @@ public:
                     try {
                         dbstate = duckdb_query(duck_conn, sql.c_str(), nullptr);
                         db_response[nd_type_cs] = parquet_scan_result_cs;
+                        pix_report(DBScan, static_cast<float>(scan_count++));
                     }
                     catch (...) {
                         // DuckDB C API can throw exceptions from the parquet
@@ -248,6 +252,7 @@ public:
                     }
                     else {
                         result_map[qid] = dbresult;
+                        pix_report(DBQuery, static_cast<float>(query_count++));
                     }
                 }
                 else if (nd_type == batch_request_cs) {
@@ -263,6 +268,7 @@ public:
                         ResultHandle handle = reinterpret_cast<std::uint64_t>(&(result_iter->second));
                         Bobbin& chunk_deck(bobbin_map[handle]);
                         chunk_deck.push_back(chunk);
+                        pix_report(DBBatch, static_cast<float>(batch_count++));
                     }
                 }
                 else {
