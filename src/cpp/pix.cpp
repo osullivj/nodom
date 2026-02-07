@@ -105,12 +105,12 @@ const wchar_t* PixReportTypeToString(PixReportType rt) {
         return L"RenderPushPC";
     case RenderPopPC:
         return L"RenderPopPC";
-    case DBScans:
-        return L"DBScans";
-    case DBQueries:
-        return L"DBQueries";
-    case DBBatches:
-        return L"DBBatches";
+    case DBScan:
+        return L"DBScan";
+    case DBQuery:
+        return L"DBQuery";
+    case DBBatch:
+        return L"DBBatch";
     }
     return L"Unknown";
 }
