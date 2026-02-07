@@ -195,6 +195,10 @@ public:
         }
         bad_font_pushes.clear();
         render_count++;
+
+        pix_report(RenderPushPC, static_cast<float>(font_push_count));
+        pix_report(RenderPopPC, static_cast<float>(font_pop_count));
+        pix_report(RenderFPS, ImGui::GetIO().Framerate);
     }
 
     void server_request(const std::string& key) {
