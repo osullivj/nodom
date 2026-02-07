@@ -116,6 +116,7 @@ class DuckDBCache : public BreadBoardDBCache {
 private:
     duckdb_database                     duck_db;
     duckdb_connection                   duck_conn;
+    idx_t                               duck_chunk_size;
 
     std::unordered_map<std::string, duckdb_result>  result_map;
     std::unordered_map<ResultHandle, Bobbin>        bobbin_map;
@@ -123,10 +124,6 @@ private:
     std::unordered_map<std::uint64_t, StringVec> col_names_map;
     std::unordered_map<std::uint64_t, std::vector<duckdb_type>> type_map;
     std::unordered_map<std::uint64_t, std::vector<duckdb_logical_type>> logical_type_map;
-
-    // these two need to move into the Bobbin
-    // std::unordered_map<std::uint64_t, std::vector<duckdb_vector>> column_map;
-    // std::unordered_map<std::uint64_t, std::vector<uint64_t*>> validity_map;
 
     int16_t* sidata = nullptr;
     int32_t* idata = nullptr;
@@ -180,6 +177,7 @@ public:
         }
 
         nlohmann::json response_list_j = nlohmann::json::array();
+        duck_chunk_size = duckdb_vector_size();
 
         // https://www.boost.org/doc/libs/1_34_0/doc/html/boost/condition.html
         // A condition object is always used in conjunction with a mutex object (an object
@@ -307,7 +305,7 @@ public:
         std::uint64_t row_count = 0;
         if (bob_iter == bobbin_map.end())
             return 0;
-        Bobbin& bob = bobbin_map[handle];
+        Bobbin& bob = bobbin_map.at(handle);
         auto chunk_iter = bob.begin();
         while (chunk_iter != bob.end()) {
             row_count += duckdb_data_chunk_get_size(*chunk_iter);
@@ -331,24 +329,17 @@ public:
         row_count = get_bobbin_row_count(h);
 
         // duckdb_data_chunk chunk = reinterpret_cast<duckdb_data_chunk>(handle);
-        // yes, these fire default ctor on 1st visit
-        // std::vector<duckdb_vector>& columns(column_map[handle]);
-        // std::vector<uint64_t*>& validities(validity_map[handle]);
+        // yes, these are slow and fire default ctor on 1st visit, which is why
+        // we don't use .at()
         std::vector<duckdb_type>& types(type_map[handle]);
         std::vector<duckdb_logical_type>& logical_types(logical_type_map[handle]);
         StringVec& col_names = col_names_map[handle];
         if (types.empty()) {
-            // columns.clear();
-            // validities.clear();
             types.clear();
             logical_types.clear();
             col_names.clear();
-            // duckdb_vector colm{};
             duckdb_logical_type type_l{};
             for (std::uint64_t index = 0; index < column_count; ++index) {
-                // colm = duckdb_data_chunk_get_vector(chunk, index);
-                // columns.push_back(colm);
-                // validities.push_back(duckdb_vector_get_validity(colm));
                 type_l = duckdb_column_logical_type(result_ptr, index);
                 logical_types.push_back(type_l);
                 types.push_back(duckdb_get_type_id(type_l));
@@ -363,39 +354,31 @@ public:
         ResultHandle handle = static_cast<ResultHandle>(h);
 
         const Bobbin& bob{ bobbin_map.at(handle)};
-        int start_index = 0;
-        int end_index = 0;
-        int rel_index = 0;
-        auto bob_iter = bob.cbegin();
         duckdb_data_chunk chunk;
-        while (bob_iter != bob.cend()) {
-            chunk = *bob_iter;
-            end_index = start_index + duckdb_data_chunk_get_size(chunk);
-            if (row_index < end_index && row_index >= start_index) {
-                rel_index = row_index - start_index;
-                break;
-            }
-            else {
-                start_index = end_index;
-            }
+
+        int rel_index = row_index % duck_chunk_size;
+        int chunk_index = row_index / duck_chunk_size;
+        auto bob_iter = bob.cbegin();
+        while (chunk_index > 0) {
+            --chunk_index;
+            ++bob_iter;
         }
-        if (bob_iter == bob.cend()) {    // row_index not on Bobbin
-            buffer = (char*)bad_cs;
-            return 0;
-        }
+        chunk = *bob_iter;
         duckdb_vector colm = duckdb_data_chunk_get_vector(chunk, colm_index);
         uint64_t* validities = duckdb_vector_get_validity(colm);
-        // get type metadata for the colm vector and validities
-        const std::vector<duckdb_type>& types{ type_map.at(handle) };
-        const std::vector<duckdb_logical_type>& logical_types{ logical_type_map.at(handle) };
-        duckdb_type colm_type(types[colm_index]);
-        duckdb_logical_type colm_type_l(logical_types[colm_index]);
         // In most cases we'll copy into string_buffer, or
         // use sprintf to format into buffer. But for long
         // strings we may want to hand back Duck's start
         // and end char*
         buffer = string_buffer;
         if (duckdb_validity_row_is_valid(validities, rel_index)) {
+            // get type metadata for the colm vector and validities
+            // NB we only do this work if the field is valid
+            const std::vector<duckdb_type>& types{ type_map.at(handle) };
+            duckdb_type colm_type(types[colm_index]);
+            const std::vector<duckdb_logical_type>& logical_types{ logical_type_map.at(handle) };
+            duckdb_logical_type colm_type_l(logical_types[colm_index]);
+
             switch (colm_type) {
             case DUCKDB_TYPE_VARCHAR:
                 vcdata = (duckdb_string_t*)duckdb_vector_get_data(colm);
@@ -420,6 +403,7 @@ public:
                 sprintf(string_buffer, "%f", dbldata[rel_index]);
                 break;
             case DUCKDB_TYPE_DECIMAL:
+
                 decimal_width = duckdb_decimal_width(colm_type_l);
                 decimal_scale = duckdb_decimal_scale(colm_type_l);
                 decimal_type = duckdb_decimal_internal_type(colm_type_l);
