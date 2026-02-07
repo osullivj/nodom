@@ -42,43 +42,20 @@ enum DuckType : int32_t {
     Timestamp_ns = -18
 };
 
-const char* DuckTypeToString(DuckType dt) {
-    switch (dt) {
-    case DuckType::Int:
-        return "Int";
-    case DuckType::Float:
-        return "Float";
-    case DuckType::Timestamp:
-        return "TS";
-    case DuckType::Timestamp_s:
-        return "TS_s";
-    case DuckType::Timestamp_ms:
-        return "TS_ms";
-    case DuckType::Timestamp_us:
-        return "TS_us";
-    case DuckType::Timestamp_ns:
-        return "TS_ns";
-    case DuckType::Utf8:
-        return "Utf8";
-    }
-    return "Unknown";
-}
+const char* DuckTypeToString(DuckType dt);
+int DuckTypeToSize(DuckType dt);
 
-int DuckTypeToSize(DuckType dt) {
-    switch (dt) {
-    case DuckType::Int:
-        return 4;
-    case DuckType::Float:
-    case DuckType::Timestamp:
-    case DuckType::Timestamp_s:
-    case DuckType::Timestamp_ms:
-    case DuckType::Timestamp_us:
-    case DuckType::Timestamp_ns:
-    case DuckType::Utf8:
-        return 8;
-    }
-    return 0;
-}
+
+
+enum PixReportType : int32_t {
+    RenderFPS = 2,
+    RenderPushPC = 3,
+    RenderPopPC = 4,
+    DBScans = 5,
+    DBQueries = 6,
+    DBBatches = 7
+};
+
 
 // decls as these are in a separate unit of compilation
 void pix_init();
@@ -86,3 +63,4 @@ void pix_fini();
 void pix_begin_render(int render_count);
 void pix_begin_dbase();
 void pix_end_event();
+void pix_report(PixReportType t, float val);
