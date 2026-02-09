@@ -6,6 +6,7 @@
 #include "nd_types.hpp"
 #include "static_strings.hpp"
 #include "json_ops.hpp"
+#include "fmt/base.h"
 
 #ifndef __EMSCRIPTEN__
 
@@ -139,6 +140,7 @@ private:
     int scan_count{ 0 };
     int query_count{ 0 };
     int batch_count{ 0 };
+    fmt::format_to_n_result<char*> fmt_result;
 public:
     // db_init, db_fnls, db_loop: these three methods exec 
     // on the DB thread
@@ -406,7 +408,9 @@ public:
                 break;
             case DUCKDB_TYPE_DOUBLE:
                 dbldata = (double_t*)duckdb_vector_get_data(colm);
-                sprintf(string_buffer, "%f", dbldata[rel_index]);
+                fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{}", dbldata[rel_index]);
+                string_buffer[fmt_result.size] = 0;
+                // sprintf(string_buffer, "%f", dbldata[rel_index]);
                 break;
             case DUCKDB_TYPE_DECIMAL:
 
