@@ -110,6 +110,7 @@ EXF_LAYOUT = [
                 rname="Button",
                 cspec=dict(
                     text=SUMMARY_BUTTON_TEXT,
+                    widget_id=SUMMARY_BUTTON_ID,
                 ),
             ),
             dict(rname="EndChild"),
