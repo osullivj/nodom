@@ -137,6 +137,23 @@ private:
     uint8_t decimal_scale = 0;
     double  decimal_divisor = 1.0;
     double  decimal_value = 0.0;
+    duckdb_timestamp_s* ts_s = nullptr;
+    duckdb_timestamp_ms* ts_milli = nullptr;
+    duckdb_timestamp* ts_micro = nullptr;
+    duckdb_timestamp_ns* ts_nano = nullptr;
+    std::map<duckdb_type, int32_t>  timestamp_scale_map{
+        {DUCKDB_TYPE_TIMESTAMP_S, 1},
+        {DUCKDB_TYPE_TIMESTAMP_MS, 1e3},
+        {DUCKDB_TYPE_TIMESTAMP, 1e6},
+        {DUCKDB_TYPE_TIMESTAMP_NS, 1e9}
+    };
+    std::map<duckdb_type, const char*> timestamp_dec_fmt_map{
+        {DUCKDB_TYPE_TIMESTAMP_S, nullptr},
+        {DUCKDB_TYPE_TIMESTAMP_MS, "{:3.3}"},
+        {DUCKDB_TYPE_TIMESTAMP, "{:6.6}"},
+        {DUCKDB_TYPE_TIMESTAMP_NS, "{:9.9}"}
+    };
+    std::uint64_t seconds;
     int scan_count{ 0 };
     int query_count{ 0 };
     int batch_count{ 0 };
@@ -386,6 +403,9 @@ public:
             duckdb_type colm_type(types[colm_index]);
             const std::vector<duckdb_logical_type>& logical_types{ logical_type_map.at(handle) };
             duckdb_logical_type colm_type_l(logical_types[colm_index]);
+            char* fraction_cs = nullptr;
+            char* fraction_fmt = nullptr;
+            double fraction{ 0.0 };
 
             switch (colm_type) {
             case DUCKDB_TYPE_VARCHAR:
@@ -410,10 +430,34 @@ public:
                 dbldata = (double_t*)duckdb_vector_get_data(colm);
                 fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{}", dbldata[rel_index]);
                 string_buffer[fmt_result.size] = 0;
-                // sprintf(string_buffer, "%f", dbldata[rel_index]);
+                break;
+            // 4 duckdb_timestamp[_??] types, all holding
+            // a single int64_t named differently
+            case DUCKDB_TYPE_TIMESTAMP_S:   // duckdb_timestamp_s::seconds
+            case DUCKDB_TYPE_TIMESTAMP_MS:  // duckdb_timestamp_ms::millis
+            case DUCKDB_TYPE_TIMESTAMP:     // duckdb_timestamp::micros
+            case DUCKDB_TYPE_TIMESTAMP_NS:  // duckdb_timestamp_ns::nanos
+                try {
+                    ts_micro = (duckdb_timestamp*)duckdb_vector_get_data(colm);
+                    seconds = ts_micro[rel_index].micros / timestamp_scale_map[colm_type];
+                    fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%Y-%m-%d %H:%M:%S}", seconds);
+                    fraction_cs = string_buffer + fmt_result.size;
+                    fraction_fmt = (char*)timestamp_dec_fmt_map[colm_type];
+                    if (fraction_fmt != nullptr) {  // add decimal suffix
+                        fraction = (ts_micro[rel_index].micros - (seconds * timestamp_scale_map[colm_type])) / timestamp_scale_map[colm_type];
+                        fmt_result = fmt::format_to_n(fraction_cs, STR_BUF_LEN - fmt_result.size, "{}", fraction);
+                        fraction_cs[fmt_result.size] = 0;
+                    }
+                    else {  // no decimal suffix, null term directly after seconds
+                        *fraction_cs = 0;
+                    }
+                }
+                catch (std::runtime_error& ex) {
+                    std::cerr << ex.what() << std::endl;
+                    buffer = (char*)bad_cs;
+                }
                 break;
             case DUCKDB_TYPE_DECIMAL:
-
                 decimal_width = duckdb_decimal_width(colm_type_l);
                 decimal_scale = duckdb_decimal_scale(colm_type_l);
                 decimal_type = duckdb_decimal_internal_type(colm_type_l);
@@ -444,6 +488,7 @@ public:
                 sprintf(string_buffer, format_buffer, decimal_value);
                 break;
             }
+
         }
         else {
             buffer = (char*)null_cs;
