@@ -3,10 +3,12 @@
 #include <queue>
 #include <vector>
 #include <stdexcept>
+#include <chrono>
 #include "nd_types.hpp"
 #include "static_strings.hpp"
 #include "json_ops.hpp"
 #include "fmt/base.h"
+#include "fmt/chrono.h"
 
 #ifndef __EMSCRIPTEN__
 
@@ -137,23 +139,10 @@ private:
     uint8_t decimal_scale = 0;
     double  decimal_divisor = 1.0;
     double  decimal_value = 0.0;
-    duckdb_timestamp_s* ts_s = nullptr;
+    duckdb_timestamp_s* ts_secs = nullptr;
     duckdb_timestamp_ms* ts_milli = nullptr;
     duckdb_timestamp* ts_micro = nullptr;
     duckdb_timestamp_ns* ts_nano = nullptr;
-    std::map<duckdb_type, int32_t>  timestamp_scale_map{
-        {DUCKDB_TYPE_TIMESTAMP_S, 1},
-        {DUCKDB_TYPE_TIMESTAMP_MS, 1e3},
-        {DUCKDB_TYPE_TIMESTAMP, 1e6},
-        {DUCKDB_TYPE_TIMESTAMP_NS, 1e9}
-    };
-    std::map<duckdb_type, const char*> timestamp_dec_fmt_map{
-        {DUCKDB_TYPE_TIMESTAMP_S, nullptr},
-        {DUCKDB_TYPE_TIMESTAMP_MS, "{:3.3}"},
-        {DUCKDB_TYPE_TIMESTAMP, "{:6.6}"},
-        {DUCKDB_TYPE_TIMESTAMP_NS, "{:9.9}"}
-    };
-    std::uint64_t seconds;
     int scan_count{ 0 };
     int query_count{ 0 };
     int batch_count{ 0 };
@@ -374,6 +363,12 @@ public:
         return true;
     }
 
+    using TPMilli = std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds>;
+    using TPMicro = std::chrono::time_point<std::chrono::system_clock, std::chrono::microseconds>;
+    using TPNano = std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>;
+    using TPSecs = std::chrono::time_point<std::chrono::system_clock, std::chrono::seconds>;
+
+
     const char* get_datum(std::uint64_t h, std::uint64_t colm_index, std::uint64_t row_index) {
         duckdb_result* result_ptr = reinterpret_cast<duckdb_result*>(h);
         ResultHandle handle = static_cast<ResultHandle>(h);
@@ -433,30 +428,22 @@ public:
                 break;
             // 4 duckdb_timestamp[_??] types, all holding
             // a single int64_t named differently
-            case DUCKDB_TYPE_TIMESTAMP_S:   // duckdb_timestamp_s::seconds
-            case DUCKDB_TYPE_TIMESTAMP_MS:  // duckdb_timestamp_ms::millis
-            case DUCKDB_TYPE_TIMESTAMP:     // duckdb_timestamp::micros
-            case DUCKDB_TYPE_TIMESTAMP_NS:  // duckdb_timestamp_ns::nanos
-                try {
-                    ts_micro = (duckdb_timestamp*)duckdb_vector_get_data(colm);
-                    seconds = ts_micro[rel_index].micros / timestamp_scale_map[colm_type];
-                    fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%Y-%m-%d %H:%M:%S}", seconds);
-                    fraction_cs = string_buffer + fmt_result.size;
-                    fraction_fmt = (char*)timestamp_dec_fmt_map[colm_type];
-                    if (fraction_fmt != nullptr) {  // add decimal suffix
-                        fraction = (ts_micro[rel_index].micros - (seconds * timestamp_scale_map[colm_type])) / timestamp_scale_map[colm_type];
-                        fmt_result = fmt::format_to_n(fraction_cs, STR_BUF_LEN - fmt_result.size, "{}", fraction);
-                        fraction_cs[fmt_result.size] = 0;
-                    }
-                    else {  // no decimal suffix, null term directly after seconds
-                        *fraction_cs = 0;
-                    }
-                }
-                catch (std::runtime_error& ex) {
-                    std::cerr << ex.what() << std::endl;
-                    buffer = (char*)bad_cs;
-                }
-                break;
+            case DUCKDB_TYPE_TIMESTAMP_S:
+                ts_secs = (duckdb_timestamp_s*)duckdb_vector_get_data(colm);
+                fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F %T}", TPSecs{ std::chrono::seconds{ ts_secs->seconds } });
+                return buffer + fmt_result.size;
+            case DUCKDB_TYPE_TIMESTAMP_MS:  
+                ts_milli = (duckdb_timestamp_ms*)duckdb_vector_get_data(colm);
+                fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F %T}", TPMilli{ std::chrono::milliseconds{ts_milli->millis} });
+                return buffer + fmt_result.size;
+            case DUCKDB_TYPE_TIMESTAMP:     
+                ts_micro = (duckdb_timestamp*)duckdb_vector_get_data(colm);
+                fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F %T}", TPMicro{ std::chrono::microseconds{ ts_micro->micros } });
+                return buffer + fmt_result.size;
+            case DUCKDB_TYPE_TIMESTAMP_NS:  
+                ts_nano = (duckdb_timestamp_ns*)duckdb_vector_get_data(colm);
+                fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F %T}", TPNano{ std::chrono::microseconds{ ts_nano->nanos } });
+                return buffer + fmt_result.size;
             case DUCKDB_TYPE_DECIMAL:
                 decimal_width = duckdb_decimal_width(colm_type_l);
                 decimal_scale = duckdb_decimal_scale(colm_type_l);
@@ -488,7 +475,6 @@ public:
                 sprintf(string_buffer, format_buffer, decimal_value);
                 break;
             }
-
         }
         else {
             buffer = (char*)null_cs;
