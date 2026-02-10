@@ -1043,6 +1043,7 @@ protected:
         }
         StringVec& colm_names = proxy.get_col_names(result_handle);
         if (ImGui::BeginTable(qname.c_str(), (int)colm_count, table_flags)) {
+            ImGui::TableSetupScrollFreeze(1, 1);
             for (colm_index = 0; colm_index < colm_count; colm_index++) {
                 ImGui::TableSetupColumn(colm_names[colm_index].c_str());
             }
