@@ -421,11 +421,14 @@ public:
                 bidata = (int64_t*)duckdb_vector_get_data(colm);
                 sprintf(string_buffer, "%I64d", bidata[rel_index]);
                 break;
+            case DUCKDB_TYPE_INTEGER:
+                idata = (int32_t*)duckdb_vector_get_data(colm);
+                fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{}", idata[rel_index]);
+                return buffer + fmt_result.size;
             case DUCKDB_TYPE_DOUBLE:
                 dbldata = (double_t*)duckdb_vector_get_data(colm);
                 fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{}", dbldata[rel_index]);
-                string_buffer[fmt_result.size] = 0;
-                break;
+                return buffer + fmt_result.size;
             // 4 duckdb_timestamp[_??] types, all holding
             // a single int64_t named differently
             case DUCKDB_TYPE_TIMESTAMP_S:
