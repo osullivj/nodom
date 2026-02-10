@@ -115,19 +115,11 @@ EXF_LAYOUT = [
             ),
             dict(rname="EndChild"),
             dict(rname="SameLine"),
-            dict(
-                rname="BeginChild",
-                cspec=dict(
-                    title="Right pane",
-                    child_flags=ChildFlags.BORDERS | ChildFlags.RESIZE_X,
-                ),
-            ),
             # The DepthGrid table shows one row of depth at a time with 5 bids and asks
             dict(
                 rname="Table",
                 cspec=dict(title="Depth grid", qname=SELECT_QID),
             ),
-            dict(rname="EndChild"),
             dict(rname="Separator", cspec=dict()),
             dict(
                 rname="Footer",
