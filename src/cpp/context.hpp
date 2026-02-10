@@ -234,7 +234,7 @@ public:
         // list of py dicts. So use C++11 auto range...
         while (!responses.empty()) {
             const JSON& resp = responses.front();
-            NDLogger::cout() << method << resp.dump() << std::endl;
+            NDLogger::cout() << method << JPrettyPrint(resp) << std::endl;
             std::string nd_type(JAsString(resp, nd_type_cs));
             // polymorphic as types are hidden inside change
             // Is this a CacheResponse for layout or data?
@@ -459,7 +459,7 @@ protected:
                 << ") >= len(" << seq_len << ")" << std::endl;
             return;
         }
-        JSON& action_defn(action_seq[action_inx]);
+        const JSON& action_defn(action_seq[action_inx]);
         // Now we have a matched action definition in hand we can look
         // for UI push/pop and DB scan/query. If there's both push and pop,
         // pop goes first naturally!

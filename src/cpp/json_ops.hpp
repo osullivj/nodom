@@ -188,7 +188,7 @@ emscripten::val JAsHandle(const emscripten::val& data, const char* key) {
 emscripten::val JNewObject() { return emscripten::val::object(); }
 
 template <>
-std::string JPrettyPrint(const nlohmann::json& cache_object) {
+std::string JPrettyPrint(const emscripten::val& v) {
 	emscripten::val json_global = emscripten::val::global("JSON");
 	emscripten::val json = json_global.call<emscripten::val>("stringify", v, emscripten::val::null(), 2);
 	return json.as<std::string>();

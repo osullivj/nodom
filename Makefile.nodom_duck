@@ -22,13 +22,15 @@ IMGUI_DIR = imgui
 ND_SRC_DIR = src/cpp
 ND_WEB_DIR = src/web
 ND_DP_DIR = ImGuiDatePicker
+ND_FMT_DIR = fmt
 SOURCES = $(ND_SRC_DIR)/main_ems_duck.cpp
 SOURCES += $(ND_DP_DIR)/ImGuiDatePicker.cpp
+SOURCES += $(ND_FMT_DIR)/src/format.cc
 SOURCES += $(IMGUI_DIR)/imgui.cpp $(IMGUI_DIR)/imgui_demo.cpp $(IMGUI_DIR)/imgui_draw.cpp $(IMGUI_DIR)/imgui_tables.cpp $(IMGUI_DIR)/imgui_widgets.cpp
 SOURCES += $(IMGUI_DIR)/backends/imgui_impl_glfw.cpp $(IMGUI_DIR)/backends/imgui_impl_opengl3.cpp
 OBJS = $(addsuffix .o, $(addprefix bld/,$(basename $(notdir $(SOURCES)))))
 # UNAME_S := $(shell uname -s)
-CPPFLAGS = -I $(IMGUI_DIR)/examples/libs/emscripten -I $(ND_DP_DIR)
+CPPFLAGS = -I $(IMGUI_DIR)/examples/libs/emscripten -I $(ND_DP_DIR) -I $(ND_FMT_DIR)/include
 LDFLAGS =
 EMS =
 
@@ -44,7 +46,7 @@ EMS =
 # exceptions
 EMS += -s DISABLE_EXCEPTION_CATCHING=1
 # EMS += -s DISABLE_EXCEPTION_CATCHING=0
-EMS +=  --use-port=contrib.glfw3 
+EMS +=  --use-port=contrib.glfw3
 LDFLAGS += -sEXPORTED_FUNCTIONS=_main,_on_db_result_cpp,_malloc,_get_chunk_cpp,_on_chunk_cpp -sEXPORTED_RUNTIME_METHODS=ccall,cwrap,HEAPU8,HEAPU16,HEAPU32,HEAPU64,stringToUTF8
 LDFLAGS += -s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s NO_EXIT_RUNTIME=0
 LDFLAGS += -s ASSERTIONS=1 -lembind  -lwebsocket.js -lidbstore.js
@@ -101,6 +103,9 @@ $(BLD_DIR)/%.o:$(ND_SRC_DIR)/%.cpp
 $(BLD_DIR)/%.o:$(ND_DP_DIR)/%.cpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
 
+$(BLD_DIR)/%.o:$(ND_FMT_DIR)/src/%.cpp
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
+
 all: $(EXE)
 	copy src\web\favicon.ico bld\favicon.ico
 	copy src\web\duck_module.js bld\duck_module.js
@@ -120,4 +125,3 @@ clean:
 	del $(BLD_DIR)\nodom_duck.js
 	del $(BLD_DIR)\nodom_duck.wasm
 	del $(BLD_DIR)\nodom_duck.wasm.dwp
-    

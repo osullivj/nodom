@@ -4,6 +4,7 @@
 #include <vector>
 #include <stdexcept>
 #include <chrono>
+#include <list>
 #include "nd_types.hpp"
 #include "static_strings.hpp"
 #include "json_ops.hpp"
@@ -583,14 +584,12 @@ public:
 
     StringVec& get_col_names(std::uint64_t handle) {
         // First 3 32 bit words are done, ncols, nrows
-        uint32_t* chunk_ptr = reinterpret_cast<uint32_t*>(handle);
         StringVec& colm_names = column_map[handle];
         return colm_names;
     }
 
     IntVec& get_col_types(std::uint64_t handle) {
         // First 3 32 bit words are done, ncols, nrows
-        uint32_t* chunk_ptr = reinterpret_cast<uint32_t*>(handle);
         IntVec& colm_types = type_map[handle];
         return colm_types;
     }
@@ -599,28 +598,28 @@ public:
         // First 3 32 bit words are done, ncols, nrows
         uint32_t* chunk_ptr = reinterpret_cast<uint32_t*>(handle);
         bool done = static_cast<bool>(*chunk_ptr++);
-        column_count = reinterpret_cast<uint32_t>(*chunk_ptr++);
+        colm_count = reinterpret_cast<uint32_t>(*chunk_ptr++);
         row_count = reinterpret_cast<uint32_t>(*chunk_ptr++);
         // Next we have types, one 32bit int per col
         // Have we already populated types and names?
         std::vector<int>& tipes = type_map[handle];
         if (tipes.empty()) {
             tipes.clear();
-            for (int i = 0; i < column_count; i++) {
+            for (int i = 0; i < colm_count; i++) {
                 DuckType tipe{ static_cast<int32_t>(*chunk_ptr++) };
                 tipes.push_back(tipe);
             }
             // Column addresses: one 32 bit word per col
             auto& caddrs = caddr_map[handle];
             caddrs.clear();
-            for (int i = 0; i < column_count; i++) {
+            for (int i = 0; i < colm_count; i++) {
                 uint32_t col_offset = *chunk_ptr++;
                 caddrs.push_back(col_offset);
             }
             // After types we have column names
             StringVec& colm_names = column_map[handle];
             colm_names.clear();
-            for (int i = 0; i < column_count; i++) {
+            for (int i = 0; i < colm_count; i++) {
                 std::string name;
                 // Build name str one char at a time
                 while (*chunk_ptr != 0)
@@ -630,7 +629,7 @@ public:
                 colm_names.push_back(name);
             }
         }
-        return &column_names;
+        return true;
     }
 
     const char* get_datum(std::uint64_t handle, std::uint64_t colm_index, std::uint64_t row_index) {
