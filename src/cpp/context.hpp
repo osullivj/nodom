@@ -174,6 +174,13 @@ public:
 
     void start_render_cycle() {
         const static char* method = "NDContext::start_render_cycle: ";
+
+        if (render_count == 0) {
+            // glfwSwapInterval invokes _emscripten_set_main_loop_timing, which
+            // throws if main the main loop hasn't been started by emscripten_set_main_loop[_arg]
+            // Not an issue for Breadboard, but it is a nodom break
+            glfwSwapInterval(1);
+        }
         // Zero the font push/pop counts before rendering. This
         // enables us to detect lopsided push/pop sequences after
         // all widgets have rendered.
