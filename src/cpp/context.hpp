@@ -59,6 +59,11 @@ private:
 
     // top level layout widgets with widget_id eg modals are in pushables
     std::unordered_map<std::string, JSON> pushable;
+
+    // manage down logging by tracking misconfiged queries that throw
+    // BAD_HANDLE_FAIL, especially for browser console log
+    std::unordered_map<std::string, uint32_t>   bad_handle_map;
+
     // action_dispatch is called while rendering, and changes
     // the size of the render stack. JS will let us do that in the root
     // render() method. But in C++ we use an STL iterator in the root render
@@ -92,7 +97,7 @@ private:
     std::uint32_t font_push_count = 0;
     std::uint32_t font_pop_count = 0;
     std::uint32_t render_count = 0;
-    std::uint32_t bad_handle_count = 0;
+    // std::uint32_t bad_handle_count = 0;
     std::deque<std::string> bad_font_pushes;
 
     WebSockSenderFunc ws_send = nullptr;  // ref to NDWebSockClient::send
@@ -186,8 +191,8 @@ public:
         // all widgets have rendered.
         font_push_count = 0;
         font_pop_count = 0;
-        bad_handle_count = 0;
         bad_font_pushes.clear();
+        bad_handle_map.clear();
 
         if (pending_pops.size() || pending_pushes.size()) {
             NDLogger::cerr() << method << pending_pops.size() << " pending pops, " << pending_pushes.size()
@@ -202,15 +207,16 @@ public:
             NDLogger::cerr() << method << "font_push_count: " << font_push_count
                 << ", font_pop_count: " << font_pop_count << std::endl;
         }
-        bad_font_pushes.clear();
         render_count++;
 
         pix_report(RenderPushPC, static_cast<float>(font_push_count));
         pix_report(RenderPopPC, static_cast<float>(font_pop_count));
         pix_report(RenderFPS, ImGui::GetIO().Framerate);
-        pix_report(RenderBadHandlePC, bad_handle_count);
-
-        bad_handle_count = 0;
+        int bad_handle_sum = 0;
+        for (auto citer = bad_handle_map.cbegin(); citer != bad_handle_map.end(); ++citer) {
+            bad_handle_sum += citer->second;
+        }
+        pix_report(RenderBadHandlePC, bad_handle_sum);
     }
 
     void server_request(const std::string& key) {
@@ -900,10 +906,14 @@ protected:
 
             std::uint64_t result_handle = proxy.get_handle(qname);
             if (!result_handle) {
-                if (bad_handle_count == 0) {
-                    NDLogger::cerr() << method << "BAD_HANDLE_FAIL for " << qname << std::endl;
+                auto bhm_iter = bad_handle_map.find(qname);
+                if (bhm_iter != bad_handle_map.end()) {
+                    bhm_iter->second++;
                 }
-                bad_handle_count++;
+                else {
+                    bad_handle_map[qname] = 1;
+                    NDLogger::cerr() << method << "BAD_HANDLE_FAIL: " << qname << std::endl;
+                }
                 return;
             }
             if (ImGui::BeginTable(qname.c_str(), (int)colm_count, table_flags)) {
@@ -1047,11 +1057,15 @@ protected:
             body_pop = push_font(w, body_font_cs, body_font_size_base_cs);
 
         std::uint64_t result_handle = proxy.get_handle(qname);
-        if (result_handle == 0) {
-            if (bad_handle_count == 0) {
-                NDLogger::cout() << method << "BAD_HANDLE_FAIL for QID: " << qname << std::endl;
+        if (!result_handle) {
+            auto bhm_iter = bad_handle_map.find(qname);
+            if (bhm_iter != bad_handle_map.end()) {
+                bhm_iter->second++;
             }
-            bad_handle_count++;
+            else {
+                bad_handle_map[qname] = 1;
+                NDLogger::cerr() << method << "BAD_HANDLE_FAIL: " << qname << std::endl;
+            }
             return;
         }
         if (!proxy.get_meta_data(result_handle, colm_count, row_count)) {
