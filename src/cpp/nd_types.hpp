@@ -49,11 +49,12 @@ int DuckTypeToSize(DuckType dt);
 
 enum PixReportType : int32_t {
     RenderFPS = 2,
-    RenderPushPC = 3,
-    RenderPopPC = 4,
-    DBScan = 5,
-    DBQuery = 6,
-    DBBatch = 7
+    RenderPushPC,
+    RenderPopPC,
+    RenderBadHandlePC,
+    DBScan,
+    DBQuery,
+    DBBatch
 };
 
 
