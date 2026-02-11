@@ -92,6 +92,7 @@ private:
     std::uint32_t font_push_count = 0;
     std::uint32_t font_pop_count = 0;
     std::uint32_t render_count = 0;
+    std::uint32_t bad_handle_count = 0;
     std::deque<std::string> bad_font_pushes;
 
     WebSockSenderFunc ws_send = nullptr;  // ref to NDWebSockClient::send
@@ -178,6 +179,7 @@ public:
         // all widgets have rendered.
         font_push_count = 0;
         font_pop_count = 0;
+        bad_handle_count = 0;
         bad_font_pushes.clear();
 
         if (pending_pops.size() || pending_pushes.size()) {
@@ -199,6 +201,9 @@ public:
         pix_report(RenderPushPC, static_cast<float>(font_push_count));
         pix_report(RenderPopPC, static_cast<float>(font_pop_count));
         pix_report(RenderFPS, ImGui::GetIO().Framerate);
+        pix_report(RenderBadHandlePC, bad_handle_count);
+
+        bad_handle_count = 0;
     }
 
     void server_request(const std::string& key) {
@@ -887,9 +892,11 @@ protected:
                 body_pop = push_font(w, body_font_cs, body_font_size_base_cs);
 
             std::uint64_t result_handle = proxy.get_handle(qname);
-            // NDLogger::cout() << method << "result_handle: " << std::hex << result_handle << std::endl;
             if (!result_handle) {
-                NDLogger::cerr() << method << qname << ": null result_handle!" << std::endl;
+                if (bad_handle_count == 0) {
+                    NDLogger::cout() << method << "BAD_HANDLE_FAIL for " << qname << std::endl;
+                }
+                bad_handle_count++;
                 return;
             }
             if (ImGui::BeginTable(qname.c_str(), (int)colm_count, table_flags)) {
@@ -1034,7 +1041,10 @@ protected:
 
         std::uint64_t result_handle = proxy.get_handle(qname);
         if (result_handle == 0) {
-            NDLogger::cout() << method << "RESULT_HANDLE_FAIL for QID: " << qname << std::endl;
+            if (bad_handle_count == 0) {
+                NDLogger::cout() << method << "BAD_HANDLE_FAIL for QID: " << qname << std::endl;
+            }
+            bad_handle_count++;
             return;
         }
         if (!proxy.get_meta_data(result_handle, colm_count, row_count)) {
