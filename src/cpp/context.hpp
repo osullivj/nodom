@@ -901,7 +901,7 @@ protected:
             std::uint64_t result_handle = proxy.get_handle(qname);
             if (!result_handle) {
                 if (bad_handle_count == 0) {
-                    NDLogger::cout() << method << "BAD_HANDLE_FAIL for " << qname << std::endl;
+                    NDLogger::cerr() << method << "BAD_HANDLE_FAIL for " << qname << std::endl;
                 }
                 bad_handle_count++;
                 return;
