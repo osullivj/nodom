@@ -105,6 +105,8 @@ const wchar_t* PixReportTypeToString(PixReportType rt) {
         return L"RenderPushPC";
     case RenderPopPC:
         return L"RenderPopPC";
+    case RenderBadHandlePC:
+        return L"RenderBadHandlePC";
     case DBScan:
         return L"DBScan";
     case DBQuery:
