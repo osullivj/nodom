@@ -146,7 +146,9 @@ GLFWwindow* im_start(NDContext<JSON, DB>& ctx)
     ctx.set_glfw_window(window);
 
     glfwMakeContextCurrent(window);
-    glfwSwapInterval(1); // Enable vsync
+    // imgui boilerplate: moved this to happen
+    // later in start_render_cycle
+    // glfwSwapInterval(1); // Enable vsync
 
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
