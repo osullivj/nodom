@@ -552,7 +552,6 @@ public:
 
     void db_dispatch(emscripten::val& db_request) {
         const static char* method = "DuckDBWebCache::db_dispatch: ";
-        std::cout << method << db_request << std::endl;
         ems_db_dispatch(db_request.as_handle());
     }
 
@@ -561,7 +560,7 @@ public:
         const static char* method = "DuckDBWebCache::get_handle: ";
         auto cv_iter = chunk_map.find(qname);
         if (cv_iter == chunk_map.end()) {
-            fprintf(stderr, "%s: no chunk_map element for %s\n",
+            fprintf(stderr, "%s: no chunk_map for %s\n",
                 method, qname.c_str());
             return 0;
         }
@@ -715,7 +714,8 @@ public:
             // date_length:2026-01-21 10:57:33 is 19 chars
             if (decimal_fmt) {
                 sprintf(string_buffer + strlen(string_buffer), decimal_fmt, ts_fraction);
-            }            return 0;
+            }
+            return 0;
         case DuckType::Utf8:    // null term trunc to 8 bytes
             dbldata = reinterpret_cast<double*>(chunk_ptr);
             sprintf(string_buffer, "%s", (char*)&(dbldata[row_index]));
