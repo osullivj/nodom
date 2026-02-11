@@ -1,18 +1,4 @@
-#
-# Makefile to use with GLFW+emscripten
-# See https://emscripten.org/docs/getting_started/downloads.html
-# for installation instructions.
-#
-# This Makefile assumes you have loaded emscripten's environment.
-# (On Windows, you may need to execute emsdk_env.bat or encmdprompt.bat ahead)
-#
-# Running `make -f Makefile.emscripten` will produce three files:
-#  - web/index.html
-#  - web/index.js
-#  - web/index.wasm
-#
-# All three are needed to run the demo.
-
+# Based on imgui's Makefile to use with GLFW+emscripten
 CC = emcc
 CXX = emcc
 DWP = emdwp
@@ -24,6 +10,7 @@ ND_WEB_DIR = src/web
 ND_DP_DIR = ImGuiDatePicker
 ND_FMT_DIR = fmt
 SOURCES = $(ND_SRC_DIR)/main_ems_duck.cpp
+SOURCES += $(ND_SRC_DIR)/pix.cpp
 SOURCES += $(ND_DP_DIR)/ImGuiDatePicker.cpp
 SOURCES += $(ND_FMT_DIR)/src/format.cc
 SOURCES += $(IMGUI_DIR)/imgui.cpp $(IMGUI_DIR)/imgui_demo.cpp $(IMGUI_DIR)/imgui_draw.cpp $(IMGUI_DIR)/imgui_tables.cpp $(IMGUI_DIR)/imgui_widgets.cpp
@@ -103,7 +90,7 @@ $(BLD_DIR)/%.o:$(ND_SRC_DIR)/%.cpp
 $(BLD_DIR)/%.o:$(ND_DP_DIR)/%.cpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
 
-$(BLD_DIR)/%.o:$(ND_FMT_DIR)/src/%.cpp
+$(BLD_DIR)/%.o:$(ND_FMT_DIR)/src/%.cc
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
 
 all: $(EXE)
