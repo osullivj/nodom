@@ -198,10 +198,10 @@ protected:
     void wspp_on_message(ws_client* c, ws_handle h, message_ptr msg_ptr) {
         std::string payload(msg_ptr->get_payload());
         NDLogger::cout() << "NDWebSockClient::on_message: hdl( " << h.lock().get()
-            << ") msg: " << payload << std::endl;
+            << ")" << std::endl;
+            // << ") msg: " << payload << std::endl;
         nlohmann::json msg_json = nlohmann::json::parse(payload);
-        // emplace(), not push(), as we trust the nlohmann move semantics
-        server_responses.emplace(msg_json);
+        server_responses.push(msg_json);
     }
 
     void wspp_on_open(ws_client* c, ws_handle h) {
