@@ -560,12 +560,12 @@ public:
         const static char* method = "DuckDBWebCache::get_handle: ";
         auto cv_iter = chunk_map.find(qname);
         if (cv_iter == chunk_map.end()) {
-            fprintf(stderr, "%s: no chunk_map for %s\n",
-                method, qname.c_str());
+            // caller logs error
             return 0;
         }
         ChunkVec& chunk_vector = chunk_map[qname];
         if (chunk_vector.empty()) {
+            // corner case fail that needs logging
             fprintf(stderr, "%s: %s chunk_map empty!\n",
                 method, qname.c_str());
             return 0;
