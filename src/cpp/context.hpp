@@ -56,13 +56,12 @@ private:
 
     // map layout render func names to the actual C++ impls
     std::unordered_map<std::string, std::function<void(const JSON& w)>> rfmap;
-
     // top level layout widgets with widget_id eg modals are in pushables
     std::unordered_map<std::string, JSON> pushable;
 
     // manage down logging by tracking misconfiged queries that throw
     // BAD_HANDLE_FAIL, especially for browser console log
-    std::unordered_map<std::string, uint32_t>   bad_handle_map;
+    std::map<std::string, uint32_t>   bad_handle_map;
 
     // action_dispatch is called while rendering, and changes
     // the size of the render stack. JS will let us do that in the root
@@ -192,7 +191,6 @@ public:
         font_push_count = 0;
         font_pop_count = 0;
         bad_font_pushes.clear();
-        bad_handle_map.clear();
 
         if (pending_pops.size() || pending_pushes.size()) {
             NDLogger::cerr() << method << pending_pops.size() << " pending pops, " << pending_pushes.size()
@@ -217,6 +215,12 @@ public:
             bad_handle_sum += citer->second;
         }
         pix_report(RenderBadHandlePC, bad_handle_sum);
+
+        if (render_count % 60 == 0) {   // every 60 renders eg ~1 sec
+            for (auto citer = bad_handle_map.cbegin(); citer != bad_handle_map.end(); ++citer) {
+                NDLogger::cout() << method << citer->first << " BHC: " << citer->second << std::endl;
+            }
+        }
     }
 
     void server_request(const std::string& key) {
@@ -906,14 +910,8 @@ protected:
 
             std::uint64_t result_handle = proxy.get_handle(qname);
             if (!result_handle) {
-                auto bhm_iter = bad_handle_map.find(qname);
-                if (bhm_iter != bad_handle_map.end()) {
-                    bhm_iter->second++;
-                }
-                else {
-                    bad_handle_map[qname] = 1;
-                    NDLogger::cerr() << method << "BAD_HANDLE_FAIL: " << qname << std::endl;
-                }
+                auto [iter, inserted] = bad_handle_map.insert(std::make_pair(std::move(qname), 1));
+                if (!inserted) iter->second++;
                 return;
             }
             if (ImGui::BeginTable(qname.c_str(), (int)colm_count, table_flags)) {
@@ -1058,14 +1056,8 @@ protected:
 
         std::uint64_t result_handle = proxy.get_handle(qname);
         if (!result_handle) {
-            auto bhm_iter = bad_handle_map.find(qname);
-            if (bhm_iter != bad_handle_map.end()) {
-                bhm_iter->second++;
-            }
-            else {
-                bad_handle_map[qname] = 1;
-                NDLogger::cerr() << method << "BAD_HANDLE_FAIL: " << qname << std::endl;
-            }
+            auto [iter, inserted] = bad_handle_map.insert(std::make_pair(std::move(qname), 1));
+            if (!inserted) iter->second++;
             return;
         }
         if (!proxy.get_meta_data(result_handle, colm_count, row_count)) {
