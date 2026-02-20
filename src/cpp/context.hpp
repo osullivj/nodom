@@ -193,8 +193,8 @@ public:
         bad_font_pushes.clear();
 
         if (pending_pops.size() || pending_pushes.size()) {
-            NDLogger::cerr() << method << pending_pops.size() << " pending pops, " << pending_pushes.size()
-                << " pending pushes" << std::endl;
+            NDLogger::cout() << method << "PPOPS(" << pending_pops.size() << ") PPUSHS(" << pending_pushes.size()
+                << ")" << std::endl;
         }
     }
 
@@ -867,7 +867,7 @@ protected:
         };
 
         if (!JContains(w, cspec_cs) || !JContains(w[cspec_cs], qname_cs) || !JContains(w[cspec_cs], title_cs)) {
-            NDLogger::cerr() << method << "bad cspec in: " << w << std::endl;
+            NDLogger::cerr() << method << "BAD_CSPEC" << w << std::endl;
             return;
         }
         const JSON& cspec(w[cspec_cs]);
@@ -971,7 +971,7 @@ protected:
         static ImVec2 position = { 0.5, 0.5 };
 
         if (!JContains(w, cspec_cs) || !JContains(w[cspec_cs], cname_cs) || !JContains(w[cspec_cs], title_cs)) {
-            NDLogger::cerr() << method << "bad cspec in: " << w << std::endl;
+            NDLogger::cerr() << method << "BAD_CSPEC" << w << std::endl;
             return;
         }
         const JSON& cspec(w[cspec_cs]);
@@ -1015,7 +1015,7 @@ protected:
                 spinner_thickness = JAsInt(cspec, spinner_thickness_cs);
             if (!ImGui::Spinner("parquet_loading_spinner", (float)spinner_radius, spinner_thickness, 0)) {
                 // TODO: spinner always fails IsClippedEx on first render
-                NDLogger::cerr() << "render_duck_parquet_loading_modal: spinner fail" << std::endl;
+                NDLogger::cout() << method << "spinner fail" << std::endl;
             }
             ImGui::EndPopup();
         }
@@ -1028,7 +1028,7 @@ protected:
         static int default_window_flags = ImGuiWindowFlags_AlwaysAutoResize;
 
         if (!JContains(w, cspec_cs) || !JContains(w[cspec_cs], qname_cs)) {
-            NDLogger::cerr() << method << "bad cspec in: " << w << std::endl;
+            NDLogger::cerr() << method << "BAD_CSPEC" << w << std::endl;
             return;
         }
         const JSON& cspec(w[cspec_cs]);
@@ -1104,7 +1104,7 @@ protected:
         // require a title (for imgui ID purposes) and we can have styling
         // attributes like ImGuiChildFlags
         if (!JContains(w, cspec_cs) || !JContains(w[cspec_cs], title_cs)) {
-            NDLogger::cerr() << method << "bad cspec in: " << w << std::endl;
+            NDLogger::cerr() << method << "BAD_CSPEC" << w << std::endl;
             return;
         }
         const JSON& cspec(w[cspec_cs]);
@@ -1181,7 +1181,7 @@ protected:
         const static char* method = "NDContext::push_font: ";
 
         if (!JContains(w, cspec_cs)) {
-            NDLogger::cerr() << method << "bad cspec in: " << w << std::endl;
+            NDLogger::cerr() << method << "BAD_CSPEC" << w << std::endl;
             return false;
         }
         const JSON& cspec(w[cspec_cs]);

@@ -35,14 +35,16 @@ struct IDBFontCache {
     std::vector<void*> font_mem_vec;
 };
 // Callbacks for emscripten_idb_async_exists and 
-// emscripten_idb_async_load. 
+// emscripten_idb_async_load. NB no \n in log
+// lines as the impl below is only ever in play
+// in the browser. 
 
 // em_arg_callback_func: typedef void (*em_arg_callback_func)(void*);
 void on_async_exists_error(void* m) {
     const char* method = "on_async_exists_error: ";
     auto fm = reinterpret_cast<IDBFontCache*>(m);
     // NoDOM IndexedDB check fails in emscripten_idb_async_exists
-    fprintf(stderr, "%sIDB exists failed: %s\n", method, fm->font_file_name.c_str());
+    fprintf(stdout, "%sIDB_EXIST_FAIL(%s)", method, fm->font_file_name.c_str());
 }
 
 // em_arg_callback_func: typedef void (*em_arg_callback_func)(void*);
@@ -50,7 +52,7 @@ void on_load_error(void* m) {
     const char* method = "on_load_error: ";
     auto fm = reinterpret_cast<IDBFontCache*>(m);
     // NoDOM IndexedDB doesn't exist
-    fprintf(stderr, "%sIDB load failed: %s\n", method, fm->font_file_name.c_str());
+    fprintf(stdout, "%sIDB_LOAD_FAIL(%s)", method, fm->font_file_name.c_str());
 }
 
 // em_idb_onload_func: typedef void (*em_idb_onload_func)(void*, void*, int);
@@ -60,7 +62,7 @@ void on_load(void* m, void* buf, int sz) {
     // copy the font memory as ImGui assumes it won't
     // get freed from underneath...
     if (sz < 100) {
-        fprintf(stderr, "%ssz=%d\n", method, sz);
+        fprintf(stdout, "%ssz=%d", method, sz);
         return;
     }
 
@@ -69,7 +71,7 @@ void on_load(void* m, void* buf, int sz) {
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     ImFont* font = io.Fonts->AddFontFromMemoryTTF(font_memory, sz);
     if (font == nullptr) {
-        fprintf(stderr, "%sAddFontFromMemoryTTF failed\n", method);
+        fprintf(stdout, "%sADD_FONT_FAIL", method);
         free(font_memory);
         return;
     }
@@ -78,7 +80,7 @@ void on_load(void* m, void* buf, int sz) {
     fm->font_file_name.erase(fflen - 4, fflen);
     fm->registrar(fm->font_file_name, font);
     fm->font_mem_vec.push_back(font_memory);
-    printf("%s%s loaded\n", method, fm->font_file_name.c_str());
+    printf("%sFONT_LOADED(%s)", method, fm->font_file_name.c_str());
     // kick off the next load, if there is one...
     fm->next();
 }
@@ -91,7 +93,7 @@ void on_async_exists(void* c, int exists) {
         emscripten_idb_async_load("NoDOM", fm->font_file_name.c_str(), c, on_load, on_load_error);
     }
     else {
-        fprintf(stderr, "%s: cannot access NoDOM.fonts\n", method);
+        fprintf(stdout, "%sIDB_ACCESS_FAIL(%s)", method, fm->font_file_name.c_str());
     }
 }
 

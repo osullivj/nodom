@@ -118,7 +118,7 @@ if (typeof Module !== "undefined") {
   };
 }
 
-async function exec_duck_db_query(sql) {
+async function exec_duck_db_query(db_request) {
   if (!duck_db) {
     console.error("duck_module:DuckDB-Wasm not initialized");
     return;
@@ -127,8 +127,14 @@ async function exec_duck_db_query(sql) {
     console.log("duck_module:reconnecting...");
     duck_conn = await duck_db.connect();
   }
-  console.log("exec_duck_dq_query: " + sql);
-  let duck_result = await duck_conn.send(sql);
+  console.log(
+    "exec_duck_dq_query: QID(" +
+      db_request.query_id +
+      ") SQL[" +
+      db_request.sql +
+      "]\n",
+  );
+  let duck_result = await duck_conn.send(db_request.sql);
   return duck_result;
 }
 
@@ -166,10 +172,11 @@ function batch_materializer(qid, batch) {
   let type_objs = batch.schema.fields.map((d) => d.type);
   let type_units = batch.schema.fields.map((d) => d.type.unit);
   let names = batch.schema.fields.map((d) => d.name);
+  console.log("batch_materializer: row_count=" + row_count);
   console.log("batch_materializer: types=" + types);
   console.log("batch_materializer: typ_o=" + type_objs);
   console.log("batch_materializer: units=" + type_units);
-  console.log("batch_materializer: names=" + names + "\n");
+  console.log("batch_materializer: names=" + names);
   // ...second, calc batch size in mem
   // Usually 2048 rows per chunk. Assume each col is 64bits wide...
   // row_count * types.length * 8 (bytes per word)
@@ -253,8 +260,7 @@ function batch_materializer(qid, batch) {
         ", unit=" +
         unit +
         ", sz=" +
-        sz +
-        "\n",
+        sz,
     );
     // record the addr of the column
     heap32[caddr + ic] = bptr;
@@ -355,7 +361,7 @@ self.onmessage = async (event) => {
     case "ParquetScan":
       // NB result set from "CREATE TABLE <tbl> as select * from parquet_scan([...])"
       // is None on success
-      await exec_duck_db_query(nd_db_request.sql);
+      await exec_duck_db_query(nd_db_request);
       console.log(
         "duck_module: ParquetScan done for " + nd_db_request.query_id,
       );
@@ -365,8 +371,10 @@ self.onmessage = async (event) => {
       });
       break;
     case "Query":
-      duck_result = await exec_duck_db_query(nd_db_request.sql);
-      console.log("duck_module: QueryResult: " + nd_db_request.query_id + "\n");
+      duck_result = await exec_duck_db_query(nd_db_request);
+      console.log(
+        "duck_module: QueryResult QID(" + nd_db_request.query_id + ")\n",
+      );
       batch_gen = batch_generator(nd_db_request.query_id, duck_result);
       global_query_map.set(nd_db_request.query_id, batch_gen);
       let query_result = {
@@ -378,7 +386,7 @@ self.onmessage = async (event) => {
     case "BatchRequest":
       if (global_query_map.has(nd_db_request.query_id)) {
         console.log(
-          "duck_module: BatchRequest: " + nd_db_request.query_id + "\n",
+          "duck_module: BatchRequest QID(" + nd_db_request.query_id + ")\n",
         );
         batch_gen = global_query_map.get(nd_db_request.query_id);
         let batch_addr = await batch_gen.next();
@@ -387,7 +395,9 @@ self.onmessage = async (event) => {
           query_id: nd_db_request.query_id,
           chunk: batch_addr / 1,
         };
-        console.log("duck_module: BatchResponse: " + batch_result + "\n");
+        console.log(
+          "duck_module: BatchResponse QID( " + batch_result.query_id + ")\n",
+        );
         on_db_result(batch_result);
       } else {
         on_db_result({
@@ -403,7 +413,7 @@ self.onmessage = async (event) => {
       // we do not process our own results!
       break;
     case "DuckInstance":
-      on_db_result({ nd_type: "DuckInstance", query_id: "TEST_QUERY_0" });
+      on_db_result({ nd_type: "DuckInstance", query_id: "DBOnline" });
       break;
     default:
       console.error("duck_module.onmessage: unexpected request: ", event);

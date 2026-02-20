@@ -536,7 +536,7 @@ public:
     void register_chunk(const char* qid, int size, int addr) {
         static const char* method = "DuckDBWebCache::register_chunk: ";
         // Will ctor ChunkVec on first batch...
-        std::cout << method << "QID: " << qid << ", sz:" << size << ", addr: " << addr << std::endl;
+        std::cout << method << "QID(" << qid << ") sz(" << size << ") addr(" << addr << ")" << std::endl;
         ChunkVec& chunk_vector = chunk_map[qid];
         chunk_vector.emplace_back(Chunk(size, addr));
     }
