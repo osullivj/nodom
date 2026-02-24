@@ -256,7 +256,7 @@ public:
                     std::cout << method << "QID: " << qid << ", SQL: " << sql << std::endl;
                     db_response[nd_type_cs] = query_result_cs;
                     if (dbstate == DuckDBError) {
-                        std::cerr << method << "Query failed: " << db_request << std::endl;
+                        std::cerr << method << "QUERY_FAIL: " << db_request << std::endl;
                         db_response[error_cs] = 1;
                     }
                     else {
@@ -269,7 +269,7 @@ public:
                     auto result_iter = result_map.find(qid);
                     if (result_iter == result_map.end()) {
                         db_response[error_cs] = 1;
-                        std::cerr << method << "BatchRequest failed: " << db_request << std::endl;
+                        std::cerr << method << "BATCH_FAIL: " << db_request << std::endl;
                     }
                     else {
                         db_response[error_cs] = 0;
@@ -278,6 +278,8 @@ public:
                         Bobbin& chunk_deck(bobbin_map[handle]);
                         chunk_deck.push_back(chunk);
                         pix_report(DBBatch, static_cast<float>(batch_count++));
+                        int row_count = duckdb_data_chunk_get_size(chunk);
+                        std::cout << method << "BATCH_OK(" << qid << ") rc(" << row_count << ")" << std::endl;
                     }
                 }
                 else {
