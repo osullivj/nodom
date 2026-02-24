@@ -80,7 +80,7 @@ void on_load(void* m, void* buf, int sz) {
     fm->font_file_name.erase(fflen - 4, fflen);
     fm->registrar(fm->font_file_name, font);
     fm->font_mem_vec.push_back(font_memory);
-    printf("%sFONT_LOADED(%s)", method, fm->font_file_name.c_str());
+    printf("%sFONT_LOADED(%s)\n", method, fm->font_file_name.c_str());
     // kick off the next load, if there is one...
     fm->next();
 }
@@ -93,7 +93,7 @@ void on_async_exists(void* c, int exists) {
         emscripten_idb_async_load("NoDOM", fm->font_file_name.c_str(), c, on_load, on_load_error);
     }
     else {
-        fprintf(stdout, "%sIDB_ACCESS_FAIL(%s)", method, fm->font_file_name.c_str());
+        fprintf(stdout, "%sIDB_ACCESS_FAIL(%s)\n", method, fm->font_file_name.c_str());
     }
 }
 
