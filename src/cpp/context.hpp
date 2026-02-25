@@ -378,9 +378,7 @@ public:
         }
     }
 
-#ifndef __EMSCRIPTEN__
-    JSON  get_breadboard_config() { return proxy.get_breadboard_config(); }
-#endif
+    void get_config(JSON& cfg) { proxy.get_config(cfg); }
     void register_font(const std::string& name, ImFont* f) { font_map[name] = f; }
     void register_ws_sender(WebSockSenderFunc send) { ws_send = send; }
     void register_msg_pump(MessagePumpFunc mpf) { msg_pump = mpf; }
