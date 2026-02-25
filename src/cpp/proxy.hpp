@@ -58,7 +58,6 @@ public:
         log_buffer << "Server URL: " << server_url << std::endl;
         NDLogger::cout() << log_buffer.str() << std::endl;
     }
-    // nlohmann::json  get_breadboard_config() { return bb_config; }
 #else   // __EMSCRIPTEN__
     NDProxy() {
         const char* method = "NDProxy default ctor: ";
@@ -81,10 +80,6 @@ public:
 protected:
     bool            done{false};
 private:
-#ifndef __EMSCRIPTEN__
-    // char*           bb_json_path;
-    // char*           exe;    // argv[0]
-#endif
-    bool                                is_db_app;
-    std::string                         server_url;
+    bool            is_db_app;
+    std::string     server_url;
 };
