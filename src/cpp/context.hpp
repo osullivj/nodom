@@ -725,7 +725,7 @@ protected:
             // Push colour styling for the DB button
             ImGui::PushStyleColor(ImGuiCol_Button, (ImU32)db_status_color);
             if (ImGui::Button("DB")) {
-                // TODO: browser tab for DuckDB shell
+                action_dispatch(Static::footer_db_button_cs, Static::click_cs);
             }
             ImGui::PopStyleColor(1);
         }
