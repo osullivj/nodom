@@ -28,11 +28,13 @@ logr = nd_utils.init_logging(NDAPP)
 SCAN_QID = "depth_scan"
 SELECT_QID = "depth_query"
 SUMMARY_QID = "depth_summary"
+UI_QID = "launch_ui"
 SCAN_BUTTON_TEXT = "Scan"
 SCAN_BUTTON_ID = "scan_button"
 SUMMARY_BUTTON_TEXT = "Summary"
 SUMMARY_BUTTON_ID = "summary_button"
 DB_ONLINE = "DBOnline"
+DB_BUTTON_ID = "footer_db_button"
 EXF_LAYOUT = [
     dict(
         rname="Home",
@@ -178,7 +180,7 @@ INIT_URL = "https://localhost/api/parquet/FGBMU8_20080901_pd.parquet"
 
 LAUNCH_SCAN = dict(  # raise scanning modal, send scan request to DuckDB
     ui_push="parquet_loading_modal",
-    db_action="ParquetScan",
+    db_action="Command",
     query_id=SCAN_QID,
     sql_cname="scan_sql",
 )
@@ -204,6 +206,12 @@ LAUNCH_SUMMARY_BATCH = dict(
 LAUNCH_SELECT_BATCH = dict(
     db_action="BatchRequest",
     query_id=SELECT_QID,
+)
+
+LAUNCH_UI = dict(
+    db_action="Command",
+    query_id=UI_QID,
+    sql_cname="ui_sql",
 )
 
 SUMMARY_SEQUENCE = [
@@ -239,15 +247,21 @@ EXF_DATA = dict(
     # depth query SQL and ID
     query_sql=QUERY_SQL % dict(depth_offset=0),
     summary_sql=SUMMARY_SQL,
+    ui_sql="CALL start_ui();",
     depth_tick_size=0.005,
     depth_offset=0,
     depth_results=None,
     actions={
+        f"{DB_BUTTON_ID}.Click": [
+            dict(
+                ui_push="db_modal",
+            )
+        ],
         # match on scan button click
         f"{SCAN_BUTTON_ID}.Click": SUMMARY_SEQUENCE,
         # match on completion (ParquetScanResult) of scan (SCAN_QID)
         # summary of depth table
-        f"{SCAN_QID}.ParquetScanResult": SELECT_SEQUENCE,
+        f"{SCAN_QID}.CommandResult": SELECT_SEQUENCE,
         f"{SUMMARY_BUTTON_ID}.Click": [
             dict(
                 # depth_summary_modal is self popping,
