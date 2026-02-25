@@ -32,11 +32,14 @@
 #define STR_BUF_LEN 256
 #define FMT_BUF_LEN 16
 
+
+
 template <typename JSON>
 class EmptyDBCache {
 public:
     char* buffer{ 0 };  // zero copy accessor
 
+    void set_config(const JSON& cfg) { config = cfg; }
     // Data access methods called by tables in NDContext. All DBCache
     // impls must provide these, even EmptyDBCache...
     std::uint64_t get_handle(const std::string& qid) { return 0; }
@@ -59,7 +62,6 @@ public:
 };
 
 #ifndef __EMSCRIPTEN__
-
 // No DuckDB specifics in BreadBoardDBCache,
 // but we are using stuff we don't have on EMS.
 // For example, boost threads. Also note that since
@@ -120,6 +122,7 @@ class DuckDBCache : public BreadBoardDBCache {
 private:
     duckdb_database                     duck_db;
     duckdb_connection                   duck_conn;
+    duckdb_config                       duck_config;
     idx_t                               duck_chunk_size;
 
     std::unordered_map<std::string, duckdb_result>  result_map;
@@ -152,12 +155,19 @@ public:
     // db_init, db_fnls, db_loop: these three methods exec 
     // on the DB thread
     bool db_init() {
+        if (duckdb_create_config(&duck_config) == DuckDBError) {
+            std::cerr << "DUCK_INIT_FAIL duckdb_create_config" << std::endl;
+            return false;
+        }
+        else {
+            // TODO: add bb config code...
+        }
         if (duckdb_open(NULL, &duck_db) == DuckDBError) {
-            std::cerr << "DuckDB instantiation failed" << std::endl;
+            std::cerr << "DUCK_INIT_FAIL duckdb_open" << std::endl;
             return false;
         }
         if (duckdb_connect(duck_db, &duck_conn) == DuckDBError) {
-            std::cerr << "DuckDB instantiation failed" << std::endl;
+            std::cerr << "DUCK_INIT_FAIL duckdb_connect" << std::endl;
             return false;
         }
         return true;
@@ -179,8 +189,8 @@ public:
         else {
             // lock the result queue and post back to the GUI thread
             nlohmann::json db_instance = {
-                {nd_type_cs, duck_instance_cs},
-                {query_id_cs, db_online_cs}
+                {Static::nd_type_cs, Static::duck_instance_cs},
+                {Static::query_id_cs, Static::db_online_cs}
             };
             boost::unique_lock<boost::mutex> results_lock(result_mutex);
             // send nd_type:DuckInstance
@@ -212,67 +222,67 @@ public:
                 nlohmann::json db_request(db_queries.front());
                 std::cout << method << "processing " << db_request.dump() << std::endl;
                 db_queries.pop();
-                if (!db_request.contains(nd_type_cs)) {
+                if (!db_request.contains(Static::nd_type_cs)) {
                     std::cerr << method << "nd_type missing: " << db_request << std::endl;
                     continue;
                 }
-                const std::string& nd_type(db_request[nd_type_cs]);
-                if ((nd_type == parquet_scan_cs || nd_type == query_cs)
-                    && !db_request.contains(sql_cs)) {
+                const std::string& nd_type(db_request[Static::nd_type_cs]);
+                if ((nd_type == Static::command_cs || nd_type == Static::query_cs)
+                    && !db_request.contains(Static::sql_cs)) {
                     std::cerr << method << "sql missing: " << db_request << std::endl;
                     continue;
                 }
-                const std::string& qid(db_request[query_id_cs]);
-                nlohmann::json db_response = { {query_id_cs, qid}, { error_cs, 0 } };
-                // ParquetScan request do not produce a result set, unlike queries
-                if (nd_type == parquet_scan_cs) {
+                const std::string& qid(db_request[Static::query_id_cs]);
+                nlohmann::json db_response = { {Static::query_id_cs, qid}, { Static::error_cs, 0 } };
+                // Command request do not produce a result set, unlike queries
+                if (nd_type == Static::command_cs) {
                     duckdb_state dbstate;
-                    const std::string& sql(db_request[sql_cs]);
+                    const std::string& sql(db_request[Static::sql_cs]);
                     // Duck C API scans may throw C++ duckdb.HTTPException
                     std::exception_ptr active_exception;
                     try {
                         dbstate = duckdb_query(duck_conn, sql.c_str(), nullptr);
-                        db_response[nd_type_cs] = parquet_scan_result_cs;
+                        db_response[Static::nd_type_cs] = Static::command_cs;
                         pix_report(DBScan, static_cast<float>(scan_count++));
                     }
                     catch (...) {
                         // DuckDB C API can throw exceptions from the parquet
                         // extension. 
                         std::cerr << method << "PARQUET_SCAN_FAIL: " << db_request.dump() << std::endl;
-                        db_response[error_cs] = 1;
+                        db_response[Static::error_cs] = 1;
                     }
                     // dbstate should be defaulted to DuckDBSuccess if an 
                     // exception was thrown above, so this is the non except
                     // error path
                     if (dbstate == DuckDBError) {
                         std::cerr << method << "PARQUET_SCAN_FAIL: " << db_request.dump() << std::endl;
-                        db_response[error_cs] = 1;
+                        db_response[Static::error_cs] = 1;
                     }
                 }
-                else if (nd_type == query_cs) {
-                    const std::string& sql(db_request[sql_cs]);
+                else if (nd_type == Static::query_cs) {
+                    const std::string& sql(db_request[Static::sql_cs]);
                     duckdb_result dbresult;
                     duckdb_state dbstate = duckdb_query(duck_conn, sql.c_str(), &dbresult);
                     std::cout << method << "QID: " << qid << ", SQL: " << sql << std::endl;
-                    db_response[nd_type_cs] = query_result_cs;
+                    db_response[Static::nd_type_cs] = Static::query_result_cs;
                     if (dbstate == DuckDBError) {
                         std::cerr << method << "QUERY_FAIL: " << db_request << std::endl;
-                        db_response[error_cs] = 1;
+                        db_response[Static::error_cs] = 1;
                     }
                     else {
                         result_map[qid] = dbresult;
                         pix_report(DBQuery, static_cast<float>(query_count++));
                     }
                 }
-                else if (nd_type == batch_request_cs) {
-                    db_response[nd_type_cs] = batch_response_cs;
+                else if (nd_type == Static::batch_request_cs) {
+                    db_response[Static::nd_type_cs] = Static::batch_response_cs;
                     auto result_iter = result_map.find(qid);
                     if (result_iter == result_map.end()) {
-                        db_response[error_cs] = 1;
+                        db_response[Static::error_cs] = 1;
                         std::cerr << method << "BATCH_FAIL: " << db_request << std::endl;
                     }
                     else {
-                        db_response[error_cs] = 0;
+                        db_response[Static::error_cs] = 0;
                         duckdb_data_chunk chunk = duckdb_fetch_chunk(result_iter->second);
                         ResultHandle handle = reinterpret_cast<std::uint64_t>(&(result_iter->second));
                         Bobbin& chunk_deck(bobbin_map[handle]);
@@ -483,7 +493,7 @@ public:
             }
         }
         else {
-            buffer = (char*)null_cs;
+            buffer = (char*)Static::null_cs;
         }
         return 0;
     }

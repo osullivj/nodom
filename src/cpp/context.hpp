@@ -29,14 +29,14 @@ struct GLFWwindow;
 
 // What comes next in a DB action_dispatch sequence?
 const char* NextEvent(const char* nd_event) {
-    if (strcmp(nd_event, parquet_scan_cs) == 0) {
-        return parquet_scan_result_cs;
+    if (strcmp(nd_event, Static::command_cs) == 0) {
+        return Static::command_result_cs;
     }
-    if (strcmp(nd_event, query_cs) == 0) {
-        return query_result_cs;
+    if (strcmp(nd_event, Static::query_cs) == 0) {
+        return Static::query_result_cs;
     }
-    if (strcmp(nd_event, batch_request_cs) == 0) {
-        return batch_response_cs;
+    if (strcmp(nd_event, Static::batch_request_cs) == 0) {
+        return Static::batch_response_cs;
     }
     return nullptr;
 }
@@ -225,8 +225,8 @@ public:
 
     void server_request(const std::string& key) {
         std::stringstream msgbuf;
-        msgbuf << "{ \"" << nd_type_cs << "\":\"" << cache_request_cs << "\",\""
-            << cache_key_cs << "\":\"" << key << "\"}";
+        msgbuf << "{ \"" << Static::nd_type_cs << "\":\"" << Static::cache_request_cs << "\",\""
+            << Static::cache_key_cs << "\":\"" << key << "\"}";
         ws_send(msgbuf.str());
     }
 
@@ -241,11 +241,10 @@ public:
         // we rely on operator<< which is supplied by
         // nlohmann::json. For emscripten::val we use our own
         // operator<< from db_cache.hpp.
-        msgbuf << "{ \"" << nd_type_cs << "\":\"" << data_change_cs << "\",\""
-            << cache_key_cs << "\":\"" << caddr << "\",\""
-            // 
-            << new_value_cs << "\":" << new_val << ",\""
-            << old_value_cs << "\":" << old_val << "}";
+        msgbuf << "{ \"" << Static::nd_type_cs << "\":\"" << Static::data_change_cs << "\",\""
+            << Static::cache_key_cs << "\":\"" << caddr << "\",\""
+            << Static::new_value_cs << "\":" << new_val << ",\""
+            << Static::old_value_cs << "\":" << old_val << "}";
         ws_send(msgbuf.str());
     }
 
@@ -257,17 +256,17 @@ public:
         while (!responses.empty()) {
             const JSON& resp = responses.front();
             NDLogger::cout() << method << JPrettyPrint(resp) << std::endl;
-            std::string nd_type(JAsString(resp, nd_type_cs));
+            std::string nd_type(JAsString(resp, Static::nd_type_cs));
             // polymorphic as types are hidden inside change
             // Is this a CacheResponse for layout or data?
-            if (nd_type == cache_response_cs) {
-                if (JAsString(resp, cache_key_cs) == data_cs) {
-                    data = resp[value_cs];
+            if (nd_type == Static::cache_response_cs) {
+                if (JAsString(resp, Static::cache_key_cs) == Static::data_cs) {
+                    data = resp[Static::value_cs];
                     on_data();
                     data_loaded = true;
                 }
-                else if (JAsString(resp, cache_key_cs) == layout_cs) {
-                    layout = resp[value_cs];
+                else if (JAsString(resp, Static::cache_key_cs) == Static::layout_cs) {
+                    layout = resp[Static::value_cs];
                     on_layout();
                     layout_loaded = true;
                 }
@@ -275,11 +274,11 @@ public:
                     NDLogger::cout() << method << "CACHE_LOADED" << std::endl;
             }
             // Is this a DataChange?
-            else if (nd_type == data_change_cs) {
-                std::string ckey = JAsString(resp, cache_key_cs);
-                JSet(data, ckey.c_str(), resp[new_value_cs]);
+            else if (nd_type == Static::data_change_cs) {
+                std::string ckey = JAsString(resp, Static::cache_key_cs);
+                JSet(data, ckey.c_str(), resp[Static::new_value_cs]);
             }
-            else if (nd_type == data_change_confirmed_cs) {
+            else if (nd_type == Static::data_change_confirmed_cs) {
                 // TODO: add check that type has not mutated
             }
             // Duck or Parquet event...
@@ -301,42 +300,42 @@ public:
     void on_db_event(const JSON& db_msg) {
         const static char* method = "NDContext::on_db_event: ";
 
-        if (!JContains(db_msg, nd_type_cs)) {
+        if (!JContains(db_msg, Static::nd_type_cs)) {
             NDLogger::cerr() << method << "no nd_type in " << db_msg << std::endl;
             return;
         }
-        std::string nd_type = JAsString(db_msg, nd_type_cs);
-        std::string qid = JAsString(db_msg, query_id_cs);
+        std::string nd_type = JAsString(db_msg, Static::nd_type_cs);
+        std::string qid = JAsString(db_msg, Static::query_id_cs);
         NDLogger::cout() << method << nd_type << ", QID: " << qid << std::endl;
 
-        if (nd_type == parquet_scan_cs) {
+        if (nd_type == Static::command_cs) {
             db_status_color = amber;
         }
-        else if (nd_type == query_cs) {
+        else if (nd_type == Static::query_cs) {
             db_status_color = amber;
         }
-        else if (nd_type == parquet_scan_result_cs) {
+        else if (nd_type == Static::command_result_cs) {
             db_status_color = green;
             action_dispatch(qid, nd_type);
         }
-        else if (nd_type == query_result_cs) {
+        else if (nd_type == Static::query_result_cs) {
             db_status_color = green;
             // Typically, a QueryResult is followed by dispatch
             // of a BatchRequest. 
             action_dispatch(qid, nd_type);
         }
-        else if (nd_type == batch_response_cs) {
+        else if (nd_type == Static::batch_response_cs) {
             db_status_color = green;
             action_dispatch(qid, nd_type);
         }
-        else if (nd_type == duck_instance_cs) {
+        else if (nd_type == Static::duck_instance_cs) {
             // TODO: q processing order means this doesn't happen so early in cpp
             // main.ts:on_duck_event invokes check_duck_module.
             // However, we don't need all the check_duck_module JS module stuff,
             // so we can just flip status button color here
             db_status_color = amber;
             // trigger any DuckInstance action
-            action_dispatch(db_online_cs, duck_instance_cs);
+            action_dispatch(Static::db_online_cs, Static::duck_instance_cs);
         }
         else {
             NDLogger::cerr() << "NDContext::on_db_event: unexpected nd_type in " << db_msg << std::endl;
@@ -354,8 +353,8 @@ public:
         for (int inx=0; inx < layout_length; inx++) {
             const JSON& w(layout[inx]);
             NDLogger::cout() << method << "LAYOUT_CHILD: " << JPrettyPrint(w) << std::endl;
-            if (JContains(w, widget_id_cs)) {
-                std::string widget_id = JAsString(w, widget_id_cs);
+            if (JContains(w, Static::widget_id_cs)) {
+                std::string widget_id(JAsString(w, Static::widget_id_cs));
                 if (!widget_id.empty()) {
                     NDLogger::cout() << method << "LAYOUT_PUSHABLE: " << widget_id << ":" << JPrettyPrint(w) << std::endl;
                     pushable[widget_id] = w;
@@ -373,7 +372,7 @@ public:
         const static char* method = "NDContext::on_data: ";
 
         NDLogger::cout() << method << "CACHE_DATA: " << JPrettyPrint(data) << std::endl;
-        if (!JContains(data, actions_cs)) {
+        if (!JContains(data, Static::actions_cs)) {
             NDLogger::cerr() << method << "NO_ACTIONS in data!" << std::endl;
             return;
         }
@@ -392,11 +391,11 @@ protected:
     void dispatch_render(const JSON& w) {
         const static char* method = "NDContext::dispatch_render: ";
 
-        if (!JContains(w, rname_cs)) {
+        if (!JContains(w, Static::rname_cs)) {
             NDLogger::cerr() << method << "missing rname in " << w << std::endl;
             return;
         }
-        std::string rname = JAsString(w, rname_cs);
+        std::string rname = JAsString(w, Static::rname_cs);
         const auto it = rfmap.find(rname);
         if (it == rfmap.end()) {
             NDLogger::cerr() << method << "unknown rname in " << w << std::endl;
@@ -415,9 +414,9 @@ protected:
         strncpy(dest, action_id.c_str(), space);
         dest += action_id.size();
         space -= action_id.size();
-        strncpy(dest, period_cs, space);
-        dest += strlen(period_cs);
-        space -= strlen(period_cs);
+        strncpy(dest, Static::period_cs, space);
+        dest += strlen(Static::period_cs);
+        space -= strlen(Static::period_cs);
         strncpy(dest, nd_event.c_str(), space);
     }
 
@@ -428,14 +427,14 @@ protected:
 
         NDLogger::cout() << method << "ACT_EV(" << act_ev_key_buf << ")" << std::endl;
 
-        if (!JContains(data, actions_cs)) {
+        if (!JContains(data, Static::actions_cs)) {
             NDLogger::cerr() << method << "no actions in data!" << std::endl;
             return;
         }
         // Get hold of "actions" in data: do we a matching action?
         // NB if there isn't a matching action.event compound key in data.actions,
         // then we have to check the in flight sequences...
-        const JSON& actions(data[actions_cs]);
+        const JSON& actions(data[Static::actions_cs]);
         JSON action_seq = JSON::array();
         std::list<InFlight> new_in_flight_list;
         if (JContains(actions, act_ev_key_buf)) {
@@ -485,16 +484,16 @@ protected:
         // Now we have a matched action definition in hand we can look
         // for UI push/pop and DB scan/query. If there's both push and pop,
         // pop goes first naturally!
-        if (JContains(action_defn, ui_pop_cs)) {
+        if (JContains(action_defn, Static::ui_pop_cs)) {
             // for pops we supply the rname, not the pushable name so
             // the context can check the widget type on pops
-            std::string rname(JAsString(action_defn, ui_pop_cs));
+            std::string rname(JAsString(action_defn, Static::ui_pop_cs));
             NDLogger::cout() << method << "ui_pop(" << rname << ")" << std::endl;
             pending_pops.push_back(rname);
         }
-        if (JContains(action_defn, ui_push_cs)) {
+        if (JContains(action_defn, Static::ui_push_cs)) {
             // for pushes we supply widget_id, not the rname
-            std::string widget_id(JAsString(action_defn, ui_push_cs));
+            std::string widget_id(JAsString(action_defn, Static::ui_push_cs));
             // salt'n'pepa in da house!
             auto push_it = pushable.find(widget_id);
             if (push_it != pushable.end()) {
@@ -512,22 +511,22 @@ protected:
         std::string db_action;
         std::string query_id;
         std::string sql_cache_key;
-        if (JContains(action_defn, db_action_cs)) {
-            db_action = JAsString(action_defn, db_action_cs);
-            if (!JContains(action_defn, query_id_cs)) {
+        if (JContains(action_defn, Static::db_action_cs)) {
+            db_action = JAsString(action_defn, Static::db_action_cs);
+            if (!JContains(action_defn, Static::query_id_cs)) {
                 NDLogger::cerr() << method << "ACT_EXEC_FAIL db_action(" << db_action << ") missing query_id" << std::endl;
                 return;
             }
-            query_id = JAsString(action_defn, query_id_cs);
-            if (db_action == batch_request_cs) {
+            query_id = JAsString(action_defn, Static::query_id_cs);
+            if (db_action == Static::batch_request_cs) {
                 db_dispatch(db_action, query_id);
             }
             else {
-                if (!JContains(action_defn, sql_cname_cs)) {
+                if (!JContains(action_defn, Static::sql_cname_cs)) {
                     NDLogger::cerr() << method << "ACT_EXEC_FAIL db_action(" << db_action << ") missing sql_cname" << std::endl;
                     return;
                 }
-                sql_cache_key = JAsString(action_defn, sql_cname_cs);
+                sql_cache_key = JAsString(action_defn, Static::sql_cname_cs);
                 if (!JContains(data, sql_cache_key.c_str())) {
                     NDLogger::cerr() << method << "ACT_EXEC_FAIL db_action(" << db_action << ") sql_cname(" << sql_cache_key << ") does not resolve!" << std::endl;
                     return;
@@ -551,16 +550,16 @@ protected:
     void db_dispatch(const std::string& nd_type, const std::string& qid, 
                     const std::string& sql) {
         auto db_request = JNewObject();
-        JSet(db_request, nd_type_cs, nd_type.c_str());
-        JSet(db_request, sql_cs, sql.c_str());
-        JSet(db_request, query_id_cs, qid.c_str());
+        JSet(db_request, Static::nd_type_cs, nd_type.c_str());
+        JSet(db_request, Static::sql_cs, sql.c_str());
+        JSet(db_request, Static::query_id_cs, qid.c_str());
         proxy.db_dispatch(db_request);
     }
 
     void db_dispatch(const std::string& nd_type, const std::string& qid) {
         auto db_request = JNewObject();
-        JSet(db_request, nd_type_cs, nd_type.c_str());
-        JSet(db_request, query_id_cs, qid.c_str());
+        JSet(db_request, Static::nd_type_cs, nd_type.c_str());
+        JSet(db_request, Static::query_id_cs, qid.c_str());
         proxy.db_dispatch(db_request);
     }
 
@@ -568,22 +567,22 @@ protected:
     void render_home(const JSON& w) {
         const static char* method = "NDContext::render_home: ";
 
-        if (!JContains(w, cspec_cs)) {
+        if (!JContains(w, Static::cspec_cs)) {
             NDLogger::cerr() << method << "no cspec in w(" << w << ")" << std::endl;
             return;
         }
-        const JSON& cspec = w[cspec_cs];
-        std::string title(nodom_cs);
-        if (JContains(cspec, title_cs)) {
-            title = JAsString(cspec, title_cs);
+        const JSON& cspec( w[Static::cspec_cs]);
+        std::string title(Static::nodom_cs);
+        if (JContains(cspec, Static::title_cs)) {
+            title = JAsString(cspec, Static::title_cs);
         }
 
         bool fpop = false;
-        if (JContains(cspec, title_font_cs))
-            fpop = push_font(w, title_font_cs, title_font_size_base_cs);
+        if (JContains(cspec, Static::title_font_cs))
+            fpop = push_font(w, Static::title_font_cs, Static::title_font_size_base_cs);
 
         ImGui::Begin(title.c_str());
-        const JSON& children = w[children_cs];
+        const JSON& children(w[Static::children_cs]);
         int child_count = JSize(children);
         for (int inx=0; inx < child_count; inx++) {
             const JSON& child(children[inx]);
@@ -600,22 +599,22 @@ protected:
         // static storage: imgui wants int (int32), nlohmann::json uses int64_t
         static int input_integer;
         input_integer = 0;
-        if (!JContains(w, cspec_cs)) {
-            NDLogger::cerr() << method << "no cspec in w(" << w << ")" << std::endl;
+        if (!JContains(w, Static::cspec_cs)) {
+            NDLogger::cerr() << method << "no cspec in w(" << JPrettyPrint(w) << ")" << std::endl;
             return;
         }
-        const JSON& cspec(w[cspec_cs]);
+        const JSON& cspec(w[Static::cspec_cs]);
         std::string label;
-        if (JContains(cspec, text_cs)) label = JAsString(cspec, text_cs);
+        if (JContains(cspec, Static::text_cs)) label = JAsString(cspec, Static::text_cs);
         // params by value
         int step = 1;
-        if (JContains(cspec, step_cs)) step = JAsInt(cspec, step_cs);
+        if (JContains(cspec, Static::step_cs)) step = JAsInt(cspec, Static::step_cs);
         int step_fast = 1;
-        if (JContains(cspec, step_fast_cs)) step_fast = JAsInt(cspec, step_fast_cs);
+        if (JContains(cspec, Static::step_fast_cs)) step_fast = JAsInt(cspec, Static::step_fast_cs);
         int flags = 0;
-        if (JContains(cspec, flags_cs)) flags = JAsInt(cspec, flags_cs);
+        if (JContains(cspec, Static::flags_cs)) flags = JAsInt(cspec, Static::flags_cs);
         // one param by ref: the int itself
-        std::string cname_cache_addr = JAsString(cspec, cname_cs);
+        std::string cname_cache_addr = JAsString(cspec, Static::cname_cs);
         // if no label use cache addr
         if (!label.size()) label = cname_cache_addr;
         // local static copy of cache val
@@ -643,19 +642,19 @@ protected:
         memset(cs_combo_list, 0, ND_MAX_COMBO_LIST * sizeof(char*));
         combo_selection = 0;
         combo_list.clear();
-        if (!JContains(w, cspec_cs)) {
-            NDLogger::cerr() << method << "no cspec in w(" << w << ")" << std::endl;
+        if (!JContains(w, Static::cspec_cs)) {
+            NDLogger::cerr() << method << "no cspec in w(" << JPrettyPrint(w) << ")" << std::endl;
             return;
         }
-        const JSON& cspec = w["cspec"];
-        std::string label(nodom_cs);
+        const JSON& cspec(w["cspec"]);
+        std::string label(Static::nodom_cs);
         int step = 1;
-        if (JContains(cspec, text_cs)) label = JAsString(cspec, text_cs);
-        if (JContains(cspec, step_cs)) step = JAsInt(cspec, step_cs);
+        if (JContains(cspec, Static::text_cs)) label = JAsString(cspec, Static::text_cs);
+        if (JContains(cspec, Static::step_cs)) step = JAsInt(cspec, Static::step_cs);
         // no value params in layout here; all combo layout is data cache refs
         // /cspec/cname should give us a data cache addr for the combo list
-        std::string combo_list_cache_addr(JAsString(cspec, cname_cs));
-        std::string combo_index_cache_addr(JAsString(cspec, index_cs));
+        std::string combo_list_cache_addr(JAsString(cspec, Static::cname_cs));
+        std::string combo_index_cache_addr(JAsString(cspec, Static::index_cs));
         // if no label use cache addr
         if (!label.size()) label = combo_list_cache_addr;
         int combo_count = 0;
@@ -680,15 +679,15 @@ protected:
     void render_checkbox(const JSON& w) {
         const static char* method = "NDContext::render_checkbox: ";
 
-        if (!JContains(w, cspec_cs)) {
+        if (!JContains(w, Static::cspec_cs)) {
             NDLogger::cerr() << method << "no cspec in w(" << w << ")" << std::endl;
             return;
         }
-        const JSON& cspec(w[cspec_cs]);
-        std::string cname_cache_addr(JAsString(cspec, cname_cs));
+        const JSON& cspec(w[Static::cspec_cs]);
+        std::string cname_cache_addr(JAsString(cspec, Static::cname_cs));
         std::string text(cname_cache_addr);
-        if (JContains(cspec, text_cs))
-            text = JAsString(cspec, text_cs);
+        if (JContains(cspec, Static::text_cs))
+            text = JAsString(cspec, Static::text_cs);
 
         bool checked_value = JAsBool(data, cname_cache_addr.c_str());
         bool old_checked_value = checked_value;
@@ -711,11 +710,11 @@ protected:
     void render_footer(const JSON& w) {
         static const char* method = "NDContext::render_footer: ";
 
-        if (!JContains(w, cspec_cs)) {
-            NDLogger::cerr() << method << "no cspec in w(" << w << ")" << std::endl;
+        if (!JContains(w, Static::cspec_cs)) {
+            NDLogger::cerr() << method << "no cspec in w(" << JPrettyPrint(w) << ")" << std::endl;
             return;
         }
-        const JSON& cspec(w[cspec_cs]);
+        const JSON& cspec(w[Static::cspec_cs]);
         bool db = JAsBool(cspec, "db");
         bool fps = JAsBool(cspec, "fps");
         // TODO: config demo mode so it can be switched on/off in prod
@@ -766,44 +765,44 @@ protected:
         uint32_t year_month_font_size_base = 0;
         uint32_t day_date_font_size_base = 0;
 
-            if (!JContains(w, cspec_cs)) {
+            if (!JContains(w, Static::cspec_cs)) {
                 NDLogger::cerr() << method << "no cspec in w(" << w << ")" << std::endl;
                 return;
             }
-            const JSON& cspec(w[cspec_cs]);
-            if (JContains(cspec, year_month_font_cs)) {
-                std::string ym_font(JAsString(cspec, year_month_font_cs));
+            const JSON& cspec(w[Static::cspec_cs]);
+            if (JContains(cspec, Static::year_month_font_cs)) {
+                std::string ym_font(JAsString(cspec, Static::year_month_font_cs));
                 auto font_it = font_map.find(ym_font);
                 if (font_it != font_map.end()) {
                     year_month_font = font_it->second;
-                    if (JContains(cspec, year_month_font_size_base_cs))
-                        year_month_font_size_base = JAsInt(cspec, year_month_font_size_base_cs);
+                    if (JContains(cspec, Static::year_month_font_size_base_cs))
+                        year_month_font_size_base = JAsInt(cspec, Static::year_month_font_size_base_cs);
                 }
                 else {
                     // Use Default font installed by im_start instead
-                    year_month_font = font_map[default_cs];
+                    year_month_font = font_map[Static::default_cs];
                 }
             }
-            if (JContains(cspec, day_date_font_cs)) {
-                std::string dd_font(JAsString(cspec, day_date_font_cs));
+            if (JContains(cspec, Static::day_date_font_cs)) {
+                std::string dd_font(JAsString(cspec, Static::day_date_font_cs));
                 auto font_it = font_map.find(dd_font);
                 if (font_it != font_map.end()) {
                     day_date_font = font_it->second;
-                    if (JContains(cspec, day_date_font_size_base_cs))
-                        day_date_font_size_base = JAsInt(cspec, day_date_font_size_base_cs);
+                    if (JContains(cspec, Static::day_date_font_size_base_cs))
+                        day_date_font_size_base = JAsInt(cspec, Static::day_date_font_size_base_cs);
                 }
                 else {
                     // Use Default font installed by im_start instead
-                    day_date_font = font_map[default_cs];
+                    day_date_font = font_map[Static::default_cs];
                 }
             }
             int table_flags = default_table_flags;
-            if (JContains(cspec, table_flags_cs))
-                table_flags = JAsInt(cspec, table_flags_cs);
+            if (JContains(cspec, Static::table_flags_cs))
+                table_flags = JAsInt(cspec, Static::table_flags_cs);
             int combo_flags = default_combo_flags;
-            if (JContains(cspec, combo_flags_cs))
-                combo_flags = JAsInt(cspec, combo_flags_cs);
-            std::string ckey = JAsString(cspec, cname_cs);
+            if (JContains(cspec, Static::combo_flags_cs))
+                combo_flags = JAsInt(cspec, Static::combo_flags_cs);
+            std::string ckey = JAsString(cspec, Static::cname_cs);
             JSON ymd_old_j = JSON::array();
             ymd_old_j = data[ckey];
             ymd_i[0] = JAsInt(ymd_old_j, 0);
@@ -819,34 +818,34 @@ protected:
     void render_text(const JSON& w) {
         const static char* method = "NDContext::render_text: ";
 
-        if (!JContains(w, cspec_cs)) {
+        if (!JContains(w, Static::cspec_cs)) {
             NDLogger::cerr() << method << "no cspec in w(" << w << ")" << std::endl;
             return;
         }
-        const JSON& cspec(w[cspec_cs]);
-        std::string rtext = JAsString(cspec, text_cs);
+        const JSON& cspec(w[Static::cspec_cs]);
+        std::string rtext = JAsString(cspec, Static::text_cs);
         ImGui::Text(rtext.c_str());
     }
 
     void render_button(const JSON& w) {
         const static char* method = "NDContext::render_button: ";
 
-        if (!JContains(w, cspec_cs)) {
+        if (!JContains(w, Static::cspec_cs)) {
             NDLogger::cerr() << method << "no cspec in w(" << w << ")" << std::endl;
             return;
         }
-        const JSON& cspec(w[cspec_cs]);
-        if (!JContains(cspec, text_cs)) {
+        const JSON& cspec(w[Static::cspec_cs]);
+        if (!JContains(cspec, Static::text_cs)) {
             NDLogger::cerr() << method << "no text in cspec(" << cspec << ")" << std::endl;
             return;
         }
-        std::string button_text = JAsString(cspec, text_cs);
+        std::string button_text = JAsString(cspec, Static::text_cs);
         std::string widget_id(button_text);
-        if (JContains(cspec, widget_id_cs)) {
-            widget_id = JAsString(cspec, widget_id_cs);
+        if (JContains(cspec, Static::widget_id_cs)) {
+            widget_id = JAsString(cspec, Static::widget_id_cs);
         }
         if (ImGui::Button(button_text.c_str())) {
-            action_dispatch(widget_id, click_cs);
+            action_dispatch(widget_id, Static::click_cs);
         }
     }
 
@@ -866,29 +865,31 @@ protected:
             "cnt", "null"   // DUCKDB_TYPE_BIGINT, DUCKDB_TYPE_DECIMAL
         };
 
-        if (!JContains(w, cspec_cs) || !JContains(w[cspec_cs], qname_cs) || !JContains(w[cspec_cs], title_cs)) {
-            NDLogger::cerr() << method << "BAD_CSPEC" << w << std::endl;
+        if (!JContains(w, Static::cspec_cs) || 
+            !JContains(w[Static::cspec_cs], Static::qname_cs) || 
+            !JContains(w[Static::cspec_cs], Static::title_cs)) {
+            NDLogger::cerr() << method << Static::BAD_CSPEC_cs << JPrettyPrint(w) << std::endl;
             return;
         }
-        const JSON& cspec(w[cspec_cs]);
-        const std::string qname(JAsString(cspec, qname_cs));
+        const JSON& cspec(w[Static::cspec_cs]);
+        const std::string qname(JAsString(cspec, Static::qname_cs));
         std::string title(qname);
-        if (JContains(cspec, title_cs))
-            title = JAsString(cspec, title_cs);
+        if (JContains(cspec, Static::title_cs))
+            title = JAsString(cspec, Static::title_cs);
 
         int table_flags = default_summary_table_flags;
-        if (JContains(cspec, table_flags_cs)) {
-            table_flags = JAsInt(cspec, table_flags_cs);
+        if (JContains(cspec, Static::table_flags_cs)) {
+            table_flags = JAsInt(cspec, Static::table_flags_cs);
         }
 
         int window_flags = default_window_flags;
-        if (JContains(cspec, window_flags_cs)) {
-            window_flags = JAsInt(cspec, window_flags_cs);
+        if (JContains(cspec, Static::window_flags_cs)) {
+            window_flags = JAsInt(cspec, Static::window_flags_cs);
         }
 
         bool title_pop = false;
-        if (JContains(cspec, title_font_cs))
-            title_pop = push_font(w, title_font_cs, title_font_size_base_cs);
+        if (JContains(cspec, Static::title_font_cs))
+            title_pop = push_font(w, Static::title_font_cs, Static::title_font_size_base_cs);
 
         ImGui::OpenPopup(title.c_str());
         // Always center this window when appearing
@@ -905,8 +906,8 @@ protected:
         bool body_pop = false;
         if (ImGui::BeginPopupModal(title.c_str(), nullptr, window_flags)) {
             if (title_pop) pop_font();
-            if (JContains(cspec, (body_font_cs)))
-                body_pop = push_font(w, body_font_cs, body_font_size_base_cs);
+            if (JContains(cspec, Static::body_font_cs))
+                body_pop = push_font(w, Static::body_font_cs, Static::body_font_size_base_cs);
 
             std::uint64_t result_handle = proxy.get_handle(qname);
             if (!result_handle) {
@@ -941,23 +942,23 @@ protected:
         if (body_pop) pop_font();
 
         bool button_pop = false;
-        if (JContains(cspec, button_font_cs))
-            button_pop = push_font(w, button_font_cs, button_font_size_base_cs);
+        if (JContains(cspec, Static::button_font_cs))
+            button_pop = push_font(w, Static::button_font_cs, Static::button_font_size_base_cs);
 
         // Note we do not invoke pop_widget() here as we're
         // rendering, and that would change the stack while
         // the topmost render method is iterating over it.
         // Instead we add it to the list of pending_pops
         // so top level render will invoke pop_widget for us.
-        if (ImGui::Button(ok_cs)) {
+        if (ImGui::Button(Static::ok_cs)) {
             ImGui::CloseCurrentPopup();
-            pending_pops.push_back(duck_table_summary_modal_cs);
+            pending_pops.push_back(Static::duck_table_summary_modal_cs);
         }
         ImGui::SetItemDefaultFocus();
         ImGui::SameLine();
-        if (ImGui::Button(cancel_cs)) {
+        if (ImGui::Button(Static::cancel_cs)) {
             ImGui::CloseCurrentPopup();
-            pending_pops.push_back(duck_table_summary_modal_cs);
+            pending_pops.push_back(Static::duck_table_summary_modal_cs);
         }
 
         if (button_pop) pop_font();
@@ -970,19 +971,21 @@ protected:
 
         static ImVec2 position = { 0.5, 0.5 };
 
-        if (!JContains(w, cspec_cs) || !JContains(w[cspec_cs], cname_cs) || !JContains(w[cspec_cs], title_cs)) {
+        if (!JContains(w, Static::cspec_cs) || 
+            !JContains(w[Static::cspec_cs], Static::cname_cs) || 
+            !JContains(w[Static::cspec_cs], Static::title_cs)) {
             NDLogger::cerr() << method << "BAD_CSPEC" << w << std::endl;
             return;
         }
-        const JSON& cspec(w[cspec_cs]);
-        std::string cname_cache_addr(JAsString(cspec, cname_cs));
+        const JSON& cspec(w[Static::cspec_cs]);
+        std::string cname_cache_addr(JAsString(cspec, Static::cname_cs));
         std::string title(cname_cache_addr);
-        if (JContains(cspec, title_cs))
-            title = JAsString(cspec, title_cs);
+        if (JContains(cspec, Static::title_cs))
+            title = JAsString(cspec, Static::title_cs);
 
         bool tpop = false;
-        if (JContains(cspec, title_font_cs))
-            tpop = push_font(w, title_font_cs, title_font_size_base_cs);
+        if (JContains(cspec, Static::title_font_cs))
+            tpop = push_font(w, Static::title_font_cs, Static::title_font_size_base_cs);
 
         ImGui::OpenPopup(title.c_str());
 
@@ -1001,18 +1004,18 @@ protected:
 
         if (ImGui::BeginPopupModal(title.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
             bool bpop = false;
-            if (JContains(cspec, body_font_cs))
-                bpop = push_font(w, body_font_cs, body_font_size_base_cs);
+            if (JContains(cspec, Static::body_font_cs))
+                bpop = push_font(w, Static::body_font_cs, Static::body_font_size_base_cs);
             for (auto pq_iter = pq_url_vec.begin(); pq_iter != pq_url_vec.end(); ++pq_iter) {
                 ImGui::Text((*pq_iter).c_str());
             }
             if (bpop) pop_font();
             int spinner_radius = 5;
             int spinner_thickness = 2;
-            if (JContains(cspec, spinner_radius_cs))
-                spinner_radius = JAsInt(cspec, spinner_radius_cs);
-            if (JContains(cspec, spinner_thickness_cs))
-                spinner_thickness = JAsInt(cspec, spinner_thickness_cs);
+            if (JContains(cspec, Static::spinner_radius_cs))
+                spinner_radius = JAsInt(cspec, Static::spinner_radius_cs);
+            if (JContains(cspec, Static::spinner_thickness_cs))
+                spinner_thickness = JAsInt(cspec, Static::spinner_thickness_cs);
             if (!ImGui::Spinner("parquet_loading_spinner", (float)spinner_radius, spinner_thickness, 0)) {
                 // TODO: spinner always fails IsClippedEx on first render
                 NDLogger::cout() << method << "spinner fail" << std::endl;
@@ -1027,21 +1030,21 @@ protected:
         static int default_summary_table_flags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY;
         static int default_window_flags = ImGuiWindowFlags_AlwaysAutoResize;
 
-        if (!JContains(w, cspec_cs) || !JContains(w[cspec_cs], qname_cs)) {
+        if (!JContains(w, Static::cspec_cs) || !JContains(w[Static::cspec_cs], Static::qname_cs)) {
             NDLogger::cerr() << method << "BAD_CSPEC" << w << std::endl;
             return;
         }
-        const JSON& cspec(w[cspec_cs]);
-        const std::string qname(JAsString(cspec, qname_cs));
+        const JSON& cspec(w[Static::cspec_cs]);
+        const std::string qname(JAsString(cspec, Static::qname_cs));
 
         int table_flags = default_summary_table_flags;
-        if (JContains(cspec, table_flags_cs)) {
-            table_flags = JAsInt(cspec, table_flags_cs);
+        if (JContains(cspec, Static::table_flags_cs)) {
+            table_flags = JAsInt(cspec, Static::table_flags_cs);
         }
 
         int window_flags = default_window_flags;
-        if (JContains(cspec, window_flags_cs)) {
-            window_flags = JAsInt(cspec, window_flags_cs);
+        if (JContains(cspec, Static::window_flags_cs)) {
+            window_flags = JAsInt(cspec, Static::window_flags_cs);
         }
 
         // TODO: recode proxy.get_meta_data() to lazy load 
@@ -1051,8 +1054,8 @@ protected:
         int colm_index = 0;
         bool body_pop = false;
 
-        if (JContains(cspec, (body_font_cs)))
-            body_pop = push_font(w, body_font_cs, body_font_size_base_cs);
+        if (JContains(cspec, Static::body_font_cs))
+            body_pop = push_font(w, Static::body_font_cs, Static::body_font_size_base_cs);
 
         std::uint64_t result_handle = proxy.get_handle(qname);
         if (!result_handle) {
@@ -1089,7 +1092,7 @@ protected:
     }
 
     void render_push_font(const JSON& w) {
-        push_font(w, font_cs, font_size_base_cs);
+        push_font(w, Static::font_cs, Static::font_size_base_cs);
     }
 
     void render_pop_font(const JSON&) {
@@ -1103,21 +1106,21 @@ protected:
         // cache datum to which we refer, so no cname. However, we do look
         // require a title (for imgui ID purposes) and we can have styling
         // attributes like ImGuiChildFlags
-        if (!JContains(w, cspec_cs) || !JContains(w[cspec_cs], title_cs)) {
-            NDLogger::cerr() << method << "BAD_CSPEC" << w << std::endl;
+        if (!JContains(w, Static::cspec_cs) || !JContains(w[Static::cspec_cs], Static::title_cs)) {
+            NDLogger::cerr() << method << Static::BAD_CSPEC_cs << JPrettyPrint(w) << std::endl;
             return;
         }
-        const JSON& cspec(w[cspec_cs]);
-        std::string title(JAsString(cspec, title_cs));
+        const JSON& cspec(w[Static::cspec_cs]);
+        std::string title(JAsString(cspec, Static::title_cs));
 
         int child_flags = 0;
-        if (JContains(cspec, child_flags_cs)) {
-            child_flags = JAsInt(cspec, child_flags_cs);
+        if (JContains(cspec, Static::child_flags_cs)) {
+            child_flags = JAsInt(cspec, Static::child_flags_cs);
         }
         ImVec2 size{ 0, 0 };
-        if (JContains(cspec, size_cs)) {
+        if (JContains(cspec, Static::size_cs)) {
             JSON size_tup2 = JSON::array();
-            size_tup2 = cspec[size_cs];
+            size_tup2 = cspec[Static::size_cs];
             size[0] = (float)JAsInt(size_tup2, 0);
             size[1] = (float)JAsInt(size_tup2, 1);
         }
@@ -1146,9 +1149,9 @@ protected:
         //      popped widget rname
         if (!widget_id_or_render_name.empty()) {
             const JSON& w(stack.back());
-            std::string render_name = JAsString(w, rname_cs);
-            if (JContains(w, widget_id_cs)) {
-                std::string widget_id = JAsString(w, widget_id_cs);
+            std::string render_name = JAsString(w, Static::rname_cs);
+            if (JContains(w, Static::widget_id_cs)) {
+                std::string widget_id = JAsString(w, Static::widget_id_cs);
                 if (render_name != widget_id_or_render_name &&
                     widget_id != widget_id_or_render_name) {
                     NDLogger::cerr() << method << "POP_FAIL mismatch rname("
@@ -1180,11 +1183,11 @@ protected:
         const char* font_size_base_attr) {
         const static char* method = "NDContext::push_font: ";
 
-        if (!JContains(w, cspec_cs)) {
+        if (!JContains(w, Static::cspec_cs)) {
             NDLogger::cerr() << method << "BAD_CSPEC" << w << std::endl;
             return false;
         }
-        const JSON& cspec(w[cspec_cs]);
+        const JSON& cspec(w[Static::cspec_cs]);
         if (!JContains(cspec, font_attr)) {
             NDLogger::cerr() << method << "no " << font_attr << " in cspec : " << w << std::endl;
             return false;
@@ -1201,7 +1204,7 @@ protected:
         else {
             // Gotta push something as matching PopFont
             // renders will trigger imgui asserts
-            ImFont* default_font = font_map[default_cs];
+            ImFont* default_font = font_map[Static::default_cs];
             ImGui::PushFont(default_font, font_size_base);
             bad_font_pushes.push_back(font_name);
         }

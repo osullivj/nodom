@@ -38,8 +38,8 @@ public:
             std::ifstream in_file_stream(bb_json_path);
             json_buffer << in_file_stream.rdbuf();
             bb_config = nlohmann::json::parse(json_buffer);
-            server_url = bb_config["server_url"];
-            is_db_app = bb_config["db_app"];
+            server_url = JAsString(bb_config, "server_url");
+            is_db_app = JAsBool(bb_config, "db_app");
         }
         catch (nlohmann::json::exception& ex) {
             sprintf("cannot load breadboard.json\n%s\n", ex.what());
