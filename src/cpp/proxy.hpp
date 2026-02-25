@@ -25,8 +25,8 @@ public:
             std::cerr << usage << std::endl;
             exit(1);
         }
-        exe = argv[0];
-        bb_json_path = argv[1];
+        char* exe = argv[0];
+        char* bb_json_path = argv[1];
 
         if (!std::filesystem::exists(bb_json_path)) {
             NDLogger::cerr() << usage << std::endl << "Cannot load breadboard config json from " << bb_json_path << std::endl;
@@ -37,9 +37,10 @@ public:
             std::stringstream json_buffer;
             std::ifstream in_file_stream(bb_json_path);
             json_buffer << in_file_stream.rdbuf();
-            bb_config = nlohmann::json::parse(json_buffer);
-            server_url = JAsString(bb_config, "server_url");
-            is_db_app = JAsBool(bb_config, "db_app");
+            // JSON config supplied by templated base
+            config = nlohmann::json::parse(json_buffer);
+            server_url = JAsString(config, "server_url");
+            is_db_app = JAsBool(config, "db_app");
         }
         catch (nlohmann::json::exception& ex) {
             sprintf("cannot load breadboard.json\n%s\n", ex.what());
@@ -57,7 +58,7 @@ public:
         log_buffer << "Server URL: " << server_url << std::endl;
         NDLogger::cout() << log_buffer.str() << std::endl;
     }
-    nlohmann::json  get_breadboard_config() { return bb_config; }
+    // nlohmann::json  get_breadboard_config() { return bb_config; }
 #else   // __EMSCRIPTEN__
     NDProxy() {
         const char* method = "NDProxy default ctor: ";
@@ -81,10 +82,8 @@ protected:
     bool            done{false};
 private:
 #ifndef __EMSCRIPTEN__
-    nlohmann::json  bb_config;
-    char*           bb_json_path;
-    char*           exe;    // argv[0]
-    std::string     test_module_name;
+    // char*           bb_json_path;
+    // char*           exe;    // argv[0]
 #endif
     bool                                is_db_app;
     std::string                         server_url;
