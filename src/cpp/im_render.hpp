@@ -168,11 +168,10 @@ GLFWwindow* im_start(NDContext<JSON, DB>& ctx)
 
     // setup scaling
     float scale = 4.0;
-#ifndef __EMSCRIPTEN__
-    JSON bbcfg(ctx.get_breadboard_config());
-    if (JContains(bbcfg, "font_scale_dpi"))
-        scale = JAsFloat(bbcfg, "font_scale_dpi");
-#endif
+    JSON config;
+    ctx.get_config(config);
+    if (JContains(config, "font_scale_dpi"))
+        scale = JAsFloat(config, "font_scale_dpi");
     ImGuiStyle& style = ImGui::GetStyle();
     style.ScaleAllSizes(scale);
     style.FontScaleDpi = scale;
@@ -195,7 +194,7 @@ GLFWwindow* im_start(NDContext<JSON, DB>& ctx)
     ImFont* font = io.Fonts->AddFontDefault();
     ctx.register_font("Default", font);
 #ifndef __EMSCRIPTEN__
-    JSON jfonts = bbcfg["fonts"];
+    JSON jfonts = config["fonts"];
     for (auto fit = jfonts.begin(); fit != jfonts.end(); ++fit) {
         // fonts is an untyped list of strings. so we get<std::str>()
         // to coerce and avoid extra quotes
