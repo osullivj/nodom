@@ -50,6 +50,7 @@ struct Static {
 	inline static const char* spinner_radius_cs{"spinner_radius"};
 	inline static const char* size_cs{"size"};
 	inline static const char* widget_id_cs{"widget_id"};
+	inline static const char* footer_db_button_cs{ "footer_db_button" };
 	inline static const char* spinner_thickness_cs{"spinner_thickness"};
 	inline static const char* layout_cs{"layout"};
 	inline static const char* data_cs{"data"};
