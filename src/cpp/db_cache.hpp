@@ -39,7 +39,7 @@ class EmptyDBCache {
 public:
     char* buffer{ 0 };  // zero copy accessor
 
-    void set_config(const JSON& cfg) { config = cfg; }
+    void get_config(JSON& cfg) { cfg = config; }
     // Data access methods called by tables in NDContext. All DBCache
     // impls must provide these, even EmptyDBCache...
     std::uint64_t get_handle(const std::string& qid) { return 0; }
@@ -59,6 +59,8 @@ public:
     }
 
     virtual ~EmptyDBCache() {}
+protected:
+    JSON    config;
 };
 
 #ifndef __EMSCRIPTEN__
@@ -536,7 +538,7 @@ public:
         // NB this is based on imgui-jswt main.ts:check_duck_module
         // Q: has duck_module.js created window.__nodom__ ?
         emscripten::val window_global = emscripten::val::global("window");
-        return JContains(window_global, __nodom__cs);
+        return JContains(window_global, Static::__nodom__cs);
     }
 
     // register with DBResultDispatcher at startup time
