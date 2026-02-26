@@ -29,6 +29,7 @@ SCAN_QID = "depth_scan"
 SELECT_QID = "depth_query"
 SUMMARY_QID = "depth_summary"
 UI_QID = "launch_ui"
+ENABLE_LOGGING_QID = "enable_logging"
 SCAN_BUTTON_TEXT = "Scan"
 SCAN_BUTTON_ID = "scan_button"
 SUMMARY_BUTTON_TEXT = "Summary"
@@ -214,7 +215,14 @@ LAUNCH_UI = dict(
     sql_cname="ui_sql",
 )
 
+ENABLE_LOGGING = dict(
+    db_action="Command",
+    query_id=ENABLE_LOGGING_QID,
+    sql_cname="enable_logging_sql",
+)
+
 SUMMARY_SEQUENCE = [
+    ENABLE_LOGGING,
     LAUNCH_SCAN,
     LAUNCH_SUMMARY,
     LAUNCH_SUMMARY_BATCH,
@@ -248,6 +256,7 @@ EXF_DATA = dict(
     query_sql=QUERY_SQL % dict(depth_offset=0),
     summary_sql=SUMMARY_SQL,
     ui_sql="CALL start_ui();",
+    enable_logging_sql="CALL enable_logging(level='debug');",
     depth_tick_size=0.005,
     depth_offset=0,
     depth_results=None,
