@@ -102,7 +102,7 @@ struct Static {
 	inline static const char* indent_cs{"  "};
 	inline static const char* chunk_cs{"chunk"};
 	inline static const char* period_cs{"."};
-
+	inline static const char* db_config_cs{ "db_config" };
 	// Error codes for logging fingerprints
 	inline static const char* BAD_CSPEC_cs{ "BAD_CSPEC" };
 };
