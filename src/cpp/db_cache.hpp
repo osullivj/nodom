@@ -161,15 +161,26 @@ public:
     // db_init, db_fnls, db_loop: these three methods exec 
     // on the DB thread
     bool db_init() {
+        char* duck_error = nullptr;
         if (duckdb_create_config(&duck_config) == DuckDBError) {
             std::cerr << "DUCK_INIT_FAIL duckdb_create_config" << std::endl;
             return false;
         }
         else {
-            // TODO: add bb config code...
+            // The config object in our base class should been populated
+            // by NDProxy.ctor on the main thread. Does it have a db_config?
+            // NB this code is BB  only, so we allow some nlohmann::json 
+            // type leakage
+            if (JContains(config, Static::db_config_cs)) {
+                StringStringMap cfg_map = config.at(Static::db_config_cs).get<StringStringMap>();
+                for (auto citer = cfg_map.cbegin(); citer != cfg_map.cend(); ++citer) {
+                    duckdb_set_config(duck_config, citer->first.c_str(), citer->second.c_str());
+                    std::cout << "DUCK_INIT: " << citer->first.c_str() << ":" << citer->second.c_str() << std::endl;
+                }
+            }
         }
-        if (duckdb_open(NULL, &duck_db) == DuckDBError) {
-            std::cerr << "DUCK_INIT_FAIL duckdb_open" << std::endl;
+        if (duckdb_open_ext(NULL, &duck_db, duck_config, &duck_error) == DuckDBError) {
+            std::cerr << "DUCK_INIT_FAIL duckdb_open " << duck_error << std::endl;
             return false;
         }
         if (duckdb_connect(duck_db, &duck_conn) == DuckDBError) {
