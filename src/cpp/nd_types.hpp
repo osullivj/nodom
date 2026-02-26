@@ -5,6 +5,7 @@
 
 using StringVec = std::vector<std::string>;
 using IntVec = std::vector<int>;
+using StringStringMap = std::map<std::string, std::string>;
 
 
 // typedefs and using defns for NoDOM universal types
