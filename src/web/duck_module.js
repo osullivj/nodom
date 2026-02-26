@@ -358,15 +358,13 @@ self.onmessage = async (event) => {
   let batch_gen = null;
   const nd_db_request = event.data;
   switch (nd_db_request.nd_type) {
-    case "ParquetScan":
+    case "Command":
       // NB result set from "CREATE TABLE <tbl> as select * from parquet_scan([...])"
       // is None on success
       await exec_duck_db_query(nd_db_request);
-      console.log(
-        "duck_module: ParquetScan done for " + nd_db_request.query_id,
-      );
+      console.log("duck_module: Command done for " + nd_db_request.query_id);
       on_db_result({
-        nd_type: "ParquetScanResult",
+        nd_type: "CommandResult",
         query_id: nd_db_request.query_id,
       });
       break;
@@ -408,7 +406,7 @@ self.onmessage = async (event) => {
       }
       break;
     case "QueryResult":
-    case "ParquetScanResult":
+    case "CommandResult":
     case "BatchResponse":
       // we do not process our own results!
       break;
@@ -416,6 +414,9 @@ self.onmessage = async (event) => {
       on_db_result({ nd_type: "DuckInstance", query_id: "DBOnline" });
       break;
     default:
-      console.error("duck_module.onmessage: unexpected request: ", event);
+      console.error(
+        "duck_module.onmessage: unexpected request: " + nd_db_request.nd_type,
+        event,
+      );
   }
 };
