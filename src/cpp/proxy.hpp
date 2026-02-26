@@ -43,11 +43,11 @@ public:
             is_db_app = JAsBool(config, "db_app");
         }
         catch (nlohmann::json::exception& ex) {
-            sprintf("cannot load breadboard.json\n%s\n", ex.what());
+            printf("cannot load %s\n%s\n", bb_json_path, ex.what());
             exit(1);
         }
         catch (...) {
-            printf("cannot load breadboard.json");
+            printf("cannot load %s\n", bb_json_path);
             exit(1);
         }
 
