@@ -240,24 +240,24 @@ public:
                 if (nd_type == Static::command_cs) {
                     duckdb_state dbstate;
                     const std::string& sql(db_request[Static::sql_cs]);
+                    db_response[Static::nd_type_cs] = Static::command_result_cs;
                     // Duck C API scans may throw C++ duckdb.HTTPException
                     std::exception_ptr active_exception;
                     try {
                         dbstate = duckdb_query(duck_conn, sql.c_str(), nullptr);
-                        db_response[Static::nd_type_cs] = Static::command_cs;
                         pix_report(DBScan, static_cast<float>(scan_count++));
                     }
                     catch (...) {
                         // DuckDB C API can throw exceptions from the parquet
                         // extension. 
-                        std::cerr << method << "PARQUET_SCAN_FAIL: " << db_request.dump() << std::endl;
+                        std::cerr << method << "COMMAND_FAIL: " << db_request.dump() << std::endl;
                         db_response[Static::error_cs] = 1;
                     }
                     // dbstate should be defaulted to DuckDBSuccess if an 
                     // exception was thrown above, so this is the non except
                     // error path
                     if (dbstate == DuckDBError) {
-                        std::cerr << method << "PARQUET_SCAN_FAIL: " << db_request.dump() << std::endl;
+                        std::cerr << method << "COMMAND_FAIL: " << db_request.dump() << std::endl;
                         db_response[Static::error_cs] = 1;
                     }
                 }
@@ -265,7 +265,6 @@ public:
                     const std::string& sql(db_request[Static::sql_cs]);
                     duckdb_result dbresult;
                     duckdb_state dbstate = duckdb_query(duck_conn, sql.c_str(), &dbresult);
-                    std::cout << method << "QID: " << qid << ", SQL: " << sql << std::endl;
                     db_response[Static::nd_type_cs] = Static::query_result_cs;
                     if (dbstate == DuckDBError) {
                         std::cerr << method << "QUERY_FAIL: " << db_request << std::endl;
