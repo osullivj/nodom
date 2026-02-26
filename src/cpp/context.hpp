@@ -217,7 +217,7 @@ public:
         pix_report(RenderBadHandlePC, bad_handle_sum);
 
         if (render_count % 60 == 0) {   // every 60 renders eg ~1 sec
-            for (auto citer = bad_handle_map.cbegin(); citer != bad_handle_map.end(); ++citer) {
+            for (auto citer = bad_handle_map.cbegin(); citer != bad_handle_map.cend(); ++citer) {
                 NDLogger::cout() << method << citer->first << " BHC: " << citer->second << std::endl;
             }
         }
