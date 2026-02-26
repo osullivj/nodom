@@ -252,11 +252,7 @@ EXF_DATA = dict(
     depth_offset=0,
     depth_results=None,
     actions={
-        f"{DB_BUTTON_ID}.Click": [
-            dict(
-                ui_push="db_modal",
-            )
-        ],
+        f"{DB_BUTTON_ID}.Click": [LAUNCH_UI],
         # match on scan button click
         f"{SCAN_BUTTON_ID}.Click": SUMMARY_SEQUENCE,
         # match on completion (ParquetScanResult) of scan (SCAN_QID)
