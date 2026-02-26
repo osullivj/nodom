@@ -60,7 +60,11 @@ public:
 
     virtual ~EmptyDBCache() {}
 protected:
-    JSON    config;
+#ifndef __EMSCRIPTEN__
+    JSON config = {};
+#else
+    JSON config = emscripten::val::object();
+#endif
 };
 
 #ifndef __EMSCRIPTEN__
