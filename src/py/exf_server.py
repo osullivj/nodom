@@ -256,7 +256,7 @@ EXF_DATA = dict(
     query_sql=QUERY_SQL % dict(depth_offset=0),
     summary_sql=SUMMARY_SQL,
     ui_sql="CALL start_ui();",
-    enable_logging_sql="CALL enable_logging(level='debug');",
+    enable_logging_sql="CALL enable_logging(level='debug', storage='stdout');",
     depth_tick_size=0.005,
     depth_offset=0,
     depth_results=None,
