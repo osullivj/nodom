@@ -256,7 +256,7 @@ EXF_DATA = dict(
     query_sql=QUERY_SQL % dict(depth_offset=0),
     summary_sql=SUMMARY_SQL,
     ui_sql="CALL start_ui();",
-    enable_logging_sql="CALL enable_logging(level='debug', storage='stdout');",
+    enable_logging_sql="INSTALL parquet; CALL enable_logging(level='debug', storage='stdout');",
     depth_tick_size=0.005,
     depth_offset=0,
     depth_results=None,
@@ -313,7 +313,7 @@ class DepthService(nd_utils.Service):
             # get a list of all files for this instrument: NB the * in the
             # match string, which is not a regex, it's a unix fnmatch
             instrument_specific_files = nd_utils.file_list(
-                nd_consts.PQ_DIR, f"{instrument_name}_*.parquet"
+                nd_consts.PQ_DIR, f"{instrument_name}_*_pd.parquet"
             )
             # reduce the list to only files in the date range
             # here the format string is a strftime format
@@ -321,7 +321,7 @@ class DepthService(nd_utils.Service):
                 instrument_specific_files,
                 data_cache["start_date"],
                 data_cache["end_date"],
-                f"{instrument_name}_%Y%m%d.parquet",
+                f"{instrument_name}_%Y%m%d_pd.parquet",
             )
             # convert filenames to PQ URLs
             old_urls_val = data_cache["scan_urls"]
