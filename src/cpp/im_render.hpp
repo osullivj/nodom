@@ -167,7 +167,7 @@ GLFWwindow* im_start(NDContext<JSON, DB>& ctx)
     //ImGui::StyleColorsClassic();
 
     // setup scaling
-    float scale = 4.0;
+    float scale = 1.0;
     JSON config;
     ctx.get_config(config);
     if (JContains(config, "font_scale_dpi"))
