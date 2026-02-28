@@ -577,7 +577,7 @@ protected:
 
         bool fpop = false;
         if (JContains(cspec, Static::title_font_cs))
-            fpop = push_font(w, Static::title_font_cs, Static::title_font_size_base_cs);
+            fpop = push_font(w, Static::title_font_cs, Static::title_font_size_cs);
 
         ImGui::Begin(title.c_str());
         const JSON& children(w[Static::children_cs]);
@@ -773,8 +773,8 @@ protected:
                 auto font_it = font_map.find(ym_font);
                 if (font_it != font_map.end()) {
                     year_month_font = font_it->second;
-                    if (JContains(cspec, Static::year_month_font_size_base_cs))
-                        year_month_font_size_base = JAsInt(cspec, Static::year_month_font_size_base_cs);
+                    if (JContains(cspec, Static::year_month_font_size_cs))
+                        year_month_font_size_base = JAsInt(cspec, Static::year_month_font_size_cs);
                 }
                 else {
                     // Use Default font installed by im_start instead
@@ -786,8 +786,8 @@ protected:
                 auto font_it = font_map.find(dd_font);
                 if (font_it != font_map.end()) {
                     day_date_font = font_it->second;
-                    if (JContains(cspec, Static::day_date_font_size_base_cs))
-                        day_date_font_size_base = JAsInt(cspec, Static::day_date_font_size_base_cs);
+                    if (JContains(cspec, Static::day_date_font_size_cs))
+                        day_date_font_size_base = JAsInt(cspec, Static::day_date_font_size_cs);
                 }
                 else {
                     // Use Default font installed by im_start instead
@@ -887,7 +887,7 @@ protected:
 
         bool title_pop = false;
         if (JContains(cspec, Static::title_font_cs))
-            title_pop = push_font(w, Static::title_font_cs, Static::title_font_size_base_cs);
+            title_pop = push_font(w, Static::title_font_cs, Static::title_font_size_cs);
 
         ImGui::OpenPopup(title.c_str());
         // Always center this window when appearing
@@ -905,7 +905,7 @@ protected:
         if (ImGui::BeginPopupModal(title.c_str(), nullptr, window_flags)) {
             if (title_pop) pop_font();
             if (JContains(cspec, Static::body_font_cs))
-                body_pop = push_font(w, Static::body_font_cs, Static::body_font_size_base_cs);
+                body_pop = push_font(w, Static::body_font_cs, Static::body_font_size_cs);
 
             std::uint64_t result_handle = proxy.get_handle(qname);
             if (!result_handle) {
@@ -941,7 +941,7 @@ protected:
 
         bool button_pop = false;
         if (JContains(cspec, Static::button_font_cs))
-            button_pop = push_font(w, Static::button_font_cs, Static::button_font_size_base_cs);
+            button_pop = push_font(w, Static::button_font_cs, Static::button_font_size_cs);
 
         // Note we do not invoke pop_widget() here as we're
         // rendering, and that would change the stack while
@@ -983,7 +983,7 @@ protected:
 
         bool tpop = false;
         if (JContains(cspec, Static::title_font_cs))
-            tpop = push_font(w, Static::title_font_cs, Static::title_font_size_base_cs);
+            tpop = push_font(w, Static::title_font_cs, Static::title_font_size_cs);
 
         ImGui::OpenPopup(title.c_str());
 
@@ -1003,7 +1003,7 @@ protected:
         if (ImGui::BeginPopupModal(title.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
             bool bpop = false;
             if (JContains(cspec, Static::body_font_cs))
-                bpop = push_font(w, Static::body_font_cs, Static::body_font_size_base_cs);
+                bpop = push_font(w, Static::body_font_cs, Static::body_font_size_cs);
             for (auto pq_iter = pq_url_vec.begin(); pq_iter != pq_url_vec.end(); ++pq_iter) {
                 ImGui::Text((*pq_iter).c_str());
             }
@@ -1053,7 +1053,7 @@ protected:
         bool body_pop = false;
 
         if (JContains(cspec, Static::body_font_cs))
-            body_pop = push_font(w, Static::body_font_cs, Static::body_font_size_base_cs);
+            body_pop = push_font(w, Static::body_font_cs, Static::body_font_size_cs);
 
         std::uint64_t result_handle = proxy.get_handle(qname);
         if (!result_handle) {
@@ -1090,7 +1090,7 @@ protected:
     }
 
     void render_push_font(const JSON& w) {
-        push_font(w, Static::font_cs, Static::font_size_base_cs);
+        push_font(w, Static::font_cs, Static::font_size_cs);
     }
 
     void render_pop_font(const JSON&) {
