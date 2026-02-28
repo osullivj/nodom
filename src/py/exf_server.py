@@ -221,6 +221,9 @@ ENABLE_LOGGING = dict(
     sql_cname="enable_logging_sql",
 )
 
+# NB commenting out LAUNCH_SUMMARY and LAUNCH_SUMMARY_BATCH
+# allowed the depth query to run with DuckDB-WASM. So some
+# kind of mem mgmt issue that we'll return to later.
 SUMMARY_SEQUENCE = [
     ENABLE_LOGGING,
     LAUNCH_SCAN,
