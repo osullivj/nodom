@@ -168,13 +168,16 @@ GLFWwindow* im_start(NDContext<JSON, DB>& ctx)
 
     // setup scaling
     float scale = 1.0;
+    float dpi = 1.0;
     JSON config;
     ctx.get_config(config);
     if (JContains(config, "font_scale_dpi"))
-        scale = JAsFloat(config, "font_scale_dpi");
+        dpi = JAsFloat(config, "font_scale_dpi");
     ImGuiStyle& style = ImGui::GetStyle();
-    style.ScaleAllSizes(scale);
-    style.FontScaleDpi = scale;
+    style.ScaleAllSizes(scale); // all sizes apart from fonts
+    style.FontScaleDpi = dpi;
+    style.FontScaleMain = scale;
+    style.FontSizeBase = 12.0;
 
     // Setup Platform/Renderer backends
     ImGui_ImplGlfw_InitForOpenGL(window, true);
