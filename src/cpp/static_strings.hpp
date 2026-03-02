@@ -105,4 +105,9 @@ struct Static {
 	inline static const char* db_config_cs{ "db_config" };
 	// Error codes for logging fingerprints
 	inline static const char* BAD_CSPEC_cs{ "BAD_CSPEC" };
+
+	// fast path cache variables
+	inline static const char underscore_c{ '_' };
+	inline static const char* _font_scale_dpi_cs{ "_font_scale_dpi" };
+	inline static const char* _font_scale_main_cs{ "_font_scale_main" };
 };
