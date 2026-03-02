@@ -27,7 +27,8 @@ static constexpr int ND_MAX_COMBO_LIST{ 16 };
 static constexpr int act_ev_key_buf_len{ 256 };
 struct GLFWwindow;
 
-// What comes next in a DB action_dispatch sequence?
+// NDContext helper NextEvent: what comes next in a 
+// DB action_dispatch sequence?
 const char* NextEvent(const char* nd_event) {
     if (strcmp(nd_event, Static::command_cs) == 0) {
         return Static::command_result_cs;
@@ -41,6 +42,63 @@ const char* NextEvent(const char* nd_event) {
     return nullptr;
 }
 
+// NDContext helper AtomicCacheValue: present a common internal API 
+// for fastpath wasm vars and slowpath JSON vars.
+template <typename A, typename JSON>
+class AtomicCacheValue {
+public:
+    AtomicCacheValue() = delete;
+    AtomicCacheValue(JSON& d, const char* k, std::vector<A>& fcache, const StringIntMap& indices)
+        :data(d), key(k)
+    {
+        if (key[0] == Static::underscore_c && indices.find(key) != indices.end()) {
+            // fastpath to wasm vars
+            const int& inx = indices.at(key);
+            address = fcache[inx];
+        }
+        else {
+            // slowpath to json vars
+            if constexpr (std::is_same_v<A, int>) {
+                value = init_val = JAsInt(data, key);
+            }
+            if constexpr (std::is_same_v<A, float>) {
+                value = init_val = JAsFloat(data, key);
+            }
+        }
+    }
+
+    ~AtomicCacheValue() {
+        // If this is a slowpath JSON var, we copy value
+        // back to data if it has changed
+        if (address == nullptr && value != init_val) {
+            JSet(data, key, value);
+        }
+    }
+
+    A* value_addr() {
+        if (address != nullptr) return address;
+        return &value;
+    }
+
+    bool is_changed() {
+        // fast path vars don't exist on the server, so no
+        // need for a notify_server() invocation
+        if (address != nullptr) return false;
+        // for slow path vars we do need to check for val change
+        return value != init_val;
+    }
+
+    std::pair<A, A> get_change() {
+        return std::make_pair<A, A>(init_val, value);
+    }
+
+private:
+    A init_val;
+    A value;
+    A* address{ nullptr };
+    const char* key;
+    JSON& data;
+};
 
 
 template <typename JSON, typename DB>
@@ -51,6 +109,9 @@ private:
     JSON                layout; // layout and data are fetched by 
     JSON                data;   // sync c++py calls not HTTP gets
     std::deque<JSON>    stack;  // render stack
+
+    float*              fast_path_float[FloatIndices::EndFloats];
+    StringIntMap        fpf_indices;
     bool                data_loaded{ false };
     bool                layout_loaded{ false };
 
@@ -109,8 +170,8 @@ private:
 public:
     NDContext(NDProxy<DB>& s)
         :proxy(s), red{ 255, 51, 0 },
-            green{ 102, 153, 0 }, 
-                amber{ 255, 153, 0 } {
+        green{ 102, 153, 0 },
+        amber{ 255, 153, 0 } {
         // init status is not connected
         db_status_color = red;
 
@@ -133,6 +194,24 @@ public:
         rfmap.emplace(std::string("EndChild"), [this](const JSON& w) { render_end_child(w); });
         rfmap.emplace(std::string("BeginGroup"), [this](const JSON& w) { render_begin_group(w); });
         rfmap.emplace(std::string("EndGroup"), [this](const JSON& w) { render_end_group(w); });
+    }
+
+    void initialize() {
+        // NDContext ctor is fired before im_start initializes imgui. Some
+        // init tasks require imgui to be initialized; we do those here and
+        // are invoked on the 1st render cycle
+        // 
+        // glfwSwapInterval invokes _emscripten_set_main_loop_timing, which
+        // throws if main the main loop hasn't been started by emscripten_set_main_loop[_arg]
+        // Not an issue for Breadboard, but it is a nodom break
+        glfwSwapInterval(1);
+
+        // init the fast path vars from the settings established in im_render.hpp:im_start()
+        ImGuiStyle& style = ImGui::GetStyle();
+        fast_path_float[FloatIndices::FontScaleDpi] = &style.FontScaleDpi;
+        fast_path_float[FloatIndices::FontScaleMain] = &style.FontScaleMain;
+        fpf_indices[Static::_font_scale_dpi_cs] = FloatIndices::FontScaleDpi;
+        fpf_indices[Static::_font_scale_main_cs] = FloatIndices::FontScaleMain;
     }
 
     GLFWwindow* get_glfw_window() { return glfw_window; }
@@ -179,12 +258,9 @@ public:
     void start_render_cycle() {
         const static char* method = "NDContext::start_render_cycle: ";
 
-        if (render_count == 0) {
-            // glfwSwapInterval invokes _emscripten_set_main_loop_timing, which
-            // throws if main the main loop hasn't been started by emscripten_set_main_loop[_arg]
-            // Not an issue for Breadboard, but it is a nodom break
-            glfwSwapInterval(1);
-        }
+        if (render_count == 0) initialize();
+
+
         // Zero the font push/pop counts before rendering. This
         // enables us to detect lopsided push/pop sequences after
         // all widgets have rendered.
@@ -746,6 +822,15 @@ protected:
         if (memory) {
 
         } */
+        ImGuiStyle& style = ImGui::GetStyle();
+        ImGui::SameLine();
+        ImGui::Text("FontScale");
+        ImGui::SameLine();
+        if (ImGui::ArrowButton("##left", ImGuiDir_Left)) { style.FontScaleMain -= 0.25; }
+        ImGui::SameLine(0.0f, style.ItemInnerSpacing.x);
+        if (ImGui::ArrowButton("##right", ImGuiDir_Right)) { style.FontScaleMain += 0.25; }
+        ImGui::SameLine();
+        ImGui::Text("%.2f", style.FontScaleMain);
     }
 
     void render_same_line(const JSON&) {
@@ -1216,3 +1301,5 @@ protected:
     }
 
 };
+
+
