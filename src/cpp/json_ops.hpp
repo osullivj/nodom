@@ -80,7 +80,6 @@ float JAsFloat(const nlohmann::json& obj, const char* key) {
 
 template <typename K>
 int JAsInt(const nlohmann::json& obj, K key) {
-	static const char* method = "JAsInt: ";
 	return obj[key].template get<int>();
 }
 
