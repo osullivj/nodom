@@ -5,7 +5,9 @@
 
 using StringVec = std::vector<std::string>;
 using IntVec = std::vector<int>;
+using FloatVec = std::vector<float>;
 using StringStringMap = std::map<std::string, std::string>;
+using StringIntMap = std::map<std::string, int>;
 
 
 // typedefs and using defns for NoDOM universal types
@@ -66,3 +68,26 @@ void pix_begin_render(int render_count);
 void pix_begin_dbase();
 void pix_end_event();
 void pix_report(PixReportType t, float val);
+
+enum ImGuiStyleColors : uint32_t {
+    Dark = 0,   // default
+    Light,
+    Classic,
+    EndColors
+};
+
+// FastPath [Int|Float]Indices are used as array indices
+// so inherit from uint32_t
+enum IntIndices : uint32_t {
+    EndInts = 0
+};
+
+// FloatIndices does not include FontSizeBase as that is
+// set accessed via render_push_font invocation of PushFont
+// which sets style.FontSizeBase. We may add _MainScale if
+// we want to make it a GUI setting.
+enum FloatIndices : uint32_t {
+    FontScaleDpi = 0,
+    FontScaleMain,
+    EndFloats
+};
