@@ -166,7 +166,7 @@ GLFWwindow* im_start(NDContext<JSON, DB>& ctx)
     ImGui::StyleColorsDark();
     //ImGui::StyleColorsClassic();
 
-    // setup scaling
+    // setup scaling defaults explicitly
     float scale = 1.0;
     float dpi = 1.0;
     JSON config;
@@ -174,7 +174,7 @@ GLFWwindow* im_start(NDContext<JSON, DB>& ctx)
     if (JContains(config, "font_scale_dpi"))
         dpi = JAsFloat(config, "font_scale_dpi");
     ImGuiStyle& style = ImGui::GetStyle();
-    style.ScaleAllSizes(scale); // all sizes apart from fonts
+    style.ScaleAllSizes(scale); // set _MainScale: all sizes apart from fonts
     style.FontScaleDpi = dpi;
     style.FontScaleMain = scale;
     style.FontSizeBase = 12.0;
