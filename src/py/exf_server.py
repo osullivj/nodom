@@ -116,6 +116,18 @@ EXF_LAYOUT = [
                     widget_id=SUMMARY_BUTTON_ID,
                 ),
             ),
+            dict(
+                rname="Footer",
+                cspec=dict(
+                    db=True,
+                    fps=True,
+                    demo=True,
+                    id_stack=True,
+                    memory=True,
+                    font_scale=True,
+                    style=True,
+                ),
+            ),
             dict(rname="EndChild"),
             dict(rname="SameLine"),
             # The DepthGrid table shows one row of depth at a time with 5 bids and asks
@@ -132,19 +144,6 @@ EXF_LAYOUT = [
                     | TableFlags.RESIZABLE
                     | TableFlags.REORDERABLE
                     | TableFlags.HIDEABLE,
-                ),
-            ),
-            dict(rname="Separator", cspec=dict()),
-            dict(
-                rname="Footer",
-                cspec=dict(
-                    db=True,
-                    fps=True,
-                    demo=True,
-                    id_stack=True,
-                    memory=True,
-                    font_scale=True,
-                    style=True,
                 ),
             ),
             dict(rname="PopFont"),
