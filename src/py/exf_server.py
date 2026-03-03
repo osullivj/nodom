@@ -137,7 +137,15 @@ EXF_LAYOUT = [
             dict(rname="Separator", cspec=dict()),
             dict(
                 rname="Footer",
-                cspec=dict(db=True, fps=True, demo=True, id_stack=True, memory=True),
+                cspec=dict(
+                    db=True,
+                    fps=True,
+                    demo=True,
+                    id_stack=True,
+                    memory=True,
+                    font_scale=True,
+                    style=True,
+                ),
             ),
             dict(rname="PopFont"),
         ],
