@@ -832,6 +832,7 @@ protected:
         // TODO: understand ems mem anlytics and restore in footer
         // bool memory = w.value(nlohmann::json::json_pointer("/cspec/memory"), true);
 
+        ImGui::BeginGroup();
         if (db) {
             // Push colour styling for the DB button
             ImGui::PushStyleColor(ImGuiCol_Button, (ImU32)db_status_color);
@@ -871,11 +872,10 @@ protected:
         if (style) {
             static const char* cs_combo_list[3] = { Static::dark_cs, Static::light_cs, Static::classic_cs };
             int old_val = style_coloring;
-            ImGui::SameLine();
             ImGui::Combo(Static::style_label_cs, &style_coloring, cs_combo_list, 3, 3);
             if (style_coloring != old_val) SetStyleColoring(style_coloring);
         }
-
+        ImGui::EndGroup();
     }
 
     // layout "jiggler": see imgui.h "Other layout functions"
@@ -1247,7 +1247,7 @@ protected:
     void render_begin_child(const JSON& w) {
         const static char* method = "NDContext::render_begin_child: ";
 
-        // NB BeginChild is a grouping mechahism, so there's no single
+        // NB BeginChild is a grouping mechanism, so there's no single
         // cache datum to which we refer, so no cname. However, we do look
         // require a title (for imgui ID purposes) and we can have styling
         // attributes like ImGuiChildFlags
