@@ -58,9 +58,7 @@ struct Static {
 	inline static const char* spinner_radius_cs{"spinner_radius"};
 	inline static const char* size_cs{"size"};
 	inline static const char* widget_id_cs{"widget_id"};
-	inline static const char* footer_db_button_cs{ "footer_db_button" };
-	inline static const char* footer_style_combo_cs{ "footer_style_combo" };
-	inline static const char* spinner_thickness_cs{"spinner_thickness"};
+	
 	inline static const char* layout_cs{"layout"};
 	inline static const char* data_cs{"data"};
 	inline static const char* value_cs{"value"};
@@ -69,6 +67,12 @@ struct Static {
 	inline static const char* ok_cs{"OK"};
 	inline static const char* cancel_cs{"Cancel"};
 	inline static const char* duck_table_summary_modal_cs{"DuckTableSummaryModal"};
+
+	// compound widget IDs
+	inline static const char* footer_db_button_cs{ "footer_db_button" };
+	inline static const char* footer_style_combo_cs{ "footer_style_combo" };
+	inline static const char* spinner_thickness_cs{ "spinner_thickness" };
+	inline static const char* error_modal_cs{ "error_modal" };
 
 	// DB
 	inline static const char* null_cs{"NULL"};
@@ -112,8 +116,12 @@ struct Static {
 	inline static const char* chunk_cs{"chunk"};
 	inline static const char* period_cs{"."};
 	inline static const char* db_config_cs{ "db_config" };
+
 	// Error codes for logging fingerprints
 	inline static const char* BAD_CSPEC_cs{ "BAD_CSPEC" };
+
+	// Error modal
+	inline static const char* error_modal_title_cs{ "Initialization error" };
 
 	// fast path cache variables
 	inline static const char underscore_c{ '_' };
