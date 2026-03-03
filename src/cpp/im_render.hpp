@@ -163,8 +163,7 @@ GLFWwindow* im_start(NDContext<JSON, DB>& ctx)
     //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 
     // Setup Dear ImGui style
-    ImGui::StyleColorsDark();
-    //ImGui::StyleColorsClassic();
+    ImGui::StyleColorsDark();   // IntIndices::StyleColoring init StyleColors::Dark
 
     // setup scaling defaults explicitly
     float scale = 1.0;
