@@ -5,6 +5,7 @@
 // included in main<>.cpp so expanded template
 // NDContext can use
 struct Static {
+	// const string use by NDContext for JSON data and layout
 	inline static const char* on_data_change_cs{ "on_data_change" };
 	inline static const char* is_duck_app_cs{"is_duck_app"};
 	inline static const char* new_value_cs{"new_value"};
@@ -14,6 +15,13 @@ struct Static {
 	inline static const char* __nodom__cs{"__nodom__"};
 	inline static const char* sys_cs{"sys"};
 	inline static const char* sql_cs{"sql"};
+	inline static const char* db_cs{ "db" };
+	inline static const char* fps_cs{ "fps" };
+	inline static const char* demo_cs{ "demo" };
+	inline static const char* id_stack_cs{ "id_stack" };
+	inline static const char* font_scale_cs{ "font_scale" };
+	inline static const char* style_cs{ "style" };
+	inline static const char* style_label_cs{ "Style" };
 	inline static const char* cspec_cs{"cspec"};
 	inline static const char* cname_cs{"cname"};
 	inline static const char* qname_cs{"qname"};
@@ -51,6 +59,7 @@ struct Static {
 	inline static const char* size_cs{"size"};
 	inline static const char* widget_id_cs{"widget_id"};
 	inline static const char* footer_db_button_cs{ "footer_db_button" };
+	inline static const char* footer_style_combo_cs{ "footer_style_combo" };
 	inline static const char* spinner_thickness_cs{"spinner_thickness"};
 	inline static const char* layout_cs{"layout"};
 	inline static const char* data_cs{"data"};
@@ -110,4 +119,8 @@ struct Static {
 	inline static const char underscore_c{ '_' };
 	inline static const char* _font_scale_dpi_cs{ "_font_scale_dpi" };
 	inline static const char* _font_scale_main_cs{ "_font_scale_main" };
+	inline static const char* _style_coloring{ "_style_coloring" };
+	inline static const char* dark_cs{ "Dark" };
+	inline static const char* light_cs{ "Light" };
+	inline static const char* classic_cs{ "Classic" };
 };
