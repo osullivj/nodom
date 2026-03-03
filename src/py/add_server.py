@@ -41,7 +41,15 @@ ADDITION_LAYOUT = [
             dict(rname="PushFont", cspec=dict(font="CourierNew", font_size=8)),
             dict(
                 rname="Footer",
-                cspec=dict(db=True, fps=True, demo=True, id_stack=True, memory=True),
+                cspec=dict(
+                    db=True,
+                    fps=True,
+                    demo=True,
+                    id_stack=True,
+                    memory=True,
+                    font_scale=True,
+                    style=True,
+                ),
             ),
             dict(rname="PopFont"),
         ],
