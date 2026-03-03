@@ -193,24 +193,38 @@ public:
         db_status_color = red;
 
         rfmap.emplace(std::string("Home"), [this](const JSON& w) { render_home(w); });
+
+        // native imgui input widgets
         rfmap.emplace(std::string("InputInt"), [this](const JSON& w) { render_input_int(w); });
         rfmap.emplace(std::string("Combo"), [this](const JSON& w) { render_combo(w); });
         rfmap.emplace(std::string("Checkbox"), [this](const JSON& w) { render_checkbox(w); });
-        rfmap.emplace(std::string("Separator"), [this](const JSON& w) { render_separator(w); });
-        rfmap.emplace(std::string("Footer"), [this](const JSON& w) { render_footer(w); });
-        rfmap.emplace(std::string("SameLine"), [this](const JSON& w) { render_same_line(w); });
-        rfmap.emplace(std::string("DatePicker"), [this](const JSON& w) { render_date_picker(w); });
         rfmap.emplace(std::string("Text"), [this](const JSON& w) { render_text(w); });
         rfmap.emplace(std::string("Button"), [this](const JSON& w) { render_button(w); });
+        rfmap.emplace(std::string("Table"), [this](const JSON& w) { render_table(w); });
+
+        // nodom compound widgets
+        rfmap.emplace(std::string("Footer"), [this](const JSON& w) { render_footer(w); });
+        rfmap.emplace(std::string("DatePicker"), [this](const JSON& w) { render_date_picker(w); });
         rfmap.emplace(std::string("DuckTableSummaryModal"), [this](const JSON& w) { render_duck_table_summary_modal(w); });
         rfmap.emplace(std::string("DuckParquetLoadingModal"), [this](const JSON& w) { render_duck_parquet_loading_modal(w); });
-        rfmap.emplace(std::string("Table"), [this](const JSON& w) { render_table(w); });
-        rfmap.emplace(std::string("PushFont"), [this](const JSON& w) { render_push_font(w); });
-        rfmap.emplace(std::string("PopFont"), [this](const JSON& w) { render_pop_font(w); });
+
+        // layout widgets
+        rfmap.emplace(std::string("Separator"), [this](const JSON& w) { render_separator(w); });
+        rfmap.emplace(std::string("SameLine"), [this](const JSON& w) { render_same_line(w); });
+        rfmap.emplace(std::string("NewLine"), [this](const JSON& w) { render_new_line(w); });
+        rfmap.emplace(std::string("Spacing"), [this](const JSON& w) { render_spacing(w); });
+        rfmap.emplace(std::string("AlignTextToFramePadding"), [this](const JSON& w) { render_align_text_to_frame_padding(w); });
+
+        // grouping
         rfmap.emplace(std::string("BeginChild"), [this](const JSON& w) { render_begin_child(w); });
         rfmap.emplace(std::string("EndChild"), [this](const JSON& w) { render_end_child(w); });
         rfmap.emplace(std::string("BeginGroup"), [this](const JSON& w) { render_begin_group(w); });
         rfmap.emplace(std::string("EndGroup"), [this](const JSON& w) { render_end_group(w); });
+
+        // fonts
+        rfmap.emplace(std::string("PushFont"), [this](const JSON& w) { render_push_font(w); });
+        rfmap.emplace(std::string("PopFont"), [this](const JSON& w) { render_pop_font(w); });
+
     }
 
     void initialize() {
@@ -799,10 +813,6 @@ protected:
 
     }
 
-    void render_separator(const JSON&) {
-        ImGui::Separator();
-    }
-
     void render_footer(const JSON& w) {
         static const char* method = "NDContext::render_footer: ";
 
@@ -868,8 +878,25 @@ protected:
 
     }
 
+    // layout "jiggler": see imgui.h "Other layout functions"
+    void render_separator(const JSON&) {
+        ImGui::Separator();
+    }
+
     void render_same_line(const JSON&) {
         ImGui::SameLine();
+    }
+
+    void render_new_line(const JSON&) {
+        ImGui::NewLine();
+    }
+
+    void render_spacing(const JSON&) {
+        ImGui::Spacing();
+    }
+
+    void render_align_text_to_frame_padding(const JSON&) {
+        ImGui::AlignTextToFramePadding();
     }
 
     void render_date_picker(const JSON& w) {
