@@ -69,17 +69,19 @@ void pix_begin_dbase();
 void pix_end_event();
 void pix_report(PixReportType t, float val);
 
-enum ImGuiStyleColors : uint32_t {
+enum StyleColor : uint32_t {
     Dark = 0,   // default
     Light,
     Classic,
     EndColors
 };
+const char* StyleColorToString(StyleColor col);
 
 // FastPath [Int|Float]Indices are used as array indices
 // so inherit from uint32_t
 enum IntIndices : uint32_t {
-    EndInts = 0
+    StyleColoring = 0,
+    EndInts
 };
 
 // FloatIndices does not include FontSizeBase as that is
