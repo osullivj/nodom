@@ -5,6 +5,7 @@
 #endif
 
 #include "nd_types.hpp"
+#include "static_strings.hpp"
 
 // TODO: refactor pix.cpp for Chrome and 
 // gen util funcs
@@ -42,6 +43,20 @@ int DuckTypeToSize(DuckType dt) {
     case DuckType::Timestamp_ns:
     case DuckType::Utf8:
         return 8;
+    }
+    return 0;
+}
+
+const char* StyleColorToString(StyleColor col) {
+    switch (col) {
+    case Dark:
+        return Static::dark_cs;
+    case Light:
+        return Static::light_cs;
+    case Classic:
+        return Static::classic_cs;
+    default:
+        return 0;
     }
     return 0;
 }
