@@ -100,6 +100,20 @@ private:
     JSON& data;
 };
 
+// NDContext helper: SetStyleColoring
+void SetStyleColoring(int col) {
+    switch (col) {
+    case Dark:
+        ImGui::StyleColorsDark();
+        break;
+    case Light:
+        ImGui::StyleColorsLight();
+        break;
+    case Classic:
+        ImGui::StyleColorsClassic();
+        break;
+    }
+}
 
 template <typename JSON, typename DB>
 class NDContext {
@@ -110,8 +124,11 @@ private:
     JSON                data;   // sync c++py calls not HTTP gets
     std::deque<JSON>    stack;  // render stack
 
+    int                 style_coloring{ StyleColor::Dark };   // match im_start StyleColorsDark()
     float*              fast_path_float[FloatIndices::EndFloats];
+    int*                fast_path_int[IntIndices::EndInts];
     StringIntMap        fpf_indices;
+    StringIntMap        fpi_indices;
     bool                data_loaded{ false };
     bool                layout_loaded{ false };
 
@@ -208,10 +225,15 @@ public:
 
         // init the fast path vars from the settings established in im_render.hpp:im_start()
         ImGuiStyle& style = ImGui::GetStyle();
+        // FontScale vals are set in im_start; we recover then here
         fast_path_float[FloatIndices::FontScaleDpi] = &style.FontScaleDpi;
         fast_path_float[FloatIndices::FontScaleMain] = &style.FontScaleMain;
         fpf_indices[Static::_font_scale_dpi_cs] = FloatIndices::FontScaleDpi;
         fpf_indices[Static::_font_scale_main_cs] = FloatIndices::FontScaleMain;
+        // No single var for style in imgui; one method for each style
+        // im_start sets Dark, and nodom uses enum StyleColor
+        fast_path_int[IntIndices::StyleColoring] = &style_coloring;
+        fpi_indices[Static::_style_coloring] = IntIndices::StyleColoring;
     }
 
     GLFWwindow* get_glfw_window() { return glfw_window; }
@@ -789,11 +811,14 @@ protected:
             return;
         }
         const JSON& cspec(w[Static::cspec_cs]);
-        bool db = JAsBool(cspec, "db");
-        bool fps = JAsBool(cspec, "fps");
+        bool db = JAsBool(cspec, Static::db_cs);
+        bool fps = JAsBool(cspec, Static::fps_cs);
         // TODO: config demo mode so it can be switched on/off in prod
-        bool demo = JAsBool(cspec, "demo");
-        bool id_stack = JAsBool(cspec, "id_stack");
+        bool demo = JAsBool(cspec, Static::demo_cs);
+        bool id_stack = JAsBool(cspec, Static::id_stack_cs);
+        bool font_scale = JAsBool(cspec, Static::font_scale_cs);
+        bool style = JAsBool(cspec, Static::style_cs);
+
         // TODO: understand ems mem anlytics and restore in footer
         // bool memory = w.value(nlohmann::json::json_pointer("/cspec/memory"), true);
 
@@ -822,15 +847,25 @@ protected:
         if (memory) {
 
         } */
-        ImGuiStyle& style = ImGui::GetStyle();
-        ImGui::SameLine();
-        ImGui::Text("FontScale");
-        ImGui::SameLine();
-        if (ImGui::ArrowButton("##left", ImGuiDir_Left)) { style.FontScaleMain -= 0.25; }
-        ImGui::SameLine(0.0f, style.ItemInnerSpacing.x);
-        if (ImGui::ArrowButton("##right", ImGuiDir_Right)) { style.FontScaleMain += 0.25; }
-        ImGui::SameLine();
-        ImGui::Text("%.2f", style.FontScaleMain);
+        if (font_scale) {
+            ImGuiStyle& style = ImGui::GetStyle();
+            ImGui::SameLine();
+            ImGui::Text("FontScale");
+            ImGui::SameLine();
+            if (ImGui::ArrowButton("##left", ImGuiDir_Left)) { style.FontScaleMain -= 0.25; }
+            ImGui::SameLine(0.0f, style.ItemInnerSpacing.x);
+            if (ImGui::ArrowButton("##right", ImGuiDir_Right)) { style.FontScaleMain += 0.25; }
+            ImGui::SameLine();
+            ImGui::Text("%.2f", style.FontScaleMain);
+        }
+        if (style) {
+            static const char* cs_combo_list[3] = { Static::dark_cs, Static::light_cs, Static::classic_cs };
+            int old_val = style_coloring;
+            ImGui::SameLine();
+            ImGui::Combo(Static::style_label_cs, &style_coloring, cs_combo_list, 3, 3);
+            if (style_coloring != old_val) SetStyleColoring(style_coloring);
+        }
+
     }
 
     void render_same_line(const JSON&) {
