@@ -186,7 +186,7 @@ protected:
         // if im_render returns false someone has closed the app via GUI
         if (!im_render(ctx)) {
             im_end(ctx.get_glfw_window());                 // imgui finalisation
-            ctx.set_done(true);             // py thread loop exit
+            ctx.set_done(true);             // thread loop exit
             client.get_io_service().stop(); // asio finalisation
         }
         else {
