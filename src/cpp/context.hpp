@@ -115,6 +115,23 @@ void SetStyleColoring(int col) {
     }
 }
 
+void ErrorModal(const std::string& error_message) {
+
+    static ImVec2 position = { 0.5, 0.5 };
+
+    ImGui::OpenPopup(Static::error_modal_cs);
+
+    // Always center this window when appearing
+    ImGuiViewport* vp = ImGui::GetMainViewport();
+    auto center = vp->GetCenter();
+    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, position);
+
+    if (ImGui::BeginPopupModal(Static::error_modal_cs, nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::Text(error_message.c_str());
+        ImGui::EndPopup();
+    }
+}
+
 template <typename JSON, typename DB>
 class NDContext {
 private:
