@@ -471,7 +471,7 @@ public:
 
         NDLogger::cout() << method << "CACHE_DATA: " << JPrettyPrint(data) << std::endl;
         if (!JContains(data, Static::actions_cs)) {
-            NDLogger::cerr() << method << "NO_ACTIONS in data!" << std::endl;
+            NDLogger::cout() << method << "NO_ACTIONS in data!" << std::endl;
             return;
         }
     }
