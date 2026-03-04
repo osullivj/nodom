@@ -17,7 +17,7 @@
 
 // NoDOM: this main.cpp is intended to stay as close as possible
 // to the imgui/examples/example_glfw_opengl3/main.cpp as that's 
-// the appropriate rendeder for the Chrome codebase. JOS 2025-08-25
+// the appropriate renderer for the Chrome codebase. JOS 2025-08-25
 
 using ems_val_t = emscripten::val;
 using DuckDB_t = DuckDBWebCache;
@@ -33,6 +33,10 @@ void im_loop_body(void* c) {
 
 int main(int argc, char* argv[]) {
     const static char* method = "main: ";
+
+    for (int i = 0; i < argc; i++) {
+        std::cout << method << "argv[" << i << "]=" << argv[i] << std::endl;
+    }
 
     NDProxy<DuckDB_t> server;
     NDContext_t ctx(server);
