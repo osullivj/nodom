@@ -131,4 +131,8 @@ struct Static {
 	inline static const char* dark_cs{ "Dark" };
 	inline static const char* light_cs{ "Light" };
 	inline static const char* classic_cs{ "Classic" };
+
+	// hardwired init data and layout
+	inline static const char* init_data{ ""};
+	inline static const char* init_layout{ "{rname: 'Home', cspec:{ title: 'NoDOM', children: [] }}" };
 };
