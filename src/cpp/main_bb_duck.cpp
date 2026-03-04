@@ -30,8 +30,12 @@ int main(int argc, char* argv[]) {
 
     pix_init();
 
+    std::string init_data(argc > 3 ? LoadJSON(argv[2]) : nullptr);
+    std::string init_layout(argc > 3 ? LoadJSON(argv[3]) : nullptr);
     NDProxy<DuckDBCache> server(argc, argv);
-    NDContext<nlohmann::json, DuckDBCache> ctx(server);
+    NDContext<nlohmann::json, DuckDBCache> ctx(server, 
+        init_data.empty() ? nullptr : init_data.c_str(), 
+        init_layout.empty() ? nullptr : init_layout.c_str());
 
     try {
         // launch DB thread: see db_loop impls
