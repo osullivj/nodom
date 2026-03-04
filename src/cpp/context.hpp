@@ -141,6 +141,10 @@ private:
     JSON                data;   // sync c++py calls not HTTP gets
     std::deque<JSON>    stack;  // render stack
 
+    // initial data and layout possibly provided via argc, argv
+    std::string         init_data;
+    std::string         init_layout;
+
     int                 style_coloring{ StyleColor::Dark };   // match im_start StyleColorsDark()
     float*              fast_path_float[FloatIndices::EndFloats];
     int*                fast_path_int[IntIndices::EndInts];
@@ -202,8 +206,8 @@ private:
     char act_ev_key_buf[act_ev_key_buf_len];
 
 public:
-    NDContext(NDProxy<DB>& s)
-        :proxy(s), red{ 255, 51, 0 },
+    NDContext(NDProxy<DB>& s, const char* idata=nullptr, const char* ilayout=nullptr)
+        :proxy(s), init_data(idata), init_layout(ilayout), red{ 255, 51, 0 },
         green{ 102, 153, 0 },
         amber{ 255, 153, 0 } {
         // init status is not connected
@@ -245,6 +249,7 @@ public:
     }
 
     void initialize() {
+        const char* method = "NDContext::initialize: ";
         // NDContext ctor is fired before im_start initializes imgui. Some
         // init tasks require imgui to be initialized; we do those here and
         // are invoked on the 1st render cycle
@@ -265,6 +270,25 @@ public:
         // im_start sets Dark, and nodom uses enum StyleColor
         fast_path_int[IntIndices::StyleColoring] = &style_coloring;
         fpi_indices[Static::_style_coloring] = IntIndices::StyleColoring;
+
+        // websock download of data and layout won't have happened yet,
+        // so check if ctor was given init_data/layout splash screen
+        if (!init_data.empty() && !init_layout.empty()) {   // both or neither
+            data = JParse<JSON>(init_data);
+            layout = JParse<JSON>(init_layout);
+            NDLogger::cout() << method << "ARGV..." << std::endl;
+        }
+        else {
+            data = JParse<JSON>(Static::init_data);
+            layout = JParse<JSON>(Static::init_layout);
+            NDLogger::cout() << method << "HARDWIRED..." << std::endl;
+        }
+        NDLogger::cout() << method << "init_data: " << JPrettyPrint(data) << std::endl;
+        NDLogger::cout() << method << "init_layout: " << JPrettyPrint(layout) << std::endl;
+        // fire post processing of init layout and data
+        // NB this will be repeated when real layout and data arrive via websock
+        on_layout();
+        on_data();
     }
 
     GLFWwindow* get_glfw_window() { return glfw_window; }
@@ -312,7 +336,6 @@ public:
         const static char* method = "NDContext::start_render_cycle: ";
 
         if (render_count == 0) initialize();
-
 
         // Zero the font push/pop counts before rendering. This
         // enables us to detect lopsided push/pop sequences after
@@ -494,6 +517,7 @@ public:
             }
         }
         // Home on the render stack
+        stack.clear();  // rm any init_layout
         stack.push_back(layout[0]);
     }
 
@@ -503,7 +527,6 @@ public:
         NDLogger::cout() << method << "CACHE_DATA: " << JPrettyPrint(data) << std::endl;
         if (!JContains(data, Static::actions_cs)) {
             NDLogger::cout() << method << "NO_ACTIONS in data!" << std::endl;
-            return;
         }
     }
 
