@@ -13,6 +13,18 @@
 #include "nlohmann.hpp"
 #endif
 
+std::string LoadJSON(const char* path) {
+    std::string rv;
+    if (!std::filesystem::exists(path)) {
+        return rv;
+    }
+    std::stringstream json_buffer;
+    std::ifstream in_file_stream(path);
+    json_buffer << in_file_stream.rdbuf();
+    rv = json_buffer.str();
+    return rv;
+};
+
 // NDProxy encapsulates the server side.
 template <typename DB>
 class NDProxy : public DB {
@@ -20,7 +32,7 @@ public:
 
 #ifndef __EMSCRIPTEN__
     NDProxy(int argc, char** argv) {
-        std::string usage("breadboard <breadboard_config_json_path> [<server_url>]");
+        std::string usage("breadboard <breadboard_config_json_path> [<init_data_json path> <init_layout_json_path>]");
         if (argc < 2) {
             std::cerr << usage << std::endl;
             exit(1);
@@ -28,22 +40,15 @@ public:
         char* exe = argv[0];
         char* bb_json_path = argv[1];
 
-        if (!std::filesystem::exists(bb_json_path)) {
-            NDLogger::cerr() << usage << std::endl << "Cannot load breadboard config json from " << bb_json_path << std::endl;
-            exit(1);
-        }
         try {
+            std::string config_json(LoadJSON(bb_json_path));
             // breadboard.json specifies the base paths for the embedded py
-            std::stringstream json_buffer;
-            std::ifstream in_file_stream(bb_json_path);
-            json_buffer << in_file_stream.rdbuf();
-            // JSON config supplied by templated base
-            config = nlohmann::json::parse(json_buffer);
+            config = JParse<nlohmann::json>(config_json);
             server_url = JAsString(config, "server_url");
             is_db_app = JAsBool(config, "db_app");
         }
         catch (nlohmann::json::exception& ex) {
-            printf("cannot load %s\n%s\n", bb_json_path, ex.what());
+            printf("JSON_CONFIG_FAIL %s\n%s\n", bb_json_path, ex.what());
             exit(1);
         }
         catch (...) {
