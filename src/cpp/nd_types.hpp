@@ -101,3 +101,6 @@ enum Critical : uint32_t {
 };
 
 const char* CriticalToString(Critical ec);
+
+static constexpr int STR_BUF_LEN{ 256 };
+static constexpr int FMT_BUF_LEN{ 16 };
