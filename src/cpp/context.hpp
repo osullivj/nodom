@@ -115,23 +115,7 @@ void SetStyleColoring(int col) {
     }
 }
 
-void ErrorModal(const std::string& error_message) {
-
-    static ImVec2 position = { 0.5, 0.5 };
-
-    ImGui::OpenPopup(Static::error_modal_cs);
-
-    // Always center this window when appearing
-    ImGuiViewport* vp = ImGui::GetMainViewport();
-    auto center = vp->GetCenter();
-    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, position);
-
-    if (ImGui::BeginPopupModal(Static::error_modal_cs, nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-        ImGui::Text(error_message.c_str());
-        ImGui::EndPopup();
-    }
-}
-
+// NDContext: stack base rendering
 template <typename JSON, typename DB>
 class NDContext {
 private:
@@ -227,7 +211,7 @@ public:
         rfmap.emplace(std::string("Footer"), [this](const JSON& w) { render_footer(w); });
         rfmap.emplace(std::string("DatePicker"), [this](const JSON& w) { render_date_picker(w); });
         rfmap.emplace(std::string("DuckTableSummaryModal"), [this](const JSON& w) { render_duck_table_summary_modal(w); });
-        rfmap.emplace(std::string("DuckParquetLoadingModal"), [this](const JSON& w) { render_duck_parquet_loading_modal(w); });
+        rfmap.emplace(std::string("LoadingModal"), [this](const JSON& w) { render_loading_modal(w); });
 
         // layout widgets
         rfmap.emplace(std::string("Separator"), [this](const JSON& w) { render_separator(w); });
@@ -294,7 +278,7 @@ public:
     GLFWwindow* get_glfw_window() { return glfw_window; }
     void        set_glfw_window(GLFWwindow* w) { glfw_window = w; }
 
-    bool        cache_loaded() { return data_loaded && layout_loaded; }
+    bool        cache_is_loaded() { return data_loaded && layout_loaded; }
 
     // invoked by main loop
     void render() {
@@ -353,6 +337,10 @@ public:
     void end_render_cycle() {
         const static char* method = "NDContext::end_render_cycle: ";
 
+        if (render_count == 0) {
+            action_dispatch(Static::gui_online_cs, Static::gui_cs);
+        }
+
         if (font_push_count != font_pop_count) {
             NDLogger::cerr() << method << "font_push_count: " << font_push_count
                 << ", font_pop_count: " << font_pop_count << std::endl;
@@ -400,13 +388,11 @@ public:
         ws_send(msgbuf.str());
     }
 
-    void dispatch_server_responses(std::queue<JSON>& responses) {
-        const static char* method = "NDContext::dispatch_server_responses: ";
+    void dispatch_events(std::queue<JSON>& events) {
+        const static char* method = "NDContext::dispatch_events: ";
 
-        // server_changes will be a list of json obj copied out of a pybind11
-        // list of py dicts. So use C++11 auto range...
-        while (!responses.empty()) {
-            const JSON& resp = responses.front();
+        while (!events.empty()) {
+            const JSON& resp = events.front();
             NDLogger::cout() << method << JPrettyPrint(resp) << std::endl;
             std::string nd_type(JAsString(resp, Static::nd_type_cs));
             // polymorphic as types are hidden inside change
@@ -422,8 +408,10 @@ public:
                     on_layout();
                     layout_loaded = true;
                 }
-                if (cache_loaded())
+                if (cache_is_loaded()) {
                     NDLogger::cout() << method << "CACHE_LOADED" << std::endl;
+                    action_dispatch(Static::cache_loaded_cs, Static::gui_cs);
+                }
             }
             // Is this a DataChange?
             else if (nd_type == Static::data_change_cs) {
@@ -437,7 +425,7 @@ public:
             else {
                 on_db_event(resp);
             }
-            responses.pop();
+            events.pop();
         }
     }
 
@@ -1151,8 +1139,8 @@ protected:
         ImGui::EndPopup();
     }
 
-    void render_duck_parquet_loading_modal(const JSON& w) {
-        const static char* method = "NDContext::render_duck_parquet_loading_modal: ";
+    void render_loading_modal(const JSON& w) {
+        const static char* method = "NDContext::render_loading_modal: ";
 
         static ImVec2 position = { 0.5, 0.5 };
 
@@ -1183,16 +1171,16 @@ protected:
         auto center = vp->GetCenter();
         ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, position);
 
-        // Get the parquet url list
-        StringVec pq_url_vec;
-        JAsStringVec(data, cname_cache_addr.c_str(), pq_url_vec);
+        // Get the text list
+        StringVec text_vec;
+        JAsStringVec(data, cname_cache_addr.c_str(), text_vec);
 
         if (ImGui::BeginPopupModal(title.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
             bool bpop = false;
             if (JContains(cspec, Static::body_font_cs))
                 bpop = push_font(w, Static::body_font_cs, Static::body_font_size_cs);
-            for (auto pq_iter = pq_url_vec.begin(); pq_iter != pq_url_vec.end(); ++pq_iter) {
-                ImGui::Text((*pq_iter).c_str());
+            for (auto text_iter = text_vec.begin(); text_iter != text_vec.end(); ++text_iter) {
+                ImGui::Text(text_iter->c_str());
             }
             if (bpop) pop_font();
             int spinner_radius = 5;
@@ -1201,7 +1189,7 @@ protected:
                 spinner_radius = JAsInt(cspec, Static::spinner_radius_cs);
             if (JContains(cspec, Static::spinner_thickness_cs))
                 spinner_thickness = JAsInt(cspec, Static::spinner_thickness_cs);
-            if (!ImGui::Spinner("parquet_loading_spinner", (float)spinner_radius, spinner_thickness, 0)) {
+            if (!ImGui::Spinner(Static::loading_spinner_cs, (float)spinner_radius, spinner_thickness, 0)) {
                 // TODO: spinner always fails IsClippedEx on first render
                 NDLogger::cout() << method << "spinner fail" << std::endl;
             }
