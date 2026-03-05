@@ -60,8 +60,6 @@ EXF_LAYOUT = [
                     text="Instrument",
                 ),
             ),
-            # see src/imgui.ts for enum defnsnloh
-            # TableFlags.ReadOnly == 1 << 14 == 16384
             dict(
                 rname="DatePicker",
                 cspec=dict(
@@ -168,7 +166,7 @@ EXF_LAYOUT = [
     ),
     dict(
         widget_id="parquet_loading_modal",
-        rname="DuckParquetLoadingModal",
+        rname="LoadingModal",
         cspec=dict(
             title="Loading parquet...",
             title_font="Arial",
@@ -274,7 +272,7 @@ EXF_DATA = dict(
         f"{DB_BUTTON_ID}.Click": [LAUNCH_UI],
         # match on scan button click
         f"{SCAN_BUTTON_ID}.Click": SUMMARY_SEQUENCE,
-        # match on completion (ParquetScanResult) of scan (SCAN_QID)
+        # match on completion (CommandResult) of scan (SCAN_QID)
         # summary of depth table
         f"{SCAN_QID}.CommandResult": SELECT_SEQUENCE,
         f"{SUMMARY_BUTTON_ID}.Click": [
