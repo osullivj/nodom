@@ -112,11 +112,16 @@ struct Static {
 	inline static const char* command_cs{"Command"};
 	inline static const char* command_result_cs{"CommandResult"};
 	inline static const char* gui_cs{ "GUI" };
+	inline static const char* websock_cs{ "WebSock" };
 
 	// Fake QIDs
 	inline static const char* gui_online_cs{ "gui_online" };	// GUI.gui_online
 	inline static const char* db_online_cs{ "db_online" };		// DuckInstance.db_online
 	inline static const char* cache_loaded_cs{ "cache_loaded" };// GUI.cache_loaded
+
+	// Critical strings
+	inline static const char* websock_connection_failed_cs{ "websock_connection_failed" };	// WebSock.connection_failed
+	inline static const char* clear_cs{ "clear" };	// WebSock.clear
 
 	// Misc
 	inline static const char* indent_cs{"  "};
@@ -135,6 +140,9 @@ struct Static {
 	inline static const char* _font_scale_dpi_cs{ "_font_scale_dpi" };
 	inline static const char* _font_scale_main_cs{ "_font_scale_main" };
 	inline static const char* _style_coloring{ "_style_coloring" };
+	inline static const char* _server_url{ "_server_url"};
+
+	// _style_coloring values
 	inline static const char* dark_cs{ "Dark" };
 	inline static const char* light_cs{ "Light" };
 	inline static const char* classic_cs{ "Classic" };
