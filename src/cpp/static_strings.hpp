@@ -68,11 +68,13 @@ struct Static {
 	inline static const char* cancel_cs{"Cancel"};
 	inline static const char* duck_table_summary_modal_cs{"DuckTableSummaryModal"};
 
-	// compound widget IDs
-	inline static const char* footer_db_button_cs{ "footer_db_button" };
-	inline static const char* footer_style_combo_cs{ "footer_style_combo" };
-	inline static const char* spinner_thickness_cs{ "spinner_thickness" };
-	inline static const char* error_modal_cs{ "error_modal" };
+	// compound widget IDs: we alreay use _id as a var name suffix eg widget_id
+	// and query_id, so we signal the IDness of these strings with i_am_ prefix
+	inline static const char* footer_db_button_cs{ "i_am_footer_db_button" };
+	inline static const char* footer_style_combo_cs{ "i_am_footer_style_combo" };
+	inline static const char* spinner_thickness_cs{ "i_am_spinner_thickness" };
+	inline static const char* loading_modal_cs{ "i_am_loading_modal" };
+	inline static const char* loading_spinner_cs{ "i_am_loading_spinner" };
 
 	// DB
 	inline static const char* null_cs{"NULL"};
@@ -104,12 +106,17 @@ struct Static {
 	inline static const char* click_cs{"Click"};
 	inline static const char* data_change_cs{"DataChange"};
 	inline static const char* data_change_confirmed_cs{"DataChangeConfirmed"};
-	inline static const char* db_online_cs{"DBOnline"};
 	inline static const char* duck_instance_cs{"DuckInstance"};
 	inline static const char* query_cs{"Query"};
 	inline static const char* query_result_cs{"QueryResult"};
 	inline static const char* command_cs{"Command"};
 	inline static const char* command_result_cs{"CommandResult"};
+	inline static const char* gui_cs{ "GUI" };
+
+	// Fake QIDs
+	inline static const char* gui_online_cs{ "gui_online" };	// GUI.gui_online
+	inline static const char* db_online_cs{ "db_online" };		// DuckInstance.db_online
+	inline static const char* cache_loaded_cs{ "cache_loaded" };// GUI.cache_loaded
 
 	// Misc
 	inline static const char* indent_cs{"  "};
