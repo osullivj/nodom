@@ -65,6 +65,7 @@ private:
     NDContext<JSON, DB>&    ctx;
     std::queue<JSON>        server_responses;
     NDProxy<DB>&            server;
+    bool                    connected{ false };
 
     // websock data members: diff impls for 
     // websockpp on win32, and emscripten's own
@@ -150,12 +151,12 @@ public:
     void run() {
         error_code.clear();
         ws_client::connection_ptr con = client.get_connection(uri, error_code);
-        if (error_code) {
+        if (error_code) {   // we never error here
             NDLogger::cerr() << "NDWebSockClient: CONNECTION_FAIL: "
                 << error_code.message() << std::endl;
         }
-        else {
-            // TODO: possible discard the websock conn
+        else {  // this can error, but has no error_code param. We use callbacks...
+            // TODO: retry logic with config N attempts
             client.connect(con);
         }
         set_timer();    // latest possible timer start
@@ -207,15 +208,20 @@ protected:
     void wspp_on_open(ws_client* c, ws_handle h) {
         NDLogger::cout() << "NDWebSockClient::on_open: hdl:" << h.lock().get() << std::endl;
         handle = h;
+        connected = true;
         ctx.on_ws_open();
     }
 
     void wspp_on_close(ws_client* c, ws_handle h) {
+        connected = false;
         NDLogger::cout() << "NDWebSockClient::on_close: hdl: " << h.lock().get() << std::endl;
     }
 
     void wspp_on_fail(ws_client* c, ws_handle h) {
+        // connection failure: server not listening, or handshake failure
         NDLogger::cout() << "NDWebSockClient::on_fail: hdl: " << h.lock().get() << std::endl;
+        connected = false;
+        ctx.set_critical(WebSockConnectionFailed);
     }
 #else   // ems
 public:
