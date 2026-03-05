@@ -62,6 +62,19 @@ const char* StyleColorToString(StyleColor col) {
 }
 
 
+const char* CriticalToString(Critical crit) {
+    switch (crit) {
+    case Clear:
+        return Static::clear_cs;
+    case WebSockConnectionFailed:
+        return Static::websock_connection_failed_cs;
+    default:
+        return 0;
+    }
+    return 0;
+}
+
+
 #ifdef USE_PIX
 uint32_t render_color = PIX_COLOR(255, 0, 125);
 uint32_t dbase_color = PIX_COLOR(125, 0, 255);
