@@ -125,6 +125,9 @@ private:
     JSON                data;   // sync c++py calls not HTTP gets
     std::deque<JSON>    stack;  // render stack
 
+    // critical error state raised
+    Critical            show_stopper{ Clear };
+
     // initial data and layout possibly provided via argc, argv
     std::string         init_data;
     std::string         init_layout;
@@ -280,6 +283,15 @@ public:
 
     bool        cache_is_loaded() { return data_loaded && layout_loaded; }
 
+    void set_critical(Critical error_code) {
+        show_stopper = error_code;
+        switch (error_code) {
+        case WebSockConnectionFailed:
+            action_dispatch(Static::websock_cs, CriticalToString(show_stopper));
+            break;
+        }
+    }
+
     // invoked by main loop
     void render() {
         pix_begin_render(render_count);
@@ -338,7 +350,7 @@ public:
         const static char* method = "NDContext::end_render_cycle: ";
 
         if (render_count == 0) {
-            action_dispatch(Static::gui_online_cs, Static::gui_cs);
+            action_dispatch(Static::gui_cs, Static::gui_online_cs);
         }
 
         if (font_push_count != font_pop_count) {
