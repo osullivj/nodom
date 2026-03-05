@@ -124,16 +124,15 @@ struct Static {
 	inline static const char* clear_cs{ "clear" };	// WebSock.clear
 
 	// Misc
+	inline static const char* space_cs{ " " };
 	inline static const char* indent_cs{"  "};
 	inline static const char* chunk_cs{"chunk"};
 	inline static const char* period_cs{"."};
+	inline static const char* colon_cs{ ":" };
 	inline static const char* db_config_cs{ "db_config" };
 
 	// Error codes for logging fingerprints
 	inline static const char* BAD_CSPEC_cs{ "BAD_CSPEC" };
-
-	// Error modal
-	inline static const char* error_modal_title_cs{ "Initialization error" };
 
 	// fast path cache variables
 	inline static const char underscore_c{ '_' };
@@ -150,4 +149,7 @@ struct Static {
 	// hardwired init data and layout
 	inline static const char* init_data{ ""};
 	inline static const char* init_layout{ "{rname: 'Home', cspec:{ title: 'NoDOM', children: [] }}" };
+
+	// error messages
+	inline static const char* could_not_connect_cs{ "Could not connect to" };
 };
