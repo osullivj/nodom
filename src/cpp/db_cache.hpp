@@ -27,13 +27,6 @@
 
 #endif  // __EMSCRIPTEN__
 
-
-
-#define STR_BUF_LEN 256
-#define FMT_BUF_LEN 16
-
-
-
 template <typename JSON>
 class EmptyDBCache {
 public:
