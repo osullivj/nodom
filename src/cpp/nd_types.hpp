@@ -93,3 +93,11 @@ enum FloatIndices : uint32_t {
     FontScaleMain,
     EndFloats
 };
+
+enum Critical : uint32_t {
+    Clear = 0,
+    WebSockConnectionFailed,
+    EndCritical
+};
+
+const char* CriticalToString(Critical ec);
