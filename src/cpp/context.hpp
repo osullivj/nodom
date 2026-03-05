@@ -191,7 +191,8 @@ private:
 
     // Buffer for action_event compound keys
     char act_ev_key_buf[act_ev_key_buf_len];
-
+    // Buffer for err msg fmt
+    char string_buffer[STR_BUF_LEN];
 public:
     NDContext(NDProxy<DB>& s, const char* idata=nullptr, const char* ilayout=nullptr)
         :proxy(s), init_data(idata), init_layout(ilayout), red{ 255, 51, 0 },
@@ -554,26 +555,27 @@ protected:
         it->second(w);
     }
 
-    void compound_action_key(char* buf, int buflen, const std::string& action_id,
-                                                    const std::string& nd_event) {
+    void compound_string(char* buf, int buflen, const std::string& s1,
+                            const std::string& s2, const std::string& sep) {
         // First, compose the compound action sequence key from action_id and nd_event
         // NB action_id will be a widget_id or query_id
         char* dest = buf;
         int space = buflen;
         memset(dest, 0, space);
-        strncpy(dest, action_id.c_str(), space);
-        dest += action_id.size();
-        space -= action_id.size();
-        strncpy(dest, Static::period_cs, space);
-        dest += strlen(Static::period_cs);
-        space -= strlen(Static::period_cs);
-        strncpy(dest, nd_event.c_str(), space);
+        strncpy(dest, s1.c_str(), space);
+        dest += s1.size();
+        space -= s1.size();
+        strncpy(dest, sep.c_str(), space);
+        dest += sep.size();
+        space -= sep.size();
+        strncpy(dest, s2.c_str(), space);
     }
 
     void action_dispatch(const std::string& action_id, const std::string& nd_event) {
         const static char* method = "NDContext::action_dispatch: ";
 
-        compound_action_key(act_ev_key_buf, act_ev_key_buf_len, action_id, nd_event);
+        compound_string(act_ev_key_buf, act_ev_key_buf_len, 
+            action_id, nd_event, Static::period_cs);
 
         NDLogger::cout() << method << "ACT_EV(" << act_ev_key_buf << ")" << std::endl;
 
@@ -732,11 +734,26 @@ protected:
             fpop = push_font(w, Static::title_font_cs, Static::title_font_size_cs);
 
         ImGui::Begin(title.c_str());
-        const JSON& children(w[Static::children_cs]);
-        int child_count = JSize(children);
-        for (int inx=0; inx < child_count; inx++) {
-            const JSON& child(children[inx]);
-            dispatch_render(child);
+        if (cache_is_loaded()) {
+            const JSON& children(w[Static::children_cs]);
+            int child_count = JSize(children);
+            for (int inx = 0; inx < child_count; inx++) {
+                const JSON& child(children[inx]);
+                dispatch_render(child);
+            }
+        }
+        else {
+            // we're using init_layout/data, so render last crit error
+            if (show_stopper != Clear) {
+                switch (show_stopper) {
+                case WebSockConnectionFailed:
+                    // TODO: should not be doing this every render
+                    compound_string(string_buffer, STR_BUF_LEN,
+                        Static::could_not_connect_cs,
+                        proxy.get_server_url(), Static::space_cs);
+                    ImGui::Text(string_buffer);
+                }
+            }
         }
         if (fpop) {
             pop_font();
