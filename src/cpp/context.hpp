@@ -115,7 +115,10 @@ void SetStyleColoring(int col) {
     }
 }
 
+
 // NDContext: stack base rendering
+using CritArray = std::array<std::string, Critical::EndCritical>;
+
 template <typename JSON, typename DB>
 class NDContext {
 private:
@@ -125,8 +128,10 @@ private:
     JSON                data;   // sync c++py calls not HTTP gets
     std::deque<JSON>    stack;  // render stack
 
-    // critical error state raised
-    Critical            show_stopper{ Clear };
+    // latest critical error state raised, and array of crit err
+    // msgs to show in Home
+    Critical            show_stopper{ Clear };  
+    CritArray           critical_messages;  // dflt init, dflt ctor for elems
 
     // initial data and layout possibly provided via argc, argv
     std::string         init_data;
@@ -747,11 +752,15 @@ protected:
             if (show_stopper != Clear) {
                 switch (show_stopper) {
                 case WebSockConnectionFailed:
-                    // TODO: should not be doing this every render
-                    compound_string(string_buffer, STR_BUF_LEN,
-                        Static::could_not_connect_cs,
-                        proxy.get_server_url(), Static::space_cs);
-                    ImGui::Text(string_buffer);
+                    if (critical_messages[WebSockConnectionFailed].empty()) {
+                        compound_string(string_buffer, STR_BUF_LEN,
+                            Static::could_not_connect_cs,
+                            proxy.get_server_url(), Static::space_cs);
+                        critical_messages[WebSockConnectionFailed] = std::string(string_buffer);
+                    }
+                    for (int i = WebSockConnectionFailed; i < EndCritical; ++i) {
+                        ImGui::Text(critical_messages[WebSockConnectionFailed].c_str());
+                    }
                 }
             }
         }
