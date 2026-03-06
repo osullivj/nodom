@@ -94,6 +94,11 @@ enum FloatIndices : uint32_t {
     EndFloats
 };
 
+enum StringIndices : uint32_t {
+    ServerUrl = 0,
+    EndStrings
+};
+
 enum Critical : uint32_t {
     Clear = 0,
     WebSockConnectionFailed,
