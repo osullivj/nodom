@@ -38,9 +38,15 @@ int main(int argc, char* argv[]) {
         std::cout << method << "argv[" << i << "]=" << argv[i] << std::endl;
     }
 
+    std::string init_data(argc > 2 ? argv[1] : nullptr);
+    std::string init_layout(argc > 2 ? argv[2] : nullptr);
+
     NDProxy<DuckDB_t> server;
-    NDContext_t ctx(server);
+    NDContext_t ctx(server,
+        init_data.empty() ? nullptr : init_data.c_str(),
+        init_layout.empty() ? nullptr : init_layout.c_str());
     NDWebSockClient<ems_val_t, DuckDB_t> ws_client(server, ctx);
+
     ctx.register_msg_pump([&ws_client]() {ws_client.pump_messages();});
     DBResultDispatcher& dbrd(DBResultDispatcher::get_instance());
     dbrd.set_dispatcher([&server](emscripten::EM_VAL v)
@@ -50,6 +56,7 @@ int main(int argc, char* argv[]) {
     IDBFontCache font_cache([&ctx](const std::string& n, ImFont* f)
                                 {ctx.register_font(n, f); },
                                 { "Arial.ttf", "CourierNew.ttf" });
+
     GLFWwindow* window = im_start(ctx, &font_cache);
     if (window == nullptr) {
         std::cout << method << "im_start failed" << std::endl;
