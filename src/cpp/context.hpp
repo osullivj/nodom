@@ -134,8 +134,14 @@ private:
     CritArray           critical_messages;  // dflt init, dflt ctor for elems
 
     // initial data and layout possibly provided via argc, argv
-    std::string         init_data;
-    std::string         init_layout;
+    // we keep the websock downloaded data & layout in real_data
+    // and real_layout so we can so the parse and write to 
+    // JSON data & layout in one shot. We do not want JSON
+    // data & layout to be a mix of real and init.
+    std::string         init_data_s;
+    std::string         init_layout_s;
+    JSON                real_data;
+    JSON                real_layout;
 
     int                 style_coloring{ StyleColor::Dark };   // match im_start StyleColorsDark()
     float*              fast_path_float[FloatIndices::EndFloats];
@@ -200,7 +206,7 @@ private:
     char string_buffer[STR_BUF_LEN];
 public:
     NDContext(NDProxy<DB>& s, const char* idata=nullptr, const char* ilayout=nullptr)
-        :proxy(s), init_data(idata), init_layout(ilayout), red{ 255, 51, 0 },
+        :proxy(s), init_data_s(idata), init_layout_s(ilayout), red{ 255, 51, 0 },
         green{ 102, 153, 0 },
         amber{ 255, 153, 0 } {
         // init status is not connected
@@ -266,14 +272,14 @@ public:
 
         // websock download of data and layout won't have happened yet,
         // so check if ctor was given init_data/layout splash screen
-        if (!init_data.empty() && !init_layout.empty()) {   // both or neither
-            data = JParse<JSON>(init_data);
-            layout = JParse<JSON>(init_layout);
+        if (!init_data_s.empty() && !init_layout_s.empty()) {   // both or neither
+            data = JParse<JSON>(init_data_s);
+            layout = JParse<JSON>(init_layout_s);
             NDLogger::cout() << method << "ARGV..." << std::endl;
         }
         else {
-            data = JParse<JSON>(Static::init_data);
-            layout = JParse<JSON>(Static::init_layout);
+            data = JParse<JSON>(Static::init_data_cs);
+            layout = JParse<JSON>(Static::init_layout_cs);
             NDLogger::cout() << method << "HARDWIRED..." << std::endl;
         }
         NDLogger::cout() << method << "init_data: " << JPrettyPrint(data) << std::endl;
@@ -417,18 +423,20 @@ public:
             // Is this a CacheResponse for layout or data?
             if (nd_type == Static::cache_response_cs) {
                 if (JAsString(resp, Static::cache_key_cs) == Static::data_cs) {
-                    data = resp[Static::value_cs];
-                    on_data();
+                    real_data = resp[Static::value_cs];
                     data_loaded = true;
                 }
                 else if (JAsString(resp, Static::cache_key_cs) == Static::layout_cs) {
-                    layout = resp[Static::value_cs];
-                    on_layout();
+                    real_layout = resp[Static::value_cs];
                     layout_loaded = true;
                 }
                 if (cache_is_loaded()) {
+                    data = real_data;
+                    layout = real_layout;
+                    on_data();
+                    on_layout();
                     NDLogger::cout() << method << "CACHE_LOADED" << std::endl;
-                    action_dispatch(Static::cache_loaded_cs, Static::gui_cs);
+                    action_dispatch(Static::gui_cs, Static::cache_loaded_cs);
                 }
             }
             // Is this a DataChange?
@@ -585,7 +593,7 @@ protected:
         NDLogger::cout() << method << "ACT_EV(" << act_ev_key_buf << ")" << std::endl;
 
         if (!JContains(data, Static::actions_cs)) {
-            NDLogger::cerr() << method << "no actions in data!" << std::endl;
+            NDLogger::cout() << method << "no actions in data!" << std::endl;
             return;
         }
         // Get hold of "actions" in data: do we a matching action?
@@ -1335,6 +1343,9 @@ protected:
             size[0] = (float)JAsInt(size_tup2, 0);
             size[1] = (float)JAsInt(size_tup2, 1);
         }
+        // TODO: we're not checking the ret val to see if we
+        // need to render the children. We need a way to
+        // memoize the BeginChild RV on the stack...
         ImGui::BeginChild(title.c_str(), size, child_flags);
     }
 
