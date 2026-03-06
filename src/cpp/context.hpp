@@ -146,8 +146,10 @@ private:
     int                 style_coloring{ StyleColor::Dark };   // match im_start StyleColorsDark()
     float*              fast_path_float[FloatIndices::EndFloats];
     int*                fast_path_int[IntIndices::EndInts];
+    const char*         fast_path_cs[StringIndices::EndStrings];
     StringIntMap        fpf_indices;
     StringIntMap        fpi_indices;
+    StringIntMap        fps_indices;
     bool                data_loaded{ false };
     bool                layout_loaded{ false };
 
@@ -269,6 +271,13 @@ public:
         // im_start sets Dark, and nodom uses enum StyleColor
         fast_path_int[IntIndices::StyleColoring] = &style_coloring;
         fpi_indices[Static::_style_coloring] = IntIndices::StyleColoring;
+        // fast path strings: key points...
+        //   FP strings are readonly
+        // server_url lives in proxy, which has same lifetime as this,
+        // so we can safely put it's underlying char* in fast_path_cs.
+        const std::string& server_url(proxy.get_server_url());
+        fast_path_cs[StringIndices::ServerUrl] = server_url.c_str();
+        fps_indices[Static::_server_url] = StringIndices::ServerUrl;
 
         // websock download of data and layout won't have happened yet,
         // so check if ctor was given init_data/layout splash screen
