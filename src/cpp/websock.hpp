@@ -233,12 +233,18 @@ public:
     }
 
     void ems_on_open() {
+        connected = true;
         ctx.on_ws_open();
     }
 
-    void ems_on_close() { }
+    void ems_on_close() {
+        connected = false;
+    }
 
-    void ems_on_fail() { }
+    void ems_on_fail() {
+        connected = false;
+        ctx.set_critical(WebSockConnectionFailed);
+    }
 #endif // ems
 };
 
@@ -252,7 +258,8 @@ EM_BOOL sa_ems_on_open(int eventType, const EmscriptenWebSocketOpenEvent* websoc
 }
 
 EM_BOOL sa_ems_on_close(int eventType, const EmscriptenWebSocketCloseEvent* websocketEvent, void* userData) {
-    // auto ws_client = reinterpret_cast<NDWebSockClient<emscripten::val, EmptyDBCache<emscripten::val>>*>(userData);
+    auto ws_client = reinterpret_cast<NDWebSockClient<emscripten::val, EmptyDBCache<emscripten::val>>*>(userData);
+    ws_client->ems_on_close();
     // TODO add handling for WS close event
     return EM_TRUE;
 }
@@ -273,8 +280,11 @@ EM_BOOL sa_ems_on_message(int event_type, const EmscriptenWebSocketMessageEvent*
 
 EM_BOOL sa_ems_on_error(int event_type, const EmscriptenWebSocketErrorEvent* ws_event, void* user_data) {
     const static char* method = "sa_ems_on_error: ";
-    // auto ws_client = reinterpret_cast<NDWebSockClient<emscripten::val, EmptyDBCache<emscripten::val>>*>(user_data);
+    // EmscriptenWebSocketErrorEvent struct only has a socket handle, 
+    // and no further diagnostic info.
+    auto ws_client = reinterpret_cast<NDWebSockClient<emscripten::val, EmptyDBCache<emscripten::val>>*>(user_data);
     NDLogger::cerr() << method << "event_type: " << event_type << std::endl;
+    ws_client->ems_on_fail();
     return EM_TRUE;
 }
 #endif
