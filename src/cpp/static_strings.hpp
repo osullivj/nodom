@@ -148,7 +148,7 @@ struct Static {
 
 	// hardwired init data and layout
 	inline static const char* init_data{ ""};
-	inline static const char* init_layout{ "{rname: 'Home', cspec:{ title: 'NoDOM', children: [] }}" };
+	inline static const char* init_layout{ "{rname: 'Home', cspec:{ title: 'NoDOM HW', children: [] }}" };
 
 	// error messages
 	inline static const char* could_not_connect_cs{ "Could not connect to" };
