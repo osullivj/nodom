@@ -83,8 +83,12 @@ await duck_db.open({
   },
 });
 console.log("duck_module.js: DuckDB instantiated ", db_worker_url);
-// main.ts uses __nodom__
-window.__nodom__ = { duck_module: self, duck_db: duck_db };
+if (typeof window.__nodom__ == "undefined") {
+  window.__nodom__ = { duck_module: self, duck_db: duck_db };
+} else {
+  window.__nodom__.duck_module = self;
+  window.__nodom__.duck_db = duck_db;
+}
 // let our own event handler know window.__nodom__.duck_db is available
 // tried document.postMessage(), window.postMessage and self.postMessage
 // non get thru to main.ts, so we have to stick with the inefficient
