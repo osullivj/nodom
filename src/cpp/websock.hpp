@@ -30,7 +30,8 @@
 #include <websocketpp/client.hpp>
 
 typedef websocketpp::client<websocketpp::config::asio_client>               ws_client;
-// TODO: SSL
+// TODO: SSL. Though it does "just work" in the browser. Do
+// we really need SSL in BB?
 // typedef websocketpp::client<websocketpp::config::asio_tls_client>           wss_client;
 // typedef websocketpp::lib::shared_ptr<websocketpp::lib::asio::ssl::context>  context_ptr;
 typedef websocketpp::config::asio_client::message_type::ptr                 message_ptr;
@@ -260,7 +261,6 @@ EM_BOOL sa_ems_on_open(int eventType, const EmscriptenWebSocketOpenEvent* websoc
 EM_BOOL sa_ems_on_close(int eventType, const EmscriptenWebSocketCloseEvent* websocketEvent, void* userData) {
     auto ws_client = reinterpret_cast<NDWebSockClient<emscripten::val, EmptyDBCache<emscripten::val>>*>(userData);
     ws_client->ems_on_close();
-    // TODO add handling for WS close event
     return EM_TRUE;
 }
 
