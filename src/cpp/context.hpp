@@ -116,7 +116,14 @@ void SetStyleColoring(int col) {
 }
 
 
-// NDContext: stack base rendering
+// NDContext: stack based rendering
+// Utility funcs above if they're too specific to rendering
+// to go in nd_utils, NDContext itself below, with all inline
+// templated impl. 
+
+// array of each possible show stopping critical error
+// critical defn: not so bad it causes exit() or abort()
+// bad enough to make rendering impossible
 using CritArray = std::array<std::string, Critical::EndCritical>;
 
 template <typename JSON, typename DB>
@@ -840,7 +847,7 @@ protected:
             return;
         }
         const JSON& cspec(w["cspec"]);
-        std::string label(Static::nodom_cs);
+        std::string label;
         int step = 1;
         if (JContains(cspec, Static::text_cs)) label = JAsString(cspec, Static::text_cs);
         if (JContains(cspec, Static::step_cs)) step = JAsInt(cspec, Static::step_cs);
@@ -1235,7 +1242,7 @@ protected:
             if (JContains(cspec, Static::body_font_cs))
                 bpop = push_font(w, Static::body_font_cs, Static::body_font_size_cs);
             for (auto text_iter = text_vec.begin(); text_iter != text_vec.end(); ++text_iter) {
-                ImGui::Text(text_iter->c_str());
+                ImGui::TextUnformatted(text_iter->c_str());
             }
             if (bpop) pop_font();
             int spinner_radius = 5;
