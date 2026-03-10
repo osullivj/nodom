@@ -48,8 +48,6 @@ enum DuckType : int32_t {
 const char* DuckTypeToString(DuckType dt);
 int DuckTypeToSize(DuckType dt);
 
-
-
 enum PixReportType : int32_t {
     RenderFPS = 2,
     RenderPushPC,
@@ -59,7 +57,6 @@ enum PixReportType : int32_t {
     DBQuery,
     DBBatch
 };
-
 
 // decls as these are in a separate unit of compilation
 void pix_init();
@@ -109,3 +106,35 @@ const char* CriticalToString(Critical ec);
 
 static constexpr int STR_BUF_LEN{ 256 };
 static constexpr int FMT_BUF_LEN{ 16 };
+
+// NDContext helpers
+const char* NextEvent(const char* nd_event);
+void SetStyleColoring(int col);
+
+enum RenderMethod : uint32_t {
+    Home = 0,   // Home
+    InputInt,   // Native widgets
+    Combo,
+    Checkbox,
+    Text,
+    Button,
+    Table,      // Compound widgets
+    Footer,
+    DatePicker,
+    DuckTableSummaryModal,
+    LoadingModal,
+    Separator,  // Layout widgets
+    SameLine,
+    NewLine,
+    Spacing,
+    AlignTextToFramePadding,
+    BeginChild, // Grouping widgets
+    EndChild,
+    BeginGroup,
+    EndGroup,
+    PushFont,   // Fonts
+    PopFont,
+    EndRenderMethod
+};
+
+RenderMethod RenderMethodFromString(const char* m);
