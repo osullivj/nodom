@@ -138,3 +138,11 @@ enum RenderMethod : uint32_t {
 };
 
 RenderMethod RenderMethodFromString(const char* m);
+
+// Built in multiplier for ID ranges
+enum IDType : uint32_t {
+    Widget = 1000,
+    Event = 2000,
+    Query = 3000,
+    EndIDTypes
+};
