@@ -6,14 +6,46 @@
 // NDContext can use
 struct Static {
 	// const string use by NDContext for JSON data and layout
+	// Render method names
+	inline static const char* rm_home_cs{ "Home" };		// Home
+	inline static const char* rm_input_int_cs{ "InputInt" };	// Native
+	inline static const char* rm_combo_cs{ "Combo" };
+	inline static const char* rm_checkbox_cs{ "Checkbox" };
+	inline static const char* rm_text_cs{ "Text" };
+	inline static const char* rm_button_cs{ "Button" };
+	inline static const char* rm_table_cs{ "Table" };
+	inline static const char* rm_footer_cs{ "Footer" };		// Compount
+	inline static const char* rm_date_picker_cs{ "DatePicker" };
+	inline static const char* rm_duck_table_summary_modal_cs{ "DuckTableSummaryModal" };
+	inline static const char* rm_loading_modal_cs{ "LoadingModal" };
+	inline static const char* rm_separator_cs{ "Separator" };	// Layout
+	inline static const char* rm_same_line_cs{ "SameLine" };
+	inline static const char* rm_new_line_cs{ "NewLine" };
+	inline static const char* rm_spacing_cs{ "Spacing" };
+	inline static const char* rm_align_text_to_frame_padding_cs{ "AlignTextToFramePadding" };
+	inline static const char* rm_begin_child_cs{ "BeginChild" };	// Grouping
+	inline static const char* rm_end_child_cs{ "EndChild" };
+	inline static const char* rm_begin_group_cs{ "BeginGroup" };
+	inline static const char* rm_end_group_cs{ "EndGroup" };
+	inline static const char* rm_push_font_cs{ "PushFont" };	// Fonts
+	inline static const char* rm_pop_font_cs{ "PopFont" };
+
 	inline static const char* on_data_change_cs{ "on_data_change" };
 	inline static const char* is_duck_app_cs{"is_duck_app"};
 	inline static const char* new_value_cs{"new_value"};
 	inline static const char* old_value_cs{"old_value"};
 	inline static const char* cache_key_cs{"cache_key"};
-	inline static const char* nd_type_cs{"nd_type"};
-	inline static const char* __nodom__cs{"__nodom__"};
-	inline static const char* sys_cs{"sys"};
+
+	inline static const char* __nodom__cs{ "__nodom__" };
+
+
+	// msg keys
+	inline static const char* nd_type_cs{ "nd_type" };
+	inline static const char* sys_cs{ "sys" };
+
+	// cspec keys
+
+	inline static const char* spinner_thickness_cs{ "spinner_thickness" };
 	inline static const char* sql_cs{"sql"};
 	inline static const char* db_cs{ "db" };
 	inline static const char* fps_cs{ "fps" };
@@ -66,15 +98,14 @@ struct Static {
 	inline static const char* default_cs{"Default"};
 	inline static const char* ok_cs{"OK"};
 	inline static const char* cancel_cs{"Cancel"};
-	inline static const char* duck_table_summary_modal_cs{"DuckTableSummaryModal"};
 
 	// compound widget IDs: we alreay use _id as a var name suffix eg widget_id
 	// and query_id, so we signal the IDness of these strings with i_am_ prefix
-	inline static const char* footer_db_button_cs{ "i_am_footer_db_button" };
-	inline static const char* footer_style_combo_cs{ "i_am_footer_style_combo" };
-	inline static const char* spinner_thickness_cs{ "i_am_spinner_thickness" };
-	inline static const char* loading_modal_cs{ "i_am_loading_modal" };
-	inline static const char* loading_spinner_cs{ "i_am_loading_spinner" };
+	inline static const char* i_am_footer_db_button_cs{ "i_am_footer_db_button" };
+	inline static const char* i_am_footer_style_combo_cs{ "i_am_footer_style_combo" };
+	inline static const char* i_am_loading_spinner_cs{ "i_am_loading_spinner" };
+	// inline static const char* i_am_duck_table_summary_modal_cs{ "i_am_duck_table_summary_modal" };
+	// inline static const char* i_am_loading_modal_cs{ "i_am_loading_modal" };
 
 	// DB
 	inline static const char* null_cs{"NULL"};
