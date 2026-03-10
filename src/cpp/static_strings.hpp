@@ -30,17 +30,14 @@ struct Static {
 	inline static const char* rm_push_font_cs{ "PushFont" };	// Fonts
 	inline static const char* rm_pop_font_cs{ "PopFont" };
 
-	inline static const char* on_data_change_cs{ "on_data_change" };
 	inline static const char* is_duck_app_cs{"is_duck_app"};
-	inline static const char* new_value_cs{"new_value"};
-	inline static const char* old_value_cs{"old_value"};
-	inline static const char* cache_key_cs{"cache_key"};
+	
 
 	inline static const char* __nodom__cs{ "__nodom__" };
 
 
-	// msg keys
-	inline static const char* nd_type_cs{ "nd_type" };
+	
+
 	inline static const char* sys_cs{ "sys" };
 
 	// cspec keys
@@ -53,7 +50,7 @@ struct Static {
 	inline static const char* id_stack_cs{ "id_stack" };
 	inline static const char* font_scale_cs{ "font_scale" };
 	inline static const char* style_cs{ "style" };
-	inline static const char* style_label_cs{ "Style" };
+	inline static const char* lb_footer_style_cs{ "Style" };
 	inline static const char* cspec_cs{"cspec"};
 	inline static const char* cname_cs{"cname"};
 	inline static const char* qname_cs{"qname"};
@@ -126,8 +123,15 @@ struct Static {
 	// DB subdict must supply an action (Command|Query|BatchRequest),
 	// a unique query ID and a cache address for the SQL in sql_cname
 	inline static const char* action_cs{"action"};
-	inline static const char* query_id_cs{"query_id"};
 	inline static const char* sql_cname_cs{"sql_cname"};
+
+	// Events: message keys
+	inline static const char* nd_type_cs{ "nd_type" };
+	inline static const char* new_value_cs{ "new_value" };
+	inline static const char* old_value_cs{ "old_value" };
+	inline static const char* cache_key_cs{ "cache_key" };
+	inline static const char* on_data_change_cs{ "on_data_change" };
+	inline static const char* query_id_cs{ "query_id" };
 
 	// Events: possible values for nd_type
 	inline static const char* batch_request_cs{"BatchRequest"};
