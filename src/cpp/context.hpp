@@ -27,21 +27,6 @@ static constexpr int ND_MAX_COMBO_LIST{ 16 };
 static constexpr int act_ev_key_buf_len{ 256 };
 struct GLFWwindow;
 
-// NDContext helper NextEvent: what comes next in a 
-// DB action_dispatch sequence?
-const char* NextEvent(const char* nd_event) {
-    if (strcmp(nd_event, Static::command_cs) == 0) {
-        return Static::command_result_cs;
-    }
-    if (strcmp(nd_event, Static::query_cs) == 0) {
-        return Static::query_result_cs;
-    }
-    if (strcmp(nd_event, Static::batch_request_cs) == 0) {
-        return Static::batch_response_cs;
-    }
-    return nullptr;
-}
-
 // NDContext helper AtomicCacheValue: present a common internal API 
 // for fastpath wasm vars and slowpath JSON vars.
 template <typename A, typename JSON>
@@ -100,20 +85,15 @@ private:
     JSON& data;
 };
 
-// NDContext helper: SetStyleColoring
-void SetStyleColoring(int col) {
-    switch (col) {
-    case Dark:
-        ImGui::StyleColorsDark();
-        break;
-    case Light:
-        ImGui::StyleColorsLight();
-        break;
-    case Classic:
-        ImGui::StyleColorsClassic();
-        break;
-    }
-}
+template <typename JSON>
+class NDWidget {
+private:
+
+public:
+    NDWidget() = delete;
+    // NDWidget(); enum and JSON driven ctor
+
+};
 
 
 // NDContext: stack based rendering
@@ -927,7 +907,7 @@ protected:
             // Push colour styling for the DB button
             ImGui::PushStyleColor(ImGuiCol_Button, (ImU32)db_status_color);
             if (ImGui::Button("DB")) {
-                action_dispatch(Static::footer_db_button_cs, Static::click_cs);
+                action_dispatch(Static::i_am_footer_db_button_cs, Static::click_cs);
             }
             ImGui::PopStyleColor(1);
         }
@@ -1185,15 +1165,17 @@ protected:
         // the topmost render method is iterating over it.
         // Instead we add it to the list of pending_pops
         // so top level render will invoke pop_widget for us.
+        // NB we pop_widget asymmetrically with an rname,
+        // not a widget_id
         if (ImGui::Button(Static::ok_cs)) {
             ImGui::CloseCurrentPopup();
-            pending_pops.push_back(Static::duck_table_summary_modal_cs);
+            pending_pops.push_back(Static::rm_duck_table_summary_modal_cs);
         }
         ImGui::SetItemDefaultFocus();
         ImGui::SameLine();
         if (ImGui::Button(Static::cancel_cs)) {
             ImGui::CloseCurrentPopup();
-            pending_pops.push_back(Static::duck_table_summary_modal_cs);
+            pending_pops.push_back(Static::rm_duck_table_summary_modal_cs);
         }
 
         if (button_pop) pop_font();
@@ -1251,7 +1233,7 @@ protected:
                 spinner_radius = JAsInt(cspec, Static::spinner_radius_cs);
             if (JContains(cspec, Static::spinner_thickness_cs))
                 spinner_thickness = JAsInt(cspec, Static::spinner_thickness_cs);
-            if (!ImGui::Spinner(Static::loading_spinner_cs, (float)spinner_radius, spinner_thickness, 0)) {
+            if (!ImGui::Spinner(Static::i_am_loading_spinner_cs, (float)spinner_radius, spinner_thickness, 0)) {
                 // TODO: spinner always fails IsClippedEx on first render
                 NDLogger::cout() << method << "spinner fail" << std::endl;
             }
