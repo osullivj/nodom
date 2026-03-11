@@ -186,3 +186,37 @@ std::ostream& operator<<(std::ostream& os, const emscripten::val& v)
 
 #endif
 
+// Now we have the extractors: template funcs built out
+// of the operations above to aid the construction of
+// NDWidget instances. These funcs can invoke other
+// simple synch utils, but not anything in NDContext.
+template <typename JSON>
+uint32_t extract_entity_id(StringVec& id_vec, StringIntMap& id_map, const JSON& w, const char* key) {
+	if (JContains(w, key)) {
+		std::string id(JAsString(w, key));
+		auto id_map_iter = id_map.find(id);
+		if (id_map_iter != id_map.end())
+			return id_map_iter->second;		// already registered
+		id_vec.push_back(id);
+		id_map.emplace(std::make_pair(std::move(id), id_vec.size()));
+		return id_vec.size();
+	}
+	return 0;
+}
+
+template <typename JSON>
+RenderMethod extract_render_name(const JSON& w) {
+	if (JContains(w, Static::rname_cs)) {
+		std::string rname(JAsString(w, Static::rname_cs));
+		return RenderMethodFromString(rname.c_str());
+	}
+	return EndRenderMethod;
+}
+
+template <typename JSON>
+const JSON& extract_cspec(const JSON& w) {
+	if (JContains(w, Static::cspec_cs)) return w[Static::cspec_cs];
+	// Cannot fail to return an obj, so return an empty one,
+	// and we'll error later when we look for fields in cspec
+	return JNewObject();
+}
