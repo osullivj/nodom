@@ -22,9 +22,10 @@
 // websock.hpp: on win32 we use websocketpp, and on ems we use the ems 
 // wesock API. See emscripten/websocket.h and 
 // https://gist.github.com/nus/564e9e57e4c107faa1a45b8332c265b9
-
+static constexpr int MAX_ID_COUNT{ 256 };
 static constexpr int ND_MAX_COMBO_LIST{ 16 };
 static constexpr int act_ev_key_buf_len{ 256 };
+
 struct GLFWwindow;
 
 // NDContext helper AtomicCacheValue: present a common internal API 
@@ -86,14 +87,18 @@ private:
 };
 
 template <typename JSON>
-class NDWidget {
-private:
-
-public:
+struct NDWidget {
     NDWidget() = delete;
-    // NDWidget(); enum and JSON driven ctor
-
+    NDWidget(StringVec& weq_ids, StringIntMap& weq_map, const JSON& w)
+        :widget_id(IDType::Widget + extract_entity_id<JSON>(weq_ids, weq_map, w, Static::widget_id_cs)),
+            rname(extract_render_name<JSON>(w)),
+            cspec(extract_cspec<JSON>(w))
+    { }
+    RenderMethod    rname{ EndRenderMethod };
+    uint32_t        widget_id{ 0 }; // invalid ID
+    const JSON&     cspec;
 };
+
 
 
 // NDContext: stack based rendering
@@ -109,11 +114,15 @@ using CritArray = std::array<std::string, Critical::EndCritical>;
 template <typename JSON, typename DB>
 class NDContext {
 private:
+    using WidgetVec = std::vector<NDWidget<JSON>>;
+    using WidgetPtr = NDWidget<JSON>*;
+
     // ref to "server process"; just an abstraction of EMS vs win32
     NDProxy<DB>&        proxy;  // DB proxy decouples NDContext from DB detail
     JSON                layout; // layout and data are fetched by 
     JSON                data;   // sync c++py calls not HTTP gets
-    std::deque<JSON>    stack;  // render stack
+    // std::deque<JSON>    stack;  // render stack
+    std::deque<WidgetPtr>   stack;  // render stack
 
     // latest critical error state raised, and array of crit err
     // msgs to show in Home
@@ -129,6 +138,7 @@ private:
     std::string         init_layout_s;
     JSON                real_data;
     JSON                real_layout;
+    WidgetVec           memo_layout;
 
     int                 style_coloring{ StyleColor::Dark };   // match im_start StyleColorsDark()
     float*              fast_path_float[FloatIndices::EndFloats];
@@ -137,13 +147,16 @@ private:
     StringIntMap        fpf_indices;
     StringIntMap        fpi_indices;
     StringIntMap        fps_indices;
+    StringVec           entity_ids{ MAX_ID_COUNT };
+    StringIntMap        entity_indices;
     bool                data_loaded{ false };
     bool                layout_loaded{ false };
 
     // map layout render func names to the actual C++ impls
     std::unordered_map<std::string, std::function<void(const JSON& w)>> rfmap;
     // top level layout widgets with widget_id eg modals are in pushables
-    std::unordered_map<std::string, JSON> pushable;
+    // std::unordered_map<std::string, JSON> pushable;
+    std::unordered_map<uint32_t, WidgetPtr> pushable;
 
     // manage down logging by tracking misconfiged queries that throw
     // BAD_HANDLE_FAIL, especially for browser console log
@@ -154,7 +167,8 @@ private:
     // render() method. But in C++ we use an STL iterator in the root render
     // method, and that segfaults. So in C++ we have pending pushes done
     // outside the render stack walk. JOS 2025-01-31
-    std::deque<JSON>        pending_pushes;
+    // std::deque<JSON>        pending_pushes;
+    std::deque<WidgetPtr>      pending_pushes;
     std::deque<std::string> pending_pops;
     // In flight action sequences. Key is query_id, not query_id.event
     struct InFlight {
@@ -286,10 +300,16 @@ public:
         on_data();
     }
 
+    // Helpers and accessors
     GLFWwindow* get_glfw_window() { return glfw_window; }
     void        set_glfw_window(GLFWwindow* w) { glfw_window = w; }
 
     bool        cache_is_loaded() { return data_loaded && layout_loaded; }
+
+    uint32_t register_entity_id(IDType base, std::string&& id) {
+        entity_ids.emplace_back(id);
+        return entity_ids.size() + base;
+    }
 
     void set_critical(Critical error_code) {
         show_stopper = error_code;
@@ -308,15 +328,15 @@ public:
         // address pending pops first: maintaining ordering by working from front to back
         // as that is the order they would land on the stack if not pushed during rendering
         while (!pending_pops.empty()) {
-            pop_widget(pending_pops.front());
-            pending_pops.pop_front();
+            // pop_widget(pending_pops.front());
+            // pending_pops.pop_front();
         }
         // drain pending_pushes onto the render stack, maintaining
         // the stack order we would have had if the push had
         // happended intra-render. JOS 2025-01-31
         while (!pending_pushes.empty()) {
-            push_widget(pending_pushes.front());
-            pending_pushes.pop_front();
+            // push_widget(pending_pushes.front());
+            // pending_pushes.pop_front();
         }
 
         // This loop used to break if we raised a modal as changing stack state
@@ -327,10 +347,9 @@ public:
         // And we avoid live iterators so far down the stack too...
         int stack_length = (int)stack.size();
         for (int inx = 0; inx < stack_length; inx++) {
-            // deref it for clarity and to rename as widget for
-            // cross ref with main.ts logic
-            const JSON& widget(stack[inx]);    // not {} to avoid list inits
-            dispatch_render(widget);
+            // TODO: recode render meths around NDWidget
+            // const JSON& widget(stack[inx]);
+            // dispatch_render(widget);
         }
         end_render_cycle();
         pix_end_event();
@@ -506,14 +525,25 @@ public:
 
     void on_layout() {
         const static char* method = "NDContext::on_layout: ";
-        // layout is a list of widgets; and all may have children
+        // layout is a JSON list of widgets; and all may have children
         // however, not all widgets are children. For instance modals
         // like parquet_loading_modal have to be explicitly pushed
-        // on to the render stack by an event. JOS 2025-01-31
-        // Fonts appear in layout now. JOS 2025-07-29
+        // on to the render stack by an event. Memoize the JSON objs
+        // into a vec of NDWidget to minimize ems::val dispatch intra
+        // render cycle.
         int layout_length = JSize(layout);
         for (int inx=0; inx < layout_length; inx++) {
             const JSON& w(layout[inx]);
+            memo_layout.emplace_back(NDWidget<JSON>{entity_ids, entity_indices, w});
+            NDWidget<JSON>& memo{ memo_layout.back() };
+            if (memo.widget_id) {
+                NDLogger::cout() << method << "LAYOUT_PUSHABLE: " << memo.widget_id << ":" << JPrettyPrint(w) << std::endl;
+                pushable[memo.widget_id] = &memo;
+            }
+            else {
+                NDLogger::cout() << method << "no widget_id in: " << JPrettyPrint(w) << std::endl;
+            }
+            /* old impl
             NDLogger::cout() << method << "LAYOUT_CHILD: " << JPrettyPrint(w) << std::endl;
             if (JContains(w, Static::widget_id_cs)) {
                 std::string widget_id(JAsString(w, Static::widget_id_cs));
@@ -524,11 +554,11 @@ public:
                 else {
                     NDLogger::cerr() << method << "empty widget_id in: " << JPrettyPrint(w) << std::endl;
                 }
-            }
+            } */
         }
         // Home on the render stack
         stack.clear();  // rm any init_layout
-        stack.push_back(layout[0]);
+        stack.push_back(&(memo_layout[0]));
     }
 
     void on_data() {
@@ -655,8 +685,18 @@ protected:
         if (JContains(action_defn, Static::ui_push_cs)) {
             // for pushes we supply widget_id, not the rname
             std::string widget_id(JAsString(action_defn, Static::ui_push_cs));
+            uint32_t int_widget_id{ 0 };
+            // TODO: memoize action_defn to yield widget_id as uint32, not str
             // salt'n'pepa in da house!
-            auto push_it = pushable.find(widget_id);
+            auto find_it = entity_indices.find(widget_id);
+            if (find_it == entity_indices.end()) {
+                NDLogger::cerr() << method << "ui_push(" << widget_id << ") no such pushable" << std::endl;
+            }
+            else {
+                int_widget_id = IDType::Widget + find_it->second;
+            }
+            // new above, slightly amended below...
+            auto push_it = pushable.find(int_widget_id);
             if (push_it != pushable.end()) {
                 NDLogger::cout() << method << "ui_push(" << widget_id << ")" << std::endl;
                 // NB action_dispatch is called by eg render_button, which ultimately is called
@@ -942,7 +982,7 @@ protected:
         if (style) {
             static const char* cs_combo_list[3] = { Static::dark_cs, Static::light_cs, Static::classic_cs };
             int old_val = style_coloring;
-            ImGui::Combo(Static::style_label_cs, &style_coloring, cs_combo_list, 3, 3);
+            ImGui::Combo(Static::lb_footer_style_cs, &style_coloring, cs_combo_list, 3, 3);
             if (style_coloring != old_val) SetStyleColoring(style_coloring);
         }
         ImGui::EndGroup();
