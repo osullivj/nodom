@@ -25,17 +25,17 @@ logr = nd_utils.init_logging(NDAPP)
 # unique strings; single point of definition for query and button
 # IDs used in action dispatch as these are used in layout and data
 # and must be consistent. JOS 2025-02-06
-SCAN_QID = "depth_scan"
-SELECT_QID = "depth_query"
-SUMMARY_QID = "depth_summary"
+SCAN_QID = "the_depth_scan"
+SELECT_QID = "the_depth_query"
+SUMMARY_QID = "the_depth_summary"
 UI_QID = "launch_ui"
-ENABLE_LOGGING_QID = "enable_logging"
+ENABLE_LOGGING_QID = "the_enable_logging_command"
 SCAN_BUTTON_TEXT = "Scan"
-SCAN_BUTTON_ID = "scan_button"
+SCAN_BUTTON_ID = "i_am_scan_button"
 SUMMARY_BUTTON_TEXT = "Summary"
-SUMMARY_BUTTON_ID = "summary_button"
+SUMMARY_BUTTON_ID = "i_am_summary_button"
 DB_ONLINE = "DBOnline"
-DB_BUTTON_ID = "footer_db_button"
+DB_BUTTON_ID = "i_am_footer_db_button"
 EXF_LAYOUT = [
     dict(
         rname="Home",
