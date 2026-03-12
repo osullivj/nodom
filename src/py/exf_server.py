@@ -56,8 +56,8 @@ EXF_LAYOUT = [
                 rname="Combo",
                 cspec=dict(
                     cname="instruments",
-                    index="selected_instrument",
-                    text="Instrument",
+                    cindex="selected_instrument",
+                    label="Instrument",
                 ),
             ),
             dict(
