@@ -197,7 +197,8 @@ struct DataCacheIndex {
         static_assert(itype != EndItemTypes);
         static_assert(dtype != EndDataTypes);
         // check i is in lo 16 bit range
-        assert(inx <= MAX_DCI);
+        if (inx > MAX_DCI)
+            throw std::runtime_error("NoDOM BAD_DCI");
         // itipe,dtype in hi 16, inx in lo 16
         magic_index = item_type | data_type;
         magic_index += inx;
