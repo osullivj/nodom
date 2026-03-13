@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "breadboard", "breadboard.vc
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "duck_varchar", "..\..\test\unit\cpp\duck_varchar.vcxproj", "{FB4260CA-D01A-411C-922F-61B17C3E39F7}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "data_cache", "..\..\test\unit\cpp\data_cache.vcxproj", "{6F7E5A4E-D263-414D-AD06-70A860D1DA07}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -31,6 +33,14 @@ Global
 		{FB4260CA-D01A-411C-922F-61B17C3E39F7}.Release|x64.Build.0 = Release|x64
 		{FB4260CA-D01A-411C-922F-61B17C3E39F7}.Release|x86.ActiveCfg = Release|Win32
 		{FB4260CA-D01A-411C-922F-61B17C3E39F7}.Release|x86.Build.0 = Release|Win32
+		{6F7E5A4E-D263-414D-AD06-70A860D1DA07}.Debug|x64.ActiveCfg = Debug|x64
+		{6F7E5A4E-D263-414D-AD06-70A860D1DA07}.Debug|x64.Build.0 = Debug|x64
+		{6F7E5A4E-D263-414D-AD06-70A860D1DA07}.Debug|x86.ActiveCfg = Debug|Win32
+		{6F7E5A4E-D263-414D-AD06-70A860D1DA07}.Debug|x86.Build.0 = Debug|Win32
+		{6F7E5A4E-D263-414D-AD06-70A860D1DA07}.Release|x64.ActiveCfg = Release|x64
+		{6F7E5A4E-D263-414D-AD06-70A860D1DA07}.Release|x64.Build.0 = Release|x64
+		{6F7E5A4E-D263-414D-AD06-70A860D1DA07}.Release|x86.ActiveCfg = Release|Win32
+		{6F7E5A4E-D263-414D-AD06-70A860D1DA07}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
