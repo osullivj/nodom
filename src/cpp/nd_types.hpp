@@ -2,6 +2,8 @@
 #include <map>
 #include <functional>
 #include <string>
+#include <vector>
+#include <cassert>
 
 using StringVec = std::vector<std::string>;
 using IntVec = std::vector<int>;
@@ -35,14 +37,14 @@ using ChunkMap = std::map<std::string, ChunkVec>;
 // https://github.com/apache/arrow-js/blob/main/src/enum.ts
 // ...so do not make size explicit like C/C++ types.
 enum DuckType : int32_t {
-    Int = 2,
-    Float = 3,
-    Utf8 = 5,
-    Timestamp = 10,
-    Timestamp_s = -15,
-    Timestamp_ms = -16,
-    Timestamp_us = -17,
-    Timestamp_ns = -18
+    dtInt = 2,
+    dtFloat = 3,
+    dtUtf8 = 5,
+    dtTimestamp = 10,
+    dtTimestamp_s = -15,
+    dtTimestamp_ms = -16,
+    dtTimestamp_us = -17,
+    dtTimestamp_ns = -18
 };
 
 const char* DuckTypeToString(DuckType dt);
@@ -139,10 +141,103 @@ enum RenderMethod : uint32_t {
 
 RenderMethod RenderMethodFromString(const char* m);
 
-// Built in multiplier for ID ranges
-enum IDType : uint32_t {
-    Widget = 1000,
-    Event = 2000,
-    Query = 3000,
-    EndIDTypes
+// Built in hi bits for ID ranges
+// 32 bits for IDs gives us 16 hi bits and 16 lo bits
+// we put the index in the 16 lo bits,
+// and the item and data type in 16 hi.
+// This enable a max of 65535 (0xFFFF) DCIs
+// of any recognised data type.
+enum CacheItemType : uint32_t {
+    Address = 0x100000,    // cname, sql_cname
+    Value = 0x200000,
+    Widget = 0x300000,       // widget_id
+    Event = 0x400000,        // Click,DBOnline,QueryResult,CommandResult
+    Query = 0x500000,        // query_id
+    System = 0x600000,       // GUI, DuckDB
+    EndItemTypes = 0xF00000
 };
+
+enum CacheDataType : uint32_t {
+    cdInt = 0x10000, 
+    cdFloat = 0x20000, 
+    cdBool = 0x30000, 
+    cdStr = 0x40000, 
+    cdIntVec = 0x50000,
+    cdStrVec = 0x60000,
+    EndDataTypes = 0xF0000
+};
+using CDT = CacheDataType;
+using CIT = CacheItemType;
+
+// cache index range is 16 bits 0x0000->0xFFFF
+// eg 0->65535
+static constexpr int MAX_DCI = 0xFFFF;  // 65536
+
+template <CIT itype, CDT dtype>
+struct DataCacheIndex {
+
+    static constexpr CIT item_type{ itype };
+    static constexpr CDT data_type{ dtype };
+
+    // 0 is a bad value as hi 16 bits not set
+    // to valid IDType
+    uint32_t    magic_index{ 0 };
+
+    // no default construction so we require
+    // real inx at instantiation. Take the 
+    // defaults for assign and copy. Move
+    // doesn't make sense as this is a "by val" 
+    // type...
+    DataCacheIndex() = delete;
+    DataCacheIndex(const DataCacheIndex&) = default;
+    DataCacheIndex& operator=(const DataCacheIndex&) = default;
+
+    DataCacheIndex(uint32_t inx) {
+        // check template param val OK
+        static_assert(itype != EndItemTypes);
+        static_assert(dtype != EndDataTypes);
+        // check i is in lo 16 bit range
+        assert(inx <= MAX_DCI);
+        // itipe,dtype in hi 16, inx in lo 16
+        magic_index = item_type | data_type;
+        magic_index += inx;
+    }
+
+    uint32_t operator()() {
+        // return only bottom 16bits
+        return magic_index & MAX_DCI;
+    }
+
+};
+// DCI examples
+// Value string at inx:3    00240003
+// Value float at inx:10    0022000A
+
+// Identifiers are always strings...
+// Query IDs, Event IDs (Click, Online, QueryResult)
+// Widget IDs (i_am_the_footer_button)
+// System IDs (GUI, DuckDB)
+using QInx = DataCacheIndex<CIT::Query,CDT::cdStr>;
+using EInx = DataCacheIndex<CIT::Event,CDT::cdStr>;
+using WInx = DataCacheIndex<CIT::Widget,CDT::cdStr>;
+using SInx = DataCacheIndex<CIT::System, CDT::cdStr>;
+// Address is always a string as an LHS value in 
+// data defn
+using AInx = DataCacheIndex<CIT::Address,CDT::cdStr>;
+// Three types of atomic value; all mutable
+using IntInx = DataCacheIndex<CIT::Value,CDT::cdInt>;
+using FloatInx = DataCacheIndex<CIT::Value, CDT::cdFloat>;
+using StrInx = DataCacheIndex<CIT::Value, CDT::cdStr>;
+// Array values
+using IntVecInx = DataCacheIndex<CIT::Value, CDT::cdIntVec>;  // mutable
+using StrVecInx = DataCacheIndex<CIT::Value, CDT::cdStrVec>;  // !mutable
+
+
+// Cache entry defn
+// AInx:VInx    eg  "op1":<int>
+// 
+// Action key defn
+// QInx:EInx    eg  "the_depth_query":"QueryResult"
+// WInx:EInx    eg  "i_am_footer_db_button":"Click"
+// SInx:Einx    eg  "DuckDB":"Online"
+//                  "GUI":"Online"
