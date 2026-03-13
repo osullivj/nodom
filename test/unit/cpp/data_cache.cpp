@@ -63,3 +63,10 @@ BOOST_FIXTURE_TEST_CASE(AddString, DataCacheFixture)
     BOOST_TEST(str_inx.magic_index == 0x00240001);
     BOOST_TEST(str_inx() == 1);
 }
+
+BOOST_FIXTURE_TEST_CASE(BadIndex, DataCacheFixture)
+{
+    // DCI ctor assert only throws in dbg
+    BOOST_CHECK_THROW(AInx{ MAX_DCI + 1 }, std::exception);
+}
+
