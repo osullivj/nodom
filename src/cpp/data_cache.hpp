@@ -19,7 +19,7 @@ private:
     std::vector<std::string>   cache_strings;
 protected:
     template <CIT itype>
-    auto add_string(std::string&& s) {
+    auto intern_string(std::string&& s) {
         auto iter = std::find(cache_strings.begin(), cache_strings.end(), s);
         if (iter == cache_strings.end()) {
             cache_strings.emplace_back(std::move(s));
@@ -31,7 +31,7 @@ protected:
     }
 
     template <CIT itype>
-    auto add_string(const std::string& s) {
+    auto intern_string(const std::string& s) {
         auto iter = std::find(cache_strings.begin(), cache_strings.end(), s);
         if (iter == cache_strings.end()) {
             cache_strings.push_back(s);
@@ -46,18 +46,16 @@ public:
     DataCache() { }
 
     AInx add_address(std::string&& addr) {
-        return add_string<CIT::Address>(std::move(addr));
+        return intern_string<CIT::Address>(std::move(addr));
     }
 
-    template <typename V>
-    auto add_number_value(V* v) {
-        if constexpr (std::is_integer(V)) {
-            fp_int_ptrs.push_back(v);
-            return DataCacheIndex<CIT::Value, CDT::Int>(fp_int_ptrs.size() - 1);
-        }
-        if constexpr (std::is_floating_point(V)) {
-            fp_float_ptrs.push_back(v);
-            return DataCacheIndex<CIT::Value, CDT::Float>(fp_float_ptrs.size() - 1);
-        }
+    IntInx add_int(int* v) {
+        fp_int_ptrs.push_back(v);
+        return IntInx(fp_int_ptrs.size() - 1);
+    }
+
+    FloatInx add_float(float* v) {
+        fp_float_ptrs.push_back(v);
+        return FloatInx(fp_float_ptrs.size() - 1);
     }
 };
