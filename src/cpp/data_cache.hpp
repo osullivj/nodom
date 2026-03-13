@@ -70,4 +70,9 @@ public:
     StrInx add_string(std::string&& s) {
         return intern_string<CIT::Value>(std::move(s));
     }
+
+    const char* get_address(AInx inx) {
+        return fp_char_ptrs[inx()];
+    }
+   
 };
