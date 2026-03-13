@@ -49,6 +49,10 @@ public:
         return intern_string<CIT::Address>(std::move(addr));
     }
 
+    AInx add_address(const std::string& addr) {
+        return intern_string<CIT::Address>(addr);
+    }
+
     IntInx add_int(int* v) {
         fp_int_ptrs.push_back(v);
         return IntInx(fp_int_ptrs.size() - 1);
@@ -57,5 +61,13 @@ public:
     FloatInx add_float(float* v) {
         fp_float_ptrs.push_back(v);
         return FloatInx(fp_float_ptrs.size() - 1);
+    }
+
+    StrInx add_string(const std::string& s) {
+        return intern_string<CIT::Value>(s);
+    }
+
+    StrInx add_string(std::string&& s) {
+        return intern_string<CIT::Value>(std::move(s));
     }
 };
