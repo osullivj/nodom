@@ -1,4 +1,4 @@
-#include <duckdb.h>
+#include "duckdb.h"
 #define BOOST_TEST_MODULE Varchar_Tests
 #include <boost/test/unit_test.hpp>
 #include <math.h>
