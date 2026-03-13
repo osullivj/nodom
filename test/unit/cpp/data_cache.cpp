@@ -1,19 +1,41 @@
 #include "data_cache.hpp"
+#include "json_ops.hpp"
 #define BOOST_TEST_MODULE Data_Cache_Tests
 #include <boost/test/unit_test.hpp>
 #include <math.h>
+
+using JSON = nlohmann::json;
 
 struct DataCacheFixture {
     DataCache dc;
 
     // cf NDContext::style_coloring
     int style_coloring{ StyleColor::Dark };
-
     // cf ImGuiStyle::FontScaleMain
     float font_scale_main{ 1.0 };
-
     // cf proxy.get_server_url()
     std::string server_url{ "wss://localhost/api/websock" };
+
+    std::string add_server_layout = R"([)"  "\n"  // [
+        R"(  {)"                                                    "\n"
+        R"(    "rname":"Home",)"                                    "\n"
+        R"(    "cspec":{"title":"Server side addition"},)"          "\n"
+        R"(    "children":[)"                                       "\n"
+        R"(      {)"                                                "\n"
+        R"(        "rname":"InputInt",)"                            "\n"
+        R"(        "cspec":{"cname":"op1", "step":1})"              "\n"
+        R"(      },)"                                               "\n"
+        R"(      {)"                                                "\n"
+        R"(        "rname":"InputInt",)"                            "\n"
+        R"(        "cspec":{"cname":"op2", "step":2})"              "\n"
+        R"(      },)"                                               "\n"
+        R"(      {)"                                                "\n"
+        R"(        "rname":"InputInt",)"                            "\n"
+        R"(        "cspec":{"cname":"op1_plus_op2"})"               "\n"
+        R"(      })"                                                "\n"
+        R"(    ])"                                                  "\n"
+        R"(  })"                                                    "\n"
+        R"(])"; // ]
 
     DataCacheFixture() {
     }
@@ -70,3 +92,11 @@ BOOST_FIXTURE_TEST_CASE(BadIndex, DataCacheFixture)
     BOOST_CHECK_THROW(AInx{ MAX_DCI + 1 }, std::exception);
 }
 
+BOOST_FIXTURE_TEST_CASE(AddServerLayout, DataCacheFixture)
+{
+    JSON layout = JParse<JSON>(add_server_layout);
+    int layout_length = JSize(layout);
+    for (int inx = 0; inx < layout_length; inx++) {
+        const JSON& w(layout[inx]);
+    }
+}
