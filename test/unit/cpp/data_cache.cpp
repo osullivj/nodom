@@ -12,6 +12,9 @@ struct DataCacheFixture {
     // cf ImGuiStyle::FontScaleMain
     float font_scale_main{ 1.0 };
 
+    // cf proxy.get_server_url()
+    std::string server_url{ "wss://localhost/api/websock" };
+
     DataCacheFixture() {
     }
 
@@ -49,4 +52,14 @@ BOOST_FIXTURE_TEST_CASE(AddFloat, DataCacheFixture)
     BOOST_TEST(FloatInx::data_type == CDT::cdFloat);
     BOOST_TEST(float_inx.magic_index == 0x00220000);
     BOOST_TEST(float_inx() == 0);
+}
+
+BOOST_FIXTURE_TEST_CASE(AddString, DataCacheFixture)
+{
+    AInx addr_inx = dc.add_address(std::string{ "_server_url" });
+    StrInx str_inx = dc.add_string(server_url.c_str());
+    BOOST_TEST(StrInx::item_type == CIT::Value);
+    BOOST_TEST(StrInx::data_type == CDT::cdStr);
+    BOOST_TEST(str_inx.magic_index == 0x00240001);
+    BOOST_TEST(str_inx() == 1);
 }
