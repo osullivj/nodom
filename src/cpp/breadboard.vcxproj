@@ -184,6 +184,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="context.hpp" />
+    <ClInclude Include="data_cache.hpp" />
     <ClInclude Include="db_cache.hpp" />
     <ClInclude Include="facade.hpp" />
     <ClInclude Include="im_render.hpp" />
