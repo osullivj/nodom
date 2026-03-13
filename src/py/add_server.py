@@ -30,8 +30,6 @@ ADDITION_LAYOUT = [
             dict(rname="PushFont", cspec=dict(font="CourierNew")),
             dict(rname="InputInt", cspec=dict(cname="op1", step=1)),
             dict(rname="InputInt", cspec=dict(cname="op2", step=2)),
-            # see src/imgui.ts for enum defns
-            # InputTextFlags.ReadOnly == 1 << 14 == 16384
             dict(
                 rname="InputInt",
                 cspec=dict(cname="op1_plus_op2", flags=InputTextFlags.READ_ONLY),
