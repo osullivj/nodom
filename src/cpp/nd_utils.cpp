@@ -7,21 +7,21 @@
 // or DuckDB C API client code as seen in breadboard.
 const char* DuckTypeToString(DuckType dt) {
     switch (dt) {
-    case DuckType::Int:
+    case DuckType::dtInt:
         return "Int";
-    case DuckType::Float:
+    case DuckType::dtFloat:
         return "Float";
-    case DuckType::Timestamp:
+    case DuckType::dtTimestamp:
         return "TS";
-    case DuckType::Timestamp_s:
+    case DuckType::dtTimestamp_s:
         return "TS_s";
-    case DuckType::Timestamp_ms:
+    case DuckType::dtTimestamp_ms:
         return "TS_ms";
-    case DuckType::Timestamp_us:
+    case DuckType::dtTimestamp_us:
         return "TS_us";
-    case DuckType::Timestamp_ns:
+    case DuckType::dtTimestamp_ns:
         return "TS_ns";
-    case DuckType::Utf8:
+    case DuckType::dtUtf8:
         return "Utf8";
     }
     return "Unknown";
@@ -30,15 +30,15 @@ const char* DuckTypeToString(DuckType dt) {
 
 int DuckTypeToSize(DuckType dt) {
     switch (dt) {
-    case DuckType::Int:
+    case DuckType::dtInt:
         return 4;
-    case DuckType::Float:
-    case DuckType::Timestamp:
-    case DuckType::Timestamp_s:
-    case DuckType::Timestamp_ms:
-    case DuckType::Timestamp_us:
-    case DuckType::Timestamp_ns:
-    case DuckType::Utf8:
+    case DuckType::dtFloat:
+    case DuckType::dtTimestamp:
+    case DuckType::dtTimestamp_s:
+    case DuckType::dtTimestamp_ms:
+    case DuckType::dtTimestamp_us:
+    case DuckType::dtTimestamp_ns:
+    case DuckType::dtUtf8:
         return 8;
     }
     return 0;
