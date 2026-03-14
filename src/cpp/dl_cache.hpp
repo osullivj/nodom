@@ -1,7 +1,8 @@
 #pragma once
 #include "nd_types.hpp"
 
-class DataCache {
+// Cache for data, layout and data.actions
+class DataLayCache {
 private:
     // RHS data values: you can only be RHS value if
     // you have an LHS CacheName. All these vecs hold
@@ -43,7 +44,7 @@ protected:
     }
 
 public:
-    DataCache() { }
+    DataLayCache() { }
 
     AInx add_address(std::string&& addr) {
         return intern_string<CIT::Address>(std::move(addr));
