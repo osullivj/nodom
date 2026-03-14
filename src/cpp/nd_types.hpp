@@ -150,10 +150,11 @@ RenderMethod RenderMethodFromString(const std::string& rm);
 enum CacheItemType : uint32_t {
     Address = 0x100000,    // cname, sql_cname
     Value = 0x200000,
-    Widget = 0x300000,       // widget_id
-    Event = 0x400000,        // Click,DBOnline,QueryResult,CommandResult
-    Query = 0x500000,        // query_id
-    System = 0x600000,       // GUI, DuckDB
+    Widget = 0x300000,      // widget_id
+    Event = 0x400000,       // Click,DBOnline,QueryResult,CommandResult
+    Query = 0x500000,       // query_id
+    Render = 0x60000,       // RenderMethod
+    System = 0x700000,      // GUI, DuckDB
     EndItemTypes = 0xF00000
 };
 
@@ -222,6 +223,7 @@ using QInx = DataCacheIndex<CIT::Query,CDT::cdStr>;
 using EInx = DataCacheIndex<CIT::Event,CDT::cdStr>;
 using WInx = DataCacheIndex<CIT::Widget,CDT::cdStr>;
 using SInx = DataCacheIndex<CIT::System, CDT::cdStr>;
+using RInx = DataCacheIndex<CIT::Render, CDT::cdStr>;
 // Address is always a string as an LHS value in 
 // data defn
 using AInx = DataCacheIndex<CIT::Address,CDT::cdStr>;
@@ -242,3 +244,17 @@ using StrVecInx = DataCacheIndex<CIT::Value, CDT::cdStrVec>;  // !mutable
 // WInx:EInx    eg  "i_am_footer_db_button":"Click"
 // SInx:Einx    eg  "DuckDB":"Online"
 //                  "GUI":"Online"
+
+
+struct NDAction {
+    WInx push_ui;
+    RInx pop_ui;
+    EInx db_action;
+    QInx query_id;
+    AInx sql_cname;
+};
+
+using ActionVec = std::vector<NDAction>;
+// TODO: figure out this templ decl
+// using ActionKey = std::pair<DataCacheIndex<CIT, CDT::cdStr>, ActionVec>;
+// using ActionMap = std::unordered_map<
