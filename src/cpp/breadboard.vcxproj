@@ -186,6 +186,7 @@
     <ClInclude Include="context.hpp" />
     <ClInclude Include="db_cache.hpp" />
     <ClInclude Include="dl_cache.hpp" />
+    <ClInclude Include="dl_types.hpp" />
     <ClInclude Include="facade.hpp" />
     <ClInclude Include="im_render.hpp" />
     <ClInclude Include="json_ops.hpp" />
