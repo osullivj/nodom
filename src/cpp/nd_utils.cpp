@@ -66,8 +66,6 @@ const char* CriticalToString(Critical crit) {
         return Static::clear_cs;
     case WebSockConnectionFailed:
         return Static::websock_connection_failed_cs;
-    default:
-        return 0;
     }
     return 0;
 }
