@@ -139,7 +139,7 @@ enum RenderMethod : uint32_t {
     EndRenderMethod
 };
 
-RenderMethod RenderMethodFromString(const char* m);
+RenderMethod RenderMethodFromString(const std::string& rm);
 
 // Built in hi bits for ID ranges
 // 32 bits for IDs gives us 16 hi bits and 16 lo bits
