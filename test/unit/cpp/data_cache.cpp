@@ -1,4 +1,4 @@
-#include "data_cache.hpp"
+#include "dl_cache.hpp"
 #include "json_ops.hpp"
 #define BOOST_TEST_MODULE Data_Cache_Tests
 #include <boost/test/unit_test.hpp>
@@ -7,7 +7,7 @@
 using JSON = nlohmann::json;
 
 struct DataCacheFixture {
-    DataCache dc;
+    DataLayCache dc;
 
     // cf NDContext::style_coloring
     int style_coloring{ StyleColor::Dark };
