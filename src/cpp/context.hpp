@@ -9,7 +9,7 @@
 #include "proxy.hpp"
 #include "static_strings.hpp"
 #include "db_cache.hpp"
-#include "json_ops.hpp"
+#include "dl_types.hpp"
 #include "logger.hpp"
 
 // NDContext: the NoDOM render engine, built on top of Dear ImGui and Emscripten.
@@ -86,20 +86,6 @@ private:
     JSON& data;
 };
 
-template <typename JSON>
-struct NDWidget {
-    NDWidget() = delete;
-    NDWidget(StringVec& weq_ids, StringIntMap& weq_map, const JSON& w)
-        :widget_id(IDType::Widget + extract_entity_id<JSON>(weq_ids, weq_map, w, Static::widget_id_cs)),
-            rname(extract_render_name<JSON>(w)),
-            cspec(extract_cspec<JSON>(w))
-    { }
-    RenderMethod    rname{ EndRenderMethod };
-    uint32_t        widget_id{ 0 }; // invalid ID
-    const JSON&     cspec;
-};
-
-
 
 // NDContext: stack based rendering
 // Utility funcs above if they're too specific to rendering
@@ -138,6 +124,7 @@ private:
     std::string         init_layout_s;
     JSON                real_data;
     JSON                real_layout;
+
     WidgetVec           memo_layout;
 
     int                 style_coloring{ StyleColor::Dark };   // match im_start StyleColorsDark()
@@ -305,11 +292,6 @@ public:
     void        set_glfw_window(GLFWwindow* w) { glfw_window = w; }
 
     bool        cache_is_loaded() { return data_loaded && layout_loaded; }
-
-    uint32_t register_entity_id(IDType base, std::string&& id) {
-        entity_ids.emplace_back(id);
-        return entity_ids.size() + base;
-    }
 
     void set_critical(Critical error_code) {
         show_stopper = error_code;
@@ -693,7 +675,8 @@ protected:
                 NDLogger::cerr() << method << "ui_push(" << widget_id << ") no such pushable" << std::endl;
             }
             else {
-                int_widget_id = IDType::Widget + find_it->second;
+                // TODO: fix after C2 refactor
+                int_widget_id = find_it->second;
             }
             // new above, slightly amended below...
             auto push_it = pushable.find(int_widget_id);
