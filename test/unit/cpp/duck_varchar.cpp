@@ -26,7 +26,6 @@ struct DuckDBFixture {
         duckdb_data_chunk res_chunk = duckdb_result_get_chunk(result, 0);
         idx_t colm_count = duckdb_data_chunk_get_column_count(res_chunk);
         idx_t row_count = duckdb_data_chunk_get_size(res_chunk);
-        duckdb_vector vec = duckdb_data_chunk_get_vector(res_chunk, 0);
 
         int16_t*            sidata = nullptr;
         int32_t*            idata = nullptr;
