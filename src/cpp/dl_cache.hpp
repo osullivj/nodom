@@ -1,5 +1,6 @@
 #pragma once
 #include "nd_types.hpp"
+#include "dl_types.hpp"
 
 // Cache for data, layout and data.actions
 class DataLayCache {
@@ -46,11 +47,11 @@ protected:
 public:
     DataLayCache() { }
 
-    AInx add_address(std::string&& addr) {
+    AddrInx add_address(std::string&& addr) {
         return intern_string<CIT::Address>(std::move(addr));
     }
 
-    AInx add_address(const std::string& addr) {
+    AddrInx add_address(const std::string& addr) {
         return intern_string<CIT::Address>(addr);
     }
 
@@ -72,7 +73,7 @@ public:
         return intern_string<CIT::Value>(std::move(s));
     }
 
-    const char* get_address(AInx inx) {
+    const char* get_string_value(AddrInx inx) {
         return fp_char_ptrs[inx()];
     }
    
