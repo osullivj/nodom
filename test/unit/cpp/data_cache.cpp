@@ -93,7 +93,11 @@ BOOST_FIXTURE_TEST_CASE(AddRenderMethod, DataCacheFixture)
     // TODO: test for RenderMethod in DLCache
     // eg Static::rm_home_cs as RInx
     // NB we need them for NDAction::pop_ui
-
+    RenderInx home_inx = dc.add_render_name(Static::rm_home_cs);
+    RenderInx input_int_inx = dc.add_render_name(Static::rm_input_int_cs);
+    RenderInx combo_inx = dc.add_render_name(Static::rm_combo_cs);
+    BOOST_TEST(combo_inx.magic_index == 0x06040002);
+    BOOST_TEST(combo_inx() == 2);
 }
 
 BOOST_FIXTURE_TEST_CASE(BadIndex, DataCacheFixture)
