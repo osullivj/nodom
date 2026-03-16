@@ -73,6 +73,10 @@ public:
         return intern_string<CIT::Value>(std::move(s));
     }
 
+    RenderInx add_render_name(const std::string& rname) {
+        return intern_string<CIT::RenderName>(rname);
+    }
+
     const char* get_string_value(AddrInx inx) {
         return fp_char_ptrs[inx()];
     }
