@@ -1,5 +1,6 @@
 #pragma once
 #include <map>
+#include <unordered_map>
 #include <functional>
 #include <string>
 #include <vector>
@@ -148,14 +149,24 @@ RenderMethod RenderMethodFromString(const std::string& rm);
 // This enable a max of 65535 (0xFFFF) DCIs
 // of any recognised data type.
 enum CacheItemType : uint32_t {
-    Address = 0x100000,    // cname, sql_cname
-    Value = 0x200000,
-    Widget = 0x300000,      // widget_id
-    Event = 0x400000,       // Click,DBOnline,QueryResult,CommandResult
-    Query = 0x500000,       // query_id
-    Render = 0x60000,       // RenderMethod
-    System = 0x700000,      // GUI, DuckDB
-    EndItemTypes = 0xF00000
+    Address = 0x1000000,     // cname, sql_cname
+    Value = 0x2000000,       // Int,Float,Bool,IntVec,StrVec
+    EntityID = 0x3000000,    // widget_id|query_id|susbsys_id
+    Event = 0x4000000,       // Click,Online,QueryResult,CommandResult
+    RenderName = 0x600000,   // RenderMethod
+    SubSystem = 0x7000000,   // [GUI|DuckDB].Online
+    EndItemTypes = 0xF000000 
+};
+
+enum CacheItemSubType : uint32_t {
+    None = 0x000000,
+    WidgetID = 0x100000,    // EntityID:widget_id
+    QueryID = 0x200000,     // EntityID:query_id
+    SubSysID = 0x300000,    // EntityID:[GUI|DuckDB]
+    WidgetEvent = 0x400000, // Event:Click
+    DBEvent = 0x500000,     // Event:[QueryResult|CommandResult]
+    SubSysEvent = 0x600000,
+    EndSubItemTypes = 0xF00000
 };
 
 enum CacheDataType : uint32_t {
@@ -167,8 +178,10 @@ enum CacheDataType : uint32_t {
     cdStrVec = 0x60000,
     EndDataTypes = 0xF0000
 };
-using CDT = CacheDataType;
+
 using CIT = CacheItemType;
+using CST = CacheItemSubType;
+using CDT = CacheDataType;
 
 // cache index range is 16 bits 0x0000->0xFFFF
 // eg 0->65535
@@ -193,15 +206,41 @@ struct DataCacheIndex {
     DataCacheIndex(const DataCacheIndex&) = default;
     DataCacheIndex& operator=(const DataCacheIndex&) = default;
 
-    DataCacheIndex(uint32_t inx) {
+    DataCacheIndex(uint32_t inx, CST stype=CST::None) {
         // check template param val OK
         static_assert(itype != EndItemTypes);
         static_assert(dtype != EndDataTypes);
         // check i is in lo 16 bit range
         if (inx > MAX_DCI)
             throw std::runtime_error("NoDOM BAD_DCI");
+        // check stype has sane value
+        switch (item_type) {
+        case EntityID:
+            switch (stype) {
+            case None:
+            case WidgetID:  // Widget, Query and
+            case QueryID:   // SubSystem IDs all fine
+            case SubSysID:  // for EntityID
+                break;
+            default:
+                throw std::runtime_error("NoDOM BAD_ENTITY_ID");
+            }
+        case Event:
+            switch (stype) {
+            case None:
+            case WidgetEvent: // Event:Click
+            case DBEvent:     // Event:[QueryResult|CommandResult]
+            case SubSysEvent:
+                break;
+            default:
+                throw std::runtime_error("NoDOM BAD_ENTITY_TYPE");
+            }
+        default:
+            break;
+        }
         // itipe,dtype in hi 16, inx in lo 16
         magic_index = item_type | data_type;
+        magic_index |= stype;
         magic_index += inx;
     }
 
@@ -216,17 +255,18 @@ struct DataCacheIndex {
 // Value float at inx:10    0022000A
 
 // Identifiers are always strings...
-// Query IDs, Event IDs (Click, Online, QueryResult)
+// Event IDs (Click, Online, QueryResult)
+// Query IDs (the_depth_query, the_depth_summary)
 // Widget IDs (i_am_the_footer_button)
 // System IDs (GUI, DuckDB)
-using QInx = DataCacheIndex<CIT::Query,CDT::cdStr>;
-using EInx = DataCacheIndex<CIT::Event,CDT::cdStr>;
-using WInx = DataCacheIndex<CIT::Widget,CDT::cdStr>;
-using SInx = DataCacheIndex<CIT::System, CDT::cdStr>;
-using RInx = DataCacheIndex<CIT::Render, CDT::cdStr>;
-// Address is always a string as an LHS value in 
-// data defn
-using AInx = DataCacheIndex<CIT::Address,CDT::cdStr>;
+// LHS of ActionKey
+using EntityInx = DataCacheIndex<CIT::EntityID, CDT::cdStr>;
+// RHS of ActionKey
+using EventInx = DataCacheIndex<CIT::Event, CDT::cdStr>;
+// NDAction::pop_ui is an RInx
+using RenderInx = DataCacheIndex<CIT::RenderName, CDT::cdStr>;
+// Address is always a string as an LHS value in data defn
+using AddrInx = DataCacheIndex<CIT::Address,CDT::cdStr>;
 // Three types of atomic value; all mutable
 using IntInx = DataCacheIndex<CIT::Value,CDT::cdInt>;
 using FloatInx = DataCacheIndex<CIT::Value, CDT::cdFloat>;
@@ -240,21 +280,20 @@ using StrVecInx = DataCacheIndex<CIT::Value, CDT::cdStrVec>;  // !mutable
 // AInx:VInx    eg  "op1":<int>
 // 
 // Action key defn
-// QInx:EInx    eg  "the_depth_query":"QueryResult"
-// WInx:EInx    eg  "i_am_footer_db_button":"Click"
-// SInx:Einx    eg  "DuckDB":"Online"
-//                  "GUI":"Online"
+// EntityInx:EventInx   eg  "the_depth_query":"QueryResult"
+//                      eg  "i_am_footer_db_button":"Click"
+//                      eg  "DuckDB":"Online"
+//                           "GUI":"Online"
 
 
 struct NDAction {
-    WInx push_ui;
-    RInx pop_ui;
-    EInx db_action;
-    QInx query_id;
-    AInx sql_cname;
+    EntityInx push_ui;
+    RenderInx pop_ui;
+    EventInx db_action; // Query||Command||BatchRequest
+    EntityInx query_id;
+    AddrInx sql_cname;
 };
 
 using ActionVec = std::vector<NDAction>;
-// TODO: figure out this templ decl
-// using ActionKey = std::pair<DataCacheIndex<CIT, CDT::cdStr>, ActionVec>;
-// using ActionMap = std::unordered_map<
+using ActionKey = std::pair<EntityInx, EventInx>;
+using ActionMap = std::unordered_map<ActionKey, ActionVec>;
