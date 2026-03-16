@@ -106,6 +106,13 @@ BOOST_FIXTURE_TEST_CASE(BadIndex, DataCacheFixture)
     BOOST_CHECK_THROW(AddrInx{ MAX_DCI + 1 }, std::exception);
 }
 
+BOOST_FIXTURE_TEST_CASE(BadWidgetIndex, DataCacheFixture)
+{
+    // Create an EntityInx without a CIST ctor param
+    BOOST_CHECK_THROW(EntityInx{ 0 }, std::exception);
+}
+
+
 BOOST_FIXTURE_TEST_CASE(AddServerLayout, DataCacheFixture)
 {
     JSON layout = JParse<JSON>(add_server_layout);

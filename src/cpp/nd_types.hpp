@@ -217,7 +217,6 @@ struct DataCacheIndex {
         switch (item_type) {
         case EntityID:
             switch (stype) {
-            case None:
             case WidgetID:  // Widget, Query and
             case QueryID:   // SubSystem IDs all fine
             case SubSysID:  // for EntityID
@@ -227,7 +226,6 @@ struct DataCacheIndex {
             }
         case Event:
             switch (stype) {
-            case None:
             case WidgetEvent: // Event:Click
             case DBEvent:     // Event:[QueryResult|CommandResult]
             case SubSysEvent:
