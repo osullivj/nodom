@@ -153,7 +153,7 @@ enum CacheItemType : uint32_t {
     Value = 0x2000000,       // Int,Float,Bool,IntVec,StrVec
     EntityID = 0x3000000,    // widget_id|query_id|susbsys_id
     Event = 0x4000000,       // Click,Online,QueryResult,CommandResult
-    RenderName = 0x600000,   // RenderMethod
+    RenderName = 0x6000000,  // RenderMethod
     SubSystem = 0x7000000,   // [GUI|DuckDB].Online
     EndItemTypes = 0xF000000 
 };
