@@ -249,8 +249,12 @@ struct DataCacheIndex {
     }
 
     friend std::ostream& operator<<(std::ostream& os, const DataCacheIndex<itype, dtype>& dci) {
-        os << std::hex << dci.magic_index;
+        os << "0x" << std::setfill('0') << std::setw(8) << std::hex << dci.magic_index;
         return os;
+    }
+
+    friend static bool operator<(const DataCacheIndex<itype, dtype>& lhs, const DataCacheIndex<itype, dtype>& rhs) {
+        return lhs.magic_index < rhs.magic_index;
     }
 
 };
