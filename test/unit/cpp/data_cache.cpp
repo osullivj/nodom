@@ -6,15 +6,14 @@
 #include <math.h>
 
 #ifdef __EMSCRIPTEN__
-using JSON = emscripten::value;
+using TJSON = emscripten::val;
 #else
-using JSON = nlohmann::json;
+using TJSON = nlohmann::json;
 #endif
 
 
 struct DataCacheFixture {
-
-    DataLayCache<JSON>    dc;
+    DataLayCache<TJSON>   dc;
 
     // cf NDContext::style_coloring
     int style_coloring{ StyleColor::Dark };
@@ -43,6 +42,11 @@ struct DataCacheFixture {
         R"(    ])"                                                  "\n"
         R"(  })"                                                    "\n"
         R"(])"; // ]
+    std::string add_server_data = R"({)"    "\n"    // {
+        R"(  "op1":2,)"                     "\n"
+        R"(  "op2":3,)"                     "\n"
+        R"(  "op1_plus_op2":5)"             "\n"
+        R"(})";
 
     DataCacheFixture() {
     }
@@ -117,12 +121,16 @@ BOOST_FIXTURE_TEST_CASE(BadWidgetIndex, DataCacheFixture)
     BOOST_CHECK_THROW(EntityInx{ 0 }, std::exception);
 }
 
+BOOST_FIXTURE_TEST_CASE(AddServerData, DataCacheFixture)
+{
+    TJSON data = JParse<TJSON>(add_server_data);
+    dc.on_data(data);
+    BOOST_TEST(dc.addr_set_size() == 3);
+}
+
 
 BOOST_FIXTURE_TEST_CASE(AddServerLayout, DataCacheFixture)
 {
-    JSON layout = JParse<JSON>(add_server_layout);
-    int layout_length = JSize(layout);
-    for (int inx = 0; inx < layout_length; inx++) {
-        const JSON& w(layout[inx]);
-    }
+    TJSON layout = JParse<TJSON>(add_server_layout);
+    dc.on_layout(layout);
 }
