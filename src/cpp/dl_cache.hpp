@@ -52,6 +52,8 @@ protected:
 public:
     DataLayCache() { }
 
+    size_t addr_set_size() { return addr_set.size(); }
+
     void on_data(const JSON& data) {
         const static char* method = "DataLayCache::on_data: ";
 
@@ -61,13 +63,16 @@ public:
         JKeys(data, data_keys);
         for (auto cit = data_keys.cbegin(); cit != data_keys.end(); ++cit) {
             key = *cit;
-            if (key == Static::actions_cs) continue;
+            if (key == Static::actions_cs) {
+                we_have_actions = true;
+                continue;
+            }
             AddrInx ainx = add_address(key);
             addr_set.insert(ainx);
             NDLogger::cout() << method << key << ":" << ainx << std::endl;
         }
 
-        if (JContains(data, Static::actions_cs)) {
+        if (we_have_actions) {
             const JSON& actions(data[Static::actions_cs]);
 
         }
@@ -78,7 +83,14 @@ public:
     }
 
     void on_layout(const JSON& layout) {
+        int layout_length = JSize(layout);
+        for (int inx = 0; inx < layout_length; inx++) {
+            const JSON& w(layout[inx]);
+        }
+    }
 
+    const char* get_string_value(AddrInx inx) {
+        return fp_char_ptrs[inx()];
     }
 
     AddrInx add_address(std::string&& addr) {
@@ -111,8 +123,6 @@ public:
         return intern_string<CIT::RenderName>(rname);
     }
 
-    const char* get_string_value(AddrInx inx) {
-        return fp_char_ptrs[inx()];
-    }
+
    
 };
