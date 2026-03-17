@@ -48,6 +48,9 @@ JSON JArray(const std::vector<V>& values) {
 template <typename JSON>
 std::string JPrettyPrint(const JSON& cache_object);
 
+template <typename JSON>
+void JKeys(const JSON& obj, StringVec& vec);
+
 #ifndef __EMSCRIPTEN__
 // nlohmann::json implementations of JSON cache ops
 // nlohmann::json JSON cache ops only run in breadboard,
@@ -108,6 +111,12 @@ template <>
 std::string JPrettyPrint(const nlohmann::json& cache_object) {
 	std::string pp = cache_object.dump(2);
 	return pp;
+}
+
+template <>
+void JKeys(const nlohmann::json& obj, StringVec& vec) {
+	for (auto& cit = obj.cbegin(); cit != obj.cend(); ++cit)
+		vec.push_back(cit.key());
 }
 
 #else
@@ -172,6 +181,13 @@ std::string JPrettyPrint(const emscripten::val& v) {
 	emscripten::val json_global = emscripten::val::global("JSON");
 	emscripten::val json = json_global.call<emscripten::val>("stringify", v, emscripten::val::null(), 2);
 	return json.as<std::string>();
+}
+
+template <>
+void JKeys(const emscripten::val& obj, StringVec& vec) {
+	emscripten::val obj_global = emscripten::val::global("Object");
+	emscripten::val keys = obj_global.call<emscripten::val>("keys", obj);
+	vec = emscripten::vecFromJSArray<std::string>(keys);
 }
 
 // no format stream operator for ems::val. nlohmann::json provides
