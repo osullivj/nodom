@@ -5,11 +5,16 @@
 #include <boost/test/unit_test.hpp>
 #include <math.h>
 
+#ifdef __EMSCRIPTEN__
+using JSON = emscripten::value;
+#else
 using JSON = nlohmann::json;
+#endif
+
 
 struct DataCacheFixture {
 
-    DataLayCache    dc;
+    DataLayCache<JSON>    dc;
 
     // cf NDContext::style_coloring
     int style_coloring{ StyleColor::Dark };
