@@ -1,8 +1,10 @@
 #pragma once
 #include "nd_types.hpp"
 #include "dl_types.hpp"
+#include "logger.hpp"
 
 // Cache for data, layout and data.actions
+template <typename JSON>
 class DataLayCache {
 private:
     // RHS data values: you can only be RHS value if
@@ -19,6 +21,9 @@ private:
     // have a copy here for simplicity, so that cache_strings
     // and fp_char_ptrs can stay in a one to one.
     std::vector<std::string>   cache_strings;
+
+    // Cache addresses
+    std::set<AddrInx>   addr_set;
 protected:
     template <CIT itype>
     auto intern_string(std::string&& s) {
@@ -46,6 +51,35 @@ protected:
 
 public:
     DataLayCache() { }
+
+    void on_data(const JSON& data) {
+        const static char* method = "DataLayCache::on_data: ";
+
+        bool we_have_actions{ false };
+        StringVec data_keys;
+        std::string key;
+        JKeys(data, data_keys);
+        for (auto cit = data_keys.cbegin(); cit != data_keys.end(); ++cit) {
+            key = *cit;
+            if (key == Static::actions_cs) continue;
+            AddrInx ainx = add_address(key);
+            addr_set.insert(ainx);
+            NDLogger::cout() << method << key << ":" << ainx << std::endl;
+        }
+
+        if (JContains(data, Static::actions_cs)) {
+            const JSON& actions(data[Static::actions_cs]);
+
+        }
+        else {
+            NDLogger::cout() << method << "DATA_NO_ACTIONS" << std::endl;
+        }
+
+    }
+
+    void on_layout(const JSON& layout) {
+
+    }
 
     AddrInx add_address(std::string&& addr) {
         return intern_string<CIT::Address>(std::move(addr));
