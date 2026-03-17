@@ -4,6 +4,7 @@
 #include <functional>
 #include <string>
 #include <vector>
+#include <set>
 #include <cassert>
 
 using StringVec = std::vector<std::string>;
@@ -245,6 +246,11 @@ struct DataCacheIndex {
     uint32_t operator()() {
         // return only bottom 16bits
         return magic_index & MAX_DCI;
+    }
+
+    friend std::ostream& operator<<(std::ostream& os, const DataCacheIndex<itype, dtype>& dci) {
+        os << std::hex << dci.magic_index;
+        return os;
     }
 
 };
