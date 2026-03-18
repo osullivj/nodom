@@ -2,9 +2,10 @@
 #include "json_ops.hpp"
 
 // cspec Property Groups
-// == Home: unique to Home
+// == Home: unique to Home, custom code
 // children:WidgetVec
 // critical_messages:StrVec
+// 
 // == Title: Home, DuckTableSummaryModal, LoadingModal, Table
 // title:str
 // title_font:str
@@ -21,6 +22,9 @@
 // == Day date font: DatePicker
 // day_date_font: str
 // day_date_font_size: int
+// == Push font
+// font:str
+// font_size:int
 // == Label: InputInt, Combo, CheckBox
 // label: str
 // == Text: Text, Button
