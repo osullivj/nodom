@@ -241,20 +241,22 @@ public:
             CacheSpecifier spec{ *cit };
             CacheDataType atomic_type = atomic_cspec_types[spec];
             const char* atomic_name = atomic_cspec_names[spec];
-            switch (atomic_type) {
-            case cdInt:
-                widget.cspec_int[spec] = intern_int(JAsInt(cspec, atomic_name));
-                break;
-            case cdFloat:
-                break;
-            case cdBool:
-                break;
-            case cdStr:
-                break;
-            case cdIntVec:
-                break;
-            case cdStrVec:
-                break;
+            if (JContains(cspec, atomic_name)) {
+                switch (atomic_type) {
+                case cdInt:
+                    widget.cspec_int[spec] = intern_int(JAsInt(cspec, atomic_name));
+                    break;
+                case cdFloat:
+                    break;
+                case cdBool:
+                    break;
+                case cdStr:
+                    break;
+                case cdIntVec:
+                    break;
+                case cdStrVec:
+                    break;
+                }
             }
         }
     }
