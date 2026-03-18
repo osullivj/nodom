@@ -83,6 +83,7 @@ struct NDWidget {
     std::string     widget_id;
     StrInx          widget_inx;
     IntValMap       cspec_int;
+    StrValMap       cspec_str;
 };
 
 
