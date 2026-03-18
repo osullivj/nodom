@@ -20,13 +20,17 @@ private:
     // may have a value stored elsewhere, but will also 
     // have a copy here for simplicity, so that cache_strings
     // and fp_char_ptrs can stay in a one to one.
-    std::vector<std::string>   cache_strings;
+    std::vector<std::string>    cache_strings;
+    std::vector<int>            cache_ints;
+
+    std::vector<NDWidget>       widget_vec;
 
     // Cache addresses
     std::set<AddrInx>   addr_set;
 
     // interned str for eg cname, title, title_font
     std::map<CacheSpecifier, StrInx> cspec_indices;
+
 
     inline static std::array<const char*, cs_end_cache_specs> atomic_cspec_names{
         Static::title_cs,      // cs_title
@@ -62,6 +66,73 @@ private:
         Static::index_cs,
         Static::qname_cs
     };
+    inline static std::array<CacheDataType, cs_end_cache_specs> atomic_cspec_types{
+    cdStr,      // cs_title
+    cdStr,      // cs_title_font
+    cdInt,      // cs_title_font_size
+    cdStr,      // cs_body_font
+    cdInt,      // cs_body_font_size
+    cdStr,      // cs_button_font
+    cdInt,      // cs_button_font_size
+    cdStr,      // cs_year_month_font
+    cdInt,      // cs_year_month_font_size
+    cdStr,      // cs_day_date_font
+    cdInt,      // cs_day_date_font_size
+    cdStr,      // cs_label
+    cdStr,      // cs_text
+    cdInt,      // cs_step,
+    cdInt,      // cs_step_fast
+    cdInt,      // cs_spinner_radius
+    cdInt,      // cs_spinner_thickness
+    cdInt,      // cs_flags
+    cdInt,      // cs_table_flags
+    cdInt,      // cs_combo_flags
+    cdInt,      // cs_window_flags
+    cdBool,     // cs_db,
+    cdBool,     // cs_fps,
+    cdBool,     // cs_demo,
+    cdBool,     // cs_id_stack,
+    cdFloat,    // cs_font_scale,
+    cdInt,      // cs_style
+    cdAny,      //.cs_cname
+    cdInt,      // cs_index
+    cdResultSet
+    };
+
+    inline static std::map<RenderMethod, CacheDataType> cname_cspec_types{
+        {Combo, cdStrVec},
+        {InputInt, cdInt},
+        {Checkbox, cdBool},
+        {DatePicker, cdIntVec},
+        {LoadingModal, cdStrVec}
+    };
+    inline static std::map<RenderMethod, CacheDataType> index_cspec_types{
+        {Combo, cdInt}
+    };
+    inline static  std::map<RenderMethod, CacheSpecVec> atomic_cspecs{
+        {Home, {cs_title, cs_title_font, cs_title_font_size}},
+        {InputInt, {cs_label, cs_step, cs_step_fast, cs_flags}},
+        {Combo, {cs_label, cs_step}},
+        {Checkbox, {cs_label}},
+        {Text, {cs_text}},
+        {Button, {cs_text}},
+        {Table, {cs_title, cs_title_font, cs_title_font_size,
+                    cs_body_font, cs_body_font_size,
+                    cs_table_flags, cs_window_flags}},
+        {Footer, {cs_db, cs_fps, cs_demo, cs_id_stack, cs_font_scale, cs_style}},
+        {DatePicker, {cs_year_month_font, cs_year_month_font_size,
+                        cs_day_date_font, cs_day_date_font_size,
+                        cs_table_flags, cs_combo_flags}},
+        {DuckTableSummaryModal, {cs_title, cs_title_font, cs_title_font_size,
+                    cs_body_font, cs_body_font_size,
+                    cs_table_flags, cs_window_flags,
+                    cs_button_font, cs_button_font_size}},
+        {LoadingModal, {cs_title, cs_title_font, cs_title_font_size,
+                    cs_body_font, cs_body_font_size,
+                    cs_spinner_thickness, cs_spinner_radius,
+                    cs_window_flags}},
+        {PushFont, {cs_font, cs_font_size}}
+    };
 protected:
     template <CIT itype>
     auto intern_string(std::string&& s) {
@@ -85,6 +156,28 @@ protected:
         }
         uint32_t inx = std::distance(iter, cache_strings.begin());
         return DataCacheIndex<itype, CDT::cdStr>(inx);
+    }
+
+    auto intern_int(int&& value) {
+        // cannot be a ptr to value in fp_int_ptrs as it's rval,
+        // so go ahead and create a new cache_ints backed Int
+        cache_ints.push_back(value);
+        fp_int_ptrs.push_back(&(cache_ints.back()));
+        return IntInx(fp_int_ptrs.size() - 1);
+    }
+
+    auto intern_int(int& value) {
+        // is there a ptr to value in fp_int_ptrs already?
+        // NB such a ptr would not have cache_ints backing...
+        auto iter = std::find(fp_int_ptrs.begin(), fp_int_ptrs.end(), &value);
+        if (iter == fp_int_ptrs.end()) {
+            // we don't know where value is stored, so copy to cache_ints
+            cache_ints.push_back(value);
+            fp_int_ptrs.push_back(&(cache_ints.back()));
+            return IntInx(fp_int_ptrs.size() - 1);
+        }
+        uint32_t inx = std::distance(iter, fp_int_ptrs.begin());
+        return IntInx(inx);
     }
 
 public:
@@ -137,11 +230,48 @@ public:
 
     }
 
+    void orthogonalize_cspec(const JSON& cspec, NDWidget& widget) {
+        if (!widget.widget_id.empty()) {
+            widget.widget_inx = intern_string<Value>(widget.widget_id);
+        }
+
+        // parse cspec: atomics first
+        const CacheSpecVec& atomics{ atomic_cspecs[widget.rname] };
+        for (auto cit = atomics.cbegin(); cit != atomics.cend(); ++cit) {
+            CacheSpecifier spec{ *cit };
+            CacheDataType atomic_type = atomic_cspec_types[spec];
+            const char* atomic_name = atomic_cspec_names[spec];
+            switch (atomic_type) {
+            case cdInt:
+                widget.cspec_int[spec] = intern_int(JAsInt(cspec, atomic_name));
+                break;
+            case cdFloat:
+                break;
+            case cdBool:
+                break;
+            case cdStr:
+                break;
+            case cdIntVec:
+                break;
+            case cdStrVec:
+                break;
+            }
+        }
+    }
+
     void on_layout(const JSON& layout) {
         int layout_length = JSize(layout);
         for (int inx = 0; inx < layout_length; inx++) {
             const JSON& w(layout[inx]);
+            const JSON& cspec(extract_cspec<JSON>(w));
+            NDWidget widget(extract_render_name(w), 
+                                    extract_string(w, Static::widget_id_cs));
+            widget_vec.push_back(widget);
+            orthogonalize_cspec(cspec, widget_vec.back());
         }
+        // pushable map validates unique widget_ids for pushables!
+        // but not eg i_am_footer_db_button
+        // need a post parse check on widget_id uniqueness
     }
 
     const char* get_string_value(AddrInx inx) {
@@ -176,6 +306,10 @@ public:
 
     RenderInx add_render_name(const std::string& rname) {
         return intern_string<CIT::RenderName>(rname);
+    }
+
+    IntInx add_stored_int(int& si) {
+
     }
 
 
