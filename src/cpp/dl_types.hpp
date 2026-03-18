@@ -83,7 +83,9 @@ struct NDWidget {
         // parse cspec: atomics first
         const CacheSpecVec& atomics(atomic_cspecs[rname]);
         for (auto cit = atomics.cbegin(); cit != atomics.cend(); ++cit) {
-
+            CacheSpecifier spec{*cit};
+            CacheDataType atomic_type = atomic_cspec_types[spec];
+            const char* atomic_name = atomic_cspec_names[spec];
         }
 
 
@@ -119,8 +121,12 @@ struct NDWidget {
         cdBool,     // cs_demo,
         cdBool,     // cs_id_stack,
         cdFloat,    // cs_font_scale,
-        cdInt       // cs_style
+        cdInt,      // cs_style
+        cdAny,      //.cs_cname
+        cdInt,      // cs_index
+        cdResultSet
     };
+    
     inline static std::map<RenderMethod, CacheDataType> cname_cspec_types{
         {Combo, cdStrVec},
         {InputInt, cdInt},
