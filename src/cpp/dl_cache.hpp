@@ -251,6 +251,7 @@ public:
                 case cdBool:
                     break;
                 case cdStr:
+                    widget.cspec_str[spec] = intern_string<Value>(JAsString(cspec, atomic_name));
                     break;
                 case cdIntVec:
                     break;
