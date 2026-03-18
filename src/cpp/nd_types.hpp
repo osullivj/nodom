@@ -345,3 +345,4 @@ enum CacheSpecifier : uint32_t {
 
 using CacheSpecVec = std::vector<CacheSpecifier>;
 using IntValMap = std::map<CacheSpecifier, IntInx>;
+using StrValMap = std::map<CacheSpecifier, StrInx>;
