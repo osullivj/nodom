@@ -1,5 +1,6 @@
 #pragma once
 #include "json_ops.hpp"
+#include "static_strings.hpp"
 
 // cspec Property Groups
 // == Home: unique to Home, custom code
@@ -72,95 +73,69 @@
 
 
 // JSON aware types that build on JSON ops and ND types
-template <typename JSON>
 struct NDWidget {
-    NDWidget() = delete;
-    NDWidget(StringVec& entity_ids, StringIntMap& entity_map, const JSON& w)
-        :widget_id(extract_entity_id<JSON>(entity_ids, entity_map, w, Static::widget_id_cs)),
-        rname(extract_render_name<JSON>(w)),
-        cspec(extract_cspec<JSON>(w))
-    {
-        // parse cspec: atomics first
-        const CacheSpecVec& atomics(atomic_cspecs[rname]);
-        for (auto cit = atomics.cbegin(); cit != atomics.cend(); ++cit) {
-            CacheSpecifier spec{*cit};
-            CacheDataType atomic_type = atomic_cspec_types[spec];
-            const char* atomic_name = atomic_cspec_names[spec];
-        }
+    NDWidget() = default;
+    NDWidget(const NDWidget&) = default;
+    NDWidget(RenderMethod meth, std::string&& wid)
+        :rname(meth), widget_id(std::move(wid)) { }
 
-
-    }
     RenderMethod    rname{ EndRenderMethod };
-    uint32_t        widget_id{ 0 }; // invalid ID
-    const JSON& cspec;
-
-    inline static std::array<CacheDataType, cs_end_cache_specs> atomic_cspec_types{
-        cdStr,      // cs_title
-        cdStr,      // cs_title_font
-        cdInt,      // cs_title_font_size
-        cdStr,      // cs_body_font
-        cdInt,      // cs_body_font_size
-        cdStr,      // cs_button_font
-        cdInt,      // cs_button_font_size
-        cdStr,      // cs_year_month_font
-        cdInt,      // cs_year_month_font_size
-        cdStr,      // cs_day_date_font
-        cdInt,      // cs_day_date_font_size
-        cdStr,      // cs_label
-        cdStr,      // cs_text
-        cdInt,      // cs_step,
-        cdInt,      // cs_step_fast
-        cdInt,      // cs_spinner_radius
-        cdInt,      // cs_spinner_thickness
-        cdInt,      // cs_flags
-        cdInt,      // cs_table_flags
-        cdInt,      // cs_combo_flags
-        cdInt,      // cs_window_flags
-        cdBool,     // cs_db,
-        cdBool,     // cs_fps,
-        cdBool,     // cs_demo,
-        cdBool,     // cs_id_stack,
-        cdFloat,    // cs_font_scale,
-        cdInt,      // cs_style
-        cdAny,      //.cs_cname
-        cdInt,      // cs_index
-        cdResultSet
-    };
-    
-    inline static std::map<RenderMethod, CacheDataType> cname_cspec_types{
-        {Combo, cdStrVec},
-        {InputInt, cdInt},
-        {Checkbox, cdBool},
-        {DatePicker, cdIntVec},
-        {LoadingModal, cdStrVec}
-    };
-    inline static std::map<RenderMethod, CacheDataType> index_cspec_types{
-        {Combo, cdInt}
-    };
-    inline static  std::map<RenderMethod, CacheSpecVec> atomic_cspecs{
-        {Home, {cs_title, cs_title_font, cs_title_font_size}},
-        {InputInt, {cs_label, cs_step, cs_step_fast, cs_flags}},
-        {Combo, {cs_label, cs_step}},
-        {Checkbox, {cs_label}},
-        {Text, {cs_text}},
-        {Button, {cs_text}},
-        {Table, {cs_title, cs_title_font, cs_title_font_size,
-                    cs_body_font, cs_body_font_size,
-                    cs_table_flags, cs_window_flags}},
-        {Footer, {cs_db, cs_fps, cs_demo, cs_id_stack, cs_font_scale, cs_style}},
-        {DatePicker, {cs_year_month_font, cs_year_month_font_size,
-                        cs_day_date_font, cs_day_date_font_size,
-                        cs_table_flags, cs_combo_flags}},
-        {DuckTableSummaryModal, {cs_title, cs_title_font, cs_title_font_size,
-                    cs_body_font, cs_body_font_size,
-                    cs_table_flags, cs_window_flags,
-                    cs_button_font, cs_button_font_size}},
-        {LoadingModal, {cs_title, cs_title_font, cs_title_font_size,
-                    cs_body_font, cs_body_font_size,
-                    cs_spinner_thickness, cs_spinner_radius,
-                    cs_window_flags}},
-        {PushFont, {cs_font, cs_font_size}}
-    };
+    std::string     widget_id;
+    StrInx          widget_inx;
+    IntValMap       cspec_int;
 };
 
 
+RenderMethod RenderMethodFromString(const std::string& method) {
+    // Home
+    if (method == Static::rm_home_cs)
+        return RenderMethod::Home;
+    // Native
+    if (method == Static::rm_input_int_cs)
+        return RenderMethod::InputInt;
+    if (method == Static::rm_combo_cs)
+        return RenderMethod::Combo;
+    if (method == Static::rm_checkbox_cs)
+        return RenderMethod::Checkbox;
+    if (method == Static::rm_text_cs)
+        return RenderMethod::Text;
+    if (method == Static::rm_button_cs)
+        return RenderMethod::Button;
+    if (method == Static::rm_table_cs)
+        return RenderMethod::Table;
+    // Compound
+    if (method == Static::rm_footer_cs)
+        return RenderMethod::Footer;
+    if (method == Static::rm_date_picker_cs)
+        return RenderMethod::DatePicker;
+    if (method == Static::rm_duck_table_summary_modal_cs)
+        return RenderMethod::DuckTableSummaryModal;
+    if (method == Static::rm_loading_modal_cs)
+        return RenderMethod::LoadingModal;
+    // Layout
+    if (method == Static::rm_separator_cs)
+        return RenderMethod::Separator;
+    if (method == Static::rm_same_line_cs)
+        return RenderMethod::SameLine;
+    if (method == Static::rm_new_line_cs)
+        return RenderMethod::NewLine;
+    if (method == Static::rm_spacing_cs)
+        return RenderMethod::Spacing;
+    if (method == Static::rm_align_text_to_frame_padding_cs)
+        return RenderMethod::AlignTextToFramePadding;
+    // Grouping
+    if (method == Static::rm_begin_child_cs)
+        return RenderMethod::BeginChild;
+    if (method == Static::rm_end_child_cs)
+        return RenderMethod::EndChild;
+    if (method == Static::rm_begin_group_cs)
+        return RenderMethod::BeginGroup;
+    if (method == Static::rm_end_group_cs)
+        return RenderMethod::EndGroup;
+    // Fonts
+    if (method == Static::rm_push_font_cs)
+        return RenderMethod::PushFont;
+    if (method == Static::rm_pop_font_cs)
+        return RenderMethod::PopFont;
+    return EndRenderMethod;
+}
