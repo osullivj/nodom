@@ -3,6 +3,7 @@
 #ifndef __EMSCRIPTEN__
 #include "nlohmann.hpp"
 #else
+#include <emscripten/val.h>
 #endif
 #include "nd_types.hpp"
 // non specialised func decls: no impl
@@ -207,17 +208,10 @@ std::ostream& operator<<(std::ostream& os, const emscripten::val& v)
 // NDWidget instances. These funcs can invoke other
 // simple synch utils, but not anything in NDContext.
 template <typename JSON>
-uint32_t extract_entity_id(StringVec& id_vec, StringIntMap& id_map, const JSON& w, const char* key) {
-	if (JContains(w, key)) {
-		std::string id(JAsString(w, key));
-		auto id_map_iter = id_map.find(id);
-		if (id_map_iter != id_map.end())
-			return id_map_iter->second;		// already registered
-		id_vec.push_back(id);
-		id_map.emplace(std::make_pair(std::move(id), id_vec.size()));
-		return id_vec.size();
-	}
-	return 0;
+std::string extract_string(const JSON& w, const char* key) {
+	if (JContains(w, key)) 
+		return JAsString(w, key);
+	return std::string{};
 }
 
 template <typename JSON>
