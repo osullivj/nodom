@@ -25,7 +25,7 @@ private:
     // Cache addresses
     std::set<AddrInx>   addr_set;
 
-    std::array<CacheDataType, cs_end_cache_specs> cspec_types{
+    std::array<CacheDataType, cs_end_cache_specs> atomic_cspec_types{
         cdStr,      // cs_title
         cdStr,      // cs_title_font
         cdInt,      // cs_title_font_size
@@ -53,6 +53,50 @@ private:
         cdBool,     // cs_id_stack,
         cdFloat,    // cs_font_scale,
         cdInt       // cs_style
+    };
+    std::map<RenderMethod, CacheDataType> cname_cspec_types{
+        {Combo, cdStrVec},
+        {InputInt, cdInt},
+        {Checkbox, cdBool},
+        {DatePicker, cdIntVec},
+        {LoadingModal, cdStrVec}
+    };
+    std::map<RenderMethod, CacheDataType> index_cspec_types{
+        {Combo, cdInt}
+    };
+    std::map<RenderMethod, CacheSpecVec> atomic_cspecs{
+        {Home, {cs_title, cs_title_font, cs_title_font_size}},
+        {InputInt, {cs_label, cs_step, cs_step_fast, cs_flags}},
+        {Combo, {cs_label, cs_step}},
+        {Checkbox, {cs_label}},
+        {Text, {cs_text}},
+        {Button, {cs_text}},
+        {Table, {cs_title, cs_title_font, cs_title_font_size,
+                    cs_body_font, cs_body_font_size,
+                    cs_table_flags, cs_window_flags}},
+        {Footer, {cs_db, cs_fps, cs_demo, cs_id_stack, cs_font_scale, cs_style}},
+        {DatePicker, {cs_year_month_font, cs_year_month_font_size,
+                        cs_day_date_font, cs_day_date_font_size,
+                        cs_table_flags, cs_combo_flags}},
+        {DuckTableSummaryModal, {cs_title, cs_title_font, cs_title_font_size,
+                    cs_body_font, cs_body_font_size,
+                    cs_table_flags, cs_window_flags,
+                    cs_button_font, cs_button_font_size}},
+        {LoadingModal, {cs_title, cs_title_font, cs_title_font_size,
+                    cs_body_font, cs_body_font_size,
+                    cs_spinner_thickness, cs_spinner_radius,
+                    cs_window_flags}},
+        {PushFont, {cs_font, cs_font_size}}
+    };
+    std::map<RenderMethod, CacheDataType> cname_specs{
+        {Combo, cdStrVec},
+        {InputInt, cdInt},
+        {Checkbox, cdBool},
+        {DatePicker, cdIntVec},
+        {LoadingModal, cdStrVec}
+    };
+    std::map<RenderMethod, CacheDataType> index_specs{
+        {Combo, cdInt}
     };
 protected:
     template <CIT itype>
