@@ -41,30 +41,46 @@ struct Static {
 	inline static const char* sys_cs{ "sys" };
 
 	// cspec keys
-
+	inline static const char* title_cs{ "title" };
+	inline static const char* title_font_cs{ "title_font" };
+	inline static const char* title_font_size_cs{ "title_font_size" };
+	inline static const char* body_font_cs{ "body_font" };
+	inline static const char* body_font_size_cs{ "body_font_size" };
+	inline static const char* font_cs{ "font" };
+	inline static const char* font_size_cs{ "font_size" };
+	inline static const char* button_font_cs{ "button_font" };
+	inline static const char* button_font_size_cs{ "button_font_size" };
+	inline static const char* year_month_font_cs{ "year_month_font" };
+	inline static const char* year_month_font_size_cs{ "year_month_font_size" };
+	inline static const char* day_date_font_cs{ "day_date_font" };
+	inline static const char* day_date_font_size_cs{ "day_date_font_size" };
+	inline static const char* label_cs{ "label" };
+	inline static const char* text_cs{ "text" };
+	inline static const char* step_cs{ "step" };
+	inline static const char* step_fast_cs{ "step_fast" };
+	inline static const char* spinner_radius_cs{ "spinner_radius" };
 	inline static const char* spinner_thickness_cs{ "spinner_thickness" };
-	inline static const char* sql_cs{"sql"};
+	inline static const char* flags_cs{ "flags" };
+	inline static const char* table_flags_cs{ "table_flags" };
+	inline static const char* combo_flags_cs{ "combo_flags" };
+	inline static const char* window_flags_cs{ "window_flags" };
+	inline static const char* child_flags_cs{ "child_flags" };
 	inline static const char* db_cs{ "db" };
 	inline static const char* fps_cs{ "fps" };
 	inline static const char* demo_cs{ "demo" };
 	inline static const char* id_stack_cs{ "id_stack" };
 	inline static const char* font_scale_cs{ "font_scale" };
 	inline static const char* style_cs{ "style" };
+
 	inline static const char* lb_footer_style_cs{ "Style" };
 	inline static const char* cspec_cs{"cspec"};
 	inline static const char* cname_cs{"cname"};
 	inline static const char* qname_cs{"qname"};
 	inline static const char* rname_cs{"rname"};
-	inline static const char* title_cs{"title"};
-	inline static const char* text_cs{"text"};
+
+	inline static const char* sql_cs{ "sql" };
+
 	inline static const char* index_cs{"index"};
-	inline static const char* step_cs{"step"};
-	inline static const char* step_fast_cs{"step_fast"};
-	inline static const char* flags_cs{"flags"};
-	inline static const char* table_flags_cs{"table_flags"};
-	inline static const char* combo_flags_cs{"combo_flags"};
-	inline static const char* window_flags_cs{"window_flags"};
-	inline static const char* child_flags_cs{"child_flags"};
 	inline static const char* path_cs{"path"};
 	inline static const char* service_cs{"service"};
 	inline static const char* children_cs{"children"};
@@ -72,19 +88,7 @@ struct Static {
 	inline static const char* duck_module_cs{"duck_module"};
 	inline static const char* empty_cs{""};
 	inline static const char* nodom_cs{"NoDOM"};
-	inline static const char* font_cs{"font"};
-	inline static const char* font_size_cs{"font_size"};
-	inline static const char* title_font_cs{"title_font"};
-	inline static const char* title_font_size_cs{"title_font_size"};
-	inline static const char* body_font_cs{"body_font"};
-	inline static const char* body_font_size_cs{"body_font_size"};
-	inline static const char* button_font_cs{"button_font"};
-	inline static const char* button_font_size_cs{"button_font_size"};
-	inline static const char* year_month_font_cs{"year_month_font"};
-	inline static const char* year_month_font_size_cs{"year_month_font_size"};
-	inline static const char* day_date_font_cs{"day_date_font"};
-	inline static const char* day_date_font_size_cs{"day_date_font_size"};
-	inline static const char* spinner_radius_cs{"spinner_radius"};
+	
 	inline static const char* size_cs{"size"};
 	inline static const char* widget_id_cs{"widget_id"};
 	
