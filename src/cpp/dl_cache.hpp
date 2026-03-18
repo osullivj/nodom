@@ -24,6 +24,36 @@ private:
 
     // Cache addresses
     std::set<AddrInx>   addr_set;
+
+    std::array<CacheDataType, cs_end_cache_specs> cspec_types{
+        cdStr,      // cs_title
+        cdStr,      // cs_title_font
+        cdInt,      // cs_title_font_size
+        cdStr,      // cs_body_font
+        cdInt,      // cs_body_font_size
+        cdStr,      // cs_button_font
+        cdInt,      // cs_button_font_size
+        cdStr,      // cs_year_month_font
+        cdInt,      // cs_year_month_font_size
+        cdStr,      // cs_day_date_font
+        cdInt,      // cs_day_date_font_size
+        cdStr,      // cs_label
+        cdStr,      // cs_text
+        cdInt,      // cs_step,
+        cdInt,      // cs_step_fast
+        cdInt,      // cs_spinner_radius
+        cdInt,      // cs_spinner_thickness
+        cdInt,      // cs_flags
+        cdInt,      // cs_table_flags
+        cdInt,      // cs_combo_flags
+        cdInt,      // cs_window_flags
+        cdBool,     // cs_db,
+        cdBool,     // cs_fps,
+        cdBool,     // cs_demo,
+        cdBool,     // cs_id_stack,
+        cdFloat,    // cs_font_scale,
+        cdInt       // cs_style
+    };
 protected:
     template <CIT itype>
     auto intern_string(std::string&& s) {
@@ -70,6 +100,12 @@ public:
             AddrInx ainx = add_address(key);
             addr_set.insert(ainx);
             NDLogger::cout() << method << key << ":" << ainx << std::endl;
+            // We could try and parse the values here, but how do
+            // we tell an int from a float? We cannot, because JS only
+            // has "number". We can figure atomic vs array, and string vs
+            // number, but not float vs int. However, when we parse
+            // cspecs in on_layout, we can know from context what type
+            // is required.
         }
 
         if (we_have_actions) {
