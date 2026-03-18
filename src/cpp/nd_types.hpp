@@ -141,7 +141,6 @@ enum RenderMethod : uint32_t {
     EndRenderMethod
 };
 
-RenderMethod RenderMethodFromString(const std::string& rm);
 
 // Built in hi bits for ID ranges
 // 32 bits for IDs gives us 16 hi bits and 16 lo bits
@@ -198,14 +197,14 @@ struct DataCacheIndex {
 
     // 0 is a bad value as hi 16 bits not set
     // to valid IDType
-    uint32_t    magic_index{ 0 };
+    uint32_t    magic_index{ 0x0FEC0000 };
 
     // no default construction so we require
     // real inx at instantiation. Take the 
     // defaults for assign and copy. Move
     // doesn't make sense as this is a "by val" 
     // type...
-    DataCacheIndex() = delete;
+    DataCacheIndex() = default;
     DataCacheIndex(const DataCacheIndex&) = default;
     DataCacheIndex& operator=(const DataCacheIndex&) = default;
 
@@ -345,3 +344,4 @@ enum CacheSpecifier : uint32_t {
 };
 
 using CacheSpecVec = std::vector<CacheSpecifier>;
+using IntValMap = std::map<CacheSpecifier, IntInx>;
