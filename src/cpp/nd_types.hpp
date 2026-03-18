@@ -177,6 +177,8 @@ enum CacheDataType : uint32_t {
     cdStr = 0x40000, 
     cdIntVec = 0x50000,
     cdStrVec = 0x60000,
+    cdAny = 0x70000,
+    cdResultSet = 0x80000,
     EndDataTypes = 0xF0000
 };
 
@@ -307,7 +309,6 @@ using ActionKey = std::pair<EntityInx, EventInx>;
 using ActionMap = std::unordered_map<ActionKey, ActionVec>;
 
 enum CacheSpecifier : uint32_t {
-    
     cs_title = 0,           // start atomic_cspec_types
     cs_title_font,
     cs_title_font_size,
