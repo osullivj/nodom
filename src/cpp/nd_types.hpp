@@ -307,7 +307,8 @@ using ActionKey = std::pair<EntityInx, EventInx>;
 using ActionMap = std::unordered_map<ActionKey, ActionVec>;
 
 enum CacheSpecifier : uint32_t {
-    cs_title = 0,
+    
+    cs_title = 0,           // start atomic_cspec_types
     cs_title_font,
     cs_title_font_size,
     cs_body_font,
@@ -318,6 +319,8 @@ enum CacheSpecifier : uint32_t {
     cs_year_month_font_size,
     cs_day_date_font,
     cs_day_date_font_size,
+    cs_font,
+    cs_font_size,
     cs_label,
     cs_text,
     cs_step,
@@ -333,10 +336,11 @@ enum CacheSpecifier : uint32_t {
     cs_demo,
     cs_id_stack,
     cs_font_scale,
-    cs_style,
-    // special handling?
-    cs_cname,
-    cs_index,
+    cs_style,               // end atomic_cspec_types
+    cs_cname,               // cname_cpsec_types
+    cs_index,               // index_cpsec_types
     cs_qname,
     cs_end_cache_specs
 };
+
+using CacheSpecVec = std::vector<CacheSpecifier>;
