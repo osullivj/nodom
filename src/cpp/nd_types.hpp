@@ -305,3 +305,38 @@ struct NDAction {
 using ActionVec = std::vector<NDAction>;
 using ActionKey = std::pair<EntityInx, EventInx>;
 using ActionMap = std::unordered_map<ActionKey, ActionVec>;
+
+enum CacheSpecifier : uint32_t {
+    cs_title = 0,
+    cs_title_font,
+    cs_title_font_size,
+    cs_body_font,
+    cs_body_font_size,
+    cs_button_font,
+    cs_button_font_size,
+    cs_year_month_font,
+    cs_year_month_font_size,
+    cs_day_date_font,
+    cs_day_date_font_size,
+    cs_label,
+    cs_text,
+    cs_step,
+    cs_step_fast,
+    cs_spinner_radius,
+    cs_spinner_thickness,
+    cs_flags,
+    cs_table_flags,
+    cs_combo_flags,
+    cs_window_flags,
+    cs_db,
+    cs_fps,
+    cs_demo,
+    cs_id_stack,
+    cs_font_scale,
+    cs_style,
+    // special handling?
+    cs_cname,
+    cs_index,
+    cs_qname,
+    cs_end_cache_specs
+};
