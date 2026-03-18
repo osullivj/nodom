@@ -1,19 +1,17 @@
-#include "dl_cache.hpp"
 #include "json_ops.hpp"
+#include "dl_cache.hpp"
 #include "static_strings.hpp"
 #define BOOST_TEST_MODULE Data_Cache_Tests
 #include <boost/test/unit_test.hpp>
 #include <math.h>
 
+
+struct DataCacheFixture { 
 #ifdef __EMSCRIPTEN__
-using TJSON = emscripten::val;
+    DataLayCache<emscripten::val>   dc;
 #else
-using TJSON = nlohmann::json;
+    DataLayCache<nlohmann::json>   dc;
 #endif
-
-
-struct DataCacheFixture {
-    DataLayCache<TJSON>   dc;
 
     // cf NDContext::style_coloring
     int style_coloring{ StyleColor::Dark };
@@ -123,7 +121,11 @@ BOOST_FIXTURE_TEST_CASE(BadWidgetIndex, DataCacheFixture)
 
 BOOST_FIXTURE_TEST_CASE(AddServerData, DataCacheFixture)
 {
-    TJSON data = JParse<TJSON>(add_server_data);
+#ifdef __EMSCRIPTEN__
+    auto data = JParse<emscripten::val>(add_server_data);
+#else
+    auto data = JParse<nlohmann::json>(add_server_data);
+#endif
     dc.on_data(data);
     BOOST_TEST(dc.addr_set_size() == 3);
 }
@@ -131,6 +133,10 @@ BOOST_FIXTURE_TEST_CASE(AddServerData, DataCacheFixture)
 
 BOOST_FIXTURE_TEST_CASE(AddServerLayout, DataCacheFixture)
 {
-    TJSON layout = JParse<TJSON>(add_server_layout);
+#ifdef __EMSCRIPTEN__
+    auto layout = JParse<emscripten::val>(add_server_layout);
+#else
+    auto layout = JParse<nlohmann::json>(add_server_layout);
+#endif
     dc.on_layout(layout);
 }
