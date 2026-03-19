@@ -24,7 +24,7 @@ private:
     std::vector<int>            cache_ints;
     std::vector<float>          cache_floats;
 
-    std::vector<NDWidget>       widget_vec;
+    WidgetVec                   widget_vec;
 
     // Cache addresses
     std::set<AddrInx>   addr_set;
@@ -253,13 +253,13 @@ public:
 
     }
 
-    void orthogonalize_cspec(const JSON& cspec, NDWidget& widget) {
-        if (!widget.widget_id.empty()) {
-            widget.widget_inx = intern_string<Value>(widget.widget_id);
+    void orthogonalize_cspec(const JSON& cspec, WidgetPtr widget) {
+        if (!widget->widget_id.empty()) {
+            widget->widget_inx = intern_string<Value>(widget->widget_id);
         }
 
         // parse cspec: atomics first
-        const CacheSpecVec& atomics{ atomic_cspecs[widget.rname] };
+        const CacheSpecVec& atomics{ atomic_cspecs[widget->rname] };
         for (auto cit = atomics.cbegin(); cit != atomics.cend(); ++cit) {
             CacheSpecifier spec{ *cit };
             CacheDataType atomic_type = atomic_cspec_types[spec];
@@ -267,16 +267,16 @@ public:
             if (JContains(cspec, atomic_name)) {
                 switch (atomic_type) {
                 case cdInt:
-                    widget.cspec_int[spec] = intern_int(JAsInt(cspec, atomic_name));
+                    widget->cspec_int[spec] = intern_int(JAsInt(cspec, atomic_name));
                     break;
                 case cdFloat:
-                    widget.cspec_float[spec] = intern_float(JAsFloat(cspec, atomic_name));
+                    widget->cspec_float[spec] = intern_float(JAsFloat(cspec, atomic_name));
                     break;
                 case cdBool:
-                    widget.cspec_int[spec] = intern_int(JAsInt(cspec, atomic_name));
+                    widget->cspec_int[spec] = intern_int(JAsInt(cspec, atomic_name));
                     break;
                 case cdStr:
-                    widget.cspec_str[spec] = intern_string<Value>(JAsString(cspec, atomic_name));
+                    widget->cspec_str[spec] = intern_string<Value>(JAsString(cspec, atomic_name));
                     break;
                 case cdIntVec:
                     // TODO
@@ -290,15 +290,25 @@ public:
         }
     }
 
-    void on_layout(const JSON& layout) {
+    void on_layout(const JSON& layout, WidgetVec* wvec = nullptr) {
+        // If we're not recursing, widgets go in top level vec...
+        if (wvec == nullptr) wvec = &widget_vec;
+        // NB layout as a whole is a list of widgets.
+        // And so is children, hence the recursion...
         int layout_length = JSize(layout);
         for (int inx = 0; inx < layout_length; inx++) {
             const JSON& w(layout[inx]);
             const JSON& cspec(extract_cspec<JSON>(w));
-            NDWidget widget(extract_render_name(w), 
+            // The only NDWidget ctor invocation...
+            auto wptr = std::make_shared<NDWidget>(extract_render_name(w), 
                                     extract_string(w, Static::widget_id_cs));
-            widget_vec.push_back(widget);
-            orthogonalize_cspec(cspec, widget_vec.back());
+            wvec->push_back(wptr);
+            orthogonalize_cspec(cspec, wvec->back());
+            const JSON& children = extract_children(w);
+            int child_count = JSize(children);
+            if (child_count > 0) {
+                on_layout(children, &(wptr->children));
+            }
         }
         // pushable map validates unique widget_ids for pushables!
         // but not eg i_am_footer_db_button
