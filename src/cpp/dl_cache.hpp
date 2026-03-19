@@ -22,6 +22,7 @@ private:
     // and fp_char_ptrs can stay in a one to one.
     std::vector<std::string>    cache_strings;
     std::vector<int>            cache_ints;
+    std::vector<float>          cache_floats;
 
     std::vector<NDWidget>       widget_vec;
 
@@ -180,6 +181,28 @@ protected:
         return IntInx(inx);
     }
 
+    auto intern_float(float&& value) {
+        // cannot be a ptr to value in fp_int_ptrs as it's rval,
+        // so go ahead and create a new cache_ints backed Int
+        cache_floats.push_back(value);
+        fp_float_ptrs.push_back(&(cache_floats.back()));
+        return FloatInx(fp_float_ptrs.size() - 1);
+    }
+
+    auto intern_float(int& value) {
+        // is there a ptr to value in fp_float_ptrs already?
+        // NB such a ptr would not have cache_ints backing...
+        auto iter = std::find(fp_float_ptrs.begin(), fp_float_ptrs.end(), &value);
+        if (iter == fp_float_ptrs.end()) {
+            // we don't know where value is stored, so copy to cache_ints
+            cache_floats.push_back(value);
+            fp_float_ptrs.push_back(&(cache_floats.back()));
+            return FloatInx(fp_float_ptrs.size() - 1);
+        }
+        uint32_t inx = std::distance(iter, fp_float_ptrs.begin());
+        return FloatInx(inx);
+    }
+
 public:
     DataLayCache() { }
 
@@ -247,15 +270,20 @@ public:
                     widget.cspec_int[spec] = intern_int(JAsInt(cspec, atomic_name));
                     break;
                 case cdFloat:
+                    widget.cspec_float[spec] = intern_float(JAsFloat(cspec, atomic_name));
                     break;
                 case cdBool:
+                    widget.cspec_int[spec] = intern_int(JAsInt(cspec, atomic_name));
                     break;
                 case cdStr:
                     widget.cspec_str[spec] = intern_string<Value>(JAsString(cspec, atomic_name));
                     break;
                 case cdIntVec:
+                    // TODO
+                    assert(false);
                     break;
                 case cdStrVec:
+                    assert(false);
                     break;
                 }
             }
