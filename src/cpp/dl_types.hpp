@@ -93,6 +93,18 @@ using WidgetVec = std::vector<WidgetPtr>;
 
 using PushableMap = std::map<EntityInx, WidgetPtr>;
 
+struct NDAction {
+    EntityInx push_ui;
+    RenderInx pop_ui;
+    EventInx db_action; // Query||Command||BatchRequest
+    EntityInx query_id;
+    AddrInx sql_cname;
+};
+
+using ActionVec = std::vector<NDAction>;
+using ActionKey = std::pair<EntityInx, EventInx>;
+using ActionMap = std::unordered_map<ActionKey, ActionVec>;
+
 
 RenderMethod RenderMethodFromString(const std::string& method) {
     // Home
