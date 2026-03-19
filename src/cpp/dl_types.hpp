@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 #include "json_ops.hpp"
 #include "static_strings.hpp"
 
@@ -74,6 +75,9 @@
 
 // JSON aware types that build on JSON ops and ND types
 struct NDWidget {
+    using WidgetPtr = std::shared_ptr<NDWidget>;
+    using WidgetVec = std::vector<WidgetPtr>;
+
     NDWidget() = default;
     NDWidget(const NDWidget&) = default;
     NDWidget(RenderMethod meth, std::string&& wid)
@@ -83,7 +87,9 @@ struct NDWidget {
     std::string     widget_id;
     StrInx          widget_inx;
     IntValMap       cspec_int;
+    FloatValMap     cspec_float;
     StrValMap       cspec_str;
+    WidgetVec       children;
 };
 
 
