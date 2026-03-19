@@ -302,17 +302,6 @@ using StrVecInx = DataCacheIndex<CIT::Value, CDT::cdStrVec>;  // !mutable
 //                           "GUI":"Online"
 
 
-struct NDAction {
-    EntityInx push_ui;
-    RenderInx pop_ui;
-    EventInx db_action; // Query||Command||BatchRequest
-    EntityInx query_id;
-    AddrInx sql_cname;
-};
-
-using ActionVec = std::vector<NDAction>;
-using ActionKey = std::pair<EntityInx, EventInx>;
-using ActionMap = std::unordered_map<ActionKey, ActionVec>;
 
 enum CacheSpecifier : uint32_t {
     cs_title = 0,           // start atomic_cspec_types
