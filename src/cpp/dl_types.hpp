@@ -75,9 +75,6 @@
 
 // JSON aware types that build on JSON ops and ND types
 struct NDWidget {
-    using WidgetPtr = std::shared_ptr<NDWidget>;
-    using WidgetVec = std::vector<WidgetPtr>;
-
     NDWidget() = default;
     NDWidget(const NDWidget&) = default;
     NDWidget(RenderMethod meth, std::string&& wid)
@@ -89,8 +86,10 @@ struct NDWidget {
     IntValMap       cspec_int;
     FloatValMap     cspec_float;
     StrValMap       cspec_str;
-    WidgetVec       children;
+    std::vector<std::shared_ptr<NDWidget>>  children;
 };
+using WidgetPtr = std::shared_ptr<NDWidget>;
+using WidgetVec = std::vector<WidgetPtr>;
 
 
 RenderMethod RenderMethodFromString(const std::string& method) {
