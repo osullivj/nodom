@@ -25,6 +25,7 @@ private:
     std::vector<float>          cache_floats;
 
     WidgetVec                   widget_vec;
+    PushableMap                 pushables;
 
     // Cache addresses
     std::set<AddrInx>   addr_set;
@@ -79,6 +80,8 @@ private:
     cdInt,      // cs_year_month_font_size
     cdStr,      // cs_day_date_font
     cdInt,      // cs_day_date_font_size
+    cdStr,      // cs_font
+    cdInt,      // cs_font_size
     cdStr,      // cs_label
     cdStr,      // cs_text
     cdInt,      // cs_step,
@@ -97,7 +100,7 @@ private:
     cdInt,      // cs_style
     cdAny,      //.cs_cname
     cdInt,      // cs_index
-    cdResultSet
+    cdResultSet // cs_qname
     };
 
     inline static std::map<RenderMethod, CacheDataType> cname_cspec_types{
@@ -219,6 +222,7 @@ public:
 
     size_t addr_set_size() { return addr_set.size(); }
     size_t widget_vec_size() { return widget_vec.size(); }
+    size_t pushables_size() { return pushables.size(); }
 
     void on_data(const JSON& data) {
         const static char* method = "DataLayCache::on_data: ";
@@ -258,7 +262,6 @@ public:
         if (!widget->widget_id.empty()) {
             widget->widget_inx = intern_string<EntityID>(widget->widget_id, CST::WidgetID);
         }
-
         // parse cspec: atomics first
         const CacheSpecVec& atomics{ atomic_cspecs[widget->rname] };
         for (auto cit = atomics.cbegin(); cit != atomics.cend(); ++cit) {
@@ -311,9 +314,15 @@ public:
                 on_layout(children, &(wptr->children));
             }
         }
-        // pushable map validates unique widget_ids for pushables!
-        // but not eg i_am_footer_db_button
-        // need a post parse check on widget_id uniqueness
+        // If we've finished recursing, build the PushableMap
+        if (wv != nullptr) return;
+
+        for (auto citer = widget_vec.cbegin(); citer != widget_vec.cend(); ++citer) {
+            bool valid_inx = (*citer)->widget_inx.ok();
+            if (valid_inx) {
+                pushables[(*citer)->widget_inx] = *citer;
+            }
+        }
     }
 
     const char* get_string_value(AddrInx inx) {
