@@ -188,6 +188,7 @@ using CDT = CacheDataType;
 // cache index range is 16 bits 0x0000->0xFFFF
 // eg 0->65535
 static constexpr int MAX_DCI = 0xFFFF;  // 65536
+static constexpr int OH_FECK = 0x0FEC0000;
 
 template <CIT itype, CDT dtype>
 struct DataCacheIndex {
@@ -197,7 +198,7 @@ struct DataCacheIndex {
 
     // 0 is a bad value as hi 16 bits not set
     // to valid IDType
-    uint32_t    magic_index{ 0x0FEC0000 };
+    uint32_t    magic_index{ OH_FECK };
 
     // no default construction so we require
     // real inx at instantiation. Take the 
@@ -245,8 +246,14 @@ struct DataCacheIndex {
     }
 
     uint32_t operator()() {
+        if (magic_index == OH_FECK)
+            throw std::runtime_error("NoDOM BAD_INX");
         // return only bottom 16bits
         return magic_index & MAX_DCI;
+    }
+
+    bool ok() const {
+        return magic_index != OH_FECK;
     }
 
     friend std::ostream& operator<<(std::ostream& os, const DataCacheIndex<itype, dtype>& dci) {
@@ -347,4 +354,3 @@ using CacheSpecVec = std::vector<CacheSpecifier>;
 using IntValMap = std::map<CacheSpecifier, IntInx>;
 using FloatValMap = std::map<CacheSpecifier, FloatInx>;
 using StrValMap = std::map<CacheSpecifier, StrInx>;
-
