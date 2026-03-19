@@ -27,10 +27,13 @@ private:
     WidgetVec                   widget_vec;
     PushableMap                 pushables;
 
+    // TODO: sort out std::pair key problem
+    // ActionMap                   actions;
+
     // Cache addresses
     std::set<AddrInx>   addr_set;
 
-    // interned str for eg cname, title, title_font
+    // interned str for cspec names eg cname, title, title_font
     std::map<CacheSpecifier, StrInx> cspec_indices;
 
 
@@ -192,7 +195,7 @@ protected:
         return FloatInx(fp_float_ptrs.size() - 1);
     }
 
-    auto intern_float(int& value) {
+    auto intern_float(float& value) {
         // is there a ptr to value in fp_float_ptrs already?
         // NB such a ptr would not have cache_ints backing...
         auto iter = std::find(fp_float_ptrs.begin(), fp_float_ptrs.end(), &value);
@@ -249,8 +252,11 @@ public:
         }
 
         if (we_have_actions) {
-            const JSON& actions(data[Static::actions_cs]);
-
+            const JSON& jactions(data[Static::actions_cs]);
+            StringVec action_keys;
+            JKeys(jactions, action_keys);
+            for (auto iter = action_keys.begin(); iter != action_keys.end(); ++iter) {
+            }
         }
         else {
             NDLogger::cout() << method << "DATA_NO_ACTIONS" << std::endl;
