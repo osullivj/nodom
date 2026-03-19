@@ -136,27 +136,27 @@ private:
     };
 protected:
     template <CIT itype>
-    auto intern_string(std::string&& s) {
+    auto intern_string(std::string&& s, CST stype = CST::None) {
         auto iter = std::find(cache_strings.begin(), cache_strings.end(), s);
         if (iter == cache_strings.end()) {
             cache_strings.emplace_back(std::move(s));
             fp_char_ptrs.push_back(cache_strings.back().c_str());
-            return DataCacheIndex<itype,CDT::cdStr>(cache_strings.size() - 1);
+            return DataCacheIndex<itype,CDT::cdStr>(cache_strings.size() - 1, stype);
         }
         uint32_t inx = std::distance(iter, cache_strings.begin());
-        return DataCacheIndex<itype,CDT::cdStr>(inx);
+        return DataCacheIndex<itype,CDT::cdStr>(inx, stype);
     }
 
     template <CIT itype>
-    auto intern_string(const std::string& s) {
+    auto intern_string(const std::string& s, CST stype = CST::None) {
         auto iter = std::find(cache_strings.begin(), cache_strings.end(), s);
         if (iter == cache_strings.end()) {
             cache_strings.push_back(s);
             fp_char_ptrs.push_back(cache_strings.back().c_str());
-            return DataCacheIndex<itype, CDT::cdStr>(cache_strings.size() - 1);
+            return DataCacheIndex<itype, CDT::cdStr>(cache_strings.size() - 1, stype);
         }
         uint32_t inx = std::distance(iter, cache_strings.begin());
-        return DataCacheIndex<itype, CDT::cdStr>(inx);
+        return DataCacheIndex<itype, CDT::cdStr>(inx, stype);
     }
 
     auto intern_int(int&& value) {
@@ -218,6 +218,7 @@ public:
     }
 
     size_t addr_set_size() { return addr_set.size(); }
+    size_t widget_vec_size() { return widget_vec.size(); }
 
     void on_data(const JSON& data) {
         const static char* method = "DataLayCache::on_data: ";
@@ -255,7 +256,7 @@ public:
 
     void orthogonalize_cspec(const JSON& cspec, WidgetPtr widget) {
         if (!widget->widget_id.empty()) {
-            widget->widget_inx = intern_string<Value>(widget->widget_id);
+            widget->widget_inx = intern_string<EntityID>(widget->widget_id, CST::WidgetID);
         }
 
         // parse cspec: atomics first
@@ -290,9 +291,9 @@ public:
         }
     }
 
-    void on_layout(const JSON& layout, WidgetVec* wvec = nullptr) {
+    void on_layout(const JSON& layout, WidgetVec* wv = nullptr) {
         // If we're not recursing, widgets go in top level vec...
-        if (wvec == nullptr) wvec = &widget_vec;
+        WidgetVec* wvec = (wv == nullptr) ? &widget_vec : wv;
         // NB layout as a whole is a list of widgets.
         // And so is children, hence the recursion...
         int layout_length = JSize(layout);
