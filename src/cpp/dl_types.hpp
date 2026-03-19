@@ -91,6 +91,8 @@ struct NDWidget {
 using WidgetPtr = std::shared_ptr<NDWidget>;
 using WidgetVec = std::vector<WidgetPtr>;
 
+using PushableMap = std::map<EntityInx, WidgetPtr>;
+
 
 RenderMethod RenderMethodFromString(const std::string& method) {
     // Home
