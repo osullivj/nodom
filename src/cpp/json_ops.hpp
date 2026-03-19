@@ -230,3 +230,14 @@ const JSON& extract_cspec(const JSON& w) {
 	// and we'll error later when we look for fields in cspec
 	return JNewObject();
 }
+
+template <typename JSON>
+const JSON& extract_children(const JSON& w) {
+	if (JContains(w, Static::children_cs)) return w[Static::children_cs];
+	// Cannot fail to return an array, so return an empty one
+#ifdef __EMSCRIPTEN__
+	return emscripten::val::array();
+#else
+	return nlohmann::json::array();
+#endif
+}
