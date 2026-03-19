@@ -139,4 +139,5 @@ BOOST_FIXTURE_TEST_CASE(AddServerLayout, DataCacheFixture)
     auto layout = JParse<nlohmann::json>(add_server_layout);
 #endif
     dc.on_layout(layout);
+    BOOST_TEST(dc.widget_vec_size() == 1);
 }
