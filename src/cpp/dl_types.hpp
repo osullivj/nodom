@@ -82,7 +82,7 @@ struct NDWidget {
 
     RenderMethod    rname{ EndRenderMethod };
     std::string     widget_id;
-    StrInx          widget_inx;
+    EntityInx       widget_inx;
     IntValMap       cspec_int;
     FloatValMap     cspec_float;
     StrValMap       cspec_str;
