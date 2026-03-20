@@ -30,8 +30,8 @@ int main(int argc, char* argv[]) {
 
     pix_init();
 
-    std::string init_data(argc > 3 ? LoadJSON(argv[2]) : nullptr);
-    std::string init_layout(argc > 3 ? LoadJSON(argv[3]) : nullptr);
+    std::string init_data(argc > 3 ? load_json(argv[2]) : nullptr);
+    std::string init_layout(argc > 3 ? load_json(argv[3]) : nullptr);
 
     NDProxy<DuckDBCache> server(argc, argv);
     NDContext<nlohmann::json, DuckDBCache> ctx(server, 
