@@ -1,0 +1,13 @@
+[
+  {
+    "rname": "Home",
+    "cspec": {
+      "title": "Server side addition"
+    },
+    "children": [
+      { "rname": "InputInt", "cspec": { "cname": "op1", "step": 1 } },
+      { "rname": "InputInt", "cspec": { "cname": "op2", "step": 2 } },
+      { "rname": "InputInt", "cspec": { "cname": "op1_plus_op2" } }
+    ]
+  }
+]
