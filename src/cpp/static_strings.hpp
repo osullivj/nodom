@@ -77,10 +77,11 @@ struct Static {
 	inline static const char* cname_cs{"cname"};
 	inline static const char* qname_cs{"qname"};
 	inline static const char* rname_cs{"rname"};
+	inline static const char* cindex_cs{ "cindex" };
 
 	inline static const char* sql_cs{ "sql" };
 
-	inline static const char* index_cs{"index"};
+
 	inline static const char* path_cs{"path"};
 	inline static const char* service_cs{"service"};
 	inline static const char* children_cs{"children"};
