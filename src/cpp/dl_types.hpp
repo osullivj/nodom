@@ -102,8 +102,6 @@ struct NDAction {
 };
 
 using ActionVec = std::vector<NDAction>;
-using ActionKey = std::pair<EntityInx, EventInx>;
-using ActionMap = std::unordered_map<ActionKey, ActionVec>;
 
 
 RenderMethod RenderMethodFromString(const std::string& method) {
