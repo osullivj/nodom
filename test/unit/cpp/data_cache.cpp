@@ -136,3 +136,18 @@ BOOST_FIXTURE_TEST_CASE(AddServerLayout, DataCacheFixture)
     BOOST_TEST(dc.pushables_size() == 0);
 }
 
+BOOST_FIXTURE_TEST_CASE(ExfServerLayout, DataCacheFixture)
+{
+#ifdef __EMSCRIPTEN__
+    // TODO: load from ems FS
+    auto layout = JParse<emscripten::val>(add_server_layout);
+#else
+    std::string layout_json_path = test_json_dir + "test_exf_server_layout.json";
+    std::string layout_json = load_json(layout_json_path.c_str());
+    auto layout = JParse<nlohmann::json>(layout_json);
+#endif
+    dc.on_layout(layout);
+    BOOST_TEST(dc.widget_vec_size() == 1);
+    BOOST_TEST(dc.pushables_size() == 0);
+}
+
