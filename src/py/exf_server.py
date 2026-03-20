@@ -101,17 +101,17 @@ EXF_LAYOUT = [
             dict(rname="Separator", cspec=dict()),
             dict(
                 rname="Button",
+                widget_id=SCAN_BUTTON_ID,
                 cspec=dict(
                     text=SCAN_BUTTON_TEXT,
-                    widget_id=SCAN_BUTTON_ID,
                 ),
             ),
             dict(rname="SameLine"),
             dict(
                 rname="Button",
+                widget_id=SUMMARY_BUTTON_ID,
                 cspec=dict(
                     text=SUMMARY_BUTTON_TEXT,
-                    widget_id=SUMMARY_BUTTON_ID,
                 ),
             ),
             dict(
