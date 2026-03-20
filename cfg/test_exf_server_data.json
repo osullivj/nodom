@@ -1,5 +1,22 @@
 {
-  "op1": 2,
-  "op2": 3,
-  "op1_plus_op2": 5
+  "start_date": [2008, 9, 1],
+  "end_date": [2008, 9, 2],
+  "instruments": [
+    "FGBMU8",
+    "FGBMZ8",
+    "FGBXZ8",
+    "FGBSU8",
+    "FGBSZ8",
+    "FGBXU8",
+    "FGBLU8",
+    "FGBLZ8"
+  ],
+  "selected_instrument": 0,
+  "scan_sql": "",
+  "scan_urls": [],
+  "query_sql": "",
+  "summary_sql": "",
+  "ui_sql": "",
+  "enable_logging_sql": "",
+  "actions": {}
 }
