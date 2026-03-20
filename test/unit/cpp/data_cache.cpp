@@ -136,6 +136,19 @@ BOOST_FIXTURE_TEST_CASE(AddServerLayout, DataCacheFixture)
     BOOST_TEST(dc.pushables_size() == 0);
 }
 
+BOOST_FIXTURE_TEST_CASE(ExfServerData, DataCacheFixture)
+{
+#ifdef __EMSCRIPTEN__
+    auto data = JParse<emscripten::val>(add_server_data);
+#else
+    std::string data_json_path = test_json_dir + "test_exf_server_data.json";
+    std::string data_json = load_json(data_json_path.c_str());
+    auto data = JParse<nlohmann::json>(data_json);
+#endif
+    dc.on_data(data);
+    BOOST_TEST(dc.addr_set_size() == 10);
+}
+
 BOOST_FIXTURE_TEST_CASE(ExfServerLayout, DataCacheFixture)
 {
 #ifdef __EMSCRIPTEN__
