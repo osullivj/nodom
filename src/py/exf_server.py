@@ -149,7 +149,7 @@ EXF_LAYOUT = [
     ),
     # not a Home child? Must have an ID to be pushable
     dict(
-        widget_id="depth_summary_modal",
+        widget_id="i_am_depth_summary_modal",
         rname="DuckTableSummaryModal",
         cspec=dict(
             title="Depth table",
@@ -242,7 +242,6 @@ SELECT_SEQUENCE = [
 ]
 
 EXF_DATA = dict(
-    home_title="FGB",
     start_date=[2008, 9, 1],  # 3 tuple YMD. But! JSON doesn't know about tuples,
     end_date=[2008, 9, 2],  # so we use lists. NB default 1 day span
     # NB tuple gives us Array in TS, and list gives us Object
@@ -265,9 +264,6 @@ EXF_DATA = dict(
     summary_sql=SUMMARY_SQL,
     ui_sql="CALL start_ui();",
     enable_logging_sql="INSTALL parquet; CALL enable_logging(level='debug', storage='stdout');",
-    depth_tick_size=0.005,
-    depth_offset=0,
-    depth_results=None,
     actions={
         f"{DB_BUTTON_ID}.Click": [LAUNCH_UI],
         # match on scan button click
