@@ -162,7 +162,9 @@ public:
                     if (std::getline(ss, event, Static::period_c)) {
                         EventInx event_inx = intern_string<CIT::Event>(std::move(event));
                         // combine two inx...
-                        NDLogger::cout() << method << entity_inx << ":" << event_inx << std::endl;
+                        ActionKey action_key{ entity_inx, event_inx };
+                        NDLogger::cout() << method << entity_inx << ":" << event_inx 
+                            << "->" << action_key << std::endl;
                     }
                     else {
                         NDLogger::cout() << method << "DATA_BAD_ACTION_KEY: "
