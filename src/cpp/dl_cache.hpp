@@ -124,6 +124,7 @@ public:
     size_t addr_set_size() { return addr_set.size(); }
     size_t widget_vec_size() { return widget_vec.size(); }
     size_t pushables_size() { return pushables.size(); }
+    size_t actions_size() { return actions.size(); }
 
     void on_data(const JSON& data) {
         const static char* method = "DataLayCache::on_data: ";
