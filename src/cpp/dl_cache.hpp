@@ -71,7 +71,7 @@ private:
         Static::font_scale_cs,    // cs_font_scale,
         Static::style_cs,        // cs_style
         Static::cname_cs,
-        Static::index_cs,
+        Static::cindex_cs,
         Static::qname_cs
     };
     inline static std::array<CacheDataType, cs_end_cache_specs> atomic_cspec_types{
@@ -98,14 +98,14 @@ private:
     cdInt,      // cs_table_flags
     cdInt,      // cs_combo_flags
     cdInt,      // cs_window_flags
-    cdBool,     // cs_db,
-    cdBool,     // cs_fps,
-    cdBool,     // cs_demo,
-    cdBool,     // cs_id_stack,
-    cdFloat,    // cs_font_scale,
-    cdInt,      // cs_style
+    cdBool,     // cs_db            footer flag
+    cdBool,     // cs_fps           footer flag
+    cdBool,     // cs_demo          footer flag
+    cdBool,     // cs_id_stack      footer flag
+    cdBool,     // cs_font_scale    footer flag
+    cdBool,     // cs_style         footer flag
     cdAny,      //.cs_cname
-    cdInt,      // cs_index
+    cdInt,      // cs_cindex
     cdResultSet // cs_qname
     };
 
@@ -152,7 +152,7 @@ protected:
             fp_char_ptrs.push_back(cache_strings.back().c_str());
             return DataCacheIndex<itype,CDT::cdStr>(cache_strings.size() - 1, stype);
         }
-        uint32_t inx = std::distance(iter, cache_strings.begin());
+        uint32_t inx = std::distance(cache_strings.begin(), iter);
         return DataCacheIndex<itype,CDT::cdStr>(inx, stype);
     }
 
@@ -164,7 +164,7 @@ protected:
             fp_char_ptrs.push_back(cache_strings.back().c_str());
             return DataCacheIndex<itype, CDT::cdStr>(cache_strings.size() - 1, stype);
         }
-        uint32_t inx = std::distance(iter, cache_strings.begin());
+        uint32_t inx = std::distance(cache_strings.begin(), iter);
         return DataCacheIndex<itype, CDT::cdStr>(inx, stype);
     }
 
@@ -186,7 +186,7 @@ protected:
             fp_int_ptrs.push_back(&(cache_ints.back()));
             return IntInx(fp_int_ptrs.size() - 1);
         }
-        uint32_t inx = std::distance(iter, fp_int_ptrs.begin());
+        uint32_t inx = std::distance(fp_int_ptrs.begin(), iter);
         return IntInx(inx);
     }
 
@@ -208,7 +208,7 @@ protected:
             fp_float_ptrs.push_back(&(cache_floats.back()));
             return FloatInx(fp_float_ptrs.size() - 1);
         }
-        uint32_t inx = std::distance(iter, fp_float_ptrs.begin());
+        uint32_t inx = std::distance(fp_float_ptrs.begin(), iter);
         return FloatInx(inx);
     }
 
@@ -305,7 +305,7 @@ public:
                     widget->cspec_float[spec] = intern_float(JAsFloat(cspec, atomic_name));
                     break;
                 case cdBool:
-                    widget->cspec_int[spec] = intern_int(JAsInt(cspec, atomic_name));
+                    widget->cspec_int[spec] = intern_int(JAsBool(cspec, atomic_name)?1:0);
                     break;
                 case cdStr:
                     widget->cspec_str[spec] = intern_string<Value>(JAsString(cspec, atomic_name));
