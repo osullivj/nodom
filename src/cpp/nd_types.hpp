@@ -266,7 +266,6 @@ struct DataCacheIndex {
     friend static bool operator<(const DataCacheIndex<itype, dtype>& lhs, const DataCacheIndex<itype, dtype>& rhs) {
         return lhs.magic_index < rhs.magic_index;
     }
-
 };
 // DCI examples
 // Value string at inx:3    00240003
@@ -305,6 +304,8 @@ using StrVecInx = DataCacheIndex<CIT::Value, CDT::cdStrVec>;  // !mutable
 
 struct ActionKey {
     uint32_t key{OH_FECK};
+    ActionKey() = default;
+    ~ActionKey() = default;
     ActionKey(EntityInx ninx, EventInx einx) {
         // ninx in the hi 16 bits, einx in the lo 16
         key = ninx() << 16 | einx();
@@ -313,6 +314,10 @@ struct ActionKey {
         os << "0x" << std::setfill('0') << std::setw(8) << std::hex << ak.key;
         return os;
     }
+    friend static bool operator<(const ActionKey& lhs, const ActionKey& rhs) {
+        return lhs.key < rhs.key;
+    }
+
 };
 
 enum CacheSpecifier : uint32_t {
