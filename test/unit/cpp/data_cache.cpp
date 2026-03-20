@@ -4,6 +4,12 @@
 #define BOOST_TEST_MODULE Data_Cache_Tests
 #include <boost/test/unit_test.hpp>
 #include <math.h>
+#include <filesystem>
+#include <stdlib.h>
+
+#if defined(_MSC_VER) && (_MSC_VER >= 1900) && !defined(IMGUI_DISABLE_WIN32_FUNCTIONS)
+#pragma comment(lib, "legacy_stdio_definitions")
+#endif
 
 
 struct DataCacheFixture { 
@@ -46,7 +52,14 @@ struct DataCacheFixture {
         R"(  "op1_plus_op2":5)"             "\n"
         R"(})";
 
-    DataCacheFixture() {
+    std::string nd_home;
+    std::string test_json_dir;
+    DataCacheFixture()
+        :nd_home(getenv("ND_HOME"))
+    {
+        std::stringstream buf;
+        buf << nd_home << "\\cfg\\";
+        test_json_dir = buf.str();
     }
 
     ~DataCacheFixture() {
@@ -134,9 +147,12 @@ BOOST_FIXTURE_TEST_CASE(AddServerData, DataCacheFixture)
 BOOST_FIXTURE_TEST_CASE(AddServerLayout, DataCacheFixture)
 {
 #ifdef __EMSCRIPTEN__
+    // TODO: load from ems FS
     auto layout = JParse<emscripten::val>(add_server_layout);
 #else
-    auto layout = JParse<nlohmann::json>(add_server_layout);
+    std::string layout_json_path = test_json_dir + "test_add_server_layout.json";
+    std::string layout_json = load_json(layout_json_path.c_str());
+    auto layout = JParse<nlohmann::json>(layout_json);
 #endif
     dc.on_layout(layout);
     BOOST_TEST(dc.widget_vec_size() == 1);
