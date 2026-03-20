@@ -303,11 +303,17 @@ using StrVecInx = DataCacheIndex<CIT::Value, CDT::cdStrVec>;  // !mutable
 //                      eg  "DuckDB":"Online"
 //                           "GUI":"Online"
 
-using ActionKey = uint32_t;
-ActionKey ComposeActionKey(EntityInx ninx, EventInx einx) {
-    // ninx in the hi 16 bits, einx in the lo 16
-    return ninx() << 16 | einx();
-}
+struct ActionKey {
+    uint32_t key{OH_FECK};
+    ActionKey(EntityInx ninx, EventInx einx) {
+        // ninx in the hi 16 bits, einx in the lo 16
+        key = ninx() << 16 | einx();
+    }
+    friend std::ostream& operator<<(std::ostream& os, const ActionKey& ak) {
+        os << "0x" << std::setfill('0') << std::setw(8) << std::hex << ak.key;
+        return os;
+    }
+};
 
 enum CacheSpecifier : uint32_t {
     cs_title = 0,           // start atomic_cspec_types
