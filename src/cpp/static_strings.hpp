@@ -175,6 +175,7 @@ struct Static {
 
 	// fast path cache variables
 	inline static const char underscore_c{ '_' };
+	inline static const char period_c{ '.' };
 	inline static const char* _font_scale_dpi_cs{ "_font_scale_dpi" };
 	inline static const char* _font_scale_main_cs{ "_font_scale_main" };
 	inline static const char* _style_coloring{ "_style_coloring" };
