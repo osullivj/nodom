@@ -30,11 +30,14 @@ private:
     // TODO: sort out std::pair key problem
     // ActionMap                   actions;
 
-    // Cache addresses
+    // Valid cache addresses
     std::set<AddrInx>   addr_set;
 
     // interned str for cspec names eg cname, title, title_font
     std::map<CacheSpecifier, StrInx> cspec_indices;
+
+    std::set<EntityInx> action_key_entity_indices;
+    std::set<EventInx> action_key_event_indices;
 
 
     inline static std::array<const char*, cs_end_cache_specs> atomic_cspec_names{
@@ -255,7 +258,26 @@ public:
             const JSON& jactions(data[Static::actions_cs]);
             StringVec action_keys;
             JKeys(jactions, action_keys);
-            for (auto iter = action_keys.begin(); iter != action_keys.end(); ++iter) {
+            for (auto citer = action_keys.cbegin(); citer != action_keys.cend(); ++citer) {
+                std::stringstream ss{*citer};
+                std::string entity;
+                if (std::getline(ss, entity, Static::period_c)) {
+                    EntityInx entity_inx = intern_string<CIT::EntityID>(std::move(entity));
+                    std::string event;
+                    if (std::getline(ss, event, Static::period_c)) {
+                        EventInx event_inx = intern_string<CIT::Event>(std::move(event));
+                        // combine two inx...
+                        NDLogger::cout() << method << entity_inx << ":" << event_inx << std::endl;
+                    }
+                    else {
+                        NDLogger::cout() << method << "DATA_BAD_ACTION_KEY: "
+                            << *citer << std::endl;
+                    }
+                }
+                else {
+                    NDLogger::cout() << method << "DATA_BAD_ACTION_KEY: " 
+                        << *citer << std::endl;
+                }
             }
         }
         else {
