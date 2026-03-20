@@ -56,7 +56,6 @@ ADDITION_LAYOUT = [
 
 
 ADDITION_DATA = dict(
-    home_title="WebAddition",
     op1=2,
     op2=3,
     op1_plus_op2=5,
