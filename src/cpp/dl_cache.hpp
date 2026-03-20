@@ -26,9 +26,7 @@ private:
 
     WidgetVec                   widget_vec;
     PushableMap                 pushables;
-
-    // TODO: sort out std::pair key problem
-    // ActionMap                   actions;
+    ActionMap                   actions;
 
     // Valid cache addresses
     std::set<AddrInx>   addr_set;
@@ -40,109 +38,6 @@ private:
     std::set<EventInx> action_key_event_indices;
 
 
-    inline static std::array<const char*, cs_end_cache_specs> atomic_cspec_names{
-        Static::title_cs,      // cs_title
-        Static::title_font_cs,      // cs_title_font
-        Static::title_font_size_cs,      // cs_title_font_size
-        Static::body_font_cs,      // cs_body_font
-        Static::body_font_size_cs,      // cs_body_font_size
-        Static::button_font_cs,      // cs_button_font
-        Static::button_font_size_cs,      // cs_button_font_size
-        Static::year_month_font_cs,      // cs_year_month_font
-        Static::year_month_font_size_cs,      // cs_year_month_font_size
-        Static::day_date_font_cs,      // cs_day_date_font
-        Static::day_date_font_size_cs,      // cs_day_date_font_size
-        Static::font_cs,                    // cs_font
-        Static::font_size_cs,               // cs_font_size
-        Static::label_cs,      // cs_label
-        Static::text_cs,      // cs_text
-        Static::step_cs,      // cs_step,
-        Static::step_fast_cs,      // cs_step_fast
-        Static::spinner_radius_cs,      // cs_spinner_radius
-        Static::spinner_thickness_cs,      // cs_spinner_thickness
-        Static::flags_cs,      // cs_flags
-        Static::table_flags_cs,      // cs_table_flags
-        Static::combo_flags_cs,      // cs_combo_flags
-        Static::window_flags_cs,      // cs_window_flags
-        Static::db_cs,     // cs_db,
-        Static::fps_cs,     // cs_fps,
-        Static::demo_cs,     // cs_demo,
-        Static::id_stack_cs,     // cs_id_stack,
-        Static::font_scale_cs,    // cs_font_scale,
-        Static::style_cs,        // cs_style
-        Static::cname_cs,
-        Static::cindex_cs,
-        Static::qname_cs
-    };
-    inline static std::array<CacheDataType, cs_end_cache_specs> atomic_cspec_types{
-    cdStr,      // cs_title
-    cdStr,      // cs_title_font
-    cdInt,      // cs_title_font_size
-    cdStr,      // cs_body_font
-    cdInt,      // cs_body_font_size
-    cdStr,      // cs_button_font
-    cdInt,      // cs_button_font_size
-    cdStr,      // cs_year_month_font
-    cdInt,      // cs_year_month_font_size
-    cdStr,      // cs_day_date_font
-    cdInt,      // cs_day_date_font_size
-    cdStr,      // cs_font
-    cdInt,      // cs_font_size
-    cdStr,      // cs_label
-    cdStr,      // cs_text
-    cdInt,      // cs_step,
-    cdInt,      // cs_step_fast
-    cdInt,      // cs_spinner_radius
-    cdInt,      // cs_spinner_thickness
-    cdInt,      // cs_flags
-    cdInt,      // cs_table_flags
-    cdInt,      // cs_combo_flags
-    cdInt,      // cs_window_flags
-    cdBool,     // cs_db            footer flag
-    cdBool,     // cs_fps           footer flag
-    cdBool,     // cs_demo          footer flag
-    cdBool,     // cs_id_stack      footer flag
-    cdBool,     // cs_font_scale    footer flag
-    cdBool,     // cs_style         footer flag
-    cdAny,      //.cs_cname
-    cdInt,      // cs_cindex
-    cdResultSet // cs_qname
-    };
-
-    inline static std::map<RenderMethod, CacheDataType> cname_cspec_types{
-        {Combo, cdStrVec},
-        {InputInt, cdInt},
-        {Checkbox, cdBool},
-        {DatePicker, cdIntVec},
-        {LoadingModal, cdStrVec}
-    };
-    inline static std::map<RenderMethod, CacheDataType> index_cspec_types{
-        {Combo, cdInt}
-    };
-    inline static  std::map<RenderMethod, CacheSpecVec> atomic_cspecs{
-        {Home, {cs_title, cs_title_font, cs_title_font_size}},
-        {InputInt, {cs_label, cs_step, cs_step_fast, cs_flags}},
-        {Combo, {cs_label, cs_step}},
-        {Checkbox, {cs_label}},
-        {Text, {cs_text}},
-        {Button, {cs_text}},
-        {Table, {cs_title, cs_title_font, cs_title_font_size,
-                    cs_body_font, cs_body_font_size,
-                    cs_table_flags, cs_window_flags}},
-        {Footer, {cs_db, cs_fps, cs_demo, cs_id_stack, cs_font_scale, cs_style}},
-        {DatePicker, {cs_year_month_font, cs_year_month_font_size,
-                        cs_day_date_font, cs_day_date_font_size,
-                        cs_table_flags, cs_combo_flags}},
-        {DuckTableSummaryModal, {cs_title, cs_title_font, cs_title_font_size,
-                    cs_body_font, cs_body_font_size,
-                    cs_table_flags, cs_window_flags,
-                    cs_button_font, cs_button_font_size}},
-        {LoadingModal, {cs_title, cs_title_font, cs_title_font_size,
-                    cs_body_font, cs_body_font_size,
-                    cs_spinner_thickness, cs_spinner_radius,
-                    cs_window_flags}},
-        {PushFont, {cs_font, cs_font_size}}
-    };
 protected:
     template <CIT itype>
     auto intern_string(std::string&& s, CST stype = CST::None) {
@@ -391,6 +286,112 @@ public:
 
     }
 
+private:
+    // statics that define DataLayCache data and layout geometry
+    inline static std::array<const char*, cs_end_cache_specs> atomic_cspec_names{
+        Static::title_cs,      // cs_title
+        Static::title_font_cs,      // cs_title_font
+        Static::title_font_size_cs,      // cs_title_font_size
+        Static::body_font_cs,      // cs_body_font
+        Static::body_font_size_cs,      // cs_body_font_size
+        Static::button_font_cs,      // cs_button_font
+        Static::button_font_size_cs,      // cs_button_font_size
+        Static::year_month_font_cs,      // cs_year_month_font
+        Static::year_month_font_size_cs,      // cs_year_month_font_size
+        Static::day_date_font_cs,      // cs_day_date_font
+        Static::day_date_font_size_cs,      // cs_day_date_font_size
+        Static::font_cs,                    // cs_font
+        Static::font_size_cs,               // cs_font_size
+        Static::label_cs,      // cs_label
+        Static::text_cs,      // cs_text
+        Static::step_cs,      // cs_step,
+        Static::step_fast_cs,      // cs_step_fast
+        Static::spinner_radius_cs,      // cs_spinner_radius
+        Static::spinner_thickness_cs,      // cs_spinner_thickness
+        Static::flags_cs,      // cs_flags
+        Static::table_flags_cs,      // cs_table_flags
+        Static::combo_flags_cs,      // cs_combo_flags
+        Static::window_flags_cs,      // cs_window_flags
+        Static::db_cs,     // cs_db,
+        Static::fps_cs,     // cs_fps,
+        Static::demo_cs,     // cs_demo,
+        Static::id_stack_cs,     // cs_id_stack,
+        Static::font_scale_cs,    // cs_font_scale,
+        Static::style_cs,        // cs_style
+        Static::cname_cs,
+        Static::cindex_cs,
+        Static::qname_cs
+    };
 
-   
+    inline static std::array<CacheDataType, cs_end_cache_specs> atomic_cspec_types{
+        cdStr,      // cs_title
+        cdStr,      // cs_title_font
+        cdInt,      // cs_title_font_size
+        cdStr,      // cs_body_font
+        cdInt,      // cs_body_font_size
+        cdStr,      // cs_button_font
+        cdInt,      // cs_button_font_size
+        cdStr,      // cs_year_month_font
+        cdInt,      // cs_year_month_font_size
+        cdStr,      // cs_day_date_font
+        cdInt,      // cs_day_date_font_size
+        cdStr,      // cs_font
+        cdInt,      // cs_font_size
+        cdStr,      // cs_label
+        cdStr,      // cs_text
+        cdInt,      // cs_step,
+        cdInt,      // cs_step_fast
+        cdInt,      // cs_spinner_radius
+        cdInt,      // cs_spinner_thickness
+        cdInt,      // cs_flags
+        cdInt,      // cs_table_flags
+        cdInt,      // cs_combo_flags
+        cdInt,      // cs_window_flags
+        cdBool,     // cs_db            footer flag
+        cdBool,     // cs_fps           footer flag
+        cdBool,     // cs_demo          footer flag
+        cdBool,     // cs_id_stack      footer flag
+        cdBool,     // cs_font_scale    footer flag
+        cdBool,     // cs_style         footer flag
+        cdAny,      //.cs_cname
+        cdInt,      // cs_cindex
+        cdResultSet // cs_qname
+    };
+
+    inline static std::map<RenderMethod, CacheDataType> cname_cspec_types{
+        {Combo, cdStrVec},
+        {InputInt, cdInt},
+        {Checkbox, cdBool},
+        {DatePicker, cdIntVec},
+        {LoadingModal, cdStrVec}
+    };
+
+    inline static std::map<RenderMethod, CacheDataType> index_cspec_types{
+        {Combo, cdInt}
+    };
+
+    inline static  std::map<RenderMethod, CacheSpecVec> atomic_cspecs{
+        {Home, {cs_title, cs_title_font, cs_title_font_size}},
+        {InputInt, {cs_label, cs_step, cs_step_fast, cs_flags}},
+        {Combo, {cs_label, cs_step}},
+        {Checkbox, {cs_label}},
+        {Text, {cs_text}},
+        {Button, {cs_text}},
+        {Table, {cs_title, cs_title_font, cs_title_font_size,
+                    cs_body_font, cs_body_font_size,
+                    cs_table_flags, cs_window_flags}},
+        {Footer, {cs_db, cs_fps, cs_demo, cs_id_stack, cs_font_scale, cs_style}},
+        {DatePicker, {cs_year_month_font, cs_year_month_font_size,
+                        cs_day_date_font, cs_day_date_font_size,
+                        cs_table_flags, cs_combo_flags}},
+        {DuckTableSummaryModal, {cs_title, cs_title_font, cs_title_font_size,
+                    cs_body_font, cs_body_font_size,
+                    cs_table_flags, cs_window_flags,
+                    cs_button_font, cs_button_font_size}},
+        {LoadingModal, {cs_title, cs_title_font, cs_title_font_size,
+                    cs_body_font, cs_body_font_size,
+                    cs_spinner_thickness, cs_spinner_radius,
+                    cs_window_flags}},
+        {PushFont, {cs_font, cs_font_size}}
+    };
 };
