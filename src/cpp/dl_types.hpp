@@ -102,6 +102,7 @@ struct NDAction {
 };
 
 using ActionVec = std::vector<NDAction>;
+using ActionMap = std::map<ActionKey, ActionVec>;
 
 
 RenderMethod RenderMethodFromString(const std::string& method) {
