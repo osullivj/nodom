@@ -5,25 +5,16 @@
 #include <filesystem>
 #include <map>
 #include <queue>
-#include "nd_types.hpp"
+// #include "nd_types.hpp"
 #include "logger.hpp"
+#include "json_ops.hpp"
 #ifdef __EMSCRIPTEN__
 #include <emscripten/val.h>
 #else
 #include "nlohmann.hpp"
 #endif
 
-std::string LoadJSON(const char* path) {
-    std::string rv;
-    if (!std::filesystem::exists(path)) {
-        return rv;
-    }
-    std::stringstream json_buffer;
-    std::ifstream in_file_stream(path);
-    json_buffer << in_file_stream.rdbuf();
-    rv = json_buffer.str();
-    return rv;
-};
+
 
 // NDProxy encapsulates the server side.
 template <typename DB>
@@ -41,7 +32,7 @@ public:
         char* bb_json_path = argv[1];
 
         try {
-            std::string config_json(LoadJSON(bb_json_path));
+            std::string config_json(load_json(bb_json_path));
             // breadboard.json specifies the base paths for the embedded py
             config = JParse<nlohmann::json>(config_json);
             server_url = JAsString(config, "server_url");
