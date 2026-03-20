@@ -72,5 +72,30 @@
         }
       }
     ]
+  },
+  {
+    "widget_id": "i_am_depth_summary_modal",
+    "rname": "DuckTableSummaryModal",
+    "cspec": {
+      "title": "Depth table",
+      "title_font": "Arial",
+      "body_font": "CourierNew",
+      "body_font_size": 8,
+      "button_font": "CourierNew",
+      "button_font_size": 12,
+      "qname": "depth_summary"
+    }
+  },
+  {
+    "widget_id": "i_am_parquet_loading_modal",
+    "rname": "LoadingModal",
+    "cspec": {
+      "title": "Loading parquet...",
+      "title_font": "Arial",
+      "body_font": "CourierNew",
+      "cname": "scan_urls",
+      "spinner_radius": 20,
+      "spinner_thickness": 4
+    }
   }
 ]
