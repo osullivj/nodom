@@ -25,35 +25,10 @@ struct DataCacheFixture {
     float font_scale_main{ 1.0 };
     // cf proxy.get_server_url()
     std::string server_url{ "wss://localhost/api/websock" };
-
-    std::string add_server_layout = R"([)"  "\n"  // [
-        R"(  {)"                                                    "\n"
-        R"(    "rname":"Home",)"                                    "\n"
-        R"(    "cspec":{"title":"Server side addition"},)"          "\n"
-        R"(    "children":[)"                                       "\n"
-        R"(      {)"                                                "\n"
-        R"(        "rname":"InputInt",)"                            "\n"
-        R"(        "cspec":{"cname":"op1", "step":1})"              "\n"
-        R"(      },)"                                               "\n"
-        R"(      {)"                                                "\n"
-        R"(        "rname":"InputInt",)"                            "\n"
-        R"(        "cspec":{"cname":"op2", "step":2})"              "\n"
-        R"(      },)"                                               "\n"
-        R"(      {)"                                                "\n"
-        R"(        "rname":"InputInt",)"                            "\n"
-        R"(        "cspec":{"cname":"op1_plus_op2"})"               "\n"
-        R"(      })"                                                "\n"
-        R"(    ])"                                                  "\n"
-        R"(  })"                                                    "\n"
-        R"(])"; // ]
-    std::string add_server_data = R"({)"    "\n"    // {
-        R"(  "op1":2,)"                     "\n"
-        R"(  "op2":3,)"                     "\n"
-        R"(  "op1_plus_op2":5)"             "\n"
-        R"(})";
-
+    // for test data paths
     std::string nd_home;
     std::string test_json_dir;
+
     DataCacheFixture()
         :nd_home(getenv("ND_HOME"))
     {
@@ -137,7 +112,9 @@ BOOST_FIXTURE_TEST_CASE(AddServerData, DataCacheFixture)
 #ifdef __EMSCRIPTEN__
     auto data = JParse<emscripten::val>(add_server_data);
 #else
-    auto data = JParse<nlohmann::json>(add_server_data);
+    std::string data_json_path = test_json_dir + "test_add_server_data.json";
+    std::string data_json = load_json(data_json_path.c_str());
+    auto data = JParse<nlohmann::json>(data_json);
 #endif
     dc.on_data(data);
     BOOST_TEST(dc.addr_set_size() == 3);
