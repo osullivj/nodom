@@ -2,6 +2,10 @@
 #include <iostream>
 #ifndef __EMSCRIPTEN__
 #include "nlohmann.hpp"
+#include <filesystem>
+#include <iostream>
+#include <fstream>
+#include <sstream>
 #else
 #include <emscripten/val.h>
 #endif
@@ -241,3 +245,15 @@ const JSON& extract_children(const JSON& w) {
 	return nlohmann::json::array();
 #endif
 }
+
+std::string load_json(const char* path) {
+	std::string rv;
+	if (!std::filesystem::exists(path)) {
+		return rv;
+	}
+	std::stringstream json_buffer;
+	std::ifstream in_file_stream(path);
+	json_buffer << in_file_stream.rdbuf();
+	rv = json_buffer.str();
+	return rv;
+};
