@@ -227,6 +227,7 @@ struct DataCacheIndex {
             default:
                 throw std::runtime_error("NoDOM BAD_ENTITY_ID");
             }
+            break;
         case Event:
             switch (stype) {
             case WidgetEvent: // Event:Click
@@ -236,6 +237,7 @@ struct DataCacheIndex {
             default:
                 throw std::runtime_error("NoDOM BAD_ENTITY_TYPE");
             }
+            break;
         default:
             break;
         }
