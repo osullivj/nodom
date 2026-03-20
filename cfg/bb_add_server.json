@@ -1,0 +1,9 @@
+{
+  "server_url": "http://localhost:8890/api/websock",
+  "fonts": {
+    "CourierNew": "c:\\windows\\fonts\\cour.ttf",
+    "Arial": "c:\\windows\\fonts\\Arial.ttf"
+  },
+  "font_scale_dpi": 1.0,
+  "db_app": false
+}

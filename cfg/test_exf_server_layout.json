@@ -1,0 +1,76 @@
+[
+  {
+    "rname": "Home",
+    "cspec": {
+      "title": "Eurex Futures"
+    },
+    "children": [
+      { "rname": "BeginChild", "cspec": { "title": "Left pane" } },
+      {
+        "rname": "Combo",
+        "cspec": {
+          "cname": "instruments",
+          "cindex": "selected_instrument",
+          "label": "Instrument"
+        }
+      },
+      {
+        "rname": "DatePicker",
+        "cspec": {
+          "cname": "start_date",
+          "year_month_font": "CourierNew",
+          "year_month_font_size": 12,
+          "day_date_font": "Arial",
+          "day_date_font_size": 8
+        }
+      },
+      { "rname": "SameLine" },
+      { "rname": "Text", "cspec": { "text": "Start date" } },
+      {
+        "rname": "DatePicker",
+        "cspec": {
+          "cname": "end_date",
+          "year_month_font": "CourierNew",
+          "year_month_font_size": 12,
+          "day_date_font": "Arial",
+          "day_date_font_size": 8
+        }
+      },
+      { "rname": "SameLine" },
+      { "rname": "Text", "cspec": { "text": "End date" } },
+      { "rname": "Separator" },
+      {
+        "rname": "Button",
+        "widget_id": "i_am_the_scan_button",
+        "cspec": { "text": "Scan" }
+      },
+      { "rname": "SameLine" },
+      {
+        "rname": "Button",
+        "widget_id": "i_am_the_summary_button",
+        "cspec": { "text": "Summary" }
+      },
+      {
+        "rname": "Footer",
+        "cspec": {
+          "db": true,
+          "fps": true,
+          "demo": true,
+          "id_stack": true,
+          "memory": true,
+          "font_scale": true,
+          "style": true
+        }
+      },
+      { "rname": "EndChild" },
+      { "rname": "SameLine" },
+      {
+        "rname": "Table",
+        "cspec": {
+          "title": "Depth grid",
+          "qname": "the_depth_query"
+        }
+      }
+    ]
+  }
+]

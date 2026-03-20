@@ -1,0 +1,15 @@
+{
+  "loading_text": ["Loading app data from {_server_url}"],
+  "actions": {
+    "GUI.gui_online": [
+      {
+        "ui_push": "app_loading_modal"
+      }
+    ],
+    "WebSock.websock_connection_failed": [
+      {
+        "ui_pop": "app_loading_modal"
+      }
+    ]
+  }
+}

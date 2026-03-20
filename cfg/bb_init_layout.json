@@ -1,0 +1,17 @@
+[
+  {
+    "rname": "Home",
+    "cspec": {
+      "title": "NoDOM"
+    },
+    "children": []
+  },
+  {
+    "widget_id": "app_loading_modal",
+    "rname": "LoadingModal",
+    "cspec": {
+      "title": "Loading NoDOM app...",
+      "cname": "loading_text"
+    }
+  }
+]
