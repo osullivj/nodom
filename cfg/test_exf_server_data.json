@@ -18,5 +18,12 @@
   "summary_sql": "",
   "ui_sql": "",
   "enable_logging_sql": "",
-  "actions": {}
+  "actions": {
+    "i_am_the_summary_button.Click": [
+      { "ui_push": "i_am_depth_summary_modal" }
+    ],
+    "i_am_the_scan_button.Click": [],
+    "the_depth_scan.CommandResult": [],
+    "DuckDB.Online": []
+  }
 }
