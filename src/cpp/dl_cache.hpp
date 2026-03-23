@@ -176,7 +176,33 @@ public:
     }
 
     void print_parsed_action(NDAction& action, NDActionInterned& interned) {
-
+        // TODO: debuggable output from action parsing
+        bool prefix_comma = false;
+        NDLogger::cout() << "Action[";
+        if (action.push_ui.is_valid()) {
+            NDLogger::cout() << "push_ui(" << action.push_ui << "/" << interned.push_ui << ")";
+            prefix_comma = true;
+        }
+        if (is_render_valid(action.pop_ui)) {
+            if (prefix_comma) NDLogger::cout() << ", ";
+            NDLogger::cout() << "pop_ui(" << action.pop_ui << "/" << interned.pop_ui << ")";
+            prefix_comma = true;
+        }
+        if (is_db_event_valid(action.db_action)) {
+            if (prefix_comma) NDLogger::cout() << ", ";
+            NDLogger::cout() << "db_action(" << action.db_action << "/" << interned.db_action << ")";
+            prefix_comma = true;
+        }
+        if (action.query_id.is_valid()) {
+            if (prefix_comma) NDLogger::cout() << ", ";
+            NDLogger::cout() << "query_id(" << action.query_id << "/" << interned.query_id << ")";
+            prefix_comma = true;
+        }
+        if (action.sql_cname.is_valid()) {
+            if (prefix_comma) NDLogger::cout() << ", ";
+            NDLogger::cout() << "sql_cname(" << action.sql_cname << "/" << interned.sql_cname << ")";
+        }
+        NDLogger::cout() << "]";
     }
 
     void on_data(const JSON& data) {
@@ -227,9 +253,8 @@ public:
                         JSON action_seq = JSON::array();
                         action_seq = jactions[action_key_s];
                         parse_actions(action_seq, nd_action_vec, action_intern_vec);
-                        for (auto cact_iter = nd_action_vec.cbegin(); cact_iter != nd_action_vec.end(); ++cact_iter) {
-                            // NDLogger::cout() << method << *cact_iter << std::endl;
-                            // TODO: log_action_parse(nd_action_vec, action_intern_vec)
+                        for (int inx = 0; inx < nd_action_vec.size(); inx++) {
+                            print_parsed_action(nd_action_vec[inx], action_intern_vec[inx]);
                         }
                         actions[action_key] = nd_action_vec;
                         actions_interned[action_key] = action_intern_vec;
@@ -502,41 +527,4 @@ private:
                     cs_window_flags}},
         {PushFont, {cs_font, cs_font_size}}
     };
-
-    friend std::ostream& operator<<(std::ostream& os, const NDAction& action) {
-        // TODO: debuggable output from action parsing
-        bool prefix_comma = false;
-        os << "Action[";
-        if (action.push_ui.is_valid()) {
-            os << "push_ui(" << action.push_ui << "/"
-                << get_string_value(action.push_ui) << ")";
-            prefix_comma = true;
-        }
-        if (is_render_valid(action.pop_ui)) {
-            if (prefix_comma) os << ", ";
-            os << "pop_ui(" << action.pop_ui << "/" 
-                << render_names[action.pop_ui] << ")";
-            prefix_comma = true;
-        }
-        if (is_db_event_valid(action.db_action)) {
-            if (prefix_comma) os << ", ";
-            os << "db_action(" << action.db_action << "/" 
-                << get_string_value(action.db_action) << ")";
-            prefix_comma = true;
-        }
-        if (action.query_id.is_valid()) {
-            if (prefix_comma) os << ", ";
-            os << "query_id(" << action.query_id << "/"
-                << get_string_value(action.query_id) << ")";
-            prefix_comma = true;
-        }
-        if (action.sql_cname.is_valid()) {
-            if (prefix_comma) os << ", ";
-            os << "sql_cname(" << action.sql_cname << "/"
-                << get_string_value(action.sql_cname) << ")";
-        }
-        os << "]";
-        return os;
-    }
-
 };
