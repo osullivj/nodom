@@ -112,6 +112,7 @@ struct NDActionInterned {
 using ActionVec = std::vector<NDAction>;
 using ActionIVec = std::vector<NDActionInterned>;
 using ActionMap = std::map<ActionKey, ActionVec>;
+using ActionIMap = std::map<ActionKey, ActionIVec>;
 
 
 RenderMethod RenderMethodFromString(const std::string& method) {
