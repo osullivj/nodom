@@ -188,7 +188,7 @@ using CDT = CacheDataType;
 // cache index range is 16 bits 0x0000->0xFFFF
 // eg 0->65535
 static constexpr int MAX_DCI = 0xFFFF;  // 65536
-static constexpr int OH_FECK = 0x0FEC0000;
+static constexpr int OH_FECK = 0x0FEC000;
 
 template <CIT itype, CDT dtype>
 struct DataCacheIndex {
@@ -220,6 +220,7 @@ struct DataCacheIndex {
         switch (item_type) {
         case EntityID:
             switch (stype) {
+            case None:      // OK during DLC::on_data/actions
             case WidgetID:  // Widget, Query and
             case QueryID:   // SubSystem IDs all fine
             case SubSysID:  // for EntityID
@@ -230,6 +231,7 @@ struct DataCacheIndex {
             break;
         case Event:
             switch (stype) {
+            case None:
             case WidgetEvent: // Event:Click
             case DBEvent:     // Event:[QueryResult|CommandResult]
             case SubSysEvent:
