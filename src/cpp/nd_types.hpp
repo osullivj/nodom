@@ -6,6 +6,8 @@
 #include <vector>
 #include <set>
 #include <cassert>
+#include <ios>
+#include <iomanip>
 
 using StringVec = std::vector<std::string>;
 using IntVec = std::vector<int>;
@@ -141,6 +143,9 @@ enum RenderMethod : uint32_t {
     EndRenderMethod
 };
 
+bool is_render_valid(RenderMethod rm) {
+    return rm != EndRenderMethod;
+}
 
 // Built in hi bits for ID ranges
 // 32 bits for IDs gives us 16 hi bits and 16 lo bits
@@ -180,6 +185,20 @@ enum CacheDataType : uint32_t {
     cdResultSet = 0x80000,
     EndDataTypes = 0xF0000
 };
+
+enum DBEventType : uint32_t {
+    dbCommand = 1,
+    dbCommandResult,
+    dbQuery,
+    dbQueryResult,
+    dbBatchRequest,
+    dbBatchResponse,
+    EndDBEventTypes
+};
+
+bool is_db_event_valid(DBEventType dbev) {
+    return dbev != EndDBEventTypes;
+}
 
 using CIT = CacheItemType;
 using CST = CacheItemSubType;
@@ -256,8 +275,12 @@ struct DataCacheIndex {
         return magic_index & MAX_DCI;
     }
 
-    bool ok() const {
+    bool is_valid() const {
         return magic_index != OH_FECK;
+    }
+
+    CST subtype() const {
+        return magic_index & EndSubItemTypes;
     }
 
     friend std::ostream& operator<<(std::ostream& os, const DataCacheIndex<itype, dtype>& dci) {
