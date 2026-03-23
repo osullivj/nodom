@@ -28,6 +28,7 @@ private:
     WidgetVec                   widget_vec;
     PushableMap                 pushables;
     ActionMap                   actions;
+    ActionIMap                  actions_interned;
 
     // Valid cache addresses
     std::set<AddrInx>   addr_set;
@@ -169,8 +170,13 @@ public:
             }
             if (error == false) {
                 nd_action_vec.push_back(action);
+                act_i_vec.push_back(interned);
             }
         }
+    }
+
+    void print_parsed_action(NDAction& action, NDActionInterned& interned) {
+
     }
 
     void on_data(const JSON& data) {
@@ -226,6 +232,7 @@ public:
                             // TODO: log_action_parse(nd_action_vec, action_intern_vec)
                         }
                         actions[action_key] = nd_action_vec;
+                        actions_interned[action_key] = action_intern_vec;
                     }
                     else {
                         NDLogger::cout() << method << "DATA_BAD_ACTION_KEY: "
