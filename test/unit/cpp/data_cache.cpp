@@ -104,7 +104,10 @@ BOOST_FIXTURE_TEST_CASE(BadIndex, DataCacheFixture)
 BOOST_FIXTURE_TEST_CASE(BadWidgetIndex, DataCacheFixture)
 {
     // Create an EntityInx without a CIST ctor param
-    BOOST_CHECK_THROW(EntityInx{ 0 }, std::exception);
+    // This test suspended while we allow the creation
+    // of EntityInx without subtype specification in 
+    // on_data action parsing...
+    // BOOST_CHECK_THROW(EntityInx{ 0 }, std::exception);
 }
 
 BOOST_FIXTURE_TEST_CASE(AddServerData, DataCacheFixture)
@@ -118,6 +121,7 @@ BOOST_FIXTURE_TEST_CASE(AddServerData, DataCacheFixture)
 #endif
     dc.on_data(data);
     BOOST_TEST(dc.addr_set_size() == 3);
+    BOOST_TEST(dc.actions_size() == 0);
 }
 
 
@@ -147,6 +151,7 @@ BOOST_FIXTURE_TEST_CASE(ExfServerData, DataCacheFixture)
 #endif
     dc.on_data(data);
     BOOST_TEST(dc.addr_set_size() == 10);
+    BOOST_TEST(dc.actions_size() == 4);
 }
 
 BOOST_FIXTURE_TEST_CASE(ExfServerLayout, DataCacheFixture)
