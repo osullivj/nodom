@@ -43,7 +43,7 @@ protected:
     auto intern_string(std::string&& s, CST stype = CST::None) {
         auto iter = std::find(cache_strings.begin(), cache_strings.end(), s);
         if (iter == cache_strings.end()) {
-            cache_strings.emplace_back(std::move(s));
+            cache_strings.push_back(s);
             fp_char_ptrs.push_back(cache_strings.back().c_str());
             return DataCacheIndex<itype,CDT::cdStr>(cache_strings.size() - 1, stype);
         }
@@ -158,14 +158,15 @@ public:
                 std::stringstream ss{*citer};
                 std::string entity;
                 if (std::getline(ss, entity, Static::period_c)) {
-                    EntityInx entity_inx = intern_string<CIT::EntityID>(std::move(entity));
+                    EntityInx entity_inx = intern_string<CIT::EntityID>(entity);
                     std::string event;
                     if (std::getline(ss, event, Static::period_c)) {
-                        EventInx event_inx = intern_string<CIT::Event>(std::move(event));
+                        EventInx event_inx = intern_string<CIT::Event>(event);
                         // combine two inx...
                         ActionKey action_key{ entity_inx, event_inx };
                         NDLogger::cout() << method << entity_inx << ":" << event_inx 
                             << "->" << action_key << std::endl;
+                        actions[action_key] = ActionVec{};
                     }
                     else {
                         NDLogger::cout() << method << "DATA_BAD_ACTION_KEY: "
