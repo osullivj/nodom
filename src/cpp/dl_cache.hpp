@@ -6,6 +6,7 @@
 // Cache for data, layout and data.actions
 template <typename JSON>
 class DataLayCache {
+    friend std::ostream& operator<<(std::ostream& os, const NDAction& action);
 private:
     // RHS data values: you can only be RHS value if
     // you have an LHS CacheName. All these vecs hold
@@ -126,6 +127,52 @@ public:
     size_t pushables_size() { return pushables.size(); }
     size_t actions_size() { return actions.size(); }
 
+    void parse_actions(const JSON& action_seq, ActionVec& nd_action_vec, ActionIVec& act_i_vec) {
+        const static char* method = "DataLayCache::parse_actions: ";
+        int action_seq_len = JSize(action_seq);
+        for (int inx = 0; inx < action_seq_len; inx++) {
+            bool error{ false };
+            const JSON& action_defn(action_seq[inx]);
+            NDAction action;
+            NDActionInterned interned;
+            if (JContains(action_defn, Static::ui_pop_cs)) {
+                // a ui_pop must be a RenderMethod
+                std::string rname = JAsString(action_defn, Static::ui_pop_cs);
+                action.pop_ui = RenderMethodFromString(rname);
+                interned.pop_ui = (char*)render_names[action.pop_ui];
+            }
+            if (JContains(action_defn, Static::ui_push_cs)) {
+                // ui_push must be a widget_id
+                std::string widget_id = JAsString(action_defn, Static::ui_push_cs);
+                action.push_ui = intern_string<EntityID>(widget_id, CST::WidgetID);
+                interned.push_ui = (char*)get_string_value(action.push_ui);
+            }
+            if (JContains(action_defn, Static::db_action_cs)) {
+                // Command, Query & BatchRequest DB actions all require query_id
+                // Command & Query need sql_cname too
+                std::string db_action = JAsString(action_defn, Static::db_action_cs);
+                action.db_action = DBEventTypeFromString(db_action);
+                interned.db_action = (char*)db_event_types[action.db_action];
+                std::string query_id = JAsString(action_defn, Static::query_id_cs);
+                action.query_id = intern_string<EntityID>(query_id, CST::QueryID);
+                interned.query_id = (char*)get_string_value(action.query_id);
+                if (action.db_action == dbCommand || action.db_action == dbQuery) {
+                    std::string sql_cache_key = JAsString(action_defn, Static::sql_cname_cs);
+                    action.sql_cname = intern_string<Address>(sql_cache_key);
+                    // check that the sql cname refers to a cache data entry
+                    interned.sql_cname = (char*)get_addr_value(action.sql_cname);
+                    if (addr_set.find(action.sql_cname) == addr_set.end()) {
+                        NDLogger::cout() << method << "CACHE_KEY_NOT_FOUND: " << sql_cache_key << std::endl;
+                        error = true;
+                    }
+                }
+            }
+            if (error == false) {
+                nd_action_vec.push_back(action);
+            }
+        }
+    }
+
     void on_data(const JSON& data) {
         const static char* method = "DataLayCache::on_data: ";
 
@@ -152,12 +199,15 @@ public:
 
         if (we_have_actions) {
             const JSON& jactions(data[Static::actions_cs]);
-            StringVec action_keys;
-            JKeys(jactions, action_keys);
-            for (auto citer = action_keys.cbegin(); citer != action_keys.cend(); ++citer) {
-                std::stringstream ss{*citer};
+            StringVec action_key_vec;
+            JKeys(jactions, action_key_vec);
+            for (auto cak_iter = action_key_vec.cbegin(); cak_iter != action_key_vec.cend(); ++cak_iter) {
+                std::string action_key_s{ *cak_iter };
+                std::stringstream ss{action_key_s};
                 std::string entity;
                 if (std::getline(ss, entity, Static::period_c)) {
+                    // The EntityInx and EventInx created here are only used
+                    // to compose the ActionKey, and are then discarded.
                     EntityInx entity_inx = intern_string<CIT::EntityID>(entity);
                     std::string event;
                     if (std::getline(ss, event, Static::period_c)) {
@@ -166,16 +216,25 @@ public:
                         ActionKey action_key{ entity_inx, event_inx };
                         NDLogger::cout() << method << entity_inx << ":" << event_inx 
                             << "->" << action_key << std::endl;
-                        actions[action_key] = ActionVec{};
+                        ActionVec nd_action_vec{};
+                        ActionIVec action_intern_vec{};
+                        JSON action_seq = JSON::array();
+                        action_seq = jactions[action_key_s];
+                        parse_actions(action_seq, nd_action_vec, action_intern_vec);
+                        for (auto cact_iter = nd_action_vec.cbegin(); cact_iter != nd_action_vec.end(); ++cact_iter) {
+                            // NDLogger::cout() << method << *cact_iter << std::endl;
+                            // TODO: log_action_parse(nd_action_vec, action_intern_vec)
+                        }
+                        actions[action_key] = nd_action_vec;
                     }
                     else {
                         NDLogger::cout() << method << "DATA_BAD_ACTION_KEY: "
-                            << *citer << std::endl;
+                            << action_key_s << std::endl;
                     }
                 }
                 else {
                     NDLogger::cout() << method << "DATA_BAD_ACTION_KEY: " 
-                        << *citer << std::endl;
+                        << action_key_s << std::endl;
                 }
             }
         }
@@ -245,14 +304,18 @@ public:
         if (wv != nullptr) return;
 
         for (auto citer = widget_vec.cbegin(); citer != widget_vec.cend(); ++citer) {
-            bool valid_inx = (*citer)->widget_inx.ok();
+            bool valid_inx = (*citer)->widget_inx.is_valid();
             if (valid_inx) {
                 pushables[(*citer)->widget_inx] = *citer;
             }
         }
     }
 
-    const char* get_string_value(AddrInx inx) {
+    const char* get_string_value(EntityInx inx) {
+        return fp_char_ptrs[inx()];
+    }
+
+    const char* get_addr_value(AddrInx inx) {
         return fp_char_ptrs[inx()];
     }
 
@@ -292,6 +355,40 @@ public:
 
 private:
     // statics that define DataLayCache data and layout geometry
+    inline static std::array<const char*, EndRenderMethod> render_names{
+        Static::rm_home_cs,
+        Static::rm_input_int_cs,
+        Static::rm_combo_cs,
+        Static::rm_checkbox_cs,
+        Static::rm_text_cs,
+        Static::rm_button_cs,
+        Static::rm_table_cs,
+        Static::rm_footer_cs,
+        Static::rm_date_picker_cs,
+        Static::rm_duck_table_summary_modal_cs,
+        Static::rm_loading_modal_cs,
+        Static::rm_separator_cs,
+        Static::rm_same_line_cs,
+        Static::rm_new_line_cs,
+        Static::rm_spacing_cs,
+        Static::rm_align_text_to_frame_padding_cs,
+        Static::rm_begin_child_cs,
+        Static::rm_end_child_cs,
+        Static::rm_begin_group_cs,
+        Static::rm_end_group_cs,
+        Static::rm_push_font_cs,
+        Static::rm_pop_font_cs
+    };
+
+    inline static std::array<const char*, EndDBEventTypes> db_event_types{
+        Static::command_cs,
+        Static::command_result_cs,
+        Static::query_cs,
+        Static::query_result_cs,
+        Static::batch_request_cs,
+        Static::batch_response_cs
+    };
+
     inline static std::array<const char*, cs_end_cache_specs> atomic_cspec_names{
         Static::title_cs,      // cs_title
         Static::title_font_cs,      // cs_title_font
@@ -398,4 +495,41 @@ private:
                     cs_window_flags}},
         {PushFont, {cs_font, cs_font_size}}
     };
+
+    friend std::ostream& operator<<(std::ostream& os, const NDAction& action) {
+        // TODO: debuggable output from action parsing
+        bool prefix_comma = false;
+        os << "Action[";
+        if (action.push_ui.is_valid()) {
+            os << "push_ui(" << action.push_ui << "/"
+                << get_string_value(action.push_ui) << ")";
+            prefix_comma = true;
+        }
+        if (is_render_valid(action.pop_ui)) {
+            if (prefix_comma) os << ", ";
+            os << "pop_ui(" << action.pop_ui << "/" 
+                << render_names[action.pop_ui] << ")";
+            prefix_comma = true;
+        }
+        if (is_db_event_valid(action.db_action)) {
+            if (prefix_comma) os << ", ";
+            os << "db_action(" << action.db_action << "/" 
+                << get_string_value(action.db_action) << ")";
+            prefix_comma = true;
+        }
+        if (action.query_id.is_valid()) {
+            if (prefix_comma) os << ", ";
+            os << "query_id(" << action.query_id << "/"
+                << get_string_value(action.query_id) << ")";
+            prefix_comma = true;
+        }
+        if (action.sql_cname.is_valid()) {
+            if (prefix_comma) os << ", ";
+            os << "sql_cname(" << action.sql_cname << "/"
+                << get_string_value(action.sql_cname) << ")";
+        }
+        os << "]";
+        return os;
+    }
+
 };
