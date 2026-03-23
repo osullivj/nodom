@@ -95,13 +95,22 @@ using PushableMap = std::map<EntityInx, WidgetPtr>;
 
 struct NDAction {
     EntityInx push_ui;
-    RenderInx pop_ui;
-    EventInx db_action; // Query||Command||BatchRequest
+    RenderMethod pop_ui;
+    DBEventType db_action; // Query||Command||BatchRequest
     EntityInx query_id;
     AddrInx sql_cname;
 };
 
+struct NDActionInterned {
+    char* push_ui{ nullptr };
+    char* pop_ui{ nullptr };
+    char* db_action{ nullptr };
+    char* query_id{ nullptr };
+    char* sql_cname{ nullptr };
+};
+
 using ActionVec = std::vector<NDAction>;
+using ActionIVec = std::vector<NDActionInterned>;
 using ActionMap = std::map<ActionKey, ActionVec>;
 
 
@@ -157,4 +166,20 @@ RenderMethod RenderMethodFromString(const std::string& method) {
     if (method == Static::rm_pop_font_cs)
         return RenderMethod::PopFont;
     return EndRenderMethod;
+}
+
+DBEventType DBEventTypeFromString(const std::string& evt) {
+    if (evt == Static::command_cs)
+        return dbCommand;
+    if (evt == Static::command_result_cs)
+        return dbCommandResult;
+    if (evt == Static::query_cs)
+        return dbQuery;
+    if (evt == Static::query_result_cs)
+        return dbQueryResult;
+    if (evt == Static::batch_request_cs)
+        return dbBatchRequest;
+    if (evt == Static::batch_response_cs)
+        return dbBatchResponse;
+    return EndDBEventTypes;
 }
