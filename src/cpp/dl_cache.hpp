@@ -6,8 +6,7 @@
 // Cache for data, layout and data.actions
 template <typename JSON>
 class DataLayCache {
-    friend std::ostream& operator<<(std::ostream& os, const NDAction& action);
-private:
+protected:
     // RHS data values: you can only be RHS value if
     // you have an LHS CacheName. All these vecs hold
     // ptrs to mem managed by someone else...
@@ -28,10 +27,12 @@ private:
     WidgetVec                   widget_vec;
     PushableMap                 pushables;
     ActionMap                   actions;
-    ActionIMap                  actions_interned;
+    ActionInternMap             actions_interned;
+    ActionErrorMap              actions_errors;
+    StringVec                   bad_action_keys;
 
     // Valid cache addresses
-    std::set<AddrInx>   addr_set;
+    std::map<std::string, AddrInx>   address_map;
 
     // interned str for cspec names eg cname, title, title_font
     std::map<CacheSpecifier, StrInx> cspec_indices;
@@ -40,7 +41,7 @@ private:
     std::set<EventInx> action_key_event_indices;
 
 
-protected:
+protected: /*
     template <CIT itype>
     auto intern_string(std::string&& s, CST stype = CST::None) {
         auto iter = std::find(cache_strings.begin(), cache_strings.end(), s);
@@ -51,7 +52,7 @@ protected:
         }
         uint32_t inx = std::distance(cache_strings.begin(), iter);
         return DataCacheIndex<itype,CDT::cdStr>(inx, stype);
-    }
+    } */
 
     template <CIT itype>
     auto intern_string(const std::string& s, CST stype = CST::None) {
@@ -116,34 +117,48 @@ public:
         const static char* method = "DataLayCache::init: ";
 
         // intern the cache spec names so each has a str val DCI
+        /* do we really need this ?
         for (uint32_t spec_inx{ cs_title }; spec_inx < cs_end_cache_specs; ++spec_inx) {
             StrInx sinx = intern_string<Value>(atomic_cspec_names[spec_inx]);
             NDLogger::cout() << method << atomic_cspec_names[spec_inx] << ":" << sinx << std::endl;
             cspec_indices.emplace(std::make_pair<CacheSpecifier, StrInx>(CacheSpecifier{ spec_inx }, std::move(sinx)));
-        }
+        } */
     }
 
-    size_t addr_set_size() { return addr_set.size(); }
+    size_t addr_map_size() { return address_map.size(); }
     size_t widget_vec_size() { return widget_vec.size(); }
     size_t pushables_size() { return pushables.size(); }
     size_t actions_size() { return actions.size(); }
 
-    void parse_actions(const JSON& action_seq, ActionVec& nd_action_vec, ActionIVec& act_i_vec) {
+
+
+    void parse_actions(const JSON& action_seq, ActionVec& nd_action_vec, ActionInternVec& act_intern_vec, ActionErrorVec& act_error_vec) {
         const static char* method = "DataLayCache::parse_actions: ";
         int action_seq_len = JSize(action_seq);
         for (int inx = 0; inx < action_seq_len; inx++) {
-            bool error{ false };
             const JSON& action_defn(action_seq[inx]);
             NDAction action;
             NDActionInterned interned;
+            NDActionErrors errors;
             if (JContains(action_defn, Static::ui_pop_cs)) {
                 // a ui_pop must be a RenderMethod
                 std::string rname = JAsString(action_defn, Static::ui_pop_cs);
                 action.pop_ui = RenderMethodFromString(rname);
-                interned.pop_ui = (char*)render_names[action.pop_ui];
+                if (action.pop_ui == EndRenderMethod) {
+                    std::stringstream ss{ "BAD_RNAME(" };
+                    ss << rname << ")";
+                    errors.error_vec.push_back(ss.str());
+                    errors.inx = inx;
+                }
+                else {
+                    interned.pop_ui = (char*)render_names[action.pop_ui];
+                }
             }
             if (JContains(action_defn, Static::ui_push_cs)) {
-                // ui_push must be a widget_id
+                // ui_push must be a widget_id. Since action parsing happens before
+                // layout, this is the first time we may encounter encounter a
+                // widget_id. NB there may be widget_ids in layout that aren't 
+                // referemced in actions.
                 std::string widget_id = JAsString(action_defn, Static::ui_push_cs);
                 action.push_ui = intern_string<EntityID>(widget_id, CST::WidgetID);
                 interned.push_ui = (char*)get_string_value(action.push_ui);
@@ -162,15 +177,20 @@ public:
                     action.sql_cname = intern_string<Address>(sql_cache_key);
                     // check that the sql cname refers to a cache data entry
                     interned.sql_cname = (char*)get_addr_value(action.sql_cname);
-                    if (addr_set.find(action.sql_cname) == addr_set.end()) {
-                        NDLogger::cout() << method << "CACHE_KEY_NOT_FOUND: " << sql_cache_key << std::endl;
-                        error = true;
+                    if (address_map.find(sql_cache_key) == address_map.end()) {
+                        std::stringstream ss{ "CACHE_KEY_NOT_FOUND(" };
+                        ss << sql_cache_key << ")";
+                        errors.error_vec.push_back(ss.str());
+                        errors.inx = inx;
                     }
                 }
             }
-            if (error == false) {
+            if (errors.inx == -1) {
                 nd_action_vec.push_back(action);
-                act_i_vec.push_back(interned);
+                act_intern_vec.push_back(interned);
+            }
+            else {
+                act_error_vec.push_back(errors);
             }
         }
     }
@@ -219,8 +239,7 @@ public:
                 continue;
             }
             AddrInx ainx = add_address(key);
-            addr_set.insert(ainx);
-            NDLogger::cout() << method << key << ":" << ainx << std::endl;
+            address_map[key] = ainx;
             // We could try and parse the values here, but how do
             // we tell an int from a float? We cannot, because JS only
             // has "number". We can figure atomic vs array, and string vs
@@ -237,43 +256,37 @@ public:
                 std::string action_key_s{ *cak_iter };
                 std::stringstream ss{action_key_s};
                 std::string entity;
-                if (std::getline(ss, entity, Static::period_c)) {
-                    // The EntityInx and EventInx created here are only used
-                    // to compose the ActionKey, and are then discarded.
-                    EntityInx entity_inx = intern_string<CIT::EntityID>(entity);
-                    std::string event;
-                    if (std::getline(ss, event, Static::period_c)) {
-                        EventInx event_inx = intern_string<CIT::Event>(event);
-                        // combine two inx...
-                        ActionKey action_key{ entity_inx, event_inx };
-                        NDLogger::cout() << method << entity_inx << ":" << event_inx 
-                            << "->" << action_key << std::endl;
-                        ActionVec nd_action_vec{};
-                        ActionIVec action_intern_vec{};
-                        JSON action_seq = JSON::array();
-                        action_seq = jactions[action_key_s];
-                        parse_actions(action_seq, nd_action_vec, action_intern_vec);
-                        for (int inx = 0; inx < nd_action_vec.size(); inx++) {
-                            print_parsed_action(nd_action_vec[inx], action_intern_vec[inx]);
-                        }
-                        actions[action_key] = nd_action_vec;
-                        actions_interned[action_key] = action_intern_vec;
-                    }
-                    else {
-                        NDLogger::cout() << method << "DATA_BAD_ACTION_KEY: "
-                            << action_key_s << std::endl;
-                    }
+                if (!std::getline(ss, entity, Static::period_c)) {
+                    bad_action_keys.push_back(action_key_s);
+                    continue;
                 }
-                else {
-                    NDLogger::cout() << method << "DATA_BAD_ACTION_KEY: " 
-                        << action_key_s << std::endl;
+                // The EntityInx and EventInx created here are only used
+                // to compose the ActionKey, and are then discarded. Their
+                // values will be recreated on layout parsing.
+                EntityInx entity_inx = intern_string<CIT::EntityID>(entity);
+                std::string event;
+                if (!std::getline(ss, event, Static::period_c)) {
+                    bad_action_keys.push_back(action_key_s);
+                    continue;
                 }
+                EventInx event_inx = intern_string<CIT::Event>(event);
+                // combine two inx...
+                ActionKey action_key{ entity_inx, event_inx };
+                ActionVec nd_action_vec{};
+                ActionInternVec action_intern_vec{};
+                ActionErrorVec action_error_vec{};
+                JSON action_seq = JSON::array();
+                action_seq = jactions[action_key_s];
+                parse_actions(action_seq, nd_action_vec, action_intern_vec, action_error_vec);
+                /*
+                for (int inx = 0; inx < nd_action_vec.size(); inx++) {
+                    print_parsed_action(nd_action_vec[inx], action_intern_vec[inx]);
+                }*/
+                actions[action_key] = nd_action_vec;
+                actions_interned[action_key] = action_intern_vec;
+                actions_errors[action_key] = action_error_vec;
             }
         }
-        else {
-            NDLogger::cout() << method << "DATA_NO_ACTIONS" << std::endl;
-        }
-
     }
 
     void orthogonalize_cspec(const JSON& cspec, WidgetPtr widget) {
@@ -351,9 +364,10 @@ public:
         return fp_char_ptrs[inx()];
     }
 
+    /*
     AddrInx add_address(std::string&& addr) {
-        return intern_string<CIT::Address>(std::move(addr));
-    }
+        return intern_string<CIT::Address>(addr);
+    } */
 
     AddrInx add_address(const std::string& addr) {
         return intern_string<CIT::Address>(addr);
@@ -373,9 +387,10 @@ public:
         return intern_string<CIT::Value>(s);
     }
 
+    /*
     StrInx add_string(std::string&& s) {
         return intern_string<CIT::Value>(std::move(s));
-    }
+    } */
 
     RenderInx add_render_name(const std::string& rname) {
         return intern_string<CIT::RenderName>(rname);
