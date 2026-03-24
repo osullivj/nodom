@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include "json_ops.hpp"
 #include "dl_cache.hpp"
 #include "static_strings.hpp"
@@ -5,12 +6,30 @@
 #include <boost/test/unit_test.hpp>
 #include <math.h>
 #include <filesystem>
-#include <stdlib.h>
+
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1900) && !defined(IMGUI_DISABLE_WIN32_FUNCTIONS)
 #pragma comment(lib, "legacy_stdio_definitions")
 #endif
 
+template <typename JSON>
+struct TestDLC : public DataLayCache<JSON> {
+    void report_cache_strings() {
+        int fp_len = fp_char_ptrs.size();
+        int cs_len = cache_strings.size();
+        int ptr_val{ 0 };
+        std::cout << "== report_cache_strings ptrs:" 
+            << fp_len << ", cached:" << cs_len << std::endl;
+        for (int inx = 0; inx < cs_len; inx++) {
+            std::cout << std::setfill('0') << std::setw(2) << inx << ":";
+            std::cout << cache_strings[inx] << ":";
+            ptr_val = static_cast<int>cache_strings[inx].c_str();
+            os << "0x" << std::setfill('0') << std::setw(8) << std::hex << ptr_val << ":";
+            ptr_val = fp_char_ptrs[inx];
+            os << "0x" << std::setfill('0') << std::setw(8) << std::hex << ptr_val << std::endl;
+        }
+    }
+};
 
 struct DataCacheFixture { 
 #ifdef __EMSCRIPTEN__
@@ -37,8 +56,7 @@ struct DataCacheFixture {
         test_json_dir = buf.str();
     }
 
-    ~DataCacheFixture() {
-    }
+    ~DataCacheFixture() { }
 };
 
 BOOST_FIXTURE_TEST_CASE(AddAddr, DataCacheFixture)
@@ -120,7 +138,7 @@ BOOST_FIXTURE_TEST_CASE(AddServerData, DataCacheFixture)
     auto data = JParse<nlohmann::json>(data_json);
 #endif
     dc.on_data(data);
-    BOOST_TEST(dc.addr_set_size() == 3);
+    BOOST_TEST(dc.addr_map_size() == 3);
     BOOST_TEST(dc.actions_size() == 0);
 }
 
@@ -150,7 +168,7 @@ BOOST_FIXTURE_TEST_CASE(ExfServerData, DataCacheFixture)
     auto data = JParse<nlohmann::json>(data_json);
 #endif
     dc.on_data(data);
-    BOOST_TEST(dc.addr_set_size() == 10);
+    BOOST_TEST(dc.addr_map_size() == 10);
     BOOST_TEST(dc.actions_size() == 4);
 }
 
