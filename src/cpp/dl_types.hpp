@@ -109,11 +109,17 @@ struct NDActionInterned {
     char* sql_cname{ nullptr };
 };
 
-using ActionVec = std::vector<NDAction>;
-using ActionIVec = std::vector<NDActionInterned>;
-using ActionMap = std::map<ActionKey, ActionVec>;
-using ActionIMap = std::map<ActionKey, ActionIVec>;
+struct NDActionErrors {
+    int inx{ -1 };
+    StringVec error_vec;
+};
 
+using ActionVec = std::vector<NDAction>;
+using ActionInternVec = std::vector<NDActionInterned>;
+using ActionErrorVec = std::vector<NDActionErrors>;
+using ActionMap = std::map<ActionKey, ActionVec>;
+using ActionInternMap = std::map<ActionKey, ActionInternVec>;
+using ActionErrorMap = std::map<ActionKey, ActionErrorVec>;
 
 RenderMethod RenderMethodFromString(const std::string& method) {
     // Home
