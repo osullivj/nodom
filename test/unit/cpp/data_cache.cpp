@@ -18,24 +18,35 @@ struct TestDLC : public DataLayCache<JSON> {
         int fp_len = fp_char_ptrs.size();
         int cs_len = cache_strings.size();
         int ptr_val{ 0 };
+        std::cout << "==== " << boost::unit_test::framework::current_test_case().p_name << std::endl;
         std::cout << "== report_cache_strings ptrs:" 
             << fp_len << ", cached:" << cs_len << std::endl;
         for (int inx = 0; inx < cs_len; inx++) {
             std::cout << std::setfill('0') << std::setw(2) << inx << ":";
             std::cout << cache_strings[inx] << ":";
-            ptr_val = static_cast<int>cache_strings[inx].c_str();
-            os << "0x" << std::setfill('0') << std::setw(8) << std::hex << ptr_val << ":";
-            ptr_val = fp_char_ptrs[inx];
-            os << "0x" << std::setfill('0') << std::setw(8) << std::hex << ptr_val << std::endl;
+            const char* cache_ptr = cache_strings[inx].c_str();
+            std::cout << "0x" << std::setfill('0') << std::setw(8) << std::hex << (int)cache_ptr << ":";
+            const char* fast_ptr = fp_char_ptrs[inx];
+            std::cout << "0x" << std::setfill('0') << std::setw(8) << std::hex << (int)fast_ptr << std::endl;
+        }
+    }
+
+    void report_address_map() {
+        int len = address_map.size();
+        int inx{ 0 };
+        std::cout << "== report_address_map len:" << len << std::endl;
+        for (auto cit = address_map.cbegin(); cit != address_map.cend(); ++cit) {
+            std::cout << std::setfill('0') << std::setw(2) << inx++ << ":";
+            std::cout << cit->first << ":" << cit->second << std::endl;
         }
     }
 };
 
 struct DataCacheFixture { 
 #ifdef __EMSCRIPTEN__
-    DataLayCache<emscripten::val>   dc;
+    TestDLC<emscripten::val>   dc;
 #else
-    DataLayCache<nlohmann::json>   dc;
+    TestDLC<nlohmann::json>   dc;
 #endif
 
     // cf NDContext::style_coloring
@@ -56,7 +67,11 @@ struct DataCacheFixture {
         test_json_dir = buf.str();
     }
 
-    ~DataCacheFixture() { }
+    ~DataCacheFixture() {
+        dc.report_cache_strings();
+        dc.report_address_map();
+        std::cout << std::endl;
+    }
 };
 
 BOOST_FIXTURE_TEST_CASE(AddAddr, DataCacheFixture)
