@@ -95,8 +95,8 @@ using PushableMap = std::map<EntityInx, WidgetPtr>;
 
 struct NDAction {
     EntityInx push_ui;
-    RenderMethod pop_ui;
-    DBEventType db_action; // Query||Command||BatchRequest
+    RenderMethod pop_ui{ EndRenderMethod };
+    DBEventType db_action{ EndDBEventTypes }; // Query||Command||BatchRequest
     EntityInx query_id;
     AddrInx sql_cname;
 };
