@@ -187,7 +187,7 @@ enum CacheDataType : uint32_t {
 };
 
 enum DBEventType : uint32_t {
-    dbCommand = 1,
+    dbCommand = 0,
     dbCommandResult,
     dbQuery,
     dbQueryResult,
