@@ -52,6 +52,25 @@ struct TestDLC : public DataLayCache<JSON> {
         }
     }
 
+    void report_cache_floats() {
+        int fp_len = fp_float_ptrs.size();
+        int cs_len = cache_floats.size();
+        int ptr_val{ 0 };
+        std::cout << "== report_cache_floats ptrs:"
+            << fp_len << ", cached:" << cs_len << std::endl;
+        for (int inx = 0; inx < cs_len; inx++) {
+            std::cout << std::setfill('0') << std::setw(2) << inx << ":";
+            std::cout << cache_floats[inx] << ":";
+            float* cache_ptr = &(cache_floats[inx]);
+            std::cout << "0x" << std::setfill('0') << std::setw(8) << std::hex << (int)cache_ptr << ":";
+            float* fast_ptr = fp_float_ptrs[inx];
+            std::cout << "0x" << std::setfill('0') << std::setw(8) << std::hex << (int)fast_ptr;
+            if (cache_ptr == fast_ptr)
+                std::cout << ":BACKED";
+            std::cout << std::endl;
+        }
+    }
+
     void report_address_map() {
         int len = address_map.size();
         int inx{ 0 };
@@ -114,6 +133,7 @@ struct DataCacheFixture {
         std::cout << "==== " << boost::unit_test::framework::current_test_case().p_name << std::endl;
         dc.report_cache_strings();
         dc.report_cache_ints();
+        dc.report_cache_floats();
         dc.report_address_map();
         dc.report_actions();
         std::cout << std::endl;
