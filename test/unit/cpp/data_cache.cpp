@@ -18,7 +18,6 @@ struct TestDLC : public DataLayCache<JSON> {
         int fp_len = fp_char_ptrs.size();
         int cs_len = cache_strings.size();
         int ptr_val{ 0 };
-        std::cout << "==== " << boost::unit_test::framework::current_test_case().p_name << std::endl;
         std::cout << "== report_cache_strings ptrs:" 
             << fp_len << ", cached:" << cs_len << std::endl;
         for (int inx = 0; inx < cs_len; inx++) {
@@ -27,6 +26,25 @@ struct TestDLC : public DataLayCache<JSON> {
             const char* cache_ptr = cache_strings[inx].c_str();
             std::cout << "0x" << std::setfill('0') << std::setw(8) << std::hex << (int)cache_ptr << ":";
             const char* fast_ptr = fp_char_ptrs[inx];
+            std::cout << "0x" << std::setfill('0') << std::setw(8) << std::hex << (int)fast_ptr;
+            if (cache_ptr == fast_ptr)
+                std::cout << ":BACKED";
+            std::cout << std::endl;
+        }
+    }
+
+    void report_cache_ints() {
+        int fp_len = fp_int_ptrs.size();
+        int cs_len = cache_ints.size();
+        int ptr_val{ 0 };
+        std::cout << "== report_cache_ints ptrs:"
+            << fp_len << ", cached:" << cs_len << std::endl;
+        for (int inx = 0; inx < cs_len; inx++) {
+            std::cout << std::setfill('0') << std::setw(2) << inx << ":";
+            std::cout << cache_ints[inx] << ":";
+            int* cache_ptr = &(cache_ints[inx]);
+            std::cout << "0x" << std::setfill('0') << std::setw(8) << std::hex << (int)cache_ptr << ":";
+            int* fast_ptr = fp_int_ptrs[inx];
             std::cout << "0x" << std::setfill('0') << std::setw(8) << std::hex << (int)fast_ptr;
             if (cache_ptr == fast_ptr)
                 std::cout << ":BACKED";
@@ -93,7 +111,9 @@ struct DataCacheFixture {
     }
 
     ~DataCacheFixture() {
+        std::cout << "==== " << boost::unit_test::framework::current_test_case().p_name << std::endl;
         dc.report_cache_strings();
+        dc.report_cache_ints();
         dc.report_address_map();
         dc.report_actions();
         std::cout << std::endl;
