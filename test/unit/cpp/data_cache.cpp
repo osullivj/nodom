@@ -14,10 +14,11 @@
 
 template <typename JSON>
 struct TestDLC : public DataLayCache<JSON> {
-    void report_cache_strings() {
+    int report_cache_strings() {
         int fp_len = fp_char_ptrs.size();
         int cs_len = cache_strings.size();
         int ptr_val{ 0 };
+        int backed{ 0 };
         std::cout << "== report_cache_strings ptrs:" 
             << fp_len << ", cached:" << cs_len << std::endl;
         for (int inx = 0; inx < cs_len; inx++) {
@@ -27,16 +28,20 @@ struct TestDLC : public DataLayCache<JSON> {
             std::cout << "0x" << std::setfill('0') << std::setw(8) << std::hex << (int)cache_ptr << ":";
             const char* fast_ptr = fp_char_ptrs[inx];
             std::cout << "0x" << std::setfill('0') << std::setw(8) << std::hex << (int)fast_ptr;
-            if (cache_ptr == fast_ptr)
+            if (cache_ptr == fast_ptr) {
                 std::cout << ":BACKED";
+                backed++;
+            }
             std::cout << std::endl;
         }
+        return backed;
     }
 
-    void report_cache_ints() {
+    int report_cache_ints() {
         int fp_len = fp_int_ptrs.size();
         int cs_len = cache_ints.size();
         int ptr_val{ 0 };
+        int backed{ 0 };
         std::cout << "== report_cache_ints ptrs:"
             << fp_len << ", cached:" << cs_len << std::endl;
         for (int inx = 0; inx < cs_len; inx++) {
@@ -46,16 +51,20 @@ struct TestDLC : public DataLayCache<JSON> {
             std::cout << "0x" << std::setfill('0') << std::setw(8) << std::hex << (int)cache_ptr << ":";
             int* fast_ptr = fp_int_ptrs[inx];
             std::cout << "0x" << std::setfill('0') << std::setw(8) << std::hex << (int)fast_ptr;
-            if (cache_ptr == fast_ptr)
+            if (cache_ptr == fast_ptr) {
                 std::cout << ":BACKED";
+                backed++;
+            }
             std::cout << std::endl;
         }
+        return backed;
     }
 
-    void report_cache_floats() {
+    int report_cache_floats() {
         int fp_len = fp_float_ptrs.size();
         int cs_len = cache_floats.size();
         int ptr_val{ 0 };
+        int backed{ 0 };
         std::cout << "== report_cache_floats ptrs:"
             << fp_len << ", cached:" << cs_len << std::endl;
         for (int inx = 0; inx < cs_len; inx++) {
@@ -65,10 +74,13 @@ struct TestDLC : public DataLayCache<JSON> {
             std::cout << "0x" << std::setfill('0') << std::setw(8) << std::hex << (int)cache_ptr << ":";
             float* fast_ptr = fp_float_ptrs[inx];
             std::cout << "0x" << std::setfill('0') << std::setw(8) << std::hex << (int)fast_ptr;
-            if (cache_ptr == fast_ptr)
+            if (cache_ptr == fast_ptr) {
                 std::cout << ":BACKED";
+                backed++;
+            }
             std::cout << std::endl;
         }
+        return backed;
     }
 
     void report_address_map() {
@@ -121,19 +133,28 @@ struct DataCacheFixture {
     std::string nd_home;
     std::string test_json_dir;
 
+    // reset these at the top of your test method
+    // for the dtor asserts
+    int backed_str_count{ 0 };
+    int backed_int_count{ 0 };
+    int backed_float_count{ 0 };
+
     DataCacheFixture()
         :nd_home(getenv("ND_HOME"))
     {
         std::stringstream buf;
         buf << nd_home << "\\cfg\\";
         test_json_dir = buf.str();
+        std::cout << "==== " << boost::unit_test::framework::current_test_case().p_name << std::endl;
     }
 
     ~DataCacheFixture() {
-        std::cout << "==== " << boost::unit_test::framework::current_test_case().p_name << std::endl;
-        dc.report_cache_strings();
-        dc.report_cache_ints();
-        dc.report_cache_floats();
+        int bsc = dc.report_cache_strings();
+        BOOST_TEST(backed_str_count == bsc);
+        int bic = dc.report_cache_ints();
+        BOOST_TEST(backed_int_count == bic);
+        int bfc = dc.report_cache_floats();
+        BOOST_TEST(backed_float_count == bfc);
         dc.report_address_map();
         dc.report_actions();
         std::cout << std::endl;
@@ -144,6 +165,7 @@ BOOST_FIXTURE_TEST_CASE(AddAddr, DataCacheFixture)
 {
     std::string addr_str{ "integer_address" };
     AddrInx addr_inx = dc.add_address(std::string{"integer_address"});
+    backed_str_count = 1;
 
     BOOST_TEST(AddrInx::item_type == CIT::Address);
     BOOST_TEST(AddrInx::data_type == CDT::cdStr);
@@ -155,7 +177,8 @@ BOOST_FIXTURE_TEST_CASE(AddInt, DataCacheFixture)
 {
     std::string addr_str{ "style_coloring" };
     AddrInx addr_inx = dc.add_address(addr_str);
-    IntInx int_inx = dc.add_int(&style_coloring);
+    backed_str_count = 1;
+    IntInx int_inx = dc.add_int(&style_coloring);   // not backed
     BOOST_TEST(IntInx::item_type == CIT::Value);
     BOOST_TEST(IntInx::data_type == CDT::cdInt);
     BOOST_TEST(int_inx.magic_index == 0x02010000);
@@ -165,7 +188,8 @@ BOOST_FIXTURE_TEST_CASE(AddInt, DataCacheFixture)
 BOOST_FIXTURE_TEST_CASE(AddFloat, DataCacheFixture)
 {
     AddrInx addr_inx = dc.add_address(std::string{ "font_scale_main" });
-    FloatInx float_inx = dc.add_float(&font_scale_main);
+    backed_str_count = 1;
+    FloatInx float_inx = dc.add_float(&font_scale_main);    // not backed
     BOOST_TEST(FloatInx::item_type == CIT::Value);
     BOOST_TEST(FloatInx::data_type == CDT::cdFloat);
     BOOST_TEST(float_inx.magic_index == 0x02020000);
@@ -175,7 +199,8 @@ BOOST_FIXTURE_TEST_CASE(AddFloat, DataCacheFixture)
 BOOST_FIXTURE_TEST_CASE(AddString, DataCacheFixture)
 {
     AddrInx addr_inx = dc.add_address(std::string{ "_server_url" });
-    StrInx str_inx = dc.add_string(server_url.c_str());
+    backed_str_count = 1;
+    StrInx str_inx = dc.add_string(server_url.c_str()); // not backed
     BOOST_TEST(StrInx::item_type == CIT::Value);
     BOOST_TEST(StrInx::data_type == CDT::cdStr);
     BOOST_TEST(str_inx.magic_index == 0x02040001);
