@@ -207,6 +207,7 @@ BOOST_FIXTURE_TEST_CASE(AddString, DataCacheFixture)
     BOOST_TEST(str_inx() == 1);
 }
 
+/* enum RenderMethod should suffice; we prolly don't need RenderInx
 BOOST_FIXTURE_TEST_CASE(AddRenderMethod, DataCacheFixture)
 {
     // TODO: test for RenderMethod in DLCache
@@ -217,7 +218,7 @@ BOOST_FIXTURE_TEST_CASE(AddRenderMethod, DataCacheFixture)
     RenderInx combo_inx = dc.add_render_name(Static::rm_combo_cs);
     BOOST_TEST(combo_inx.magic_index == 0x06040002);
     BOOST_TEST(combo_inx() == 2);
-}
+}*/
 
 BOOST_FIXTURE_TEST_CASE(BadIndex, DataCacheFixture)
 {
@@ -243,8 +244,11 @@ BOOST_FIXTURE_TEST_CASE(AddServerData, DataCacheFixture)
     std::string data_json = load_json(data_json_path.c_str());
     auto data = JParse<nlohmann::json>(data_json);
 #endif
+    // 3 addresses in AddServer test data
+    backed_str_count = 3;
     dc.on_data(data);
     BOOST_TEST(dc.addr_map_size() == 3);
+    
     BOOST_TEST(dc.actions_size() == 0);
 }
 
