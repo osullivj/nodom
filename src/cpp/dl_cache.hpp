@@ -289,11 +289,20 @@ public:
                 case cdFloat:
                 case cdBool:
                 case cdStr:
-                    assert(false);
-                    break;
                 case cdIntVec:
                 case cdStrVec:
+                    assert(false);
+                    break;
                 case cdAny:
+                    // cindex
+                    //      combo: add_int once
+                    // cname
+                    //      combo: add_str N times
+                    //      input_int: add_int once
+                    //      checkbox: add_bool once
+                    //      date_picker: add_int 3 times
+                    //      loading_modal: add_str N times
+                    break;
                 case cdResultSet:
                     break;
                 }
