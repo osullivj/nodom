@@ -195,7 +195,7 @@ public:
         }
     }
 
-    void print_parsed_action(NDAction& action, NDActionInterned& interned) {
+    void print_parsed_action(const NDAction& action, const NDActionInterned& interned) {
         // TODO: debuggable output from action parsing
         bool prefix_comma = false;
         NDLogger::cout() << "Action[";
