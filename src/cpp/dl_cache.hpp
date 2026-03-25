@@ -255,32 +255,54 @@ public:
         if (!widget->widget_id.empty()) {
             widget->widget_inx = intern_string<EntityID>(widget->widget_id, CST::WidgetID);
         }
-        // parse cspec: atomics first
-        const CacheSpecVec& atomics{ atomic_cspecs[widget->rname] };
-        for (auto cit = atomics.cbegin(); cit != atomics.cend(); ++cit) {
+        // parse cspec: value_cspecs first, that is fields that just
+        // give a value, rather than an address
+        const CacheSpecVec& values{ value_cspecs[widget->rname] };
+        for (auto cit = values.cbegin(); cit != values.cend(); ++cit) {
             CacheSpecifier spec{ *cit };
-            CacheDataType atomic_type = atomic_cspec_types[spec];
-            const char* atomic_name = atomic_cspec_names[spec];
-            if (JContains(cspec, atomic_name)) {
-                switch (atomic_type) {
+            CacheDataType value_type = cspec_types[spec];
+            const char* value_name = cspec_names[spec];
+            if (JContains(cspec, value_name)) {
+                switch (value_type) {
                 case cdInt:
-                    widget->cspec_int[spec] = intern_int(JAsInt(cspec, atomic_name));
+                    widget->cspec_int[spec] = intern_int(JAsInt(cspec, value_name));
                     break;
                 case cdFloat:
-                    widget->cspec_float[spec] = intern_float(JAsFloat(cspec, atomic_name));
+                    widget->cspec_float[spec] = intern_float(JAsFloat(cspec, value_name));
                     break;
                 case cdBool:
-                    widget->cspec_int[spec] = intern_int(JAsBool(cspec, atomic_name)?1:0);
+                    widget->cspec_int[spec] = intern_int(JAsBool(cspec, value_name)?1:0);
                     break;
                 case cdStr:
-                    widget->cspec_str[spec] = intern_string<Value>(JAsString(cspec, atomic_name));
+                    widget->cspec_str[spec] = intern_string<Value>(JAsString(cspec, value_name));
                     break;
                 case cdIntVec:
-                    // TODO
+                case cdStrVec:
+                case cdAny:
+                case cdResultSet:
                     assert(false);
                     break;
-                case cdStrVec:
+                }
+            }
+        }
+        // now we'll handle the address cspecs that ref data keys
+        const CacheSpecVec& addrs{ addr_cspecs[widget->rname] };
+        for (auto cit = addrs.cbegin(); cit != addrs.cend(); ++cit) {
+            CacheSpecifier spec{ *cit };
+            CacheDataType ref_type = cspec_types[spec];
+            const char* ref_name = cspec_names[spec];
+            if (JContains(cspec, ref_name)) {
+                switch (ref_type) {
+                case cdInt:
+                case cdFloat:
+                case cdBool:
+                case cdStr:
                     assert(false);
+                    break;
+                case cdIntVec:
+                case cdStrVec:
+                case cdAny:
+                case cdResultSet:
                     break;
                 }
             }
@@ -387,7 +409,7 @@ private:
         Static::batch_response_cs
     };
 
-    inline static std::array<const char*, cs_end_cache_specs> atomic_cspec_names{
+    inline static std::array<const char*, cs_end_cache_specs> cspec_names{
         Static::title_cs,      // cs_title
         Static::title_font_cs,      // cs_title_font
         Static::title_font_size_cs,      // cs_title_font_size
@@ -422,7 +444,7 @@ private:
         Static::qname_cs
     };
 
-    inline static std::array<CacheDataType, cs_end_cache_specs> atomic_cspec_types{
+    inline static std::array<CacheDataType, cs_end_cache_specs> cspec_types{
         cdStr,      // cs_title
         cdStr,      // cs_title_font
         cdInt,      // cs_title_font_size
@@ -453,7 +475,7 @@ private:
         cdBool,     // cs_font_scale    footer flag
         cdBool,     // cs_style         footer flag
         cdAny,      //.cs_cname
-        cdInt,      // cs_cindex
+        cdAny,      // cs_cindex
         cdResultSet // cs_qname
     };
 
@@ -465,11 +487,7 @@ private:
         {LoadingModal, cdStrVec}
     };
 
-    inline static std::map<RenderMethod, CacheDataType> index_cspec_types{
-        {Combo, cdInt}
-    };
-
-    inline static  std::map<RenderMethod, CacheSpecVec> atomic_cspecs{
+    inline static  std::map<RenderMethod, CacheSpecVec> value_cspecs{
         {Home, {cs_title, cs_title_font, cs_title_font_size}},
         {InputInt, {cs_label, cs_step, cs_step_fast, cs_flags}},
         {Combo, {cs_label, cs_step}},
@@ -492,5 +510,14 @@ private:
                     cs_spinner_thickness, cs_spinner_radius,
                     cs_window_flags}},
         {PushFont, {cs_font, cs_font_size}}
+    };
+
+    inline static std::map<RenderMethod, CacheSpecVec> addr_cspecs{
+        {InputInt, {cs_cname}},
+        {Combo, {cs_cindex, cs_cname}},
+        {InputInt, {cs_cname}},
+        {Checkbox, {cs_cname}},
+        {DatePicker, {cs_cname}},
+        {LoadingModal, {cs_cname}}
     };
 };
