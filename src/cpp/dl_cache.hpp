@@ -41,18 +41,7 @@ protected:
     std::set<EventInx> action_key_event_indices;
 
 
-protected: /*
-    template <CIT itype>
-    auto intern_string(std::string&& s, CST stype = CST::None) {
-        auto iter = std::find(cache_strings.begin(), cache_strings.end(), s);
-        if (iter == cache_strings.end()) {
-            cache_strings.push_back(s);
-            fp_char_ptrs.push_back(cache_strings.back().c_str());
-            return DataCacheIndex<itype,CDT::cdStr>(cache_strings.size() - 1, stype);
-        }
-        uint32_t inx = std::distance(cache_strings.begin(), iter);
-        return DataCacheIndex<itype,CDT::cdStr>(inx, stype);
-    } */
+public:
 
     template <CIT itype>
     auto intern_string(const std::string& s, CST stype = CST::None) {
@@ -66,51 +55,21 @@ protected: /*
         return DataCacheIndex<itype, CDT::cdStr>(inx, stype);
     }
 
-    auto intern_int(int&& value) {
-        // cannot be a ptr to value in fp_int_ptrs as it's rval,
-        // so go ahead and create a new cache_ints backed Int
+    auto intern_int(int value) {
+        // create storage for an int value, and FP ptr too
         cache_ints.push_back(value);
         fp_int_ptrs.push_back(&(cache_ints.back()));
         return IntInx(fp_int_ptrs.size() - 1);
     }
 
-    auto intern_int(int& value) {
-        // is there a ptr to value in fp_int_ptrs already?
-        // NB such a ptr would not have cache_ints backing...
-        auto iter = std::find(fp_int_ptrs.begin(), fp_int_ptrs.end(), &value);
-        if (iter == fp_int_ptrs.end()) {
-            // we don't know where value is stored, so copy to cache_ints
-            cache_ints.push_back(value);
-            fp_int_ptrs.push_back(&(cache_ints.back()));
-            return IntInx(fp_int_ptrs.size() - 1);
-        }
-        uint32_t inx = std::distance(fp_int_ptrs.begin(), iter);
-        return IntInx(inx);
-    }
-
-    auto intern_float(float&& value) {
+    auto intern_float(float value) {
         // cannot be a ptr to value in fp_int_ptrs as it's rval,
-        // so go ahead and create a new cache_ints backed Int
+        // so go ahead and create new cache_floats backed storage
         cache_floats.push_back(value);
         fp_float_ptrs.push_back(&(cache_floats.back()));
         return FloatInx(fp_float_ptrs.size() - 1);
     }
 
-    auto intern_float(float& value) {
-        // is there a ptr to value in fp_float_ptrs already?
-        // NB such a ptr would not have cache_ints backing...
-        auto iter = std::find(fp_float_ptrs.begin(), fp_float_ptrs.end(), &value);
-        if (iter == fp_float_ptrs.end()) {
-            // we don't know where value is stored, so copy to cache_ints
-            cache_floats.push_back(value);
-            fp_float_ptrs.push_back(&(cache_floats.back()));
-            return FloatInx(fp_float_ptrs.size() - 1);
-        }
-        uint32_t inx = std::distance(fp_float_ptrs.begin(), iter);
-        return FloatInx(inx);
-    }
-
-public:
     DataLayCache() { }
 
     void init() {
@@ -278,10 +237,6 @@ public:
                 JSON action_seq = JSON::array();
                 action_seq = jactions[action_key_s];
                 parse_actions(action_seq, nd_action_vec, action_intern_vec, action_error_vec);
-                /*
-                for (int inx = 0; inx < nd_action_vec.size(); inx++) {
-                    print_parsed_action(nd_action_vec[inx], action_intern_vec[inx]);
-                }*/
                 actions[action_key] = nd_action_vec;
                 actions_interned[action_key] = action_intern_vec;
                 actions_errors[action_key] = action_error_vec;
@@ -364,11 +319,6 @@ public:
         return fp_char_ptrs[inx()];
     }
 
-    /*
-    AddrInx add_address(std::string&& addr) {
-        return intern_string<CIT::Address>(addr);
-    } */
-
     AddrInx add_address(const std::string& addr) {
         return intern_string<CIT::Address>(addr);
     }
@@ -387,18 +337,10 @@ public:
         return intern_string<CIT::Value>(s);
     }
 
-    /*
-    StrInx add_string(std::string&& s) {
-        return intern_string<CIT::Value>(std::move(s));
-    } */
-
     RenderInx add_render_name(const std::string& rname) {
         return intern_string<CIT::RenderName>(rname);
     }
 
-    IntInx add_stored_int(int& si) {
-
-    }
 
 private:
     // statics that define DataLayCache data and layout geometry
