@@ -268,7 +268,7 @@ BOOST_FIXTURE_TEST_CASE(ExfServerData, DataCacheFixture)
     std::string data_json = load_json(data_json_path.c_str());
     auto data = JParse<nlohmann::json>(data_json);
 #endif
-    backed_str_count = 20;
+    backed_str_count = 21;
     dc.on_data(data);
     BOOST_TEST(dc.addr_map_size() == 10);
     BOOST_TEST(dc.actions_size() == 4);
