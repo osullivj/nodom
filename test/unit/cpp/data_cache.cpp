@@ -27,7 +27,10 @@ struct TestDLC : public DataLayCache<JSON> {
             const char* cache_ptr = cache_strings[inx].c_str();
             std::cout << "0x" << std::setfill('0') << std::setw(8) << std::hex << (int)cache_ptr << ":";
             const char* fast_ptr = fp_char_ptrs[inx];
-            std::cout << "0x" << std::setfill('0') << std::setw(8) << std::hex << (int)fast_ptr << std::endl;
+            std::cout << "0x" << std::setfill('0') << std::setw(8) << std::hex << (int)fast_ptr;
+            if (cache_ptr == fast_ptr)
+                std::cout << ":BACKED";
+            std::cout << std::endl;
         }
     }
 
