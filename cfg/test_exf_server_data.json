@@ -23,7 +23,17 @@
       { "ui_push": "i_am_depth_summary_modal" }
     ],
     "i_am_the_scan_button.Click": [],
-    "the_depth_scan.CommandResult": [],
+    "the_depth_scan.CommandResult": [
+      {
+        "db_action": "Query",
+        "query_id": "the_depth_query",
+        "sql_cname": "query_sql"
+      },
+      {
+        "db_action": "BatchRequest",
+        "query_id": "the_depth_query"
+      }
+    ],
     "DuckDB.Online": [
       {
         "ui_push": "i_am_parquet_loading_modal",
