@@ -148,7 +148,7 @@ struct DataCacheFixture {
         std::cout << "==== " << boost::unit_test::framework::current_test_case().p_name << std::endl;
     }
 
-    ~DataCacheFixture() {
+    void report_cache_state() {
         int bsc = dc.report_cache_strings();
         BOOST_TEST(backed_str_count == bsc);
         int bic = dc.report_cache_ints();
@@ -159,6 +159,8 @@ struct DataCacheFixture {
         dc.report_actions();
         std::cout << std::endl;
     }
+
+    ~DataCacheFixture() { }
 };
 
 BOOST_FIXTURE_TEST_CASE(AddAddr, DataCacheFixture)
@@ -171,6 +173,7 @@ BOOST_FIXTURE_TEST_CASE(AddAddr, DataCacheFixture)
     BOOST_TEST(AddrInx::data_type == CDT::cdStr);
     BOOST_TEST(addr_inx.magic_index == 0x01040000);
     BOOST_TEST(addr_inx() == 0);
+    report_cache_state();
 }
 
 BOOST_FIXTURE_TEST_CASE(AddInt, DataCacheFixture)
@@ -183,6 +186,7 @@ BOOST_FIXTURE_TEST_CASE(AddInt, DataCacheFixture)
     BOOST_TEST(IntInx::data_type == CDT::cdInt);
     BOOST_TEST(int_inx.magic_index == 0x02010000);
     BOOST_TEST(int_inx() == 0);
+    report_cache_state();
 }
 
 BOOST_FIXTURE_TEST_CASE(AddFloat, DataCacheFixture)
@@ -194,45 +198,30 @@ BOOST_FIXTURE_TEST_CASE(AddFloat, DataCacheFixture)
     BOOST_TEST(FloatInx::data_type == CDT::cdFloat);
     BOOST_TEST(float_inx.magic_index == 0x02020000);
     BOOST_TEST(float_inx() == 0);
+    report_cache_state();
 }
 
 BOOST_FIXTURE_TEST_CASE(AddString, DataCacheFixture)
 {
-    AddrInx addr_inx = dc.add_address(std::string{ "_server_url" });
+    const static std::string _server_url{ "_server_url" };
+    AddrInx addr_inx = dc.add_address(_server_url);
+    StrInx str_inx = dc.add_string(_server_url.c_str()); // already exists as address
     backed_str_count = 1;
-    StrInx str_inx = dc.add_string(server_url.c_str()); // not backed
     BOOST_TEST(StrInx::item_type == CIT::Value);
     BOOST_TEST(StrInx::data_type == CDT::cdStr);
-    BOOST_TEST(str_inx.magic_index == 0x02040001);
-    BOOST_TEST(str_inx() == 1);
+    BOOST_TEST(str_inx.magic_index == 0x02040000);
+    BOOST_TEST(str_inx() == 0);
+    BOOST_TEST(AddrInx::item_type == CIT::Address);
+    BOOST_TEST(AddrInx::data_type == CDT::cdStr);
+    BOOST_TEST(addr_inx.magic_index == 0x01040000);
+    BOOST_TEST(addr_inx() == 0);
+    report_cache_state();
 }
-
-/* enum RenderMethod should suffice; we prolly don't need RenderInx
-BOOST_FIXTURE_TEST_CASE(AddRenderMethod, DataCacheFixture)
-{
-    // TODO: test for RenderMethod in DLCache
-    // eg Static::rm_home_cs as RInx
-    // NB we need them for NDAction::pop_ui
-    RenderInx home_inx = dc.add_render_name(Static::rm_home_cs);
-    RenderInx input_int_inx = dc.add_render_name(Static::rm_input_int_cs);
-    RenderInx combo_inx = dc.add_render_name(Static::rm_combo_cs);
-    BOOST_TEST(combo_inx.magic_index == 0x06040002);
-    BOOST_TEST(combo_inx() == 2);
-}*/
 
 BOOST_FIXTURE_TEST_CASE(BadIndex, DataCacheFixture)
 {
     // DCI ctor assert only throws in dbg
     BOOST_CHECK_THROW(AddrInx{ MAX_DCI + 1 }, std::exception);
-}
-
-BOOST_FIXTURE_TEST_CASE(BadWidgetIndex, DataCacheFixture)
-{
-    // Create an EntityInx without a CIST ctor param
-    // This test suspended while we allow the creation
-    // of EntityInx without subtype specification in 
-    // on_data action parsing...
-    // BOOST_CHECK_THROW(EntityInx{ 0 }, std::exception);
 }
 
 BOOST_FIXTURE_TEST_CASE(AddServerData, DataCacheFixture)
@@ -248,10 +237,9 @@ BOOST_FIXTURE_TEST_CASE(AddServerData, DataCacheFixture)
     backed_str_count = 3;
     dc.on_data(data);
     BOOST_TEST(dc.addr_map_size() == 3);
-    
     BOOST_TEST(dc.actions_size() == 0);
+    report_cache_state();
 }
-
 
 BOOST_FIXTURE_TEST_CASE(AddServerLayout, DataCacheFixture)
 {
@@ -263,9 +251,12 @@ BOOST_FIXTURE_TEST_CASE(AddServerLayout, DataCacheFixture)
     std::string layout_json = load_json(layout_json_path.c_str());
     auto layout = JParse<nlohmann::json>(layout_json);
 #endif
+    backed_str_count = 1;   // Home::title
+    backed_int_count = 2;   // "step":1, "step":2
     dc.on_layout(layout);
     BOOST_TEST(dc.widget_vec_size() == 1);
     BOOST_TEST(dc.pushables_size() == 0);
+    report_cache_state();
 }
 
 BOOST_FIXTURE_TEST_CASE(ExfServerData, DataCacheFixture)
@@ -277,9 +268,11 @@ BOOST_FIXTURE_TEST_CASE(ExfServerData, DataCacheFixture)
     std::string data_json = load_json(data_json_path.c_str());
     auto data = JParse<nlohmann::json>(data_json);
 #endif
+    backed_str_count = 20;
     dc.on_data(data);
     BOOST_TEST(dc.addr_map_size() == 10);
     BOOST_TEST(dc.actions_size() == 4);
+    report_cache_state();
 }
 
 BOOST_FIXTURE_TEST_CASE(ExfServerLayout, DataCacheFixture)
@@ -292,8 +285,11 @@ BOOST_FIXTURE_TEST_CASE(ExfServerLayout, DataCacheFixture)
     std::string layout_json = load_json(layout_json_path.c_str());
     auto layout = JParse<nlohmann::json>(layout_json);
 #endif
+    backed_str_count = 15;
+    backed_int_count = 14;
     dc.on_layout(layout);
     BOOST_TEST(dc.widget_vec_size() == 3);
     BOOST_TEST(dc.pushables_size() == 2);
+    report_cache_state();
 }
 
