@@ -48,7 +48,8 @@ public:
         auto iter = std::find(cache_strings.begin(), cache_strings.end(), s);
         if (iter == cache_strings.end()) {
             cache_strings.push_back(s);
-            fp_char_ptrs.push_back(cache_strings.back().c_str());
+            const char* ptr = cache_strings.back().c_str();
+            fp_char_ptrs.push_back(ptr);
             return DataCacheIndex<itype, CDT::cdStr>(cache_strings.size() - 1, stype);
         }
         uint32_t inx = std::distance(cache_strings.begin(), iter);
@@ -70,7 +71,14 @@ public:
         return FloatInx(fp_float_ptrs.size() - 1);
     }
 
-    DataLayCache() { }
+    DataLayCache(int intern_capacity=256) {
+        fp_float_ptrs.reserve(intern_capacity);
+        fp_int_ptrs.reserve(intern_capacity);
+        fp_char_ptrs.reserve(intern_capacity);
+        cache_strings.reserve(intern_capacity);
+        cache_ints.reserve(intern_capacity);
+        cache_floats.reserve(intern_capacity);
+    }
 
     void init() {
         const static char* method = "DataLayCache::init: ";
@@ -189,10 +197,9 @@ public:
 
         bool we_have_actions{ false };
         StringVec data_keys;
-        std::string key;
         JKeys(data, data_keys);
         for (auto cit = data_keys.cbegin(); cit != data_keys.end(); ++cit) {
-            key = *cit;
+            std::string key{ *cit };
             if (key == Static::actions_cs) {
                 we_have_actions = true;
                 continue;
