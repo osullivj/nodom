@@ -376,7 +376,7 @@ enum CacheSpecifier : uint32_t {
     cs_font_scale,
     cs_style,               // end atomic_cspec_types
     cs_cname,               // cname_cpsec_types
-    cs_index,               // index_cpsec_types
+    cs_cindex,              // cindex_cpsec_types
     cs_qname,
     cs_end_cache_specs
 };
