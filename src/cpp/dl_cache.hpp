@@ -337,9 +337,11 @@ public:
         return intern_string<CIT::Value>(s);
     }
 
+    /*
     RenderInx add_render_name(const std::string& rname) {
-        return intern_string<CIT::RenderName>(rname);
-    }
+        // we know that rname will be in static_strings
+        return add_string<CIT::RenderName>(rname);
+    }*/
 
 
 private:
