@@ -82,14 +82,6 @@ public:
 
     void init() {
         const static char* method = "DataLayCache::init: ";
-
-        // intern the cache spec names so each has a str val DCI
-        /* do we really need this ?
-        for (uint32_t spec_inx{ cs_title }; spec_inx < cs_end_cache_specs; ++spec_inx) {
-            StrInx sinx = intern_string<Value>(atomic_cspec_names[spec_inx]);
-            NDLogger::cout() << method << atomic_cspec_names[spec_inx] << ":" << sinx << std::endl;
-            cspec_indices.emplace(std::make_pair<CacheSpecifier, StrInx>(CacheSpecifier{ spec_inx }, std::move(sinx)));
-        } */
     }
 
     size_t addr_map_size() { return address_map.size(); }
@@ -365,12 +357,6 @@ public:
     StrInx add_string(const std::string& s) {
         return intern_string<CIT::Value>(s);
     }
-
-    /*
-    RenderInx add_render_name(const std::string& rname) {
-        // we know that rname will be in static_strings
-        return add_string<CIT::RenderName>(rname);
-    }*/
 
 
 private:
