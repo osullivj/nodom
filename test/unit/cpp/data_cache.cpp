@@ -40,6 +40,28 @@ struct TestDLC : public DataLayCache<JSON> {
             std::cout << cit->first << ":" << cit->second << std::endl;
         }
     }
+
+    void report_actions() {
+        int key_inx{ 0 };
+        int actions_len = actions.size();
+        std::cout << "== report_action_map len:" << actions_len << std::endl;
+        for (auto cit = actions.cbegin(); cit != actions.cend(); ++cit) {
+            const ActionKey& key{ cit->first };
+            const ActionVec& action_vec{ cit->second };
+            // action_intern_vec should be same len as action_vec (see 
+            // DLC::parse_actions()). So the resize() below should be a 
+            // null op. But if not we'll dflt ctor NDActionInterned
+            // to match lengths. The dflt constructed NDActionInterned will
+            // all show as nullptr populated anyway...
+            ActionInternVec& action_intern_vec{ actions_interned[key] };
+            action_intern_vec.resize(action_vec.size());
+            std::cout << std::setfill('0') << std::setw(2) << key_inx++ << ":";
+            std::cout << key << std::endl;
+            for (int act_inx = 0; act_inx < action_vec.size(); act_inx++) {
+                print_parsed_action(action_vec[act_inx], action_intern_vec[act_inx]);
+            }
+        }
+    }
 };
 
 struct DataCacheFixture { 
@@ -70,6 +92,7 @@ struct DataCacheFixture {
     ~DataCacheFixture() {
         dc.report_cache_strings();
         dc.report_address_map();
+        dc.report_actions();
         std::cout << std::endl;
     }
 };
