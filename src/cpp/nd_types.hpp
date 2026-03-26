@@ -305,9 +305,6 @@ struct DataCacheIndex {
 using EntityInx = DataCacheIndex<CIT::EntityID, CDT::cdStr>;
 // RHS of ActionKey
 using EventInx = DataCacheIndex<CIT::Event, CDT::cdStr>;
-// NDAction::pop_ui is an RInx: no! it's a RenderMethod!
-// using RenderInx = DataCacheIndex<CIT::RenderName, CDT::cdStr>;
-// Address is always a string as an LHS value in data defn
 using AddrInx = DataCacheIndex<CIT::Address,CDT::cdStr>;
 // Three types of atomic value; all mutable
 using IntInx = DataCacheIndex<CIT::Value,CDT::cdInt>;
@@ -382,6 +379,7 @@ enum CacheSpecifier : uint32_t {
 };
 
 using CacheSpecVec = std::vector<CacheSpecifier>;
+using CacheSpecTypeMap = std::map<CacheSpecifier, CDT>;
 using IntValMap = std::map<CacheSpecifier, IntInx>;
 using FloatValMap = std::map<CacheSpecifier, FloatInx>;
 using StrValMap = std::map<CacheSpecifier, StrInx>;
