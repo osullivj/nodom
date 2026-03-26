@@ -1,7 +1,5 @@
 #include <stdlib.h>
-#include "json_ops.hpp"
 #include "dl_cache.hpp"
-#include "static_strings.hpp"
 #define BOOST_TEST_MODULE Data_Cache_Tests
 #include <boost/test/unit_test.hpp>
 #include <math.h>
@@ -118,11 +116,10 @@ struct TestDLC : public DataLayCache<JSON> {
 
 struct DataCacheFixture { 
 #ifdef __EMSCRIPTEN__
-    TestDLC<emscripten::val>   dc;
+    TestDLC<emscripten::val>    dc;
 #else
-    TestDLC<nlohmann::json>   dc;
+    TestDLC<nlohmann::json>     dc;
 #endif
-
     // cf NDContext::style_coloring
     int style_coloring{ StyleColor::Dark };
     // cf ImGuiStyle::FontScaleMain
@@ -247,13 +244,16 @@ BOOST_FIXTURE_TEST_CASE(AddServerLayout, DataCacheFixture)
     // TODO: load from ems FS
     auto layout = JParse<emscripten::val>(add_server_layout);
 #else
+    std::string data_json_path = test_json_dir + "test_add_server_data.json";
+    std::string data_json = load_json(data_json_path.c_str());
+    auto data = JParse<nlohmann::json>(data_json);
     std::string layout_json_path = test_json_dir + "test_add_server_layout.json";
     std::string layout_json = load_json(layout_json_path.c_str());
     auto layout = JParse<nlohmann::json>(layout_json);
 #endif
     backed_str_count = 1;   // Home::title
     backed_int_count = 2;   // "step":1, "step":2
-    dc.on_layout(layout);
+    dc.on_layout(layout, data);
     BOOST_TEST(dc.widget_vec_size() == 1);
     BOOST_TEST(dc.pushables_size() == 0);
     report_cache_state();
@@ -281,13 +281,16 @@ BOOST_FIXTURE_TEST_CASE(ExfServerLayout, DataCacheFixture)
     // TODO: load from ems FS
     auto layout = JParse<emscripten::val>(add_server_layout);
 #else
+    std::string data_json_path = test_json_dir + "test_exf_server_data.json";
+    std::string data_json = load_json(data_json_path.c_str());
+    auto data = JParse<nlohmann::json>(data_json);
     std::string layout_json_path = test_json_dir + "test_exf_server_layout.json";
     std::string layout_json = load_json(layout_json_path.c_str());
     auto layout = JParse<nlohmann::json>(layout_json);
 #endif
     backed_str_count = 15;
     backed_int_count = 14;
-    dc.on_layout(layout);
+    dc.on_layout(layout, data);
     BOOST_TEST(dc.widget_vec_size() == 3);
     BOOST_TEST(dc.pushables_size() == 2);
     report_cache_state();
