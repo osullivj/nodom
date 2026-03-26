@@ -1,5 +1,6 @@
 #pragma once
-#include "nd_types.hpp"
+#include <utility>
+#include "json_ops.hpp"
 #include "dl_types.hpp"
 #include "logger.hpp"
 
@@ -243,10 +244,12 @@ public:
         }
     }
 
-    void orthogonalize_cspec(const JSON& cspec, WidgetPtr widget) {
+    void orthogonalize_cspec(const JSON& cspec, const JSON& data, WidgetPtr widget) {
         if (!widget->widget_id.empty()) {
             widget->widget_inx = intern_string<EntityID>(widget->widget_id, CST::WidgetID);
         }
+        // TODO: add exception handling to catch type mismatches...
+        // 
         // parse cspec: value_cspecs first, that is fields that just
         // give a value, rather than an address
         const CacheSpecVec& values{ value_cspecs[widget->rname] };
@@ -278,39 +281,53 @@ public:
             }
         }
         // now we'll handle the address cspecs that ref data keys
-        const CacheSpecVec& addrs{ addr_cspecs[widget->rname] };
-        for (auto cit = addrs.cbegin(); cit != addrs.cend(); ++cit) {
-            CacheSpecifier spec{ *cit };
+        const CacheSpecTypeMap& cs_type_map{ addr_cspecs[widget->rname] };
+        for (auto ctmit = cs_type_map.cbegin(); ctmit != cs_type_map.cend(); ++ctmit) {
+            const CacheSpecifier spec{ ctmit->first };
             CacheDataType ref_type = cspec_types[spec];
-            const char* ref_name = cspec_names[spec];
-            if (JContains(cspec, ref_name)) {
-                switch (ref_type) {
-                case cdInt:
-                case cdFloat:
-                case cdBool:
-                case cdStr:
-                case cdIntVec:
-                case cdStrVec:
-                    assert(false);
-                    break;
-                case cdAny:
-                    // cindex
-                    //      combo: add_int once
-                    // cname
-                    //      combo: add_str N times
-                    //      input_int: add_int once
-                    //      checkbox: add_bool once
-                    //      date_picker: add_int 3 times
-                    //      loading_modal: add_str N times
-                    break;
-                case cdResultSet:
-                    break;
+            std::string ref_name = cspec_names[spec];   // cindex or cname
+            if (JContains(cspec, ref_name.c_str())) {
+                // addr should already be interned by on_data()
+                std::string addr_s{JAsString(cspec, ref_name)};
+                auto amit = address_map.find(addr_s);
+                if (amit == address_map.end()) {
+                    // error: cname/cindex value not in data
+                }
+                else {
+                    DataRef data_ref{ ref_type, amit->second };
+                    StringVec svec;
+                    IntVec ivec;
+                    // AddrInx ainx{ amit->second };
+                    switch (ref_type) {
+                    case cdAny:         // shouldn't be in addr_cspecs!
+                    case cdResultSet:
+                        assert(false);
+                        break;
+                    case cdInt: // spec:cindex, sz:1
+                        data_ref.ref_inx = intern_int(JAsInt(data, ref_name))();
+                        break;
+                    case cdFloat:
+                    case cdBool:
+                    case cdStr:
+                    case cdIntVec:
+                    case cdStrVec:
+                        JAsStringVec(data, ref_name.c_str(), svec);
+                        data_ref.size = svec.size();
+                        if (data_ref.size > 0) {
+                            auto it = svec.begin();
+                            data_ref.ref_inx = intern_string<CIT::Value>(*it++)();
+                            while (it != svec.end())
+                                intern_string<CIT::Value>(*it++)();
+                        }
+                        break;
+                    }
+                    widget->data_refs[spec] = data_ref;
                 }
             }
         }
     }
 
-    void on_layout(const JSON& layout, WidgetVec* wv = nullptr) {
+    void on_layout(const JSON& layout, const JSON& data, WidgetVec* wv = nullptr) {
         // If we're not recursing, widgets go in top level vec...
         WidgetVec* wvec = (wv == nullptr) ? &widget_vec : wv;
         // NB layout as a whole is a list of widgets.
@@ -323,11 +340,11 @@ public:
             auto wptr = std::make_shared<NDWidget>(extract_render_name(w), 
                                     extract_string(w, Static::widget_id_cs));
             wvec->push_back(wptr);
-            orthogonalize_cspec(cspec, wvec->back());
+            orthogonalize_cspec(cspec, data, wvec->back());
             const JSON& children = extract_children(w);
             int child_count = JSize(children);
             if (child_count > 0) {
-                on_layout(children, &(wptr->children));
+                on_layout(children, data, &(wptr->children));
             }
         }
         // If we've finished recursing, build the PushableMap
@@ -339,6 +356,10 @@ public:
                 pushables[(*citer)->widget_inx] = *citer;
             }
         }
+    }
+
+    void on_json(const JSON& data, const JSON& layout) {
+        on_data(data);
     }
 
     const char* get_string_value(EntityInx inx) {
@@ -507,12 +528,11 @@ private:
         {PushFont, {cs_font, cs_font_size}}
     };
 
-    inline static std::map<RenderMethod, CacheSpecVec> addr_cspecs{
-        {InputInt, {cs_cname}},
-        {Combo, {cs_cindex, cs_cname}},
-        {InputInt, {cs_cname}},
-        {Checkbox, {cs_cname}},
-        {DatePicker, {cs_cname}},
-        {LoadingModal, {cs_cname}}
+    inline static std::map<RenderMethod, CacheSpecTypeMap> addr_cspecs{
+        {InputInt, {{cs_cname, cdInt}}},
+        {Combo, {{cs_cindex, cdInt}, {cs_cname, cdStrVec}}},
+        {Checkbox, {{cs_cname, cdBool}}},
+        {DatePicker, {{cs_cname, cdIntVec}}},
+        {LoadingModal, {{cs_cname, cdStrVec}}}
     };
 };
