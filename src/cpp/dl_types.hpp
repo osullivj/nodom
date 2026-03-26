@@ -1,6 +1,5 @@
 #pragma once
 #include <memory>
-#include "json_ops.hpp"
 #include "static_strings.hpp"
 
 // cspec Property Groups
@@ -73,7 +72,19 @@
 // style : Int
 
 
-// JSON aware types that build on JSON ops and ND types
+// WASM cache types that capture the data and layout
+// JSON, and apply constraints.
+
+struct DataRef {
+    CDT tipe{ EndDataTypes };   // cdInt, cdFloat, cdBool, cdStr
+    AddrInx addr_inx;           // inx to key in data[key]
+    uint32_t ref_inx{OH_FECK};  // inx to data[key]
+    uint32_t size{ 1 };         // scalar or array
+    // TODO: add dirty flag?
+};
+
+using DataRefMap = std::map<CacheSpecifier, DataRef>;
+
 struct NDWidget {
     NDWidget() = default;
     NDWidget(const NDWidget&) = default;
@@ -86,6 +97,7 @@ struct NDWidget {
     IntValMap       cspec_int;
     FloatValMap     cspec_float;
     StrValMap       cspec_str;
+    DataRefMap      data_refs;
     std::vector<std::shared_ptr<NDWidget>>  children;
 };
 using WidgetPtr = std::shared_ptr<NDWidget>;
