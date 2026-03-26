@@ -297,6 +297,7 @@ public:
                     DataRef data_ref{ ref_type, amit->second };
                     StringVec svec;
                     IntVec ivec;
+                    JSON jvec{ JSON::array() };
                     // AddrInx ainx{ amit->second };
                     switch (ref_type) {
                     case cdAny:         // shouldn't be in addr_cspecs!
@@ -307,9 +308,22 @@ public:
                         data_ref.ref_inx = intern_int(JAsInt(data, ref_name))();
                         break;
                     case cdFloat:
+                        assert(false);
+                        break;
                     case cdBool:
+                        data_ref.ref_inx = intern_int(JAsInt(data, ref_name))();
+                        break;
                     case cdStr:
                     case cdIntVec:
+                        jvec = data[addr_s];
+                        data_ref.size = JSize(jvec);
+                        if (data_ref.size > 0) {
+                            // capture the "base" index; subsequent indices
+                            // are implied by data_ref.size
+                            data_ref.ref_inx = intern_int(jvec[0])();
+                            for (int jinx = 1; jinx < data_ref.size; jinx++)
+                                intern_int(jvec[jinx]);
+                        }
                     case cdStrVec:
                         JAsStringVec(data, ref_name.c_str(), svec);
                         data_ref.size = svec.size();
@@ -317,7 +331,7 @@ public:
                             auto it = svec.begin();
                             data_ref.ref_inx = intern_string<CIT::Value>(*it++)();
                             while (it != svec.end())
-                                intern_string<CIT::Value>(*it++)();
+                                intern_string<CIT::Value>(*it++);
                         }
                         break;
                     }
