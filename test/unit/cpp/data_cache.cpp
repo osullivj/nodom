@@ -18,9 +18,9 @@ struct TestDLC : public DataLayCache<JSON> {
         int ptr_val{ 0 };
         int backed{ 0 };
         std::cout << "== report_cache_strings ptrs:" 
-            << fp_len << ", cached:" << cs_len << std::endl;
+            << std::dec << fp_len << ", cached:" << std::dec << cs_len << std::endl;
         for (int inx = 0; inx < cs_len; inx++) {
-            std::cout << std::setfill('0') << std::setw(2) << std::dec << inx << ":";
+            std::cout << std::setfill('0') << std::setw(2) << std::hex << inx << ":";
             std::cout << cache_strings[inx] << ":";
             const char* cache_ptr = cache_strings[inx].c_str();
             std::cout << "0x" << std::setfill('0') << std::setw(8) << std::hex << (int)cache_ptr << ":";
@@ -41,9 +41,9 @@ struct TestDLC : public DataLayCache<JSON> {
         int ptr_val{ 0 };
         int backed{ 0 };
         std::cout << "== report_cache_ints ptrs:"
-            << fp_len << ", cached:" << cs_len << std::endl;
+            << std::dec << fp_len << ", cached:" << std::dec << cs_len << std::endl;
         for (int inx = 0; inx < cs_len; inx++) {
-            std::cout << std::setfill('0') << std::setw(2) << std::dec << inx << ":";
+            std::cout << std::setfill('0') << std::setw(2) << std::hex << inx << ":";
             std::cout << cache_ints[inx] << ":";
             int* cache_ptr = &(cache_ints[inx]);
             std::cout << "0x" << std::setfill('0') << std::setw(8) << std::hex << (int)cache_ptr << ":";
@@ -64,9 +64,9 @@ struct TestDLC : public DataLayCache<JSON> {
         int ptr_val{ 0 };
         int backed{ 0 };
         std::cout << "== report_cache_floats ptrs:"
-            << fp_len << ", cached:" << cs_len << std::endl;
+            << std::dec << fp_len << ", cached:" << std::dec << cs_len << std::endl;
         for (int inx = 0; inx < cs_len; inx++) {
-            std::cout << std::setfill('0') << std::setw(2) << std::dec << inx << ":";
+            std::cout << std::setfill('0') << std::setw(2) << std::hex << inx << ":";
             std::cout << cache_floats[inx] << ":";
             float* cache_ptr = &(cache_floats[inx]);
             std::cout << "0x" << std::setfill('0') << std::setw(8) << std::hex << (int)cache_ptr << ":";
@@ -84,9 +84,9 @@ struct TestDLC : public DataLayCache<JSON> {
     void report_address_map() {
         int len = address_map.size();
         int inx{ 0 };
-        std::cout << "== report_address_map len:" << len << std::endl;
+        std::cout << "== report_address_map len:" << std::dec << len << std::endl;
         for (auto cit = address_map.cbegin(); cit != address_map.cend(); ++cit) {
-            std::cout << std::setfill('0') << std::setw(2) << inx++ << ":";
+            std::cout << std::setfill('0') << std::setw(2) << std::hex << inx++ << ":";
             std::cout << cit->first << ":" << cit->second << std::endl;
         }
     }
@@ -94,7 +94,7 @@ struct TestDLC : public DataLayCache<JSON> {
     void report_actions() {
         int key_inx{ 0 };
         int actions_len = actions.size();
-        std::cout << "== report_action_map len:" << actions_len << std::endl;
+        std::cout << "== report_action_map len:" << std::dec << actions_len << std::endl;
         for (auto cit = actions.cbegin(); cit != actions.cend(); ++cit) {
             const ActionKey& key{ cit->first };
             const ActionVec& action_vec{ cit->second };
@@ -105,8 +105,9 @@ struct TestDLC : public DataLayCache<JSON> {
             // all show as nullptr populated anyway...
             ActionInternVec& action_intern_vec{ actions_interned[key] };
             action_intern_vec.resize(action_vec.size());
-            std::cout << std::setfill('0') << std::setw(2) << key_inx++ << ":";
-            std::cout << key << std::endl;
+            std::cout << std::setfill('0') << std::setw(2) << std::hex << key_inx++ << ":";
+            std::cout << key << ":EntityInx(" << key.entity_inx() 
+                << "), EventInx(" << key.event_inx() << ")" << std::endl;
             for (int act_inx = 0; act_inx < action_vec.size(); act_inx++) {
                 print_parsed_action(action_vec[act_inx], action_intern_vec[act_inx]);
             }
