@@ -8,7 +8,7 @@
     ],
     "WebSock.websock_connection_failed": [
       {
-        "ui_pop": "app_loading_modal"
+        "ui_pop": "LoadingModal"
       }
     ]
   }
