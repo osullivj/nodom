@@ -251,9 +251,9 @@ BOOST_FIXTURE_TEST_CASE(AddServerLayout, DataCacheFixture)
     std::string layout_json = load_json(layout_json_path.c_str());
     auto layout = JParse<nlohmann::json>(layout_json);
 #endif
-    backed_str_count = 1;   // Home::title
-    backed_int_count = 2;   // "step":1, "step":2
-    dc.on_layout(layout, data);
+    backed_str_count = 4;   // Layout:[Home::title], Data:[op1,op2,op1_plus_op2]
+    backed_int_count = 5;   // Layout:["step":1, "step":2], Data:[op1,op2,op1_plus_op2]
+    dc.on_json(data, layout);
     BOOST_TEST(dc.widget_vec_size() == 1);
     BOOST_TEST(dc.pushables_size() == 0);
     report_cache_state();
@@ -288,9 +288,9 @@ BOOST_FIXTURE_TEST_CASE(ExfServerLayout, DataCacheFixture)
     std::string layout_json = load_json(layout_json_path.c_str());
     auto layout = JParse<nlohmann::json>(layout_json);
 #endif
-    backed_str_count = 15;
-    backed_int_count = 14;
-    dc.on_layout(layout, data);
+    backed_str_count = 40;
+    backed_int_count = 21;
+    dc.on_json(data, layout);
     BOOST_TEST(dc.widget_vec_size() == 3);
     BOOST_TEST(dc.pushables_size() == 2);
     report_cache_state();
