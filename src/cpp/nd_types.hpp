@@ -143,7 +143,7 @@ enum RenderMethod : uint32_t {
     EndRenderMethod
 };
 
-bool is_render_valid(RenderMethod rm) {
+inline bool is_render_valid(RenderMethod rm) {
     return rm != EndRenderMethod;
 }
 
@@ -195,7 +195,7 @@ enum DBEventType : uint32_t {
     EndDBEventTypes
 };
 
-bool is_db_event_valid(DBEventType dbev) {
+inline bool is_db_event_valid(DBEventType dbev) {
     return dbev != EndDBEventTypes;
 }
 
