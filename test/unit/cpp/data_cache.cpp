@@ -20,7 +20,7 @@ struct TestDLC : public DataLayCache<JSON> {
         std::cout << "== report_cache_strings ptrs:" 
             << fp_len << ", cached:" << cs_len << std::endl;
         for (int inx = 0; inx < cs_len; inx++) {
-            std::cout << std::setfill('0') << std::setw(2) << inx << ":";
+            std::cout << std::setfill('0') << std::setw(2) << std::dec << inx << ":";
             std::cout << cache_strings[inx] << ":";
             const char* cache_ptr = cache_strings[inx].c_str();
             std::cout << "0x" << std::setfill('0') << std::setw(8) << std::hex << (int)cache_ptr << ":";
@@ -43,7 +43,7 @@ struct TestDLC : public DataLayCache<JSON> {
         std::cout << "== report_cache_ints ptrs:"
             << fp_len << ", cached:" << cs_len << std::endl;
         for (int inx = 0; inx < cs_len; inx++) {
-            std::cout << std::setfill('0') << std::setw(2) << inx << ":";
+            std::cout << std::setfill('0') << std::setw(2) << std::dec << inx << ":";
             std::cout << cache_ints[inx] << ":";
             int* cache_ptr = &(cache_ints[inx]);
             std::cout << "0x" << std::setfill('0') << std::setw(8) << std::hex << (int)cache_ptr << ":";
@@ -66,7 +66,7 @@ struct TestDLC : public DataLayCache<JSON> {
         std::cout << "== report_cache_floats ptrs:"
             << fp_len << ", cached:" << cs_len << std::endl;
         for (int inx = 0; inx < cs_len; inx++) {
-            std::cout << std::setfill('0') << std::setw(2) << inx << ":";
+            std::cout << std::setfill('0') << std::setw(2) << std::dec << inx << ":";
             std::cout << cache_floats[inx] << ":";
             float* cache_ptr = &(cache_floats[inx]);
             std::cout << "0x" << std::setfill('0') << std::setw(8) << std::hex << (int)cache_ptr << ":";
