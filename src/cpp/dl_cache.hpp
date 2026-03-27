@@ -284,7 +284,9 @@ public:
         const CacheSpecTypeMap& cs_type_map{ addr_cspecs[widget->rname] };
         for (auto ctmit = cs_type_map.cbegin(); ctmit != cs_type_map.cend(); ++ctmit) {
             const CacheSpecifier spec{ ctmit->first };
-            CacheDataType ref_type = cspec_types[spec];
+            // if we did ref_type = cspec_types[spec] we'd get cdAny
+            // for cname. Instead we get it from the CacheSpecTypeMap 
+            CacheDataType ref_type{ ctmit->second };
             std::string ref_name = cspec_names[spec];   // cindex or cname
             if (JContains(cspec, ref_name.c_str())) {
                 // addr should already be interned by on_data()
@@ -304,16 +306,16 @@ public:
                     case cdResultSet:
                         assert(false);
                         break;
-                    case cdInt: // spec:cindex, sz:1
-                        data_ref.ref_inx = intern_int(JAsInt(data, ref_name))();
-                        break;
-                    case cdFloat:
+                    case cdFloat:       // not required by any widget yet
+                    case cdStr:
                         assert(false);
                         break;
-                    case cdBool:
-                        data_ref.ref_inx = intern_int(JAsInt(data, ref_name))();
+                    case cdInt: // spec:cindex, sz:1
+                        data_ref.ref_inx = intern_int(JAsInt(data, addr_s))();
                         break;
-                    case cdStr:
+                    case cdBool:
+                        data_ref.ref_inx = intern_int(JAsInt(data, addr_s))();
+                        break;
                     case cdIntVec:
                         jvec = data[addr_s];
                         data_ref.size = JSize(jvec);
@@ -324,8 +326,9 @@ public:
                             for (int jinx = 1; jinx < data_ref.size; jinx++)
                                 intern_int(jvec[jinx]);
                         }
+                        break;
                     case cdStrVec:
-                        JAsStringVec(data, ref_name.c_str(), svec);
+                        JAsStringVec(data, addr_s.c_str(), svec);
                         data_ref.size = svec.size();
                         if (data_ref.size > 0) {
                             auto it = svec.begin();
@@ -341,7 +344,7 @@ public:
         }
     }
 
-    void on_layout(const JSON& layout, const JSON& data, WidgetVec* wv = nullptr) {
+    void on_layout(const JSON& data, const JSON& layout, WidgetVec* wv = nullptr) {
         // If we're not recursing, widgets go in top level vec...
         WidgetVec* wvec = (wv == nullptr) ? &widget_vec : wv;
         // NB layout as a whole is a list of widgets.
@@ -358,7 +361,7 @@ public:
             const JSON& children = extract_children(w);
             int child_count = JSize(children);
             if (child_count > 0) {
-                on_layout(children, data, &(wptr->children));
+                on_layout(data, children, &(wptr->children));
             }
         }
         // If we've finished recursing, build the PushableMap
@@ -374,6 +377,7 @@ public:
 
     void on_json(const JSON& data, const JSON& layout) {
         on_data(data);
+        on_layout(data, layout);
     }
 
     const char* get_string_value(EntityInx inx) {
