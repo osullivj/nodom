@@ -159,7 +159,7 @@ public:
         }
         if (is_render_valid(action.pop_ui)) {
             if (prefix_comma) NDLogger::cout() << ", ";
-            NDLogger::cout() << "pop_ui(" << action.pop_ui << "/" << interned.pop_ui << ")";
+            NDLogger::cout() << "pop_ui(" << render_names[action.pop_ui] << "/" << interned.pop_ui << ")";
             prefix_comma = true;
         }
         if (is_db_event_valid(action.db_action)) {
