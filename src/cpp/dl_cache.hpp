@@ -176,7 +176,8 @@ public:
             if (prefix_comma) NDLogger::cout() << ", ";
             NDLogger::cout() << "sql_cname(" << action.sql_cname << "/" << interned.sql_cname << ")";
         }
-        NDLogger::cout() << "]";
+        NDLogger::cout() << "]" << std::endl;
+        NDLogger::cout().flush();
     }
 
     void on_data(const JSON& data) {
