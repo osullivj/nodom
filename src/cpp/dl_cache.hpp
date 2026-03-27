@@ -35,12 +35,6 @@ protected:
     // Valid cache addresses
     std::map<std::string, AddrInx>   address_map;
 
-    // interned str for cspec names eg cname, title, title_font
-    std::map<CacheSpecifier, StrInx> cspec_indices;
-
-    std::set<EntityInx> action_key_entity_indices;
-    std::set<EventInx> action_key_event_indices;
-
 
 public:
 
