@@ -2,14 +2,14 @@
 #include <string>
 #include <map>
 #include <queue>
-#include <filesystem>
+// #include <filesystem>
 #include <functional>
 #include "imgui.h"
 #include "ImGuiDatePicker.hpp"
 #include "proxy.hpp"
 #include "static_strings.hpp"
 #include "db_cache.hpp"
-#include "dl_types.hpp"
+#include "dl_cache.hpp"
 #include "logger.hpp"
 
 // NDContext: the NoDOM render engine, built on top of Dear ImGui and Emscripten.
@@ -28,64 +28,6 @@ static constexpr int act_ev_key_buf_len{ 256 };
 
 struct GLFWwindow;
 
-// NDContext helper AtomicCacheValue: present a common internal API 
-// for fastpath wasm vars and slowpath JSON vars.
-template <typename A, typename JSON>
-class AtomicCacheValue {
-public:
-    AtomicCacheValue() = delete;
-    AtomicCacheValue(JSON& d, const char* k, std::vector<A>& fcache, const StringIntMap& indices)
-        :data(d), key(k)
-    {
-        if (key[0] == Static::underscore_c && indices.find(key) != indices.end()) {
-            // fastpath to wasm vars
-            const int& inx = indices.at(key);
-            address = fcache[inx];
-        }
-        else {
-            // slowpath to json vars
-            if constexpr (std::is_same_v<A, int>) {
-                value = init_val = JAsInt(data, key);
-            }
-            if constexpr (std::is_same_v<A, float>) {
-                value = init_val = JAsFloat(data, key);
-            }
-        }
-    }
-
-    ~AtomicCacheValue() {
-        // If this is a slowpath JSON var, we copy value
-        // back to data if it has changed
-        if (address == nullptr && value != init_val) {
-            JSet(data, key, value);
-        }
-    }
-
-    A* value_addr() {
-        if (address != nullptr) return address;
-        return &value;
-    }
-
-    bool is_changed() {
-        // fast path vars don't exist on the server, so no
-        // need for a notify_server() invocation
-        if (address != nullptr) return false;
-        // for slow path vars we do need to check for val change
-        return value != init_val;
-    }
-
-    std::pair<A, A> get_change() {
-        return std::make_pair<A, A>(init_val, value);
-    }
-
-private:
-    A init_val;
-    A value;
-    A* address{ nullptr };
-    const char* key;
-    JSON& data;
-};
-
 
 // NDContext: stack based rendering
 // Utility funcs above if they're too specific to rendering
@@ -100,15 +42,13 @@ using CritArray = std::array<std::string, Critical::EndCritical>;
 template <typename JSON, typename DB>
 class NDContext {
 private:
-    using WidgetVec = std::vector<NDWidget<JSON>>;
-    using WidgetPtr = NDWidget<JSON>*;
 
     // ref to "server process"; just an abstraction of EMS vs win32
-    NDProxy<DB>&        proxy;  // DB proxy decouples NDContext from DB detail
-    JSON                layout; // layout and data are fetched by 
-    JSON                data;   // sync c++py calls not HTTP gets
-    // std::deque<JSON>    stack;  // render stack
+    NDProxy<DB>&            proxy;  // DB proxy decouples NDContext from DB detail
+    JSON                    layout; // layout and data are fetched by 
+    JSON                    data;   // sync c++py calls not HTTP gets
     std::deque<WidgetPtr>   stack;  // render stack
+    DataLayCache<JSON>      data_lay_cache;
 
     // latest critical error state raised, and array of crit err
     // msgs to show in Home
@@ -124,18 +64,7 @@ private:
     std::string         init_layout_s;
     JSON                real_data;
     JSON                real_layout;
-
-    WidgetVec           memo_layout;
-
     int                 style_coloring{ StyleColor::Dark };   // match im_start StyleColorsDark()
-    float*              fast_path_float[FloatIndices::EndFloats];
-    int*                fast_path_int[IntIndices::EndInts];
-    const char*         fast_path_cs[StringIndices::EndStrings];
-    StringIntMap        fpf_indices;
-    StringIntMap        fpi_indices;
-    StringIntMap        fps_indices;
-    StringVec           entity_ids{ MAX_ID_COUNT };
-    StringIntMap        entity_indices;
     bool                data_loaded{ false };
     bool                layout_loaded{ false };
 
@@ -155,9 +84,10 @@ private:
     // method, and that segfaults. So in C++ we have pending pushes done
     // outside the render stack walk. JOS 2025-01-31
     // std::deque<JSON>        pending_pushes;
-    std::deque<WidgetPtr>      pending_pushes;
-    std::deque<std::string> pending_pops;
+    std::deque<EntityInx>       pending_pushes;
+    std::deque<RenderMethod>    pending_pops;
     // In flight action sequences. Key is query_id, not query_id.event
+    // TODO: rewrite InFlight to operate on ActionVec/NDAction
     struct InFlight {
         InFlight() {}
         InFlight(JSON& s, int i, const char* n, const std::string& qid)
@@ -201,40 +131,6 @@ public:
         amber{ 255, 153, 0 } {
         // init status is not connected
         db_status_color = red;
-
-        rfmap.emplace(std::string("Home"), [this](const JSON& w) { render_home(w); });
-
-        // native imgui input widgets
-        rfmap.emplace(std::string("InputInt"), [this](const JSON& w) { render_input_int(w); });
-        rfmap.emplace(std::string("Combo"), [this](const JSON& w) { render_combo(w); });
-        rfmap.emplace(std::string("Checkbox"), [this](const JSON& w) { render_checkbox(w); });
-        rfmap.emplace(std::string("Text"), [this](const JSON& w) { render_text(w); });
-        rfmap.emplace(std::string("Button"), [this](const JSON& w) { render_button(w); });
-        rfmap.emplace(std::string("Table"), [this](const JSON& w) { render_table(w); });
-
-        // nodom compound widgets
-        rfmap.emplace(std::string("Footer"), [this](const JSON& w) { render_footer(w); });
-        rfmap.emplace(std::string("DatePicker"), [this](const JSON& w) { render_date_picker(w); });
-        rfmap.emplace(std::string("DuckTableSummaryModal"), [this](const JSON& w) { render_duck_table_summary_modal(w); });
-        rfmap.emplace(std::string("LoadingModal"), [this](const JSON& w) { render_loading_modal(w); });
-
-        // layout widgets
-        rfmap.emplace(std::string("Separator"), [this](const JSON& w) { render_separator(w); });
-        rfmap.emplace(std::string("SameLine"), [this](const JSON& w) { render_same_line(w); });
-        rfmap.emplace(std::string("NewLine"), [this](const JSON& w) { render_new_line(w); });
-        rfmap.emplace(std::string("Spacing"), [this](const JSON& w) { render_spacing(w); });
-        rfmap.emplace(std::string("AlignTextToFramePadding"), [this](const JSON& w) { render_align_text_to_frame_padding(w); });
-
-        // grouping
-        rfmap.emplace(std::string("BeginChild"), [this](const JSON& w) { render_begin_child(w); });
-        rfmap.emplace(std::string("EndChild"), [this](const JSON& w) { render_end_child(w); });
-        rfmap.emplace(std::string("BeginGroup"), [this](const JSON& w) { render_begin_group(w); });
-        rfmap.emplace(std::string("EndGroup"), [this](const JSON& w) { render_end_group(w); });
-
-        // fonts
-        rfmap.emplace(std::string("PushFont"), [this](const JSON& w) { render_push_font(w); });
-        rfmap.emplace(std::string("PopFont"), [this](const JSON& w) { render_pop_font(w); });
-
     }
 
     void initialize() {
@@ -247,25 +143,6 @@ public:
         // throws if main the main loop hasn't been started by emscripten_set_main_loop[_arg]
         // Not an issue for Breadboard, but it is a nodom break
         glfwSwapInterval(1);
-
-        // init the fast path vars from the settings established in im_render.hpp:im_start()
-        ImGuiStyle& style = ImGui::GetStyle();
-        // FontScale vals are set in im_start; we recover then here
-        fast_path_float[FloatIndices::FontScaleDpi] = &style.FontScaleDpi;
-        fast_path_float[FloatIndices::FontScaleMain] = &style.FontScaleMain;
-        fpf_indices[Static::_font_scale_dpi_cs] = FloatIndices::FontScaleDpi;
-        fpf_indices[Static::_font_scale_main_cs] = FloatIndices::FontScaleMain;
-        // No single var for style in imgui; one method for each style
-        // im_start sets Dark, and nodom uses enum StyleColor
-        fast_path_int[IntIndices::StyleColoring] = &style_coloring;
-        fpi_indices[Static::_style_coloring] = IntIndices::StyleColoring;
-        // fast path strings: key points...
-        //   FP strings are readonly
-        // server_url lives in proxy, which has same lifetime as this,
-        // so we can safely put it's underlying char* in fast_path_cs.
-        const std::string& server_url(proxy.get_server_url());
-        fast_path_cs[StringIndices::ServerUrl] = server_url.c_str();
-        fps_indices[Static::_server_url] = StringIndices::ServerUrl;
 
         // websock download of data and layout won't have happened yet,
         // so check if ctor was given init_data/layout splash screen
@@ -281,10 +158,14 @@ public:
         }
         NDLogger::cout() << method << "init_data: " << JPrettyPrint(data) << std::endl;
         NDLogger::cout() << method << "init_layout: " << JPrettyPrint(layout) << std::endl;
+
+        // TODO: DataLayCache code here
+        / init the fast path vars from the settings established in im_render.hpp:im_start()
+        ImGuiStyle& style = ImGui::GetStyle();
+
         // fire post processing of init layout and data
         // NB this will be repeated when real layout and data arrive via websock
-        on_layout();
-        on_data();
+        data_lay_cache.on_json(data, layout);
     }
 
     // Helpers and accessors
@@ -310,15 +191,15 @@ public:
         // address pending pops first: maintaining ordering by working from front to back
         // as that is the order they would land on the stack if not pushed during rendering
         while (!pending_pops.empty()) {
-            // pop_widget(pending_pops.front());
-            // pending_pops.pop_front();
+            pop_widget(pending_pops.front());
+            pending_pops.pop_front();
         }
         // drain pending_pushes onto the render stack, maintaining
         // the stack order we would have had if the push had
         // happended intra-render. JOS 2025-01-31
         while (!pending_pushes.empty()) {
-            // push_widget(pending_pushes.front());
-            // pending_pushes.pop_front();
+            push_widget(data_lay_cache.get_pushable(pending_pushes.front()));
+            pending_pushes.pop_front();
         }
 
         // This loop used to break if we raised a modal as changing stack state
@@ -329,9 +210,7 @@ public:
         // And we avoid live iterators so far down the stack too...
         int stack_length = (int)stack.size();
         for (int inx = 0; inx < stack_length; inx++) {
-            // TODO: recode render meths around NDWidget
-            // const JSON& widget(stack[inx]);
-            // dispatch_render(widget);
+            dispatch_render(stack[inx]);
         }
         end_render_cycle();
         pix_end_event();
@@ -430,9 +309,8 @@ public:
                 if (cache_is_loaded()) {
                     data = real_data;
                     layout = real_layout;
-                    on_data();
-                    on_layout();
-                    NDLogger::cout() << method << "CACHE_LOADED" << std::endl;
+                    data_lay_cache.on_json(data, layout);
+                    // NDLogger::cout() << method << "CACHE_LOADED" << std::endl;
                     action_dispatch(Static::gui_cs, Static::cache_loaded_cs);
                 }
             }
@@ -505,53 +383,6 @@ public:
         }
     }
 
-    void on_layout() {
-        const static char* method = "NDContext::on_layout: ";
-        // layout is a JSON list of widgets; and all may have children
-        // however, not all widgets are children. For instance modals
-        // like parquet_loading_modal have to be explicitly pushed
-        // on to the render stack by an event. Memoize the JSON objs
-        // into a vec of NDWidget to minimize ems::val dispatch intra
-        // render cycle.
-        int layout_length = JSize(layout);
-        for (int inx=0; inx < layout_length; inx++) {
-            const JSON& w(layout[inx]);
-            memo_layout.emplace_back(NDWidget<JSON>{entity_ids, entity_indices, w});
-            NDWidget<JSON>& memo{ memo_layout.back() };
-            if (memo.widget_id) {
-                NDLogger::cout() << method << "LAYOUT_PUSHABLE: " << memo.widget_id << ":" << JPrettyPrint(w) << std::endl;
-                pushable[memo.widget_id] = &memo;
-            }
-            else {
-                NDLogger::cout() << method << "no widget_id in: " << JPrettyPrint(w) << std::endl;
-            }
-            /* old impl
-            NDLogger::cout() << method << "LAYOUT_CHILD: " << JPrettyPrint(w) << std::endl;
-            if (JContains(w, Static::widget_id_cs)) {
-                std::string widget_id(JAsString(w, Static::widget_id_cs));
-                if (!widget_id.empty()) {
-                    NDLogger::cout() << method << "LAYOUT_PUSHABLE: " << widget_id << ":" << JPrettyPrint(w) << std::endl;
-                    pushable[widget_id] = w;
-                }
-                else {
-                    NDLogger::cerr() << method << "empty widget_id in: " << JPrettyPrint(w) << std::endl;
-                }
-            } */
-        }
-        // Home on the render stack
-        stack.clear();  // rm any init_layout
-        stack.push_back(&(memo_layout[0]));
-    }
-
-    void on_data() {
-        const static char* method = "NDContext::on_data: ";
-
-        NDLogger::cout() << method << "CACHE_DATA: " << JPrettyPrint(data) << std::endl;
-        if (!JContains(data, Static::actions_cs)) {
-            NDLogger::cout() << method << "NO_ACTIONS in data!" << std::endl;
-        }
-    }
-
     void get_config(JSON& cfg) { proxy.get_config(cfg); }
     void register_font(const std::string& name, ImFont* f) { font_map[name] = f; }
     void register_ws_sender(WebSockSenderFunc send) { ws_send = send; }
@@ -560,20 +391,81 @@ public:
 
 protected:
     // w["rname"] resolve & invoke
-    void dispatch_render(const JSON& w) {
+    // void dispatch_render(const JSON& w) {
+    void dispatch_render(WidgetPtr w) {
         const static char* method = "NDContext::dispatch_render: ";
 
-        if (!JContains(w, Static::rname_cs)) {
-            NDLogger::cerr() << method << "missing rname in " << w << std::endl;
-            return;
+        switch (w->rname) {
+        case RenderMethod::Home:
+            render_home(w);
+            break;
+        case RenderMethod::InputInt:
+            render_input_int(w);
+            break;
+        case RenderMethod::Combo:
+            render_combo(w);
+            break;
+        case RenderMethod::Checkbox:
+            render_checkbox(w);
+            break;
+        case RenderMethod::Text:
+            render_text(w);
+            break;
+        case RenderMethod::Button:
+            render_button(w);
+            break;
+        case RenderMethod::Table:
+            render_table(w);
+            break;
+        case RenderMethod::Footer:
+            render_footer(w);
+            break;
+        case RenderMethod::DatePicker:
+            render_date_picker(w);
+            break;
+        case RenderMethod::DuckTableSummaryModal:
+            render_duck_table_summary_modal(w);
+            break;
+        case RenderMethod::LoadingModal:
+            render_loading_modal(w);
+            break;
+        case RenderMethod::Separator:
+            render_separator(w);
+            break;
+        case RenderMethod::SameLine:
+            render_same_line(w);
+            break;
+        case RenderMethod::NewLine:
+            render_new_line(w);
+            break;
+        case RenderMethod::Spacing:
+            render_spacing(w);
+            break;
+        case RenderMethod::AlignTextToFramePadding:
+            render_align_text_to_frame_padding(w);
+            break;
+        case RenderMethod::BeginChild:
+            render_begin_child(w);
+            break;
+        case RenderMethod::EndChild:
+            render_end_child(w);
+            break;
+        case RenderMethod::BeginGroup:
+            render_begin_group(w);
+            break;
+        case RenderMethod::EndGroup:
+            render_end_group(w);
+            break;
+        case RenderMethod::PushFont:
+            render_push_font(w);
+            break;
+        case RenderMethod::PopFont:
+            render_pop_font(w);
+            break;
+        default:
+            // TODO: error
+            break;
         }
-        std::string rname = JAsString(w, Static::rname_cs);
-        const auto it = rfmap.find(rname);
-        if (it == rfmap.end()) {
-            NDLogger::cerr() << method << "unknown rname in " << w << std::endl;
-            return;
-        }
-        it->second(w);
     }
 
     void compound_string(char* buf, int buflen, const std::string& s1,
@@ -662,7 +554,7 @@ protected:
             // the context can check the widget type on pops
             std::string rname(JAsString(action_defn, Static::ui_pop_cs));
             NDLogger::cout() << method << "ui_pop(" << rname << ")" << std::endl;
-            pending_pops.push_back(rname);
+            // pending_pops.push_back(rname);
         }
         if (JContains(action_defn, Static::ui_push_cs)) {
             // for pushes we supply widget_id, not the rname
@@ -670,6 +562,7 @@ protected:
             uint32_t int_widget_id{ 0 };
             // TODO: memoize action_defn to yield widget_id as uint32, not str
             // salt'n'pepa in da house!
+            /*
             auto find_it = entity_indices.find(widget_id);
             if (find_it == entity_indices.end()) {
                 NDLogger::cerr() << method << "ui_push(" << widget_id << ") no such pushable" << std::endl;
@@ -677,14 +570,14 @@ protected:
             else {
                 // TODO: fix after C2 refactor
                 int_widget_id = find_it->second;
-            }
+            } */
             // new above, slightly amended below...
             auto push_it = pushable.find(int_widget_id);
             if (push_it != pushable.end()) {
                 NDLogger::cout() << method << "ui_push(" << widget_id << ")" << std::endl;
                 // NB action_dispatch is called by eg render_button, which ultimately is called
                 // by render(), which iterates over stack. So we cannot change stack here...
-                pending_pushes.push_back(push_it->second);
+                // pending_pushes.push_back(push_it->second);
             }
             else {
                 NDLogger::cerr() << method << "ui_push(" << widget_id << ") no such pushable" << std::endl;
@@ -748,7 +641,7 @@ protected:
     }
 
     // Render functions
-    void render_home(const JSON& w) {
+    void render_home(WidgetPtr w) {
         const static char* method = "NDContext::render_home: ";
 
         if (!JContains(w, Static::cspec_cs)) {
@@ -857,7 +750,7 @@ protected:
         // no value params in layout here; all combo layout is data cache refs
         // /cspec/cname should give us a data cache addr for the combo list
         std::string combo_list_cache_addr(JAsString(cspec, Static::cname_cs));
-        std::string combo_index_cache_addr(JAsString(cspec, Static::index_cs));
+        std::string combo_index_cache_addr(JAsString(cspec, Static::cindex_cs));
         // if no label use cache addr
         if (!label.size()) label = combo_list_cache_addr;
         int combo_count = 0;
@@ -1331,115 +1224,79 @@ protected:
         }
     }
 
-    void render_push_font(const JSON& w) {
+    void render_push_font(WidgetPtr w) {
         push_font(w, Static::font_cs, Static::font_size_cs);
     }
 
-    void render_pop_font(const JSON&) {
+    void render_pop_font(WidgetPtr) {
         pop_font();
     }
 
-    void render_begin_child(const JSON& w) {
+    void render_begin_child(WidgetPtr w) {
         const static char* method = "NDContext::render_begin_child: ";
 
         // NB BeginChild is a grouping mechanism, so there's no single
         // cache datum to which we refer, so no cname. However, we do look
         // require a title (for imgui ID purposes) and we can have styling
         // attributes like ImGuiChildFlags
+        /*
         if (!JContains(w, Static::cspec_cs) || !JContains(w[Static::cspec_cs], Static::title_cs)) {
             NDLogger::cerr() << method << Static::BAD_CSPEC_cs << JPrettyPrint(w) << std::endl;
             return;
         }
         const JSON& cspec(w[Static::cspec_cs]);
         std::string title(JAsString(cspec, Static::title_cs));
+        */
+        auto svmap_iter = 
+
+        StrInx title_inx = w->cspec_str.at(cs_title);
+        const char* title = data_lay_cache.get_string_value(title_inx);
 
         int child_flags = 0;
-        if (JContains(cspec, Static::child_flags_cs)) {
-            child_flags = JAsInt(cspec, Static::child_flags_cs);
-        }
+        // TODO: recover child flags from widget
         ImVec2 size{ 0, 0 };
-        if (JContains(cspec, Static::size_cs)) {
-            JSON size_tup2 = JSON::array();
-            size_tup2 = cspec[Static::size_cs];
-            size[0] = (float)JAsInt(size_tup2, 0);
-            size[1] = (float)JAsInt(size_tup2, 1);
-        }
         // TODO: we're not checking the ret val to see if we
         // need to render the children. We need a way to
         // memoize the BeginChild RV on the stack...
-        ImGui::BeginChild(title.c_str(), size, child_flags);
+        ImGui::BeginChild(title, size, child_flags);
     }
 
-    void render_end_child(const JSON&) {
+    void render_end_child(WidgetPtr w) {
         ImGui::EndChild();
     }
 
-    void render_begin_group(const JSON&) {
+    void render_begin_group(WidgetPtr w) {
         ImGui::BeginGroup();
     }
 
-    void render_end_group(const JSON&) {
+    void render_end_group(WidgetPtr w) {
         ImGui::EndGroup();
     }
 
-    void push_widget(const JSON& w) {
+    void push_widget(WidgetPtr w) {
         stack.push_back(w);
     }
 
-    void pop_widget(const std::string& widget_id_or_render_name = "") {
+    void pop_widget(RenderMethod m) {
         const static char* method = "NDContext::pop_widget: ";
         // if rname specifies a class we check the
         //      popped widget rname
-        if (!widget_id_or_render_name.empty()) {
-            const JSON& w(stack.back());
-            std::string render_name = JAsString(w, Static::rname_cs);
-            if (JContains(w, Static::widget_id_cs)) {
-                std::string widget_id = JAsString(w, Static::widget_id_cs);
-                if (render_name != widget_id_or_render_name &&
-                    widget_id != widget_id_or_render_name) {
-                    NDLogger::cerr() << method << "POP_FAIL mismatch rname("
-                        << render_name << ") widget_id("
-                        << widget_id << ") widget_id_or_render_name("
-                        << widget_id_or_render_name << ")" << std::endl;
-                }
-                else {
-                    stack.pop_back();
-                }
-            }
-            else {
-                if (render_name != widget_id_or_render_name) {
-                    NDLogger::cerr() << method << "POP_FAIL mismatch rname("
-                        << render_name << ") widget_id_or_render_name("
-                        << widget_id_or_render_name << ")" << std::endl;
-                }
-                else {
-                    stack.pop_back();
-                }
-            }
+        if (stack.back()->rname == m) {
+            stack.pop_back();
+            return;
         }
-        else {
-            NDLogger::cerr() << method << "POP_FAIL empty widget_id_or_render_name(" << widget_id_or_render_name << ")" << std::endl;
-        }
+        NDLogger::cerr() << method << "POP_FAIL mismatch rname("
+                        << m << ")" << std::endl;
     }
 
-    bool push_font(const JSON& w, const char* font_attr,
+    bool push_font(WidgetPtr w, const char* font_attr,
         const char* font_size_base_attr) {
         const static char* method = "NDContext::push_font: ";
 
-        if (!JContains(w, Static::cspec_cs)) {
-            NDLogger::cerr() << method << "BAD_CSPEC" << w << std::endl;
-            return false;
-        }
-        const JSON& cspec(w[Static::cspec_cs]);
-        if (!JContains(cspec, font_attr)) {
-            NDLogger::cerr() << method << "no " << font_attr << " in cspec : " << w << std::endl;
-            return false;
-        }
+        StrInx font_inx = w->cspec_str.at(cs_font);
+        const char* font_name = data_lay_cache.get_string_value(font_inx);
+
         float font_size_base = 0.0;
-        std::string font_name = JAsString(cspec, font_attr);
-        if (JContains(cspec, font_size_base_attr)) {
-            font_size_base = JAsFloat(cspec, font_size_base_attr);
-        }
         auto font_it = font_map.find(font_name);
         if (font_it != font_map.end()) {
             ImGui::PushFont(font_it->second, font_size_base);
