@@ -154,12 +154,11 @@ bool is_render_valid(RenderMethod rm) {
 // This enable a max of 65535 (0xFFFF) DCIs
 // of any recognised data type.
 enum CacheItemType : uint32_t {
-    Address = 0x1000000,     // cname, sql_cname
-    Value = 0x2000000,       // Int,Float,Bool,IntVec,StrVec
+    Address = 0x1000000,     // cname, sql_cname, cindex
+    Value = 0x2000000,       // Int,Float,Bool,Str,IntVec,StrVec
     EntityID = 0x3000000,    // widget_id|query_id|susbsys_id
     Event = 0x4000000,       // Click,Online,QueryResult,CommandResult
-    RenderName = 0x6000000,  // RenderMethod
-    SubSystem = 0x7000000,   // [GUI|DuckDB].Online
+    SubSystem = 0x5000000,   // [GUI|DuckDB].Online
     EndItemTypes = 0xF000000 
 };
 
