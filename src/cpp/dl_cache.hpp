@@ -35,9 +35,6 @@ protected:
     // Valid cache addresses
     std::map<std::string, AddrInx>   address_map;
 
-
-public:
-
     template <CIT itype>
     auto intern_string(const std::string& s, CST stype = CST::None) {
         auto iter = std::find(cache_strings.begin(), cache_strings.end(), s);
@@ -66,25 +63,26 @@ public:
         return FloatInx(fp_float_ptrs.size() - 1);
     }
 
-    DataLayCache(int intern_capacity=256) {
-        fp_float_ptrs.reserve(intern_capacity);
-        fp_int_ptrs.reserve(intern_capacity);
-        fp_char_ptrs.reserve(intern_capacity);
-        cache_strings.reserve(intern_capacity);
-        cache_ints.reserve(intern_capacity);
-        cache_floats.reserve(intern_capacity);
-    }
-
-    void init() {
-        const static char* method = "DataLayCache::init: ";
+    void clear() {
+        fp_float_ptrs.clear();
+        fp_int_ptrs.clear();
+        fp_char_ptrs.clear();
+        cache_strings.clear();
+        cache_ints.clear();
+        cache_floats.clear();
+        widget_vec.clear();
+        pushables.clear();
+        actions.clear();
+        actions_interned.clear();
+        actions_errors.clear();
+        bad_action_keys.clear();
+        address_map.clear();
     }
 
     size_t addr_map_size() { return address_map.size(); }
     size_t widget_vec_size() { return widget_vec.size(); }
     size_t pushables_size() { return pushables.size(); }
     size_t actions_size() { return actions.size(); }
-
-
 
     void parse_actions(const JSON& action_seq, ActionVec& nd_action_vec, ActionInternVec& act_intern_vec, ActionErrorVec& act_error_vec) {
         const static char* method = "DataLayCache::parse_actions: ";
@@ -370,9 +368,26 @@ public:
         }
     }
 
+public:
+    DataLayCache(int intern_capacity = 256) {
+        fp_float_ptrs.reserve(intern_capacity);
+        fp_int_ptrs.reserve(intern_capacity);
+        fp_char_ptrs.reserve(intern_capacity);
+        cache_strings.reserve(intern_capacity);
+        cache_ints.reserve(intern_capacity);
+        cache_floats.reserve(intern_capacity);
+    }
+
     void on_json(const JSON& data, const JSON& layout) {
+        clear();
         on_data(data);
         on_layout(data, layout);
+    }
+
+    WidgetPtr get_pushable(EntityInx widget_id) {
+        auto pit = pushables.find(widget_id);
+        if (pit != pushables.end()) return *pit;
+        throw std::runtime_error("NoDOM BAD_ENTITY_OD");
     }
 
     const char* get_string_value(EntityInx inx) {
