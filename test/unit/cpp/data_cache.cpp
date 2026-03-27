@@ -203,12 +203,14 @@ BOOST_FIXTURE_TEST_CASE(AddString, DataCacheFixture)
 {
     const static std::string _server_url{ "_server_url" };
     AddrInx addr_inx = dc.add_address(_server_url);
-    StrInx str_inx = dc.add_string(_server_url.c_str()); // already exists as address
-    backed_str_count = 1;
+    // DataCacheFixture::server_url is a standin for Proxy::server_url
+    // _server_url is the special cache ref that's not in data
+    StrInx str_inx = dc.add_string(server_url.c_str());
+    backed_str_count = 2;
     BOOST_TEST(StrInx::item_type == CIT::Value);
     BOOST_TEST(StrInx::data_type == CDT::cdStr);
-    BOOST_TEST(str_inx.magic_index == 0x02040000);
-    BOOST_TEST(str_inx() == 0);
+    BOOST_TEST(str_inx.magic_index == 0x02040001);
+    BOOST_TEST(str_inx() == 1);
     BOOST_TEST(AddrInx::item_type == CIT::Address);
     BOOST_TEST(AddrInx::data_type == CDT::cdStr);
     BOOST_TEST(addr_inx.magic_index == 0x01040000);
@@ -220,6 +222,44 @@ BOOST_FIXTURE_TEST_CASE(BadIndex, DataCacheFixture)
 {
     // DCI ctor assert only throws in dbg
     BOOST_CHECK_THROW(AddrInx{ MAX_DCI + 1 }, std::exception);
+}
+
+BOOST_FIXTURE_TEST_CASE(InitData, DataCacheFixture)
+{
+#ifdef __EMSCRIPTEN__
+    auto data = JParse<emscripten::val>(add_server_data);
+#else
+    std::string data_json_path = test_json_dir + "bb_init_data.json";
+    std::string data_json = load_json(data_json_path.c_str());
+    auto data = JParse<nlohmann::json>(data_json);
+#endif
+    // 3 addresses in AddServer test data
+    backed_str_count = 6;
+    dc.on_data(data);
+    BOOST_TEST(dc.addr_map_size() == 1);
+    BOOST_TEST(dc.actions_size() == 2);
+    report_cache_state();
+}
+
+BOOST_FIXTURE_TEST_CASE(InitLayout, DataCacheFixture)
+{
+#ifdef __EMSCRIPTEN__
+    // TODO: load from ems FS
+    auto layout = JParse<emscripten::val>(add_server_layout);
+#else
+    std::string data_json_path = test_json_dir + "bb_init_data.json";
+    std::string data_json = load_json(data_json_path.c_str());
+    auto data = JParse<nlohmann::json>(data_json);
+    std::string layout_json_path = test_json_dir + "bb_init_layout.json";
+    std::string layout_json = load_json(layout_json_path.c_str());
+    auto layout = JParse<nlohmann::json>(layout_json);
+#endif
+    backed_str_count = 9;
+    backed_int_count = 0;
+    dc.on_json(data, layout);
+    BOOST_TEST(dc.widget_vec_size() == 2);
+    BOOST_TEST(dc.pushables_size() == 1);
+    report_cache_state();
 }
 
 BOOST_FIXTURE_TEST_CASE(AddServerData, DataCacheFixture)
