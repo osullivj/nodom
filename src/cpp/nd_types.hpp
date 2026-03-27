@@ -326,12 +326,29 @@ using StrVecInx = DataCacheIndex<CIT::Value, CDT::cdStrVec>;  // !mutable
 
 struct ActionKey {
     uint32_t key{OH_FECK};
+
     ActionKey() = default;
     ~ActionKey() = default;
+
     ActionKey(EntityInx ninx, EventInx einx) {
         // ninx in the hi 16 bits, einx in the lo 16
         key = ninx() << 16 | einx();
     }
+
+    // Reconstruct the EntityInx passed to the ctor,
+    // but with CST::None as we cannot know if it
+    // was WidgetID, QueryID or SubSysID
+    EntityInx entity_inx() const {
+        return EntityInx(key >> 16);
+    }
+
+    // Reconstruct the EntityInx passed to the ctor,
+    // but with CST::None as we cannot know if it
+    // was Widget, Query or SubSys event type.
+    EventInx event_inx() const {
+        return EventInx(key & MAX_DCI);
+    }
+
     friend std::ostream& operator<<(std::ostream& os, const ActionKey& ak) {
         os << "0x" << std::setfill('0') << std::setw(8) << std::hex << ak.key;
         return os;
