@@ -72,7 +72,9 @@ const char* CriticalToString(Critical crit) {
 
 // NDContext helper NextEvent: what comes next in a 
 // DB action_dispatch sequence?
-const char* NextEvent(const char* nd_event) {
+// const char* NextEvent(const char* nd_event) {
+/*
+EventInx NextEvent(EventInx nd_event) {
     if (strcmp(nd_event, Static::command_cs) == 0) {
         return Static::command_result_cs;
     }
@@ -83,7 +85,7 @@ const char* NextEvent(const char* nd_event) {
         return Static::batch_response_cs;
     }
     return nullptr;
-}
+}*/
 
 // NDContext helper: SetStyleColoring
 void SetStyleColoring(int col) {
