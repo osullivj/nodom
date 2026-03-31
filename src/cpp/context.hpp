@@ -69,10 +69,10 @@ private:
     bool                layout_loaded{ false };
 
     // map layout render func names to the actual C++ impls
-    std::unordered_map<std::string, std::function<void(const JSON& w)>> rfmap;
+    // std::unordered_map<std::string, std::function<void(const JSON& w)>> rfmap;
     // top level layout widgets with widget_id eg modals are in pushables
     // std::unordered_map<std::string, JSON> pushable;
-    std::unordered_map<uint32_t, WidgetPtr> pushable;
+    // std::unordered_map<uint32_t, WidgetPtr> pushable;
 
     // manage down logging by tracking misconfiged queries that throw
     // BAD_HANDLE_FAIL, especially for browser console log
@@ -90,18 +90,38 @@ private:
     // TODO: rewrite InFlight to operate on ActionVec/NDAction
     struct InFlight {
         InFlight() {}
-        InFlight(JSON& s, int i, const char* n, const std::string& qid)
+        // InFlight(ActionVec& s, int i, const char* n, const std::string& qid)
+        InFlight(ActionVec* avec, int i, EventInx n, EntityInx qid)
             :sequence(s), inx(i), next(n), query_id(qid) {}
-        JSON        sequence{JSON::array()};
+        ActionVec*  sequence;
         int         inx{ 0 };
-        const char* next{ nullptr };
-        std::string query_id;
+        // const char* next{ nullptr };
+        EventInx next;
+        // std::string query_id;
+        EntityInx query_id;
     };
     std::list<InFlight> in_flight_list;
 
     bool    show_demo = false;
     bool    show_id_stack = false;
     bool    show_memory = false;
+
+    EntityInx   ninx_GUI;
+    EntityInx   ninx_Websock;
+    EntityInx   ninx_DuckDB;
+
+    EventInx    einx_WebSockConnectionFailed;   // CST::SubSysEvent
+    EventInx    einx_Online;                    // CST::SubSysEvent
+    EventInx    einx_CacheLoaded;               // CST::SubSysEvent
+
+    EventInx    einx_Command;                   // CST::DBEvent
+    EventInx    einx_CommandResult;
+    EventInx    einx_Query;
+    EventInx    einx_QueryResult;
+    EventInx    einx_BatchRequest;
+    EventInx    einx_BatchResponse;
+
+    EventInx    einx_Invalid;                   // !init->OH_FECK
 
     // colours: https://www.w3schools.com/colors/colors_picker.asp
     ImColor red;    // ImGui.COL32(255, 51, 0);
@@ -114,10 +134,10 @@ private:
     std::uint32_t font_pop_count = 0;
     std::uint32_t render_count = 0;
     // std::uint32_t bad_handle_count = 0;
-    std::deque<std::string> bad_font_pushes;
+    std::deque<StrInx> bad_font_pushes;
 
-    WebSockSenderFunc ws_send = nullptr;  // ref to NDWebSockClient::send
-    MessagePumpFunc msg_pump = nullptr;
+    VSFunc ws_send = nullptr;  // ref to NDWebSockClient::send
+    VVFunc msg_pump = nullptr;
     GLFWwindow* glfw_window = nullptr;
 
     // Buffer for action_event compound keys
@@ -159,13 +179,46 @@ public:
         NDLogger::cout() << method << "init_data: " << JPrettyPrint(data) << std::endl;
         NDLogger::cout() << method << "init_layout: " << JPrettyPrint(layout) << std::endl;
 
-        // TODO: DataLayCache code here
-        / init the fast path vars from the settings established in im_render.hpp:im_start()
-        ImGuiStyle& style = ImGui::GetStyle();
 
         // fire post processing of init layout and data
         // NB this will be repeated when real layout and data arrive via websock
-        data_lay_cache.on_json(data, layout);
+        data_lay_cache.on_json(data, layout, [&data_lay_cache]() {
+                                                data_lay_cache.on_dlc_init();
+            });
+    }
+
+    void on_dlc_init() {
+        // DataLayCache on_json() has processed data and layout. Now we add
+        // Entity and Event indices for our action_dispatch() impl.
+
+        // First EntityIDs for subsystem events from GUI or Websock
+        ninx_GUI = data_lay_cache.add_string<CIT::EntityID>(Static::gui_cs, CST::SubSysID);
+        ninx_Websock = data_lay_cache.add_string<CIT::EntityID>(Static::websock_cs, CST::SubSysID);
+        ninx_DuckDB = data_lay_cache.add_string<CIT::EntityID>(Static::duck_db_cs, CST::SubSysID);
+
+        // Events: subsys
+        einx_WebSockConnectionFailed = data_lay_cache.add_string<CIT::Event>(
+                                        CriticalToString(WebSockConnectionFailed), CST::SubSysEvent);
+        einx_Online = data_lay_cache.add_string<CIT::Event>(Static::online_cs, CST::SubSysEvent);
+        einx_CacheLoaded = data_lay_cache.add_string<CIT::Event>(Static::cache_loaded_cs, CST::SubSysEvent);
+
+        // Events: DB
+        einx_Command = data_lay_cache.add_string<CIT::Event>(Static::command_cs, CST::DBEvent);
+        einx_CommandResult = data_lay_cache.add_string<CIT::Event>(Static::command_result_cs, CST::DBEvent);
+        einx_Query = data_lay_cache.add_string<CIT::Event>(Static::query_cs, CST::DBEvent);
+        einx_QueryResult = data_lay_cache.add_string<CIT::Event>(Static::query_result_cs, CST::DBEvent);
+        einx_BatchRequest = data_lay_cache.add_string<CIT::Event>(Static::batch_request_cs, CST::DBEvent);
+        einx_BatchResponse = data_lay_cache.add_string<CIT::Event>(Static::batch_response_cs, CST::DBEvent);
+
+        // init the fast path vars from the settings established in im_render.hpp:im_start()
+        ImGuiStyle & style = ImGui::GetStyle();
+    }
+
+    EventInx next_db_event(EventInx einx) {
+        if (einx == einx_Command) return einx_CommandResult;
+        if (einx == einx_Query) return einx_QueryResult;
+        if (einx == einx_BatchRequest) return einx_BatchResponse;
+        return einx_Invalid;
     }
 
     // Helpers and accessors
@@ -178,7 +231,8 @@ public:
         show_stopper = error_code;
         switch (error_code) {
         case WebSockConnectionFailed:
-            action_dispatch(Static::websock_cs, CriticalToString(show_stopper));
+            // action_dispatch(Static::websock_cs, CriticalToString(show_stopper));
+            action_dispatch(ninx_Websock, einx_WebSockConnectionFailed);
             break;
         }
     }
@@ -238,7 +292,8 @@ public:
         const static char* method = "NDContext::end_render_cycle: ";
 
         if (render_count == 0) {
-            action_dispatch(Static::gui_cs, Static::gui_online_cs);
+            // action_dispatch(Static::gui_cs, Static::gui_online_cs);
+            action_dispatch(ninx_GUI, einx_Online);
         }
 
         if (font_push_count != font_pop_count) {
@@ -309,9 +364,10 @@ public:
                 if (cache_is_loaded()) {
                     data = real_data;
                     layout = real_layout;
-                    data_lay_cache.on_json(data, layout);
+                    data_lay_cache.on_json(data, layout, [&]() {on_dlc_init(); } );
                     // NDLogger::cout() << method << "CACHE_LOADED" << std::endl;
-                    action_dispatch(Static::gui_cs, Static::cache_loaded_cs);
+                    // action_dispatch(Static::gui_cs, Static::cache_loaded_cs);
+                    action_dispatch(ninx_GUI, einx_CacheLoaded);
                 }
             }
             // Is this a DataChange?
@@ -349,44 +405,55 @@ public:
         std::string qid = JAsString(db_msg, Static::query_id_cs);
         NDLogger::cout() << method << nd_type << ", QID: " << qid << std::endl;
 
-        if (nd_type == Static::command_cs) {
+        // Here add_string acts as find_string
+        EntityInx ninx{data_lay_cache.add_string<EntityID>(qid, CST::QueryID)};
+        EventInx einx{ data_lay_cache.add_string<Event>(nd_type, CST::DBEvent) };
+
+        // if (nd_type == Static::command_cs) {
+        if (einx == einx_Command) {
             db_status_color = amber;
         }
-        else if (nd_type == Static::query_cs) {
+        // else if (nd_type == Static::query_cs) {
+        else if (einx == einx_Query) {
             db_status_color = amber;
         }
-        else if (nd_type == Static::command_result_cs) {
+        // else if (nd_type == Static::command_result_cs) {
+        else if (einx == einx_CommandResult) {
             db_status_color = green;
-            action_dispatch(qid, nd_type);
+            action_dispatch(ninx, einx); // qid, nd_type);
         }
-        else if (nd_type == Static::query_result_cs) {
+        // else if (nd_type == Static::query_result_cs) {
+        else if (einx == einx_QueryResult) {
             db_status_color = green;
             // Typically, a QueryResult is followed by dispatch
             // of a BatchRequest. 
-            action_dispatch(qid, nd_type);
+            action_dispatch(ninx, einx); // qid, nd_type);
         }
-        else if (nd_type == Static::batch_response_cs) {
+        // else if (nd_type == Static::batch_response_cs) {
+        else if (einx == einx_BatchResponse) {
             db_status_color = green;
-            action_dispatch(qid, nd_type);
+            action_dispatch(ninx, einx); // qid, nd_type);
         }
-        else if (nd_type == Static::duck_instance_cs) {
+        // else if (nd_type == Static::duck_instance_cs) {
+        else if (einx == einx_Online) {
             // TODO: q processing order means this doesn't happen so early in cpp
             // main.ts:on_duck_event invokes check_duck_module.
             // However, we don't need all the check_duck_module JS module stuff,
             // so we can just flip status button color here
             db_status_color = amber;
             // trigger any DuckInstance action
-            action_dispatch(Static::db_online_cs, Static::duck_instance_cs);
+            // action_dispatch(Static::db_online_cs, Static::duck_instance_cs);
+            action_dispatch(ninx_DuckDB, einx); // qid, nd_type);
         }
         else {
-            NDLogger::cerr() << "NDContext::on_db_event: unexpected nd_type in " << db_msg << std::endl;
+            NDLogger::cerr() << method << JPrettyPrint(db_msg) << std::endl;
         }
     }
 
     void get_config(JSON& cfg) { proxy.get_config(cfg); }
     void register_font(const std::string& name, ImFont* f) { font_map[name] = f; }
-    void register_ws_sender(WebSockSenderFunc send) { ws_send = send; }
-    void register_msg_pump(MessagePumpFunc mpf) { msg_pump = mpf; }
+    void register_ws_sender(VSFunc send) { ws_send = send; }
+    void register_msg_pump(VVFunc mpf) { msg_pump = mpf; }
     void pump_messages() { msg_pump(); }
 
 protected:
@@ -396,6 +463,9 @@ protected:
         const static char* method = "NDContext::dispatch_render: ";
 
         switch (w->rname) {
+        case RenderMethod::Noop;
+            render_null(w);
+            break;
         case RenderMethod::Home:
             render_home(w);
             break;
@@ -468,6 +538,7 @@ protected:
         }
     }
 
+    /*
     void compound_string(char* buf, int buflen, const std::string& s1,
                             const std::string& s2, const std::string& sep) {
         // First, compose the compound action sequence key from action_id and nd_event
@@ -482,11 +553,14 @@ protected:
         dest += sep.size();
         space -= sep.size();
         strncpy(dest, s2.c_str(), space);
-    }
+    }*/
 
-    void action_dispatch(const std::string& action_id, const std::string& nd_event) {
+    // void action_dispatch(const std::string& action_id, const std::string& nd_event) {
+    void action_dispatch(EntityInx ninx, EventInx einx) {
+
         const static char* method = "NDContext::action_dispatch: ";
 
+        /*
         compound_string(act_ev_key_buf, act_ev_key_buf_len, 
             action_id, nd_event, Static::period_cs);
 
@@ -495,20 +569,25 @@ protected:
         if (!JContains(data, Static::actions_cs)) {
             NDLogger::cout() << method << "no actions in data!" << std::endl;
             return;
-        }
+        } 
         // Get hold of "actions" in data: do we a matching action?
         // NB if there isn't a matching action.event compound key in data.actions,
         // then we have to check the in flight sequences...
         const JSON& actions(data[Static::actions_cs]);
-        JSON action_seq = JSON::array();
+        JSON action_seq = JSON::array(); */
         std::list<InFlight> new_in_flight_list;
-        if (JContains(actions, act_ev_key_buf)) {
+        ActionKey akey{ ninx, einx };
+        ActionVec* avec = data_lay_cache.get_action_vec(akey);
+        // if (JContains(actions, act_ev_key_buf)) {
+        if (avec) {
             InFlight resume;
             // we have a match in data.actions to kick off a sequence
-            action_seq = actions[act_ev_key_buf];
-            action_execute(action_seq, 0, resume);
+            // action_seq = actions[act_ev_key_buf];
+            // action_execute(action_seq, 0, resume);
+            action_execute(avec, 0, resume);
             // If there's a continuation, add to new list
-            if (resume.next != nullptr)
+            // if (resume.next != nullptr)
+            if (resume.next.is_valid())
                 new_in_flight_list.emplace_back(resume);
         }
         // If there's an action specified in data.actions, we've executed it,
@@ -516,12 +595,13 @@ protected:
         // there were any in flight sequences waiting for an action.event
         auto if_iter = in_flight_list.begin();
         while (if_iter != in_flight_list.end()) {
-            if (if_iter->query_id == action_id && nd_event == if_iter->next) {
+            if (if_iter->query_id == ninx /*action_id*/ && /*nd_event*/einx == if_iter->next) {
                 // we have an in flight match with action.event so execute
                 // then add any resumption to new list
                 InFlight resume;
                 action_execute(if_iter->sequence, if_iter->inx, resume);
-                if (resume.next != nullptr)
+                // if (resume.next != nullptr)
+                if (resume.next.is_valid())
                     new_in_flight_list.emplace_back(resume);
             }
             else {
@@ -536,30 +616,34 @@ protected:
             in_flight_list.swap(new_in_flight_list);
         }
     }
-
-    void action_execute(JSON& action_seq, int action_inx, InFlight& resume) {
+    // void action_execute(JSON& action_seq, int action_inx, InFlight& resume) {
+    void action_execute(ActionVec* action_seq, int action_inx, InFlight& resume) {
         const static char* method = "NDContext::action_execute: ";
-        int seq_len = JSize(action_seq);
+        int seq_len = action_seq->size(); // JSize(action_seq);
         if (action_inx >= seq_len) {
             NDLogger::cerr() << method << "ACT_EXEC: inx(" << action_inx
                 << ") >= len(" << seq_len << ")" << std::endl;
             return;
         }
-        const JSON& action_defn(action_seq[action_inx]);
+        // const JSON& action_defn(action_seq[action_inx]);
+        const NDAction& action_defn{ (*action_seq)[action_inx] };
         // Now we have a matched action definition in hand we can look
         // for UI push/pop and DB scan/query. If there's both push and pop,
         // pop goes first naturally!
-        if (JContains(action_defn, Static::ui_pop_cs)) {
+        // if (JContains(action_defn, Static::ui_pop_cs)) {
+        if (render_is_valid(action_defn.pop_ui)) {
             // for pops we supply the rname, not the pushable name so
             // the context can check the widget type on pops
-            std::string rname(JAsString(action_defn, Static::ui_pop_cs));
-            NDLogger::cout() << method << "ui_pop(" << rname << ")" << std::endl;
+            // std::string rname(JAsString(action_defn, Static::ui_pop_cs));
+            // NDLogger::cout() << method << "ui_pop(" << rname << ")" << std::endl;
             // pending_pops.push_back(rname);
+            pending_pops.push_back(action_defn.pop_ui);
         }
-        if (JContains(action_defn, Static::ui_push_cs)) {
+        // if (JContains(action_defn, Static::ui_push_cs)) {
+        if (action_defn.push_ui.is_valid()) {
             // for pushes we supply widget_id, not the rname
-            std::string widget_id(JAsString(action_defn, Static::ui_push_cs));
-            uint32_t int_widget_id{ 0 };
+            // std::string widget_id(JAsString(action_defn, Static::ui_push_cs));
+            // uint32_t int_widget_id{ 0 };
             // TODO: memoize action_defn to yield widget_id as uint32, not str
             // salt'n'pepa in da house!
             /*
@@ -572,23 +656,31 @@ protected:
                 int_widget_id = find_it->second;
             } */
             // new above, slightly amended below...
-            auto push_it = pushable.find(int_widget_id);
+            // auto push_it = pushable.find(action_defn.push_ui);
+            pending_pushes.push_back(action_defn.push_ui);
+            /*
             if (push_it != pushable.end()) {
-                NDLogger::cout() << method << "ui_push(" << widget_id << ")" << std::endl;
+                NDLogger::cout() << method << "ui_push(" << action_defn.push_ui << ")" << std::endl;
                 // NB action_dispatch is called by eg render_button, which ultimately is called
                 // by render(), which iterates over stack. So we cannot change stack here...
-                // pending_pushes.push_back(push_it->second);
+                pending_pushes.push_back(push_it->second);
             }
             else {
-                NDLogger::cerr() << method << "ui_push(" << widget_id << ") no such pushable" << std::endl;
-            }
+                NDLogger::cerr() << method << "ui_push(" << action_defn.push_ui << ") no such pushable" << std::endl;
+            }*/
         }
         // Finally, do we have a DB op to handle?
         // TODO: rejig!
         std::string db_action;
         std::string query_id;
         std::string sql_cache_key;
-        if (JContains(action_defn, Static::db_action_cs)) {
+        if (db_event_is_valid(action_defn.db_action)) {
+        // if (JContains(action_defn, Static::db_action_cs)) {
+            db_dispatch(action_defn);
+            /*
+            if (action_defn.db_action == dbBatchRequest) {
+                db_dispatch(action_defn.db_)
+            }
             db_action = JAsString(action_defn, Static::db_action_cs);
             if (!JContains(action_defn, Static::query_id_cs)) {
                 NDLogger::cerr() << method << "ACT_EXEC_FAIL db_action(" << db_action << ") missing query_id" << std::endl;
@@ -612,18 +704,20 @@ protected:
                     std::string sql(JAsString(data, sql_cache_key.c_str()));
                     db_dispatch(db_action, query_id, sql);
                 }
-            }
+            }*/
             // We've dispatched a DB op from a sequence, so there's a 
             // continuation if this is not the last action.
             if (++action_inx < seq_len) {
                 resume.sequence = action_seq;
                 resume.inx = action_inx;
-                resume.query_id = query_id;
-                resume.next = NextEvent(db_action.c_str());
+                resume.query_id = action_defn.query_id;
+                // resume.next = NextEvent(db_action.c_str());
+                resume.next = next_db_event(action_defn.db_action);
             }
         }
     }
 
+    /*
     void db_dispatch(const std::string& nd_type, const std::string& qid, 
                     const std::string& sql) {
         auto db_request = JNewObject();
@@ -638,9 +732,29 @@ protected:
         JSet(db_request, Static::nd_type_cs, nd_type.c_str());
         JSet(db_request, Static::query_id_cs, qid.c_str());
         proxy.db_dispatch(db_request);
+    } */
+
+    void db_dispatch(const NDAction& action_defn) {
+        auto db_request = JNewObject();
+        JSet(db_request, Static::nd_type_cs, DBEventTypeToString(action_defn.db_action));
+        const char* qid = data_lay_cache.get_string_value(action_defn.query_id);
+        if (qid != nullptr) {
+            JSet(db_request, Static::query_id_cs, qid);
+        }
+        if (action_defn.sql_cname.is_valid()) {
+            const char* sql = data_lay_cache.get_addr_value(action_defn.sql_cname);
+            if (sql != nullptr) {
+                JSet(db_request, Static::sql_cs, sql);
+            }
+        }
+
     }
 
     // Render functions
+    void render_null(WidgetPtr w) {
+        ;   // null op
+    }
+
     void render_home(WidgetPtr w) {
         const static char* method = "NDContext::render_home: ";
 
@@ -946,21 +1060,42 @@ protected:
             }
     }
 
+    int* cspec_string(CacheSpecifier spec, IntValMap& int_val_map) {
+        auto cs_int_iter = w->cspec_int.find(spec);
+        if (cs_int_iter != w->cspec_int.end()) {
+            IntInx int_inx{ cs_str_iter->second };
+            return data_lay_cache.get_int_value(int_inx);
+        }
+        return nullptr;
+    }
+
+    const char* cspec_string(CacheSpecifier spec, StrValMap& str_val_map, const char* dflt) {
+        auto cs_str_iter = w->cspec_str.find(spec);
+        if (cs_str_iter != w->cspec_str.end()) {
+            StrInx text_inx{ cs_str_iter->second };
+            return data_lay_cache.get_string_value<StrInx>(text_inx);
+        }
+        return dflt;
+    }
+
     void render_text(const JSON& w) {
         const static char* method = "NDContext::render_text: ";
-
+        /*
         if (!JContains(w, Static::cspec_cs)) {
             NDLogger::cerr() << method << "no cspec in w(" << w << ")" << std::endl;
             return;
         }
         const JSON& cspec(w[Static::cspec_cs]);
         std::string rtext = JAsString(cspec, Static::text_cs);
-        ImGui::Text(rtext.c_str());
+        */
+        const char* rtext = cspec_string(cs_text, w->cspec_str, method);
+        ImGui::Text(rtext);
     }
 
-    void render_button(const JSON& w) {
+    void render_button(WidgetPtr w) {
         const static char* method = "NDContext::render_button: ";
 
+        /*
         if (!JContains(w, Static::cspec_cs)) {
             NDLogger::cerr() << method << "no cspec in w(" << w << ")" << std::endl;
             return;
@@ -974,8 +1109,12 @@ protected:
         std::string widget_id(button_text);
         if (JContains(cspec, Static::widget_id_cs)) {
             widget_id = JAsString(cspec, Static::widget_id_cs);
-        }
-        if (ImGui::Button(button_text.c_str())) {
+        }*/
+        const char* button_text = cspec_string(cs_text, w->cspec_str, method);
+
+        if (ImGui::Button(button_text)) {
+            // TODO: action_dispatch func sig
+            std::string widget_id;
             action_dispatch(widget_id, Static::click_cs);
         }
     }
@@ -1247,10 +1386,8 @@ protected:
         const JSON& cspec(w[Static::cspec_cs]);
         std::string title(JAsString(cspec, Static::title_cs));
         */
-        auto svmap_iter = 
-
-        StrInx title_inx = w->cspec_str.at(cs_title);
-        const char* title = data_lay_cache.get_string_value(title_inx);
+        // default title
+        const char* title = cspec_string(cs_title, w->cspec_str, method);
 
         int child_flags = 0;
         // TODO: recover child flags from widget
@@ -1283,31 +1420,44 @@ protected:
         //      popped widget rname
         if (stack.back()->rname == m) {
             stack.pop_back();
-            return;
-        }
-        NDLogger::cerr() << method << "POP_FAIL mismatch rname("
-                        << m << ")" << std::endl;
-    }
-
-    bool push_font(WidgetPtr w, const char* font_attr,
-        const char* font_size_base_attr) {
-        const static char* method = "NDContext::push_font: ";
-
-        StrInx font_inx = w->cspec_str.at(cs_font);
-        const char* font_name = data_lay_cache.get_string_value(font_inx);
-
-        float font_size_base = 0.0;
-        auto font_it = font_map.find(font_name);
-        if (font_it != font_map.end()) {
-            ImGui::PushFont(font_it->second, font_size_base);
         }
         else {
-            // Gotta push something as matching PopFont
-            // renders will trigger imgui asserts
-            ImFont* default_font = font_map[Static::default_cs];
-            ImGui::PushFont(default_font, font_size_base);
-            bad_font_pushes.push_back(font_name);
+            NDLogger::cerr() << method << "POP_FAIL mismatch rname("
+                << data_lay_cache.render_name(m) << ")" << std::endl;
         }
+    }
+
+    bool push_font(WidgetPtr w, CacheSpecifier font_name_spec, 
+                                        CacheSpecifier font_size_spec) {
+        const static char* method = "NDContext::push_font: ";
+
+        // get size if specified, otherwise default to 0
+        float font_size_base = 0.0;
+        auto cs_int_it = w->cspec_int.find(font_size_spec);
+        if (cs_int_it != w->cspec_int.end()) {
+            int* font_size_val_ptr = data_lay_cache.get_int_value(cs_int_it->second);
+            if (font_size_val_ptr != nullptr)
+                font_size_base = *font_size_val_ptr;
+        }
+
+        // defaults so resolution failure doesn't stop us pushing
+        ImFont* font = font_map[Static::default_cs];
+        auto cs_str_it = w->cspec_str.find(font_name_spec);
+        if (cs_str_it != w->cspec_str.end()) {
+            StrInx font_name_inx{ cs_str_it->second };
+            const char* font_name = data_lay_cache.get_string_value<StrInx>(font_name_inx);
+            if (font_name != nullptr) {
+                auto font_it = font_map.find(font_name);
+                if (font_it != font_map.end()) {
+                    font = font_it->second;
+                }
+                else {
+                    bad_font_pushes.push_back(font_name_inx);
+                }
+            }
+        }
+
+        ImGui::PushFont(font, font_size_base);
         font_push_count++;
         return true;
     }
