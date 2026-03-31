@@ -79,11 +79,6 @@ protected:
         address_map.clear();
     }
 
-    size_t addr_map_size() { return address_map.size(); }
-    size_t widget_vec_size() { return widget_vec.size(); }
-    size_t pushables_size() { return pushables.size(); }
-    size_t actions_size() { return actions.size(); }
-
     void parse_actions(const JSON& action_seq, ActionVec& nd_action_vec, ActionInternVec& act_intern_vec, ActionErrorVec& act_error_vec) {
         const static char* method = "DataLayCache::parse_actions: ";
         int action_seq_len = JSize(action_seq);
@@ -378,10 +373,24 @@ public:
         cache_floats.reserve(intern_capacity);
     }
 
-    void on_json(const JSON& data, const JSON& layout) {
+    size_t addr_map_size() { return address_map.size(); }
+    size_t widget_vec_size() { return widget_vec.size(); }
+    size_t pushables_size() { return pushables.size(); }
+    size_t actions_size() { return actions.size(); }
+
+    void on_json(const JSON& data, const JSON& layout, VVFunc on_init) {
         clear();
         on_data(data);
         on_layout(data, layout);
+        if (on_init) on_init();
+    }
+
+    ActionVec* get_action_vec(ActionKey ak) {
+        auto it = actions.find(ak);
+        if (it != actions.end) {
+            return &(*it);
+        }
+        return nullptr;
     }
 
     WidgetPtr get_pushable(EntityInx widget_id) {
@@ -390,12 +399,22 @@ public:
         throw std::runtime_error("NoDOM BAD_ENTITY_OD");
     }
 
-    const char* get_string_value(EntityInx inx) {
+    template <CIT itype>
+    auto add_string(const std::string& s, CST stype = CST::None) {
+        return intern_string<itype>(s, stype);
+    }
+
+    template <typename INX>
+    const char* get_string_value(INX inx) {
         return fp_char_ptrs[inx()];
     }
 
     const char* get_addr_value(AddrInx inx) {
         return fp_char_ptrs[inx()];
+    }
+
+    int* get_int_value(IntInx inx) {
+        return fp_int_ptrs[inx()];
     }
 
     AddrInx add_address(const std::string& addr) {
@@ -412,10 +431,11 @@ public:
         return FloatInx(fp_float_ptrs.size() - 1);
     }
 
-    StrInx add_string(const std::string& s) {
-        return intern_string<CIT::Value>(s);
-    }
 
+
+    const char* render_name(RenderMethod rm) {
+        return render_names[rm];
+    }
 
 private:
     // statics that define DataLayCache data and layout geometry
@@ -553,7 +573,8 @@ private:
                     cs_body_font, cs_body_font_size,
                     cs_spinner_thickness, cs_spinner_radius,
                     cs_window_flags}},
-        {PushFont, {cs_font, cs_font_size}}
+        {PushFont, {cs_font, cs_font_size}},
+        {BeginChild, {cs_title}}
     };
 
     inline static std::map<RenderMethod, CacheSpecTypeMap> addr_cspecs{
