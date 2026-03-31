@@ -199,7 +199,7 @@ public:
         else {
             // lock the result queue and post back to the GUI thread
             nlohmann::json db_instance = {
-                {Static::nd_type_cs, Static::duck_instance_cs},
+                {Static::nd_type_cs, Static::duck_db_cs},
                 {Static::query_id_cs, Static::online_cs}
             };
             boost::unique_lock<boost::mutex> results_lock(result_mutex);
