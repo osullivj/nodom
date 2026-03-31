@@ -27,6 +27,8 @@ protected:
 
     WidgetVec                   widget_vec;
     PushableMap                 pushables;
+    // WidgetPtr                   null_widget;
+
     ActionMap                   actions;
     ActionInternMap             actions_interned;
     ActionErrorMap              actions_errors;
@@ -150,12 +152,12 @@ protected:
             NDLogger::cout() << "push_ui(" << action.push_ui << "/" << interned.push_ui << ")";
             prefix_comma = true;
         }
-        if (is_render_valid(action.pop_ui)) {
+        if (render_is_valid(action.pop_ui)) {
             if (prefix_comma) NDLogger::cout() << ", ";
             NDLogger::cout() << "pop_ui(" << render_names[action.pop_ui] << "/" << interned.pop_ui << ")";
             prefix_comma = true;
         }
-        if (is_db_event_valid(action.db_action)) {
+        if (db_event_is_valid(action.db_action)) {
             if (prefix_comma) NDLogger::cout() << ", ";
             NDLogger::cout() << "db_action(" << action.db_action << "/" << interned.db_action << ")";
             prefix_comma = true;
@@ -233,9 +235,10 @@ protected:
     }
 
     void orthogonalize_cspec(const JSON& cspec, const JSON& data, WidgetPtr widget) {
+        /* done in on_layout now 
         if (!widget->widget_id.empty()) {
             widget->widget_inx = intern_string<EntityID>(widget->widget_id, CST::WidgetID);
-        }
+        } */
         // TODO: add exception handling to catch type mismatches...
         // 
         // parse cspec: value_cspecs first, that is fields that just
@@ -342,8 +345,10 @@ protected:
             const JSON& w(layout[inx]);
             const JSON& cspec(extract_cspec<JSON>(w));
             // The only NDWidget ctor invocation...
-            auto wptr = std::make_shared<NDWidget>(extract_render_name(w), 
-                                    extract_string(w, Static::widget_id_cs));
+            EntityInx winx; // invalid on init
+            std::string widget_id_s{ extract_string(w, Static::widget_id_cs) };
+            if (!widget_id_s.empty()) winx = add_string<EntityID>(widget_id_s, WidgetID);
+            auto wptr = std::make_shared<NDWidget>(extract_render_name(w), winx);
             wvec->push_back(wptr);
             orthogonalize_cspec(cspec, data, wvec->back());
             const JSON& children = extract_children(w);
@@ -430,8 +435,6 @@ public:
         fp_float_ptrs.push_back(v);
         return FloatInx(fp_float_ptrs.size() - 1);
     }
-
-
 
     const char* render_name(RenderMethod rm) {
         return render_names[rm];
