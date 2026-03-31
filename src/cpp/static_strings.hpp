@@ -144,6 +144,7 @@ struct Static {
 	inline static const char* cache_response_cs{"CacheResponse"};
 	inline static const char* cache_request_cs{"CacheRequest"};
 	inline static const char* click_cs{"Click"};
+	inline static const char* online_cs{ "Online" };
 	inline static const char* data_change_cs{"DataChange"};
 	inline static const char* data_change_confirmed_cs{"DataChangeConfirmed"};
 	inline static const char* duck_instance_cs{"DuckInstance"};
@@ -155,8 +156,8 @@ struct Static {
 	inline static const char* websock_cs{ "WebSock" };
 
 	// Fake QIDs
-	inline static const char* gui_online_cs{ "gui_online" };	// GUI.gui_online
-	inline static const char* db_online_cs{ "db_online" };		// DuckInstance.db_online
+	// inline static const char* gui_online_cs{ "gui_online" };	// GUI.gui_online
+	// inline static const char* db_online_cs{ "db_online" };		// DuckInstance.db_online
 	inline static const char* cache_loaded_cs{ "cache_loaded" };// GUI.cache_loaded
 
 	// Critical strings
