@@ -114,7 +114,8 @@ static constexpr int STR_BUF_LEN{ 256 };
 static constexpr int FMT_BUF_LEN{ 16 };
 
 // NDContext helpers
-const char* NextEvent(const char* nd_event);
+// const char* NextEvent(const char* nd_event);
+// EventInx NextEvent(EventInx nd_event);
 void SetStyleColoring(int col);
 
 enum RenderMethod : uint32_t {
