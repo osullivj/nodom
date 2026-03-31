@@ -118,7 +118,8 @@ const char* NextEvent(const char* nd_event);
 void SetStyleColoring(int col);
 
 enum RenderMethod : uint32_t {
-    Home = 0,   // Home
+    Null = 0,   // Null
+    Home,       // Home
     InputInt,   // Native widgets
     Combo,
     Checkbox,
@@ -143,7 +144,7 @@ enum RenderMethod : uint32_t {
     EndRenderMethod
 };
 
-inline bool is_render_valid(RenderMethod rm) {
+inline bool render_is_valid(RenderMethod rm) {
     return rm != EndRenderMethod;
 }
 
@@ -195,7 +196,7 @@ enum DBEventType : uint32_t {
     EndDBEventTypes
 };
 
-inline bool is_db_event_valid(DBEventType dbev) {
+inline bool db_event_is_valid(DBEventType dbev) {
     return dbev != EndDBEventTypes;
 }
 
@@ -272,6 +273,22 @@ struct DataCacheIndex {
             throw std::runtime_error("NoDOM BAD_INX");
         // return only bottom 16bits
         return magic_index & MAX_DCI;
+    }
+
+    bool operator==(const DataCacheIndex& rhs) {
+        if ((*this)() != rhs())
+            return false;
+        if (data_type != rhs.data_type)
+            return false;
+        if (item_type != rhs.item_type)
+            return false;
+        // one and only one side as subtype None
+        // is the only mismatch allowed
+        if (subtype() == CST::None || rhs.subtype() == CST::None)
+            return true;
+        if (subtype() != rhs.subtype())
+            return false;
+        return true;
     }
 
     bool is_valid() const {
