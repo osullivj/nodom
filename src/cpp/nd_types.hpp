@@ -119,7 +119,7 @@ static constexpr int FMT_BUF_LEN{ 16 };
 void SetStyleColoring(int col);
 
 enum RenderMethod : uint32_t {
-    Null = 0,   // Null
+    Noop = 0,   // Null
     Home,       // Home
     InputInt,   // Native widgets
     Combo,
@@ -277,7 +277,7 @@ struct DataCacheIndex {
     }
 
     bool operator==(const DataCacheIndex& rhs) {
-        if ((*this)() != rhs())
+        if ((magic_index & MAX_DCI) != (rhs.magic_index & MAX_DCI))
             return false;
         if (data_type != rhs.data_type)
             return false;
@@ -297,7 +297,7 @@ struct DataCacheIndex {
     }
 
     CST subtype() const {
-        return magic_index & EndSubItemTypes;
+        return CST{ magic_index & EndSubItemTypes };
     }
 
     friend std::ostream& operator<<(std::ostream& os, const DataCacheIndex<itype, dtype>& dci) {
