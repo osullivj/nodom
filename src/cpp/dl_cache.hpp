@@ -392,8 +392,8 @@ public:
 
     ActionVec* get_action_vec(ActionKey ak) {
         auto it = actions.find(ak);
-        if (it != actions.end) {
-            return &(*it);
+        if (it != actions.end()) {
+            return &(it->second);
         }
         return nullptr;
     }
@@ -437,6 +437,10 @@ public:
     }
 
     const char* render_name(RenderMethod rm) {
+        return render_names[rm];
+    }
+
+    const char* db_event(RenderMethod rm) {
         return render_names[rm];
     }
 
