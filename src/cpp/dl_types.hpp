@@ -88,11 +88,12 @@ using DataRefMap = std::map<CacheSpecifier, DataRef>;
 struct NDWidget {
     NDWidget() = default;
     NDWidget(const NDWidget&) = default;
-    NDWidget(RenderMethod meth, std::string&& wid)
-        :rname(meth), widget_id(std::move(wid)) { }
+    // NDWidget(RenderMethod meth, const std::string& wid)
+    NDWidget(RenderMethod meth, EntityInx winx)
+        :rname(meth), widget_inx(winx) { }
 
     RenderMethod    rname{ EndRenderMethod };
-    std::string     widget_id;
+    // std::string     widget_id;
     EntityInx       widget_inx;
     IntValMap       cspec_int;
     FloatValMap     cspec_float;
@@ -201,4 +202,22 @@ DBEventType DBEventTypeFromString(const std::string& evt) {
     if (evt == Static::batch_response_cs)
         return dbBatchResponse;
     return EndDBEventTypes;
+}
+
+const char* DBEventTypeToString(DBEventType dbet) {
+    switch (dbet) {
+    case dbCommand:
+        return Static::command_cs;
+    case dbCommandResult:
+        return Static::command_result_cs;
+    case dbQuery:
+        return Static::query_cs;
+    case dbQueryResult:
+        return Static::query_result_cs;
+    case dbBatchRequest:
+        return Static::batch_request_cs;
+    case dbBatchResponse:
+        return Static::batch_response_cs;
+    }
+    return nullptr;
 }
