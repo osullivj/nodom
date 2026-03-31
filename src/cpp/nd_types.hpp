@@ -22,8 +22,8 @@ using StringIntMap = std::map<std::string, int>;
 class Facade;
 using FacadeMap = std::map<std::string, Facade*>;
 
-using WebSockSenderFunc = std::function<void(const std::string&)>;
-using MessagePumpFunc = std::function<void()>;
+using VSFunc = std::function<void(const std::string&)>;
+using VVFunc = std::function<void()>;
 
 // DuckDBWebCache chunk helpers
 using RegChunkFunc = std::function<void(const std::string&, int, int)>;
