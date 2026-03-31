@@ -113,6 +113,12 @@ struct TestDLC : public DataLayCache<JSON> {
             }
         }
     }
+
+    void on_init() {
+        // create same inx consts that NDContext would 
+        // use for eg ActionKey matching
+
+    }
 };
 
 struct DataCacheFixture { 
@@ -205,7 +211,7 @@ BOOST_FIXTURE_TEST_CASE(AddString, DataCacheFixture)
     AddrInx addr_inx = dc.add_address(_server_url);
     // DataCacheFixture::server_url is a standin for Proxy::server_url
     // _server_url is the special cache ref that's not in data
-    StrInx str_inx = dc.add_string(server_url.c_str());
+    StrInx str_inx = dc.add_string<CIT::Value>(server_url.c_str());
     backed_str_count = 2;
     BOOST_TEST(StrInx::item_type == CIT::Value);
     BOOST_TEST(StrInx::data_type == CDT::cdStr);
@@ -232,10 +238,11 @@ BOOST_FIXTURE_TEST_CASE(InitData, DataCacheFixture)
     std::string data_json_path = test_json_dir + "bb_init_data.json";
     std::string data_json = load_json(data_json_path.c_str());
     auto data = JParse<nlohmann::json>(data_json);
+    auto layout = JParse<nlohmann::json>(Static::empty_list_cs);
 #endif
     // 3 addresses in AddServer test data
     backed_str_count = 6;
-    dc.on_data(data);
+    dc.on_json(data, layout, [&]() {dc.on_init(); });
     BOOST_TEST(dc.addr_map_size() == 1);
     BOOST_TEST(dc.actions_size() == 2);
     report_cache_state();
@@ -256,7 +263,7 @@ BOOST_FIXTURE_TEST_CASE(InitLayout, DataCacheFixture)
 #endif
     backed_str_count = 9;
     backed_int_count = 0;
-    dc.on_json(data, layout);
+    dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.widget_vec_size() == 2);
     BOOST_TEST(dc.pushables_size() == 1);
     report_cache_state();
@@ -270,10 +277,11 @@ BOOST_FIXTURE_TEST_CASE(AddServerData, DataCacheFixture)
     std::string data_json_path = test_json_dir + "test_add_server_data.json";
     std::string data_json = load_json(data_json_path.c_str());
     auto data = JParse<nlohmann::json>(data_json);
+    auto layout = JParse<nlohmann::json>(Static::empty_list_cs);
 #endif
     // 3 addresses in AddServer test data
     backed_str_count = 3;
-    dc.on_data(data);
+    dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.addr_map_size() == 3);
     BOOST_TEST(dc.actions_size() == 0);
     report_cache_state();
@@ -294,7 +302,7 @@ BOOST_FIXTURE_TEST_CASE(AddServerLayout, DataCacheFixture)
 #endif
     backed_str_count = 4;   // Layout:[Home::title], Data:[op1,op2,op1_plus_op2]
     backed_int_count = 5;   // Layout:["step":1, "step":2], Data:[op1,op2,op1_plus_op2]
-    dc.on_json(data, layout);
+    dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.widget_vec_size() == 1);
     BOOST_TEST(dc.pushables_size() == 0);
     report_cache_state();
@@ -308,9 +316,11 @@ BOOST_FIXTURE_TEST_CASE(ExfServerData, DataCacheFixture)
     std::string data_json_path = test_json_dir + "test_exf_server_data.json";
     std::string data_json = load_json(data_json_path.c_str());
     auto data = JParse<nlohmann::json>(data_json);
+    auto layout = JParse<nlohmann::json>(Static::empty_list_cs);
+
 #endif
     backed_str_count = 21;
-    dc.on_data(data);
+    dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.addr_map_size() == 10);
     BOOST_TEST(dc.actions_size() == 4);
     report_cache_state();
@@ -329,9 +339,9 @@ BOOST_FIXTURE_TEST_CASE(ExfServerLayout, DataCacheFixture)
     std::string layout_json = load_json(layout_json_path.c_str());
     auto layout = JParse<nlohmann::json>(layout_json);
 #endif
-    backed_str_count = 40;
+    backed_str_count = 41;
     backed_int_count = 21;
-    dc.on_json(data, layout);
+    dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.widget_vec_size() == 3);
     BOOST_TEST(dc.pushables_size() == 2);
     report_cache_state();
