@@ -27,7 +27,7 @@ protected:
 
     WidgetVec                   widget_vec;
     PushableMap                 pushables;
-    // WidgetPtr                   null_widget;
+    WidgetPtr                   noop_widget;
 
     ActionMap                   actions;
     ActionInternMap             actions_interned;
@@ -376,6 +376,9 @@ public:
         cache_strings.reserve(intern_capacity);
         cache_ints.reserve(intern_capacity);
         cache_floats.reserve(intern_capacity);
+
+        EntityInx winx = add_string<EntityID>(Static::i_am_noop_cs, WidgetID);
+        noop_widget = std::make_shared<NDWidget>(RenderMethod::Noop, winx);
     }
 
     size_t addr_map_size() { return address_map.size(); }
@@ -400,7 +403,7 @@ public:
 
     WidgetPtr get_pushable(EntityInx widget_id) {
         auto pit = pushables.find(widget_id);
-        if (pit != pushables.end()) return *pit;
+        if (pit != pushables.end()) return pit->second;
         throw std::runtime_error("NoDOM BAD_ENTITY_OD");
     }
 
