@@ -15,6 +15,13 @@ using FloatVec = std::vector<float>;
 using StringStringMap = std::map<std::string, std::string>;
 using StringIntMap = std::map<std::string, int>;
 
+template <typename T>
+bool ptr_in_vec(const std::vector<T>& vec, const T* ptr) {
+    if (vec.empty()) return false;
+    const T* start = vec.data();
+    const T* end = start + vec.size();
+    return std::greater_equal<const T*>{}(ptr, start) && std::less<const T*>{}(ptr, end);
+}
 
 // typedefs and using defns for NoDOM universal types
 // universal types: not specific to JSON, DB etc
