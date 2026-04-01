@@ -430,6 +430,7 @@ public:
     }
 
     IntInx add_int(int* v) {
+        cache_ints.push_back(*v);
         fp_int_ptrs.push_back(v);
         return IntInx(fp_int_ptrs.size() - 1);
     }
