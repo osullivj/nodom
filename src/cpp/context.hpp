@@ -109,19 +109,37 @@ private:
     EntityInx   ninx_GUI;
     EntityInx   ninx_Websock;
     EntityInx   ninx_DuckDB;
+    EntityInx   ninx_FooterDBButton;
 
     EventInx    einx_WebSockConnectionFailed;   // CST::SubSysEvent
     EventInx    einx_Online;                    // CST::SubSysEvent
     EventInx    einx_CacheLoaded;               // CST::SubSysEvent
-
+    EventInx    einx_Click;                     // CST::WidgetEvent
     EventInx    einx_Command;                   // CST::DBEvent
-    EventInx    einx_CommandResult;
-    EventInx    einx_Query;
-    EventInx    einx_QueryResult;
-    EventInx    einx_BatchRequest;
-    EventInx    einx_BatchResponse;
-
+    EventInx    einx_CommandResult;             // CST::DBEvent
+    EventInx    einx_Query;                     // CST::DBEvent
+    EventInx    einx_QueryResult;               // CST::DBEvent
+    EventInx    einx_BatchRequest;              // CST::DBEvent
+    EventInx    einx_BatchResponse;             // CST::DBEvent
     EventInx    einx_Invalid;                   // !init->OH_FECK
+
+    /* hmm: these are all in the footer cspec, 
+        so shouldn't be cache vars...
+    IntInx      binx__footer_show_db;
+    int         _footer_show_db;
+    IntInx      binx__footer_show_fps;
+    int         _footer_show_fps;
+    IntInx      binx__footer_show_demo;
+    IntInx      binx__footer_show_id_stack;
+    IntInx      binx__footer_show_font_scale;
+    IntInx      binx__footer_show_style;
+    */
+    int        footer_show_db{ 0 };
+    int        footer_show_fps{ 0 };
+    int        footer_show_demo{ 0 };
+    int        footer_show_id_stack{ 0 };
+    int        footer_show_font_scale{ 0 };
+    int        footer_show_style{ 0 };
 
     // colours: https://www.w3schools.com/colors/colors_picker.asp
     ImColor red;    // ImGui.COL32(255, 51, 0);
@@ -144,6 +162,16 @@ private:
     char act_ev_key_buf[act_ev_key_buf_len];
     // Buffer for err msg fmt
     char string_buffer[STR_BUF_LEN];
+
+    struct LocalFont {
+        bool i_should_pop{ false };
+        LocalFont() = delete;
+        LocalFont(WidgetPtr w, CacheSpecifier cs_font_name, 
+                                CacheSpecifier cs_font_size) {
+            i_should_pop = push_font(w, cs_font_name, cs_font_size);
+        }
+        ~LocalFont() { pop_font(); }
+    };
 public:
     NDContext(NDProxy<DB>& s, const char* idata=nullptr, const char* ilayout=nullptr)
         :proxy(s), init_data_s(idata), init_layout_s(ilayout), red{ 255, 51, 0 },
@@ -196,11 +224,17 @@ public:
         ninx_Websock = data_lay_cache.add_string<CIT::EntityID>(Static::websock_cs, CST::SubSysID);
         ninx_DuckDB = data_lay_cache.add_string<CIT::EntityID>(Static::duck_db_cs, CST::SubSysID);
 
+        // EntityIDs for predefined widgets like LoadingModal
+        ninx_FooterDBButton = data_lay_cache.add_string<CIT::EntityID>(Static::i_am_footer_db_button_cs, CST::WidgetID);
+
         // Events: subsys
         einx_WebSockConnectionFailed = data_lay_cache.add_string<CIT::Event>(
                                         CriticalToString(WebSockConnectionFailed), CST::SubSysEvent);
         einx_Online = data_lay_cache.add_string<CIT::Event>(Static::online_cs, CST::SubSysEvent);
         einx_CacheLoaded = data_lay_cache.add_string<CIT::Event>(Static::cache_loaded_cs, CST::SubSysEvent);
+
+        // Events: widget
+        einx_Click = data_lay_cache.add_string<CIT::Event>(Static::click_cs, CST::WidgetEvent);
 
         // Events: DB
         einx_Command = data_lay_cache.add_string<CIT::Event>(Static::command_cs, CST::DBEvent);
@@ -211,7 +245,7 @@ public:
         einx_BatchResponse = data_lay_cache.add_string<CIT::Event>(Static::batch_response_cs, CST::DBEvent);
 
         // init the fast path vars from the settings established in im_render.hpp:im_start()
-        ImGuiStyle & style = ImGui::GetStyle();
+        ImGuiStyle& style = ImGui::GetStyle();
     }
 
     EventInx next_db_event(EventInx einx) {
@@ -457,14 +491,39 @@ public:
     void pump_messages() { msg_pump(); }
 
 protected:
-    // w["rname"] resolve & invoke
+    int* cspec_int(CacheSpecifier spec, IntValMap& int_val_map, int* target = nullptr) {
+        auto cs_int_iter = int_val_map.find(spec);
+        if (cs_int_iter != int_val_map.end()) {
+            IntInx int_inx{ cs_int_iter->second };
+            int* rv = data_lay_cache.get_int_value(int_inx);
+            if (target != nullptr && rv != nullptr) *target = *rv;
+            return rv;
+        }
+        return nullptr;
+    }
+
+    const char* cspec_string(CacheSpecifier spec, StrValMap& str_val_map, const char* dflt) {
+        auto cs_str_iter = str_val_map.find(spec);
+        if (cs_str_iter != str_val_map.end()) {
+            StrInx text_inx{ cs_str_iter->second };
+            return data_lay_cache.get_string_value<StrInx>(text_inx);
+        }
+        return dflt;
+    }
+
+    DataRef* cspec_data_ref(CacheSpecifier spec, DataRefMap& data_ref_map) {
+        auto cs_dref_iter = data_ref_map(spec);
+        if (cs_dref_iter != data_ref_map.end()) return &(cs_dref_iter->second);
+        return nullptr;
+    }
+    
     // void dispatch_render(const JSON& w) {
     void dispatch_render(WidgetPtr w) {
         const static char* method = "NDContext::dispatch_render: ";
-
+        // w["rname"] resolve & invoke
         switch (w->rname) {
-        case RenderMethod::Noop;
-            render_null(w);
+        case RenderMethod::Noop:
+            render_noop(w);
             break;
         case RenderMethod::Home:
             render_home(w);
@@ -751,13 +810,12 @@ protected:
     }
 
     // Render functions
-    void render_null(WidgetPtr w) {
-        ;   // null op
-    }
+    void render_noop(WidgetPtr) { }
 
     void render_home(WidgetPtr w) {
         const static char* method = "NDContext::render_home: ";
 
+        /*
         if (!JContains(w, Static::cspec_cs)) {
             NDLogger::cerr() << method << "no cspec in w(" << w << ")" << std::endl;
             return;
@@ -766,19 +824,24 @@ protected:
         std::string title(Static::nodom_cs);
         if (JContains(cspec, Static::title_cs)) {
             title = JAsString(cspec, Static::title_cs);
-        }
+        } */
 
+        const char* title = cspec_string(cs_title, w->cspec_str, method);
+        LocalFont title_font(w, Static::title_font_cs, Static::title_font_size_cs);
+
+        /*
         bool fpop = false;
         if (JContains(cspec, Static::title_font_cs))
             fpop = push_font(w, Static::title_font_cs, Static::title_font_size_cs);
+            */
 
-        ImGui::Begin(title.c_str());
+        ImGui::Begin(title); //  .c_str());
         if (cache_is_loaded()) {
-            const JSON& children(w[Static::children_cs]);
-            int child_count = JSize(children);
-            for (int inx = 0; inx < child_count; inx++) {
-                const JSON& child(children[inx]);
-                dispatch_render(child);
+            // const JSON& children(w[Static::children_cs]);
+            // int child_count = JSize(children);
+            for (int inx = 0; inx < w->children.size(); inx++) {
+                // const JSON& child(children[inx]);
+                dispatch_render(w->children[inx]);
             }
         }
         else {
@@ -798,13 +861,13 @@ protected:
                 }
             }
         }
-        if (fpop) {
+        /* if (fpop) {
             pop_font();
-        }
+        } */
         ImGui::End();
     }
 
-    void render_input_int(const JSON& w) {
+    void render_input_int(WidgetPtr w) {
         const static char* method = "NDContext::render_input_int: ";
         // static storage: imgui wants int (int32), nlohmann::json uses int64_t
         static int input_integer;
@@ -840,7 +903,7 @@ protected:
         }
     }
 
-    void render_combo(const JSON& w) {
+    void render_combo(WidgetPtr w) {
         const static char* method = "NDContext::render_combo: ";
         // Static storage for the combo list
         // NB single GUI thread!
@@ -886,7 +949,7 @@ protected:
         }
     }
 
-    void render_checkbox(const JSON& w) {
+    void render_checkbox(WidgetPtr w) {
         const static char* method = "NDContext::render_checkbox: ";
 
         if (!JContains(w, Static::cspec_cs)) {
@@ -913,9 +976,10 @@ protected:
 
     }
 
-    void render_footer(const JSON& w) {
+    void render_footer(WidgetPtr w) {
         static const char* method = "NDContext::render_footer: ";
 
+        /*
         if (!JContains(w, Static::cspec_cs)) {
             NDLogger::cerr() << method << "no cspec in w(" << JPrettyPrint(w) << ")" << std::endl;
             return;
@@ -928,28 +992,39 @@ protected:
         bool id_stack = JAsBool(cspec, Static::id_stack_cs);
         bool font_scale = JAsBool(cspec, Static::font_scale_cs);
         bool style = JAsBool(cspec, Static::style_cs);
+        */
 
         // TODO: understand ems mem anlytics and restore in footer
         // bool memory = w.value(nlohmann::json::json_pointer("/cspec/memory"), true);
+        cspec_int(cs_db, w->cspec_int, &footer_show_db);
+        cspec_int(cs_fps, w->cspec_int, &footer_show_fps);
+        cspec_int(cs_demo, w->cspec_int, &footer_show_demo);
+        cspec_int(cs_id_stack, w->cspec_int, &footer_show_id_stack);
+        cspec_int(cs_font_scale, w->cspec_int, &footer_show_font_scale);
+        cspec_int(cs_style, w->cspec_int, &footer_show_style);
+
 
         ImGui::BeginGroup();
-        if (db) {
+        if (footer_show_db) {
             // Push colour styling for the DB button
             ImGui::PushStyleColor(ImGuiCol_Button, (ImU32)db_status_color);
             if (ImGui::Button("DB")) {
-                action_dispatch(Static::i_am_footer_db_button_cs, Static::click_cs);
+                // action_dispatch(Static::i_am_footer_db_button_cs, Static::click_cs);
+                action_dispatch(ninx_FooterDBButton, einx_Click);
             }
             ImGui::PopStyleColor(1);
         }
-        if (fps) {
+        if (footer_show_fps) {
             ImGui::SameLine();
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
         }
-        if (demo) {
+        if (footer_show_demo) {
+            bool show_demo{ (bool)footer_show_demo };
             ImGui::Checkbox("Demo", &show_demo);
             if (show_demo)  ImGui::ShowDemoWindow();
         }
-        if (id_stack) {
+        if (footer_show_id_stack) {
+            bool show_id_stack{ (bool)footer_show_id_stack };
             ImGui::SameLine();
             ImGui::Checkbox("IDStack", &show_id_stack);
             if (show_id_stack)  ImGui::ShowStackToolWindow();
@@ -958,7 +1033,7 @@ protected:
         if (memory) {
 
         } */
-        if (font_scale) {
+        if (footer_show_font_scale) {
             ImGuiStyle& style = ImGui::GetStyle();
             ImGui::SameLine();
             ImGui::Text("FontScale");
@@ -969,7 +1044,7 @@ protected:
             ImGui::SameLine();
             ImGui::Text("%.2f", style.FontScaleMain);
         }
-        if (style) {
+        if (footer_show_style) {
             static const char* cs_combo_list[3] = { Static::dark_cs, Static::light_cs, Static::classic_cs };
             int old_val = style_coloring;
             ImGui::Combo(Static::lb_footer_style_cs, &style_coloring, cs_combo_list, 3, 3);
@@ -979,27 +1054,27 @@ protected:
     }
 
     // layout "jiggler": see imgui.h "Other layout functions"
-    void render_separator(const JSON&) {
+    void render_separator(WidgetPtr) {
         ImGui::Separator();
     }
 
-    void render_same_line(const JSON&) {
+    void render_same_line(WidgetPtr) {
         ImGui::SameLine();
     }
 
-    void render_new_line(const JSON&) {
+    void render_new_line(WidgetPtr) {
         ImGui::NewLine();
     }
 
-    void render_spacing(const JSON&) {
+    void render_spacing(WidgetPtr) {
         ImGui::Spacing();
     }
 
-    void render_align_text_to_frame_padding(const JSON&) {
+    void render_align_text_to_frame_padding(WidgetPtr) {
         ImGui::AlignTextToFramePadding();
     }
 
-    void render_date_picker(const JSON& w) {
+    void render_date_picker(WidgetPtr w) {
         const static char* method = "NDContext::render_date_picker: ";
 
         static int default_table_flags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_SizingFixedSame;
@@ -1009,7 +1084,7 @@ protected:
         ImFont* day_date_font = nullptr;
         uint32_t year_month_font_size_base = 0;
         uint32_t day_date_font_size_base = 0;
-
+        /*
             if (!JContains(w, Static::cspec_cs)) {
                 NDLogger::cerr() << method << "no cspec in w(" << w << ")" << std::endl;
                 return;
@@ -1058,27 +1133,11 @@ protected:
                 JSet(data, ckey.c_str(), ymd_new_j);
                 notify_server(ckey, ymd_old_j, ymd_new_j);
             }
+            */
     }
 
-    int* cspec_string(CacheSpecifier spec, IntValMap& int_val_map) {
-        auto cs_int_iter = w->cspec_int.find(spec);
-        if (cs_int_iter != w->cspec_int.end()) {
-            IntInx int_inx{ cs_str_iter->second };
-            return data_lay_cache.get_int_value(int_inx);
-        }
-        return nullptr;
-    }
 
-    const char* cspec_string(CacheSpecifier spec, StrValMap& str_val_map, const char* dflt) {
-        auto cs_str_iter = w->cspec_str.find(spec);
-        if (cs_str_iter != w->cspec_str.end()) {
-            StrInx text_inx{ cs_str_iter->second };
-            return data_lay_cache.get_string_value<StrInx>(text_inx);
-        }
-        return dflt;
-    }
-
-    void render_text(const JSON& w) {
+    void render_text(WidgetPtr w) {
         const static char* method = "NDContext::render_text: ";
         /*
         if (!JContains(w, Static::cspec_cs)) {
@@ -1113,15 +1172,14 @@ protected:
         const char* button_text = cspec_string(cs_text, w->cspec_str, method);
 
         if (ImGui::Button(button_text)) {
-            // TODO: action_dispatch func sig
-            std::string widget_id;
-            action_dispatch(widget_id, Static::click_cs);
+            // action_dispatch(widget_id, Static::click_cs);
+            action_dispatch(w->widget_inx, einx_Click);
         }
     }
 
     constexpr static int SMRY_COLM_CNT = 12;
     
-    void render_duck_table_summary_modal(const JSON& w) {
+    void render_duck_table_summary_modal(WidgetPtr w) {
         const static char* method = "NDContext::render_duck_table_summary_modal: ";
         static int default_summary_table_flags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY;
         static int default_window_flags = ImGuiWindowFlags_AlwaysAutoResize;
@@ -1134,7 +1192,7 @@ protected:
             "q50", "q75",   // DUCKDB_TYPE_VARCHAR, DUCKDB_TYPE_VARCHAR,
             "cnt", "null"   // DUCKDB_TYPE_BIGINT, DUCKDB_TYPE_DECIMAL
         };
-
+        /*
         if (!JContains(w, Static::cspec_cs) || 
             !JContains(w[Static::cspec_cs], Static::qname_cs) || 
             !JContains(w[Static::cspec_cs], Static::title_cs)) {
@@ -1146,36 +1204,52 @@ protected:
         std::string title(qname);
         if (JContains(cspec, Static::title_cs))
             title = JAsString(cspec, Static::title_cs);
+            */
+
+        const char* title = cspec_string(cs_title, w->cspec_str, method);
 
         int table_flags = default_summary_table_flags;
+        int window_flags = default_window_flags;
+        cspec_int(cs_table_flags, w->cspec_int, &table_flags);
+        cspec_int(cs_window_flags, w->cspec_int, &window_flags);
+        /*
         if (JContains(cspec, Static::table_flags_cs)) {
             table_flags = JAsInt(cspec, Static::table_flags_cs);
         }
-
-        int window_flags = default_window_flags;
         if (JContains(cspec, Static::window_flags_cs)) {
             window_flags = JAsInt(cspec, Static::window_flags_cs);
-        }
+        }*/
 
+        /*
         bool title_pop = false;
         if (JContains(cspec, Static::title_font_cs))
             title_pop = push_font(w, Static::title_font_cs, Static::title_font_size_cs);
+            */
+        if (title) {    // scope to fire title_font dtor and pop before body
+            LocalFont title_font(w, cs_title_font, cs_title_font_size);
 
-        ImGui::OpenPopup(title.c_str());
-        // Always center this window when appearing
-        ImGuiViewport* vp = ImGui::GetMainViewport();
-        if (!vp) {
-            NDLogger::cerr() << method << qname << ": null viewport ptr!" << std::endl;
+            ImGui::OpenPopup(title); // .c_str());
+            // Always center this window when appearing
+            ImGuiViewport* vp = ImGui::GetMainViewport();
+            if (!vp) {
+                NDLogger::cerr() << method << "NULL_VP_PTR!" << std::endl;
+                return;
+            }
+            auto center = vp->GetCenter();
+            ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, { 0.5, 0.5 });
+        }
+        else {
+            NDLogger::cerr() << method << "NO_TITLE" << std::endl;
             return;
         }
-        auto center = vp->GetCenter();
-        ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, { 0.5, 0.5 });
 
         std::uint64_t colm_count = SMRY_COLM_CNT;
         int colm_index = 0;
         bool body_pop = false;
-        if (ImGui::BeginPopupModal(title.c_str(), nullptr, window_flags)) {
-            if (title_pop) pop_font();
+        if (ImGui::BeginPopupModal(title/*.c_str()*/, nullptr, window_flags)) {
+            // if (title_pop) pop_font();
+            LocalFont body_font(w, cs_body_font, cs_body_font_size);
+            /*
             if (JContains(cspec, Static::body_font_cs))
                 body_pop = push_font(w, Static::body_font_cs, Static::body_font_size_cs);
 
@@ -1207,13 +1281,18 @@ protected:
                 }
                 ImGui::EndTable();
             }
+            */
             ImGui::Separator();
         }
+        /*
         if (body_pop) pop_font();
 
         bool button_pop = false;
         if (JContains(cspec, Static::button_font_cs))
             button_pop = push_font(w, Static::button_font_cs, Static::button_font_size_cs);
+            */
+
+        LocalFont button_font(w, cs_button_font, cs_button_font_size);
 
         // Note we do not invoke pop_widget() here as we're
         // rendering, and that would change the stack while
@@ -1224,25 +1303,25 @@ protected:
         // not a widget_id
         if (ImGui::Button(Static::ok_cs)) {
             ImGui::CloseCurrentPopup();
-            pending_pops.push_back(Static::rm_duck_table_summary_modal_cs);
+            pending_pops.push_back(DuckTableSummaryModal);
         }
         ImGui::SetItemDefaultFocus();
         ImGui::SameLine();
         if (ImGui::Button(Static::cancel_cs)) {
             ImGui::CloseCurrentPopup();
-            pending_pops.push_back(Static::rm_duck_table_summary_modal_cs);
+            pending_pops.push_back(DuckTableSummaryModal);
         }
 
-        if (button_pop) pop_font();
+        // if (button_pop) pop_font();
 
         ImGui::EndPopup();
     }
 
-    void render_loading_modal(const JSON& w) {
+    void render_loading_modal(WidgetPtr w) {
         const static char* method = "NDContext::render_loading_modal: ";
 
         static ImVec2 position = { 0.5, 0.5 };
-
+        /*
         if (!JContains(w, Static::cspec_cs) || 
             !JContains(w[Static::cspec_cs], Static::cname_cs) || 
             !JContains(w[Static::cspec_cs], Static::title_cs)) {
@@ -1254,81 +1333,109 @@ protected:
         std::string title(cname_cache_addr);
         if (JContains(cspec, Static::title_cs))
             title = JAsString(cspec, Static::title_cs);
+            */
 
+        const char* title = cspec_string(cs_title, w->cspec_str, method);
+
+        /*
         bool tpop = false;
         if (JContains(cspec, Static::title_font_cs))
             tpop = push_font(w, Static::title_font_cs, Static::title_font_size_cs);
+        */
+        LocalFont title_font(w, cs_title_font, cs_title_font_size);
 
-        ImGui::OpenPopup(title.c_str());
+        ImGui::OpenPopup(title); // .c_str());
 
         // Always center this window when appearing
         ImGuiViewport* vp = ImGui::GetMainViewport();
         if (!vp) {
-            NDLogger::cerr() << method << "cname: " << cname_cache_addr
-                << ", title: " << title << ", null viewport ptr!";
+            NDLogger::cerr() << method << title << ": NULL_VP_PTR";
         }
         auto center = vp->GetCenter();
         ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, position);
 
         // Get the text list
-        StringVec text_vec;
-        JAsStringVec(data, cname_cache_addr.c_str(), text_vec);
+        // StringVec text_vec;
+        // JAsStringVec(data, cname_cache_addr.c_str(), text_vec);
+        DataRef* str_vec_data_ref = cspec_data_ref(cs_cname, w->data_refs);
 
-        if (ImGui::BeginPopupModal(title.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        if (ImGui::BeginPopupModal(title/*.c_str()*/, nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+            LocalFont body_font(w, cs_body_font, cs_body_font_size);
+            /*
             bool bpop = false;
             if (JContains(cspec, Static::body_font_cs))
                 bpop = push_font(w, Static::body_font_cs, Static::body_font_size_cs);
             for (auto text_iter = text_vec.begin(); text_iter != text_vec.end(); ++text_iter) {
-                ImGui::TextUnformatted(text_iter->c_str());
+                    ImGui::TextUnformatted(text_iter->c_str());
+            } */
+            if (str_vec_data_ref != nullptr &&
+                str_vec_data_ref->tipe == cdStr) {
+                StrInx sinx{str_vec_data_ref->ref_inx};
+                for (int i = 0; i < str_vec_data_ref->size; i++) {
+                    const char* text = data_lay_cache.get_string_value(sinx);
+                    if (text) ImGui::TextUnformatted(text);
+                    sinx++;
+                }
             }
-            if (bpop) pop_font();
+            // if (bpop) pop_font();
             int spinner_radius = 5;
             int spinner_thickness = 2;
+            cspec_int(cs_spinner_radius, w->cspec_int, &spinner_radius);
+            cspec_int(cs_spinner_thickness, w->cspec_int, &spinner_thickness);
+            /*
             if (JContains(cspec, Static::spinner_radius_cs))
                 spinner_radius = JAsInt(cspec, Static::spinner_radius_cs);
             if (JContains(cspec, Static::spinner_thickness_cs))
                 spinner_thickness = JAsInt(cspec, Static::spinner_thickness_cs);
+                */
             if (!ImGui::Spinner(Static::i_am_loading_spinner_cs, (float)spinner_radius, spinner_thickness, 0)) {
                 // TODO: spinner always fails IsClippedEx on first render
-                NDLogger::cout() << method << "spinner fail" << std::endl;
+                NDLogger::cout() << method << "SPINNER_FAIL" << std::endl;
             }
             ImGui::EndPopup();
         }
-        if (tpop) pop_font();
+        // if (tpop) pop_font();
     }
 
-    void render_table(const JSON& w) {
+    void render_table(WidgetPtr w) {
         const static char* method = "NDContext::render_table: ";
         static int default_summary_table_flags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY;
         static int default_window_flags = ImGuiWindowFlags_AlwaysAutoResize;
 
+        /*
         if (!JContains(w, Static::cspec_cs) || !JContains(w[Static::cspec_cs], Static::qname_cs)) {
             NDLogger::cerr() << method << "BAD_CSPEC" << w << std::endl;
             return;
         }
         const JSON& cspec(w[Static::cspec_cs]);
-        const std::string qname(JAsString(cspec, Static::qname_cs));
+        const std::string qname(JAsString(cspec, Static::qname_cs));*/
 
         int table_flags = default_summary_table_flags;
+        cspec_int(cs_table_flags, w->cspec_int, &table_flags);
+        /*
         if (JContains(cspec, Static::table_flags_cs)) {
             table_flags = JAsInt(cspec, Static::table_flags_cs);
-        }
+        }*/
 
         int window_flags = default_window_flags;
+        cspec_int(cs_window_flags, w->cspec_int, &window_flags);
+        /*
         if (JContains(cspec, Static::window_flags_cs)) {
             window_flags = JAsInt(cspec, Static::window_flags_cs);
-        }
+        }*/
 
         // TODO: recode proxy.get_meta_data() to lazy load 
         // and report geom
         std::uint64_t colm_count = 0;
         std::uint64_t row_count = 0;
         int colm_index = 0;
+        /*
         bool body_pop = false;
-
         if (JContains(cspec, Static::body_font_cs))
             body_pop = push_font(w, Static::body_font_cs, Static::body_font_size_cs);
-
+            */
+        LocalFont body_font(w, cs_body_font, cs_body_font_size);
+        /*
         std::uint64_t result_handle = proxy.get_handle(qname);
         if (!result_handle) {
             auto [iter, inserted] = bad_handle_map.insert(std::make_pair(std::move(qname), 1));
@@ -1360,11 +1467,11 @@ protected:
                 }
             }
             ImGui::EndTable();
-        }
+        }*/
     }
 
     void render_push_font(WidgetPtr w) {
-        push_font(w, Static::font_cs, Static::font_size_cs);
+        push_font(w, cs_font, cs_font_size);
     }
 
     void render_pop_font(WidgetPtr) {
@@ -1427,21 +1534,30 @@ protected:
         }
     }
 
-    bool push_font(WidgetPtr w, CacheSpecifier font_name_spec, 
-                                        CacheSpecifier font_size_spec) {
+    bool push_font(WidgetPtr w, CacheSpecifier cs_font_name, 
+                                        CacheSpecifier cs_font_size) {
         const static char* method = "NDContext::push_font: ";
 
         // get size if specified, otherwise default to 0
         float font_size_base = 0.0;
+        cspec_int(cs_font_size, w->cspec_int, &font_size_base);
+        /*
         auto cs_int_it = w->cspec_int.find(font_size_spec);
         if (cs_int_it != w->cspec_int.end()) {
             int* font_size_val_ptr = data_lay_cache.get_int_value(cs_int_it->second);
             if (font_size_val_ptr != nullptr)
                 font_size_base = *font_size_val_ptr;
-        }
+        } */
 
         // defaults so resolution failure doesn't stop us pushing
         ImFont* font = font_map[Static::default_cs];
+        const char* font_name = cspec_string(cs_font_name, w->cspec_str);
+        if (font_name != nullptr) {
+            auto font_it = font_map.find(font_name);
+            if (font_it != font_map.end()) font = font_it->second;
+        }
+
+        /*
         auto cs_str_it = w->cspec_str.find(font_name_spec);
         if (cs_str_it != w->cspec_str.end()) {
             StrInx font_name_inx{ cs_str_it->second };
@@ -1455,7 +1571,7 @@ protected:
                     bad_font_pushes.push_back(font_name_inx);
                 }
             }
-        }
+        } */
 
         ImGui::PushFont(font, font_size_base);
         font_push_count++;
