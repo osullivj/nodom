@@ -278,13 +278,13 @@ protected:
             // if we did ref_type = cspec_types[spec] we'd get cdAny
             // for cname. Instead we get it from the CacheSpecTypeMap 
             CacheDataType ref_type{ ctmit->second };
-            std::string ref_name = cspec_names[spec];   // cindex or cname
+            std::string ref_name = cspec_names[spec];   // [cindex|cname|qname]
             if (JContains(cspec, ref_name.c_str())) {
                 // addr should already be interned by on_data()
                 std::string addr_s{JAsString(cspec, ref_name)};
                 auto amit = address_map.find(addr_s);
                 if (amit == address_map.end()) {
-                    // error: cname/cindex value not in data
+                    // error: cname|cindex|qname value not in data
                 }
                 else {
                     DataRef data_ref{ ref_type, amit->second };
@@ -592,6 +592,8 @@ private:
         {Combo, {{cs_cindex, cdInt}, {cs_cname, cdStrVec}}},
         {Checkbox, {{cs_cname, cdBool}}},
         {DatePicker, {{cs_cname, cdIntVec}}},
-        {LoadingModal, {{cs_cname, cdStrVec}}}
+        {LoadingModal, {{cs_cname, cdStrVec}}},
+        {DuckTableSummaryModal, {{cs_qname, cdResultSet}}},
+        { Table, {{cs_qname, cdResultSet}}}
     };
 };
