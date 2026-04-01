@@ -171,12 +171,12 @@ BOOST_FIXTURE_TEST_CASE(AddAddr, DataCacheFixture)
 {
     std::string addr_str{ "integer_address" };
     AddrInx addr_inx = dc.add_address(std::string{"integer_address"});
-    backed_str_count = 1;
+    backed_str_count = 2;
 
     BOOST_TEST(AddrInx::item_type == CIT::Address);
     BOOST_TEST(AddrInx::data_type == CDT::cdStr);
-    BOOST_TEST(addr_inx.magic_index == 0x01040000);
-    BOOST_TEST(addr_inx() == 0);
+    BOOST_TEST(addr_inx.magic_index == 0x01040001);
+    BOOST_TEST(addr_inx() == 1);
     report_cache_state();
 }
 
@@ -184,7 +184,7 @@ BOOST_FIXTURE_TEST_CASE(AddInt, DataCacheFixture)
 {
     std::string addr_str{ "style_coloring" };
     AddrInx addr_inx = dc.add_address(addr_str);
-    backed_str_count = 1;
+    backed_str_count = 2;
     IntInx int_inx = dc.add_int(&style_coloring);   // not backed
     BOOST_TEST(IntInx::item_type == CIT::Value);
     BOOST_TEST(IntInx::data_type == CDT::cdInt);
@@ -196,7 +196,7 @@ BOOST_FIXTURE_TEST_CASE(AddInt, DataCacheFixture)
 BOOST_FIXTURE_TEST_CASE(AddFloat, DataCacheFixture)
 {
     AddrInx addr_inx = dc.add_address(std::string{ "font_scale_main" });
-    backed_str_count = 1;
+    backed_str_count = 2;
     FloatInx float_inx = dc.add_float(&font_scale_main);    // not backed
     BOOST_TEST(FloatInx::item_type == CIT::Value);
     BOOST_TEST(FloatInx::data_type == CDT::cdFloat);
@@ -212,15 +212,15 @@ BOOST_FIXTURE_TEST_CASE(AddString, DataCacheFixture)
     // DataCacheFixture::server_url is a standin for Proxy::server_url
     // _server_url is the special cache ref that's not in data
     StrInx str_inx = dc.add_string<CIT::Value>(server_url.c_str());
-    backed_str_count = 2;
+    backed_str_count = 3;
     BOOST_TEST(StrInx::item_type == CIT::Value);
     BOOST_TEST(StrInx::data_type == CDT::cdStr);
-    BOOST_TEST(str_inx.magic_index == 0x02040001);
-    BOOST_TEST(str_inx() == 1);
+    BOOST_TEST(str_inx.magic_index == 0x02040002);
+    BOOST_TEST(str_inx() == 2);
     BOOST_TEST(AddrInx::item_type == CIT::Address);
     BOOST_TEST(AddrInx::data_type == CDT::cdStr);
-    BOOST_TEST(addr_inx.magic_index == 0x01040000);
-    BOOST_TEST(addr_inx() == 0);
+    BOOST_TEST(addr_inx.magic_index == 0x01040001);
+    BOOST_TEST(addr_inx() == 1);
     report_cache_state();
 }
 
