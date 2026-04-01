@@ -106,6 +106,7 @@ struct Static {
 	inline static const char* i_am_footer_db_button_cs{ "i_am_footer_db_button" };
 	inline static const char* i_am_footer_style_combo_cs{ "i_am_footer_style_combo" };
 	inline static const char* i_am_loading_spinner_cs{ "i_am_loading_spinner" };
+	inline static const char* i_am_noop_cs{ "i_am_noop" };
 	// inline static const char* i_am_duck_table_summary_modal_cs{ "i_am_duck_table_summary_modal" };
 	// inline static const char* i_am_loading_modal_cs{ "i_am_loading_modal" };
 
