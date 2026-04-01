@@ -292,6 +292,11 @@ struct DataCacheIndex {
         return true;
     }
 
+    DataCacheIndex operator++(int) {
+        magic_index++;
+        return *this;
+    }
+
     bool is_valid() const {
         return magic_index != OH_FECK;
     }
