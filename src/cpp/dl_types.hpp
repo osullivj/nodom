@@ -106,6 +106,9 @@ using WidgetVec = std::vector<WidgetPtr>;
 
 using PushableMap = std::map<EntityInx, WidgetPtr>;
 
+using WCSCSFunc = std::function<void(WidgetPtr, CacheSpecifier, CacheSpecifier)>;
+
+
 struct NDAction {
     EntityInx push_ui;
     RenderMethod pop_ui{ EndRenderMethod };
@@ -220,4 +223,25 @@ const char* DBEventTypeToString(DBEventType dbet) {
         return Static::batch_response_cs;
     }
     return nullptr;
+}
+
+inline const char* CDTToString(CacheDataType cdt) {
+    switch (cdt) {
+    case cdInt:
+        return Static::cdt_int_cs;
+    case cdFloat:
+        return Static::cdt_float_cs;
+    case cdBool:
+        return Static::cdt_bool_cs;
+    case cdStr:
+        return Static::cdt_str_cs;
+    case cdIntVec:
+        return Static::cdt_int_vec_cs;
+    case cdStrVec:
+        return Static::cdt_str_vec_cs;
+    case cdAny:
+        return Static::cdt_any_cs;
+    default:
+        return nullptr;
+    }
 }
