@@ -65,8 +65,8 @@ private:
     JSON                real_data;
     JSON                real_layout;
     int                 style_coloring{ StyleColor::Dark };   // match im_start StyleColorsDark()
-    bool                data_loaded{ false };
-    bool                layout_loaded{ false };
+    bool                data_loaded{ true };
+    bool                layout_loaded{ true };
 
     // map layout render func names to the actual C++ impls
     // std::unordered_map<std::string, std::function<void(const JSON& w)>> rfmap;
@@ -181,6 +181,7 @@ public:
     {
         // init status is not connected
         db_status_color = red;
+        LocalFont::push_func = [&](WidgetPtr w, CacheSpecifier nm, CacheSpecifier sz) {push_font(w, nm, sz); };
         LocalFont::pop_func = [&]() {pop_font(); };
     }
 
@@ -247,6 +248,10 @@ public:
 
         // init the fast path vars from the settings established in im_render.hpp:im_start()
         ImGuiStyle& style = ImGui::GetStyle();
+
+        // init the render stack
+        stack.clear();
+        stack.push_back(data_lay_cache.get_home());
     }
 
     EventInx next_db_event(EventInx einx) {
@@ -431,8 +436,10 @@ public:
     void set_done(bool d) { proxy.set_done(d); }
 
     void on_ws_open() {
-        server_request("data");
-        server_request("layout");
+        data_loaded = false;
+        layout_loaded = false;
+        server_request(Static::data_cs);
+        server_request(Static::layout_cs);
     }
 
     void on_db_event(const JSON& db_msg) {
