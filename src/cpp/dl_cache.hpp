@@ -407,6 +407,10 @@ public:
         throw std::runtime_error("NoDOM BAD_ENTITY_OD");
     }
 
+    WidgetPtr get_home() {
+        return widget_vec[0];
+    }
+
     template <CIT itype>
     auto add_string(const std::string& s, CST stype = CST::None) {
         return intern_string<itype>(s, stype);
