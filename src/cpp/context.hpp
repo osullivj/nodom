@@ -164,21 +164,24 @@ private:
     char string_buffer[STR_BUF_LEN];
 
     struct LocalFont {
-        bool i_should_pop{ false };
+        inline static VVFunc pop_func{nullptr};
+        inline static WCSCSFunc push_func{nullptr};
         LocalFont() = delete;
-        LocalFont(WidgetPtr w, CacheSpecifier cs_font_name, 
-                                CacheSpecifier cs_font_size) {
-            i_should_pop = push_font(w, cs_font_name, cs_font_size);
+        LocalFont(const LocalFont&) = delete;
+        LocalFont(WidgetPtr w, CacheSpecifier cs_font_name, CacheSpecifier cs_font_size) {
+            push_func(w, cs_font_name, cs_font_size);
         }
-        ~LocalFont() { pop_font(); }
+        ~LocalFont() { pop_func(); }
     };
 public:
-    NDContext(NDProxy<DB>& s, const char* idata=nullptr, const char* ilayout=nullptr)
+    NDContext(NDProxy<DB>& s, const char* idata = nullptr, const char* ilayout = nullptr)
         :proxy(s), init_data_s(idata), init_layout_s(ilayout), red{ 255, 51, 0 },
         green{ 102, 153, 0 },
-        amber{ 255, 153, 0 } {
+        amber{ 255, 153, 0 }
+    {
         // init status is not connected
         db_status_color = red;
+        LocalFont::pop_func = [&]() {pop_font(); };
     }
 
     void initialize() {
@@ -210,9 +213,7 @@ public:
 
         // fire post processing of init layout and data
         // NB this will be repeated when real layout and data arrive via websock
-        data_lay_cache.on_json(data, layout, [&data_lay_cache]() {
-                                                data_lay_cache.on_dlc_init();
-            });
+        data_lay_cache.on_json(data, layout, [&](){ on_dlc_init(); });
     }
 
     void on_dlc_init() {
@@ -359,10 +360,16 @@ public:
         ws_send(msgbuf.str());
     }
 
-    void notify_server(const std::string& caddr, JSON& old_val, JSON& new_val) {
+    // void notify_server(const std::string& caddr, JSON& old_val, JSON& new_val) {
+    template <typename V>
+    void notify_server(DataRef* dref, V& old_val, V& new_val) {
+
         const static char* method = "NDContext::notify_server: ";
 
-        std::cout << method << caddr << ", old: " << old_val << ", new: " << new_val << std::endl;
+        const char* addr = data_lay_cache.get_addr_value(dref->addr_inx);
+        const char* tipe = CDTToString(dref->tipe);
+        std::cout << method << "type:" << tipe << ", addr:" << addr
+            << ", old: " << old_val << ", new: " << new_val << std::endl;
 
         std::stringstream msgbuf;
         // We supply wrapping "" for data_change_cs and caddr
@@ -371,7 +378,7 @@ public:
         // nlohmann::json. For emscripten::val we use our own
         // operator<< from db_cache.hpp.
         msgbuf << "{ \"" << Static::nd_type_cs << "\":\"" << Static::data_change_cs << "\",\""
-            << Static::cache_key_cs << "\":\"" << caddr << "\",\""
+            << Static::cache_key_cs << "\":\"" << addr << "\",\""
             << Static::new_value_cs << "\":" << new_val << ",\""
             << Static::old_value_cs << "\":" << old_val << "}";
         ws_send(msgbuf.str());
@@ -512,7 +519,7 @@ protected:
     }
 
     DataRef* cspec_data_ref(CacheSpecifier spec, DataRefMap& data_ref_map) {
-        auto cs_dref_iter = data_ref_map(spec);
+        auto cs_dref_iter = data_ref_map.find(spec);
         if (cs_dref_iter != data_ref_map.end()) return &(cs_dref_iter->second);
         return nullptr;
     }
@@ -597,7 +604,6 @@ protected:
         }
     }
 
-    /*
     void compound_string(char* buf, int buflen, const std::string& s1,
                             const std::string& s2, const std::string& sep) {
         // First, compose the compound action sequence key from action_id and nd_event
@@ -612,7 +618,7 @@ protected:
         dest += sep.size();
         space -= sep.size();
         strncpy(dest, s2.c_str(), space);
-    }*/
+    }
 
     // void action_dispatch(const std::string& action_id, const std::string& nd_event) {
     void action_dispatch(EntityInx ninx, EventInx einx) {
@@ -827,7 +833,8 @@ protected:
         } */
 
         const char* title = cspec_string(cs_title, w->cspec_str, method);
-        LocalFont title_font(w, Static::title_font_cs, Static::title_font_size_cs);
+        LocalFont title_font(w, cs_title_font, cs_title_font_size);
+        // Static::title_font_cs, Static::title_font_size_cs);
 
         /*
         bool fpop = false;
@@ -870,36 +877,52 @@ protected:
     void render_input_int(WidgetPtr w) {
         const static char* method = "NDContext::render_input_int: ";
         // static storage: imgui wants int (int32), nlohmann::json uses int64_t
+        /*
         static int input_integer;
         input_integer = 0;
+        
         if (!JContains(w, Static::cspec_cs)) {
             NDLogger::cerr() << method << "no cspec in w(" << JPrettyPrint(w) << ")" << std::endl;
             return;
         }
-        const JSON& cspec(w[Static::cspec_cs]);
+        const JSON& cspec(w[Static::cspec_cs]); */
+        /*
         std::string label;
-        if (JContains(cspec, Static::text_cs)) label = JAsString(cspec, Static::text_cs);
+        if (JContains(cspec, Static::text_cs)) label = JAsString(cspec, Static::text_cs); */
         // params by value
+        const char* label = cspec_string(cs_label, w->cspec_str, method);
         int step = 1;
-        if (JContains(cspec, Static::step_cs)) step = JAsInt(cspec, Static::step_cs);
+        cspec_int(cs_step, w->cspec_int, &step);
+        // if (JContains(cspec, Static::step_cs)) step = JAsInt(cspec, Static::step_cs);
         int step_fast = 1;
-        if (JContains(cspec, Static::step_fast_cs)) step_fast = JAsInt(cspec, Static::step_fast_cs);
+        cspec_int(cs_step_fast, w->cspec_int, &step);
+        // if (JContains(cspec, Static::step_fast_cs)) step_fast = JAsInt(cspec, Static::step_fast_cs);
         int flags = 0;
-        if (JContains(cspec, Static::flags_cs)) flags = JAsInt(cspec, Static::flags_cs);
+        cspec_int(cs_flags, w->cspec_int, &flags);
+        DataRef* int_data_ref = cspec_data_ref(cs_cname, w->data_refs);
+        assert(int_data_ref != nullptr);
+        assert(int_data_ref->tipe == cdInt);
+        IntInx iinx{ int_data_ref->ref_inx };
+        int* input_integer = data_lay_cache.get_int_value(iinx);
+        assert(input_integer != nullptr);
+        int old_val = *input_integer;
+        // if (JContains(cspec, Static::flags_cs)) flags = JAsInt(cspec, Static::flags_cs);
         // one param by ref: the int itself
-        std::string cname_cache_addr = JAsString(cspec, Static::cname_cs);
+        // std::string cname_cache_addr = JAsString(cspec, Static::cname_cs);
         // if no label use cache addr
-        if (!label.size()) label = cname_cache_addr;
+        // if (!label.size()) label = cname_cache_addr;
         // local static copy of cache val
-        int old_val = input_integer = JAsInt(data, cname_cache_addr.c_str());
+        // int old_val = input_integer = JAsInt(data, cname_cache_addr.c_str());
         // imgui has ptr to copy of cache val
-        ImGui::InputInt(label.c_str(), &input_integer, step, step_fast, flags);
+        ImGui::InputInt(label, input_integer, step, step_fast, flags);
         // copy local copy back into cache
-        if (input_integer != old_val) {
+        if (*input_integer != old_val) {
+            /*
             JSet(data, cname_cache_addr.c_str(), input_integer);
             JSON j_old_val(old_val);
             JSON j_input_int(input_integer);
-            notify_server(cname_cache_addr, j_old_val, j_input_int);
+            notify_server(cname_cache_addr, j_old_val, j_input_int);*/
+            notify_server(int_data_ref, old_val, *input_integer);
         }
     }
 
@@ -915,20 +938,48 @@ protected:
         memset(cs_combo_list, 0, ND_MAX_COMBO_LIST * sizeof(char*));
         combo_selection = 0;
         combo_list.clear();
+        /*
         if (!JContains(w, Static::cspec_cs)) {
             NDLogger::cerr() << method << "no cspec in w(" << JPrettyPrint(w) << ")" << std::endl;
             return;
         }
-        const JSON& cspec(w["cspec"]);
-        std::string label;
+        const JSON& cspec(w["cspec"]); 
+        std::string label; */
+
         int step = 1;
-        if (JContains(cspec, Static::text_cs)) label = JAsString(cspec, Static::text_cs);
-        if (JContains(cspec, Static::step_cs)) step = JAsInt(cspec, Static::step_cs);
+        const char* label = cspec_string(cs_label, w->cspec_str, method);
+        cspec_int(cs_step, w->cspec_int, &step);
+
+        // if (JContains(cspec, Static::text_cs)) label = JAsString(cspec, Static::text_cs);
+        // if (JContains(cspec, Static::step_cs)) step = JAsInt(cspec, Static::step_cs);
         // no value params in layout here; all combo layout is data cache refs
         // /cspec/cname should give us a data cache addr for the combo list
-        std::string combo_list_cache_addr(JAsString(cspec, Static::cname_cs));
-        std::string combo_index_cache_addr(JAsString(cspec, Static::cindex_cs));
+        // std::string combo_list_cache_addr(JAsString(cspec, Static::cname_cs));
+        // std::string combo_index_cache_addr(JAsString(cspec, Static::cindex_cs));
+
+        DataRef* combo_list_data_ref = cspec_data_ref(cs_cname, w->data_refs);
+        DataRef* combo_inx_data_ref = cspec_data_ref(cs_cindex, w->data_refs);
+        if (combo_list_data_ref != nullptr && combo_inx_data_ref != nullptr) {
+            assert(combo_list_data_ref->tipe == cdStrVec);
+            assert(combo_list_data_ref->size < ND_MAX_COMBO_LIST);
+            StrInx sinx{ combo_list_data_ref->ref_inx };
+            int combo_count = 0;
+            for (; combo_count < combo_list_data_ref->size; combo_count++) {
+                cs_combo_list[combo_count] = data_lay_cache.get_string_value(sinx++);
+            }
+            IntInx iinx{ combo_inx_data_ref->ref_inx };
+            int* combo_index = data_lay_cache.get_int_value(iinx);
+            assert(combo_index != nullptr);
+            int old_val = *combo_index;
+            ImGui::Combo(label, combo_index, cs_combo_list, combo_count, combo_count);
+            int new_val = *combo_index;
+            if (old_val != new_val) {
+                notify_server(combo_inx_data_ref, old_val, new_val);
+            }
+        }
+
         // if no label use cache addr
+        /*
         if (!label.size()) label = combo_list_cache_addr;
         int combo_count = 0;
         JAsStringVec(data, combo_list_cache_addr.c_str(), combo_list);
@@ -946,12 +997,13 @@ protected:
             JSON j_old_val(old_val);
             JSON j_combo_selection(combo_selection);
             notify_server(combo_index_cache_addr, j_old_val, j_combo_selection);
-        }
+        } */
     }
 
     void render_checkbox(WidgetPtr w) {
         const static char* method = "NDContext::render_checkbox: ";
 
+        /*
         if (!JContains(w, Static::cspec_cs)) {
             NDLogger::cerr() << method << "no cspec in w(" << w << ")" << std::endl;
             return;
@@ -960,11 +1012,28 @@ protected:
         std::string cname_cache_addr(JAsString(cspec, Static::cname_cs));
         std::string text(cname_cache_addr);
         if (JContains(cspec, Static::text_cs))
-            text = JAsString(cspec, Static::text_cs);
+            text = JAsString(cspec, Static::text_cs); */
 
+        const char* button_text = cspec_string(cs_text, w->cspec_str, method);
+
+        DataRef* ibool_data_ref = cspec_data_ref(cs_cname, w->data_refs);
+        if (ibool_data_ref != nullptr &&
+            ibool_data_ref->tipe == cdBool) {
+            IntInx sinx{ ibool_data_ref->ref_inx };
+            int* ibool = data_lay_cache.get_int_value(sinx);
+            if (ibool != nullptr) {
+                bool old_val = *ibool;
+                bool new_val = old_val;
+                ImGui::Checkbox(button_text, &new_val);
+                if (old_val != new_val) {
+                    notify_server(ibool_data_ref, old_val, new_val);
+                }
+            }
+        }
+
+        /*
         bool checked_value = JAsBool(data, cname_cache_addr.c_str());
         bool old_checked_value = checked_value;
-
         ImGui::Checkbox(text.c_str(), &checked_value);
 
         if (checked_value != old_checked_value) {
@@ -972,8 +1041,7 @@ protected:
             JSON j_old_checked_value{ old_checked_value };
             JSON j_checked_value{ checked_value };
             notify_server(cname_cache_addr, j_old_checked_value, j_checked_value);
-        }
-
+        } */
     }
 
     void render_footer(WidgetPtr w) {
@@ -1539,7 +1607,7 @@ protected:
         const static char* method = "NDContext::push_font: ";
 
         // get size if specified, otherwise default to 0
-        float font_size_base = 0.0;
+        int font_size_base = 0;
         cspec_int(cs_font_size, w->cspec_int, &font_size_base);
         /*
         auto cs_int_it = w->cspec_int.find(font_size_spec);
@@ -1551,7 +1619,7 @@ protected:
 
         // defaults so resolution failure doesn't stop us pushing
         ImFont* font = font_map[Static::default_cs];
-        const char* font_name = cspec_string(cs_font_name, w->cspec_str);
+        const char* font_name = cspec_string(cs_font_name, w->cspec_str, Static::default_cs);
         if (font_name != nullptr) {
             auto font_it = font_map.find(font_name);
             if (font_it != font_map.end()) font = font_it->second;
