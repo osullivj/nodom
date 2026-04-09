@@ -195,6 +195,16 @@ struct Static {
 	inline static const char* init_layout_cs{ "{rname: 'Home', cspec:{ title: 'NoDOM HW', children: [] }}" };
 	inline static const char* empty_list_cs{ "[]" };
 
+	// CacheDataType
+	inline static const char* cdt_int_cs{ "cdInt" };
+	inline static const char* cdt_float_cs{ "cdFloat" };
+	inline static const char* cdt_bool_cs{ "cdBool" };
+	inline static const char* cdt_str_cs{ "cdStr" };
+	inline static const char* cdt_int_vec_cs{ "cdIntVec" };
+	inline static const char* cdt_str_vec_cs{ "cdStrVec" };
+	inline static const char* cdt_any_cs{ "cdAny" };
+	inline static const char* cdt_result_set_cs{ "cdResultSet" };
+
 	// error messages
 	inline static const char* could_not_connect_cs{ "Could not connect to" };
 };
