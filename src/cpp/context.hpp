@@ -897,7 +897,6 @@ protected:
         std::string label;
         if (JContains(cspec, Static::text_cs)) label = JAsString(cspec, Static::text_cs); */
         // params by value
-        const char* label = cspec_string(cs_label, w->cspec_str, method);
         int step = 1;
         cspec_int(cs_step, w->cspec_int, &step);
         // if (JContains(cspec, Static::step_cs)) step = JAsInt(cspec, Static::step_cs);
@@ -913,6 +912,12 @@ protected:
         int* input_integer = data_lay_cache.get_int_value(iinx);
         assert(input_integer != nullptr);
         int old_val = *input_integer;
+
+        // get hold of the cname addr to use as default label value
+        AddrInx addr{int_data_ref->addr_inx};
+        const char* cname = data_lay_cache.get_addr_value(addr);
+        const char* label = cspec_string(cs_label, w->cspec_str, cname);
+
         // if (JContains(cspec, Static::flags_cs)) flags = JAsInt(cspec, Static::flags_cs);
         // one param by ref: the int itself
         // std::string cname_cache_addr = JAsString(cspec, Static::cname_cs);
