@@ -14,6 +14,7 @@ protected:
     std::vector<float*>         fp_float_ptrs;
     std::vector<int*>           fp_int_ptrs;
     std::vector<const char*>    fp_char_ptrs;
+    std::vector<uint8_t*>       fp_bool_ptrs;
 
     // an LHS CacheName is an Address. All JSON sourced
     // strings from data and layout are moved into here,
@@ -24,6 +25,7 @@ protected:
     std::vector<std::string>    cache_strings;
     std::vector<int>            cache_ints;
     std::vector<float>          cache_floats;
+    std::vector<uint8_t>        cache_bools;
 
     WidgetVec                   widget_vec;
     PushableMap                 pushables;
@@ -35,7 +37,8 @@ protected:
     StringVec                   bad_action_keys;
 
     // Valid cache addresses
-    std::map<std::string, AddrInx>   address_map;
+    std::map<std::string, AddrInx>  address_map;
+    std::map<AddrInx, DataRef>      data_ref_map;
 
     template <CIT itype>
     auto intern_string(const std::string& s, CST stype = CST::None) {
@@ -50,14 +53,39 @@ protected:
         return DataCacheIndex<itype, CDT::cdStr>(inx, stype);
     }
 
-    auto intern_int(int value) {
+    void update_string(uint32_t inx, const std::string& val) {
+        if (inx >= cache_strings.size())
+            throw std::runtime_error("NoDOM BAD_ADDR");
+        cache_strings[inx] = val;
+    }
+
+    IntInx intern_int(int value) {
         // create storage for an int value, and FP ptr too
         cache_ints.push_back(value);
         fp_int_ptrs.push_back(&(cache_ints.back()));
         return IntInx(fp_int_ptrs.size() - 1);
     }
 
-    auto intern_float(float value) {
+    void update_int(uint32_t inx, int val) {
+        if (inx >= fp_int_ptrs.size())
+            throw std::runtime_error("NoDOM BAD_ADDR");
+        cache_ints[inx] = val;
+    }
+
+    BoolInx intern_bool(bool value) {
+        // create storage for an int value, and FP ptr too
+        cache_bools.push_back(value);
+        fp_bool_ptrs.push_back(&(cache_bools.back()));
+        return BoolInx(fp_bool_ptrs.size() - 1);
+    }
+
+    void update_bool(uint32_t inx, bool val) {
+        if (inx >= fp_bool_ptrs.size())
+            throw std::runtime_error("NoDOM BAD_ADDR");
+        cache_bools[inx] = val ? 1 : 0;
+    }
+
+    FloatInx intern_float(float value) {
         // cannot be a ptr to value in fp_int_ptrs as it's rval,
         // so go ahead and create new cache_floats backed storage
         cache_floats.push_back(value);
@@ -235,10 +263,6 @@ protected:
     }
 
     void orthogonalize_cspec(const JSON& cspec, const JSON& data, WidgetPtr widget) {
-        /* done in on_layout now 
-        if (!widget->widget_id.empty()) {
-            widget->widget_inx = intern_string<EntityID>(widget->widget_id, CST::WidgetID);
-        } */
         // TODO: add exception handling to catch type mismatches...
         // 
         // parse cspec: value_cspecs first, that is fields that just
@@ -257,7 +281,7 @@ protected:
                     widget->cspec_float[spec] = intern_float(JAsFloat(cspec, value_name));
                     break;
                 case cdBool:
-                    widget->cspec_int[spec] = intern_int(JAsBool(cspec, value_name)?1:0);
+                    widget->cspec_bool[spec] = intern_bool(JAsBool(cspec, value_name)?1:0);
                     break;
                 case cdStr:
                     widget->cspec_str[spec] = intern_string<Value>(JAsString(cspec, value_name));
@@ -287,11 +311,12 @@ protected:
                     // error: cname|cindex|qname value not in data
                 }
                 else {
+                    // NB amit->second is AddrInx
                     DataRef data_ref{ ref_type, amit->second };
                     StringVec svec;
                     IntVec ivec;
                     JSON jvec{ JSON::array() };
-                    // AddrInx ainx{ amit->second };
+                    
                     switch (ref_type) {
                     case cdAny:         // shouldn't be in addr_cspecs!
                     case cdResultSet:
@@ -305,7 +330,7 @@ protected:
                         data_ref.ref_inx = intern_int(JAsInt(data, addr_s))();
                         break;
                     case cdBool:
-                        data_ref.ref_inx = intern_int(JAsInt(data, addr_s))();
+                        data_ref.ref_inx = intern_bool(JAsInt(data, addr_s))();
                         break;
                     case cdIntVec:
                         jvec = data[addr_s];
@@ -330,6 +355,7 @@ protected:
                         break;
                     }
                     widget->data_refs[spec] = data_ref;
+                    data_ref_map[data_ref.addr_inx] = data_ref;
                 }
             }
         }
@@ -393,6 +419,52 @@ public:
         if (on_init) on_init();
     }
 
+    void on_data_change(const std::string& addr, const JSON& dc) {
+        AddrInx ainx{ get_addr_inx(addr) };
+        if (!ainx.is_valid())
+            throw std::runtime_error("NoDOM BAD_ADDR");
+        auto it = data_ref_map.find(ainx);
+        if (it == data_ref_map.end())
+            throw std::runtime_error("NoDOM BAD_ADDR");
+        DataRef& data_ref{it->second};
+        assert(data_ref.addr_inx() == ainx());
+
+        StringVec svec;
+        IntVec ivec;
+        JSON jvec{ JSON::array() };
+
+        switch (data_ref.tipe) {
+        case cdAny:         // shouldn't be in addr_cspecs!
+        case cdResultSet:
+            assert(false);
+            break;
+        case cdFloat:       // not required by any widget yet
+        case cdStr:
+            assert(false);
+            break;
+        case cdInt: // spec:cindex, sz:1
+            update_int(data_ref.ref_inx, JAsInt(dc, Static::new_value_cs));
+            break;
+        case cdBool:
+            update_bool(data_ref.ref_inx, JAsBool(dc, Static::new_value_cs));
+            break;
+        case cdIntVec:
+            jvec = dc[Static::new_value_cs];
+            assert(data_ref.size = JSize(jvec));
+            for (int jinx = 0; jinx < data_ref.size; jinx++) {
+                update_int(data_ref.ref_inx + jinx, jvec[jinx]);
+            }
+            break;
+        case cdStrVec:
+            JAsStringVec(dc, Static::new_value_cs, svec);
+            assert(data_ref.size = svec.size());
+            for (int jinx = 0; jinx < data_ref.size; jinx++) {
+                update_string(data_ref.ref_inx + jinx, svec[jinx]);
+            }
+            break;
+        }
+    }
+
     ActionVec* get_action_vec(ActionKey ak) {
         auto it = actions.find(ak);
         if (it != actions.end()) {
@@ -408,6 +480,7 @@ public:
     }
 
     WidgetPtr get_home() {
+        assert(widget_vec.size() > 0);
         return widget_vec[0];
     }
 
@@ -425,9 +498,19 @@ public:
         return fp_char_ptrs[inx()];
     }
 
+    AddrInx get_addr_inx(const std::string& addr) {
+        auto it = address_map.find(addr);
+        return it == address_map.end() ? 0 : it->second;
+    }
+
     int* get_int_value(IntInx inx) {
         return fp_int_ptrs[inx()];
     }
+
+    bool* get_bool_value(BoolInx inx) {
+        return fp_bool_ptrs[inx()];
+    }
+
 
     AddrInx add_address(const std::string& addr) {
         return intern_string<CIT::Address>(addr);
