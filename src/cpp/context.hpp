@@ -134,12 +134,12 @@ private:
     IntInx      binx__footer_show_font_scale;
     IntInx      binx__footer_show_style;
     */
-    int   footer_show_db{ 0 };
-    int   footer_show_fps{ 0 };
-    int   footer_show_demo{ 0 };
-    int   footer_show_id_stack{ 0 };
-    int   footer_show_font_scale{ 0 };
-    int   footer_show_style{ 0 };
+    bool  footer_show_db{ false };
+    bool  footer_show_fps{ false };
+    bool  footer_show_demo{ false };
+    bool  footer_show_id_stack{ false };
+    bool  footer_show_font_scale{ false };
+    bool  footer_show_style{ false };
 
     // colours: https://www.w3schools.com/colors/colors_picker.asp
     ImColor red;    // ImGui.COL32(255, 51, 0);
@@ -516,6 +516,18 @@ protected:
         }
         return nullptr;
     }
+
+    uint8_t* cspec_bool(CacheSpecifier spec, BoolValMap& bool_val_map, bool* target = nullptr) {
+        auto cs_bool_iter = bool_val_map.find(spec);
+        if (cs_bool_iter != bool_val_map.end()) {
+            BoolInx bool_inx{ cs_bool_iter->second };
+            uint8_t* rv = data_lay_cache.get_bool_value(bool_inx);
+            if (target != nullptr && rv != nullptr) *target = *rv;
+            return rv;
+        }
+        return nullptr;
+    }
+
 
     const char* cspec_string(CacheSpecifier spec, StrValMap& str_val_map, const char* dflt) {
         auto cs_str_iter = str_val_map.find(spec);
@@ -1050,12 +1062,12 @@ protected:
 
         // TODO: understand ems mem anlytics and restore in footer
         // bool memory = w.value(nlohmann::json::json_pointer("/cspec/memory"), true);
-        cspec_int(cs_db, w->cspec_int, &footer_show_db);
-        cspec_int(cs_fps, w->cspec_int, &footer_show_fps);
-        cspec_int(cs_demo, w->cspec_int, &footer_show_demo);
-        cspec_int(cs_id_stack, w->cspec_int, &footer_show_id_stack);
-        cspec_int(cs_font_scale, w->cspec_int, &footer_show_font_scale);
-        cspec_int(cs_style, w->cspec_int, &footer_show_style);
+        cspec_bool(cs_db, w->cspec_bool, &footer_show_db);
+        cspec_bool(cs_fps, w->cspec_bool, &footer_show_fps);
+        cspec_bool(cs_demo, w->cspec_bool, &footer_show_demo);
+        cspec_bool(cs_id_stack, w->cspec_bool, &footer_show_id_stack);
+        cspec_bool(cs_font_scale, w->cspec_bool, &footer_show_font_scale);
+        cspec_bool(cs_style, w->cspec_bool, &footer_show_style);
 
 
         ImGui::BeginGroup();
