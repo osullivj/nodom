@@ -56,7 +56,6 @@ const char* StyleColorToString(StyleColor col) {
     default:
         return 0;
     }
-    return 0;
 }
 
 
