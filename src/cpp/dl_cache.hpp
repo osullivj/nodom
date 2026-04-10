@@ -74,7 +74,7 @@ protected:
 
     BoolInx intern_bool(bool value) {
         // create storage for an int value, and FP ptr too
-        cache_bools.push_back(value);
+        cache_bools.push_back(value?1:0);
         fp_bool_ptrs.push_back(&(cache_bools.back()));
         return BoolInx(fp_bool_ptrs.size() - 1);
     }
@@ -630,12 +630,12 @@ private:
         cdInt,      // cs_table_flags
         cdInt,      // cs_combo_flags
         cdInt,      // cs_window_flags
-        cdBool,     // cs_db            footer flag
-        cdBool,     // cs_fps           footer flag
-        cdBool,     // cs_demo          footer flag
-        cdBool,     // cs_id_stack      footer flag
-        cdBool,     // cs_font_scale    footer flag
-        cdBool,     // cs_style         footer flag
+        cdBool,     // cs_show_footer_db
+        cdBool,     // cs_show_footer_fps
+        cdBool,     // cs_show_footer_demo
+        cdBool,     // cs_show_footer_id_stack
+        cdBool,     // cs_show_footer_font_scale
+        cdBool,     // cs_show_footer_style
         cdAny,      //.cs_cname
         cdAny,      // cs_cindex
         cdResultSet // cs_qname
@@ -659,7 +659,9 @@ private:
         {Table, {cs_title, cs_title_font, cs_title_font_size,
                     cs_body_font, cs_body_font_size,
                     cs_table_flags, cs_window_flags}},
-        {Footer, {cs_db, cs_fps, cs_demo, cs_id_stack, cs_font_scale, cs_style}},
+        {Footer, {cs_show_footer_db, cs_show_footer_fps, cs_show_footer_demo, 
+                    cs_show_footer_id_stack, cs_show_footer_font_scale, 
+                        cs_show_footer_style}},
         {DatePicker, {cs_year_month_font, cs_year_month_font_size,
                         cs_day_date_font, cs_day_date_font_size,
                         cs_table_flags, cs_combo_flags}},
