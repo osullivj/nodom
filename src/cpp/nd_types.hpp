@@ -413,14 +413,14 @@ enum CacheSpecifier : uint32_t {
     cs_table_flags,
     cs_combo_flags,
     cs_window_flags,
-    cs_db,
-    cs_fps,
-    cs_demo,
-    cs_id_stack,
-    cs_font_scale,
-    cs_style,               // end atomic_cspec_types
-    cs_cname,               // cname_cpsec_types
-    cs_cindex,              // cindex_cpsec_types
+    cs_show_footer_db,
+    cs_show_footer_fps,
+    cs_show_footer_demo,
+    cs_show_footer_id_stack,
+    cs_show_footer_font_scale,
+    cs_show_footer_style,       // end atomic_cspec_types
+    cs_cname,                   // cname_cpsec_types
+    cs_cindex,                  // cindex_cpsec_types
     cs_qname,
     cs_end_cache_specs
 };
