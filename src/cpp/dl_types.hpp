@@ -93,9 +93,9 @@ struct NDWidget {
         :rname(meth), widget_inx(winx) { }
 
     RenderMethod    rname{ EndRenderMethod };
-    // std::string     widget_id;
     EntityInx       widget_inx;
     IntValMap       cspec_int;
+    BoolValMap      cspec_bool;
     FloatValMap     cspec_float;
     StrValMap       cspec_str;
     DataRefMap      data_refs;
