@@ -507,7 +507,7 @@ public:
         return fp_int_ptrs[inx()];
     }
 
-    bool* get_bool_value(BoolInx inx) {
+    uint8_t* get_bool_value(BoolInx inx) {
         return fp_bool_ptrs[inx()];
     }
 
