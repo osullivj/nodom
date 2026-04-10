@@ -54,4 +54,3 @@ int main(int argc, char* argv[]) {
         std::cout << method << ex.what() << std::endl;
     }
 }
-
