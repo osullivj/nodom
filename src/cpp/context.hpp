@@ -44,7 +44,7 @@ class NDContext {
 private:
 
     // ref to "server process"; just an abstraction of EMS vs win32
-    NDProxy<DB>&            proxy;  // DB proxy decouples NDContext from DB detail
+    NDProxy<DB>& proxy;  // DB proxy decouples NDContext from DB detail
     JSON                    layout; // layout and data are fetched by 
     JSON                    data;   // sync c++py calls not HTTP gets
     std::deque<WidgetPtr>   stack;  // render stack
@@ -52,7 +52,7 @@ private:
 
     // latest critical error state raised, and array of crit err
     // msgs to show in Home
-    Critical            show_stopper{ Clear };  
+    Critical            show_stopper{ Clear };
     CritArray           critical_messages;  // dflt init, dflt ctor for elems
 
     // initial data and layout possibly provided via argc, argv
@@ -64,7 +64,6 @@ private:
     std::string         init_layout_s;
     JSON                real_data;
     JSON                real_layout;
-    int                 style_coloring{ StyleColor::Dark };   // match im_start StyleColorsDark()
     bool                data_loaded{ true };
     bool                layout_loaded{ true };
 
@@ -93,7 +92,7 @@ private:
         // InFlight(ActionVec& s, int i, const char* n, const std::string& qid)
         InFlight(ActionVec* avec, int i, EventInx n, EntityInx qid)
             :sequence(s), inx(i), next(n), query_id(qid) {}
-        ActionVec*  sequence;
+        ActionVec* sequence;
         int         inx{ 0 };
         // const char* next{ nullptr };
         EventInx next;
@@ -101,10 +100,6 @@ private:
         EntityInx query_id;
     };
     std::list<InFlight> in_flight_list;
-
-    bool    show_demo = false;
-    bool    show_id_stack = false;
-    bool    show_memory = false;
 
     EntityInx   ninx_GUI;
     EntityInx   ninx_Websock;
@@ -123,7 +118,7 @@ private:
     EventInx    einx_BatchResponse;             // CST::DBEvent
     EventInx    einx_Invalid;                   // !init->OH_FECK
 
-    /* hmm: these are all in the footer cspec, 
+    /* hmm: these are all in the footer cspec,
         so shouldn't be cache vars...
     IntInx      binx__footer_show_db;
     int         _footer_show_db;
@@ -140,6 +135,11 @@ private:
     bool  footer_show_id_stack{ false };
     bool  footer_show_font_scale{ false };
     bool  footer_show_style{ false };
+
+    int   style_coloring{ StyleColor::Dark };   // match im_start StyleColorsDark()
+    bool  show_demo{ false };
+    bool  show_id_stack{ false };
+    bool  show_memory{ false};
 
     // colours: https://www.w3schools.com/colors/colors_picker.asp
     ImColor red;    // ImGui.COL32(255, 51, 0);
@@ -366,8 +366,8 @@ public:
     }
 
     // void notify_server(const std::string& caddr, JSON& old_val, JSON& new_val) {
-    template <typename V>
-    void notify_server(DataRef* dref, V& old_val, V& new_val) {
+    template <typename V, typename W>
+    void notify_server(DataRef* dref, V& old_val, W& new_val) {
 
         const static char* method = "NDContext::notify_server: ";
 
@@ -381,13 +381,37 @@ public:
         // as we know they're strings. For new_val and old_val
         // we rely on operator<< which is supplied by
         // nlohmann::json. For emscripten::val we use our own
-        // operator<< from db_cache.hpp.
+        // operator<< from dl_cache.hpp.
         msgbuf << "{ \"" << Static::nd_type_cs << "\":\"" << Static::data_change_cs << "\",\""
             << Static::cache_key_cs << "\":\"" << addr << "\",\""
             << Static::new_value_cs << "\":" << new_val << ",\""
             << Static::old_value_cs << "\":" << old_val << "}";
         ws_send(msgbuf.str());
     }
+
+    template <typename V, typename W>
+    void notify_server(DataRef* dref, V& old_val, W* new_val) {
+
+        const static char* method = "NDContext::notify_server: ";
+
+        const char* addr = data_lay_cache.get_addr_value(dref->addr_inx);
+        const char* tipe = CDTToString(dref->tipe);
+        std::cout << method << "type:" << tipe << ", addr:" << addr
+            << ", old: " << old_val << ", new: " << *new_val << std::endl;
+
+        std::stringstream msgbuf;
+        // We supply wrapping "" for data_change_cs and caddr
+        // as we know they're strings. For new_val and old_val
+        // we rely on operator<< which is supplied by
+        // nlohmann::json. For emscripten::val we use our own
+        // operator<< from dl_cache.hpp.
+        msgbuf << "{ \"" << Static::nd_type_cs << "\":\"" << Static::data_change_cs << "\",\""
+            << Static::cache_key_cs << "\":\"" << addr << "\",\""
+            << Static::new_value_cs << "\":" << *new_val << ",\""
+            << Static::old_value_cs << "\":" << old_val << "}";
+        ws_send(msgbuf.str());
+    }
+
 
     void dispatch_events(std::queue<JSON>& events) {
         const static char* method = "NDContext::dispatch_events: ";
@@ -908,19 +932,19 @@ protected:
         assert(int_data_ref != nullptr);
         assert(int_data_ref->tipe == cdInt);
         IntInx iinx{ int_data_ref->ref_inx };
-        int* input_integer = data_lay_cache.get_int_value(iinx);
-        assert(input_integer != nullptr);
-        int old_val = *input_integer;
+        int* int_ptr = data_lay_cache.get_int_value(iinx);
+        assert(int_ptr != nullptr);
+        int old_val = *int_ptr;
 
         // get hold of the cname addr to use as default label value
         AddrInx addr{int_data_ref->addr_inx};
         const char* cname = data_lay_cache.get_addr_value(addr);
         const char* label = cspec_string(cs_label, w->cspec_str, cname);
 
-        ImGui::InputInt(label, input_integer, step, step_fast, flags);
+        ImGui::InputInt(label, int_ptr, step, step_fast, flags);
         // copy local copy back into cache
-        if (*input_integer != old_val) {
-            notify_server(int_data_ref, old_val, *input_integer);
+        if (*int_ptr != old_val) {
+            notify_server(int_data_ref, old_val, int_ptr);
         }
     }
 
@@ -1014,17 +1038,17 @@ protected:
 
         const char* button_text = cspec_string(cs_text, w->cspec_str, method);
 
-        DataRef* ibool_data_ref = cspec_data_ref(cs_cname, w->data_refs);
-        if (ibool_data_ref != nullptr &&
-            ibool_data_ref->tipe == cdBool) {
-            IntInx sinx{ ibool_data_ref->ref_inx };
-            int* ibool = data_lay_cache.get_int_value(sinx);
+        DataRef* bool_data_ref = cspec_data_ref(cs_cname, w->data_refs);
+        if (bool_data_ref != nullptr &&
+            bool_data_ref->tipe == cdBool) {
+            BoolInx binx{ bool_data_ref->ref_inx };
+            uint8_t* ibool = data_lay_cache.get_bool_value(binx);
             if (ibool != nullptr) {
                 bool old_val = *ibool;
                 bool new_val = old_val;
-                ImGui::Checkbox(button_text, &new_val);
-                if (old_val != new_val) {
-                    notify_server(ibool_data_ref, old_val, new_val);
+                ImGui::Checkbox(button_text, (bool*)ibool);
+                if (old_val != *ibool) {
+                    notify_server(bool_data_ref, old_val, ibool);
                 }
             }
         }
@@ -1062,12 +1086,12 @@ protected:
 
         // TODO: understand ems mem anlytics and restore in footer
         // bool memory = w.value(nlohmann::json::json_pointer("/cspec/memory"), true);
-        cspec_bool(cs_db, w->cspec_bool, &footer_show_db);
-        cspec_bool(cs_fps, w->cspec_bool, &footer_show_fps);
-        cspec_bool(cs_demo, w->cspec_bool, &footer_show_demo);
-        cspec_bool(cs_id_stack, w->cspec_bool, &footer_show_id_stack);
-        cspec_bool(cs_font_scale, w->cspec_bool, &footer_show_font_scale);
-        cspec_bool(cs_style, w->cspec_bool, &footer_show_style);
+        cspec_bool(cs_show_footer_db, w->cspec_bool, &footer_show_db);
+        cspec_bool(cs_show_footer_fps, w->cspec_bool, &footer_show_fps);
+        cspec_bool(cs_show_footer_demo, w->cspec_bool, &footer_show_demo);
+        cspec_bool(cs_show_footer_id_stack, w->cspec_bool, &footer_show_id_stack);
+        cspec_bool(cs_show_footer_font_scale, w->cspec_bool, &footer_show_font_scale);
+        cspec_bool(cs_show_footer_style, w->cspec_bool, &footer_show_style);
 
 
         ImGui::BeginGroup();
@@ -1085,13 +1109,10 @@ protected:
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
         }
         if (footer_show_demo) {
-            bool show_demo{ (bool)footer_show_demo };
             ImGui::Checkbox("Demo", &show_demo);
             if (show_demo)  ImGui::ShowDemoWindow();
-            footer_show_demo = show_demo;
         }
         if (footer_show_id_stack) {
-            bool show_id_stack{ (bool)footer_show_id_stack };
             ImGui::SameLine();
             ImGui::Checkbox("IDStack", &show_id_stack);
             if (show_id_stack)  ImGui::ShowStackToolWindow();
