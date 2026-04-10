@@ -337,6 +337,7 @@ using EventInx = DataCacheIndex<CIT::Event, CDT::cdStr>;
 using AddrInx = DataCacheIndex<CIT::Address,CDT::cdStr>;
 // Three types of atomic value; all mutable
 using IntInx = DataCacheIndex<CIT::Value,CDT::cdInt>;
+using BoolInx = DataCacheIndex<CIT::Value, CDT::cdBool>;
 using FloatInx = DataCacheIndex<CIT::Value, CDT::cdFloat>;
 using StrInx = DataCacheIndex<CIT::Value, CDT::cdStr>;
 // Array values
@@ -427,5 +428,6 @@ enum CacheSpecifier : uint32_t {
 using CacheSpecVec = std::vector<CacheSpecifier>;
 using CacheSpecTypeMap = std::map<CacheSpecifier, CDT>;
 using IntValMap = std::map<CacheSpecifier, IntInx>;
+using BoolValMap = std::map<CacheSpecifier, BoolInx>;
 using FloatValMap = std::map<CacheSpecifier, FloatInx>;
 using StrValMap = std::map<CacheSpecifier, StrInx>;
