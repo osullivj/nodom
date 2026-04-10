@@ -134,12 +134,12 @@ private:
     IntInx      binx__footer_show_font_scale;
     IntInx      binx__footer_show_style;
     */
-    int        footer_show_db{ 0 };
-    int        footer_show_fps{ 0 };
-    int        footer_show_demo{ 0 };
-    int        footer_show_id_stack{ 0 };
-    int        footer_show_font_scale{ 0 };
-    int        footer_show_style{ 0 };
+    int   footer_show_db{ 0 };
+    int   footer_show_fps{ 0 };
+    int   footer_show_demo{ 0 };
+    int   footer_show_id_stack{ 0 };
+    int   footer_show_font_scale{ 0 };
+    int   footer_show_style{ 0 };
 
     // colours: https://www.w3schools.com/colors/colors_picker.asp
     ImColor red;    // ImGui.COL32(255, 51, 0);
@@ -419,7 +419,8 @@ public:
             // Is this a DataChange?
             else if (nd_type == Static::data_change_cs) {
                 std::string ckey = JAsString(resp, Static::cache_key_cs);
-                JSet(data, ckey.c_str(), resp[Static::new_value_cs]);
+                // JSet(data, ckey.c_str(), resp[Static::new_value_cs]);
+                data_lay_cache.on_data_change(ckey, resp);
             }
             else if (nd_type == Static::data_change_confirmed_cs) {
                 // TODO: add check that type has not mutated
@@ -883,28 +884,14 @@ protected:
 
     void render_input_int(WidgetPtr w) {
         const static char* method = "NDContext::render_input_int: ";
-        // static storage: imgui wants int (int32), nlohmann::json uses int64_t
-        /*
-        static int input_integer;
-        input_integer = 0;
-        
-        if (!JContains(w, Static::cspec_cs)) {
-            NDLogger::cerr() << method << "no cspec in w(" << JPrettyPrint(w) << ")" << std::endl;
-            return;
-        }
-        const JSON& cspec(w[Static::cspec_cs]); */
-        /*
-        std::string label;
-        if (JContains(cspec, Static::text_cs)) label = JAsString(cspec, Static::text_cs); */
-        // params by value
+
         int step = 1;
         cspec_int(cs_step, w->cspec_int, &step);
-        // if (JContains(cspec, Static::step_cs)) step = JAsInt(cspec, Static::step_cs);
         int step_fast = 1;
         cspec_int(cs_step_fast, w->cspec_int, &step);
-        // if (JContains(cspec, Static::step_fast_cs)) step_fast = JAsInt(cspec, Static::step_fast_cs);
         int flags = 0;
         cspec_int(cs_flags, w->cspec_int, &flags);
+
         DataRef* int_data_ref = cspec_data_ref(cs_cname, w->data_refs);
         assert(int_data_ref != nullptr);
         assert(int_data_ref->tipe == cdInt);
@@ -918,22 +905,9 @@ protected:
         const char* cname = data_lay_cache.get_addr_value(addr);
         const char* label = cspec_string(cs_label, w->cspec_str, cname);
 
-        // if (JContains(cspec, Static::flags_cs)) flags = JAsInt(cspec, Static::flags_cs);
-        // one param by ref: the int itself
-        // std::string cname_cache_addr = JAsString(cspec, Static::cname_cs);
-        // if no label use cache addr
-        // if (!label.size()) label = cname_cache_addr;
-        // local static copy of cache val
-        // int old_val = input_integer = JAsInt(data, cname_cache_addr.c_str());
-        // imgui has ptr to copy of cache val
         ImGui::InputInt(label, input_integer, step, step_fast, flags);
         // copy local copy back into cache
         if (*input_integer != old_val) {
-            /*
-            JSet(data, cname_cache_addr.c_str(), input_integer);
-            JSON j_old_val(old_val);
-            JSON j_input_int(input_integer);
-            notify_server(cname_cache_addr, j_old_val, j_input_int);*/
             notify_server(int_data_ref, old_val, *input_integer);
         }
     }
@@ -1102,6 +1076,7 @@ protected:
             bool show_demo{ (bool)footer_show_demo };
             ImGui::Checkbox("Demo", &show_demo);
             if (show_demo)  ImGui::ShowDemoWindow();
+            footer_show_demo = show_demo;
         }
         if (footer_show_id_stack) {
             bool show_id_stack{ (bool)footer_show_id_stack };
@@ -1662,7 +1637,6 @@ protected:
         ImGui::PopFont();
         font_pop_count++;
     }
-
 };
 
 
