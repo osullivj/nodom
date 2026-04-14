@@ -541,11 +541,11 @@ protected:
         return nullptr;
     }
 
-    uint8_t* cspec_bool(CacheSpecifier spec, BoolValMap& bool_val_map, bool* target = nullptr) {
+    bool* cspec_bool(CacheSpecifier spec, BoolValMap& bool_val_map, bool* target = nullptr) {
         auto cs_bool_iter = bool_val_map.find(spec);
         if (cs_bool_iter != bool_val_map.end()) {
             BoolInx bool_inx{ cs_bool_iter->second };
-            uint8_t* rv = data_lay_cache.get_bool_value(bool_inx);
+            bool* rv = data_lay_cache.get_bool_value(bool_inx);
             if (target != nullptr && rv != nullptr) *target = *rv;
             return rv;
         }
@@ -1042,13 +1042,12 @@ protected:
         if (bool_data_ref != nullptr &&
             bool_data_ref->tipe == cdBool) {
             BoolInx binx{ bool_data_ref->ref_inx };
-            uint8_t* ibool = data_lay_cache.get_bool_value(binx);
-            if (ibool != nullptr) {
-                bool old_val = *ibool;
-                bool new_val = old_val;
-                ImGui::Checkbox(button_text, (bool*)ibool);
-                if (old_val != *ibool) {
-                    notify_server(bool_data_ref, old_val, ibool);
+            bool* bool_ptr = data_lay_cache.get_bool_value(binx);
+            if (bool_ptr != nullptr) {
+                bool old_val = *bool_ptr;
+                ImGui::Checkbox(button_text, bool_ptr);
+                if (old_val != *bool_ptr) {
+                    notify_server(bool_data_ref, old_val, bool_ptr);
                 }
             }
         }
