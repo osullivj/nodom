@@ -987,7 +987,8 @@ protected:
             StrInx sinx{ combo_list_data_ref->ref_inx };
             int combo_count = 0;
             for (; combo_count < combo_list_data_ref->size; combo_count++) {
-                cs_combo_list[combo_count] = data_lay_cache.get_string_value(sinx++);
+                cs_combo_list[combo_count] = data_lay_cache.get_string_value(sinx);
+                sinx++;
             }
             IntInx iinx{ combo_inx_data_ref->ref_inx };
             int* combo_index = data_lay_cache.get_int_value(iinx);
@@ -1068,30 +1069,13 @@ protected:
     void render_footer(WidgetPtr w) {
         static const char* method = "NDContext::render_footer: ";
 
-        /*
-        if (!JContains(w, Static::cspec_cs)) {
-            NDLogger::cerr() << method << "no cspec in w(" << JPrettyPrint(w) << ")" << std::endl;
-            return;
-        }
-        const JSON& cspec(w[Static::cspec_cs]);
-        bool db = JAsBool(cspec, Static::db_cs);
-        bool fps = JAsBool(cspec, Static::fps_cs);
-        // TODO: config demo mode so it can be switched on/off in prod
-        bool demo = JAsBool(cspec, Static::demo_cs);
-        bool id_stack = JAsBool(cspec, Static::id_stack_cs);
-        bool font_scale = JAsBool(cspec, Static::font_scale_cs);
-        bool style = JAsBool(cspec, Static::style_cs);
-        */
-
         // TODO: understand ems mem anlytics and restore in footer
-        // bool memory = w.value(nlohmann::json::json_pointer("/cspec/memory"), true);
         cspec_bool(cs_show_footer_db, w->cspec_bool, &footer_show_db);
         cspec_bool(cs_show_footer_fps, w->cspec_bool, &footer_show_fps);
         cspec_bool(cs_show_footer_demo, w->cspec_bool, &footer_show_demo);
         cspec_bool(cs_show_footer_id_stack, w->cspec_bool, &footer_show_id_stack);
         cspec_bool(cs_show_footer_font_scale, w->cspec_bool, &footer_show_font_scale);
         cspec_bool(cs_show_footer_style, w->cspec_bool, &footer_show_style);
-
 
         ImGui::BeginGroup();
         if (footer_show_db) {
