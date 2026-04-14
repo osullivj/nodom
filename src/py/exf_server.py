@@ -1,8 +1,6 @@
 # std pkgs
 import asyncio
 import functools
-import json
-import logging
 import os.path
 
 import nd_consts
@@ -295,11 +293,14 @@ EXTRA_HANDLERS = [
     )
 ]
 
-is_scan_change = lambda c: c.get("cache_key") in [
-    "start_date",
-    "end_date",
-    "selected_instrument",
-]
+is_scan_change = lambda c: (
+    c.get("cache_key")
+    in [
+        "start_date",
+        "end_date",
+        "selected_instrument",
+    ]
+)
 is_depth_offset_change = lambda c: c.get("cache_key") == "depth_offset"
 
 
