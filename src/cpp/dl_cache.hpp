@@ -508,10 +508,9 @@ public:
         return fp_int_ptrs[inx()];
     }
 
-    uint32_t* get_bool_value(BoolInx inx) {
+    bool* get_bool_value(BoolInx inx) {
         return fp_bool_ptrs[inx()];
     }
-
 
     AddrInx add_address(const std::string& addr) {
         return intern_string<CIT::Address>(addr);
