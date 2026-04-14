@@ -8,13 +8,14 @@
 template <typename JSON>
 class DataLayCache {
 protected:
+    static int inline constexpr CCAP = 256;
     // RHS data values: you can only be RHS value if
     // you have an LHS CacheName. All these vecs hold
     // ptrs to mem managed by someone else...
     std::vector<float*>         fp_float_ptrs;
     std::vector<int*>           fp_int_ptrs;
     std::vector<const char*>    fp_char_ptrs;
-    std::vector<uint8_t*>       fp_bool_ptrs;
+    std::vector<bool*>          fp_bool_ptrs;
 
     // an LHS CacheName is an Address. All JSON sourced
     // strings from data and layout are moved into here,
@@ -25,7 +26,7 @@ protected:
     std::vector<std::string>    cache_strings;
     std::vector<int>            cache_ints;
     std::vector<float>          cache_floats;
-    std::vector<uint8_t>        cache_bools;
+    std::array<bool, CCAP>      cache_bools;
 
     WidgetVec                   widget_vec;
     PushableMap                 pushables;
@@ -72,11 +73,11 @@ protected:
         cache_ints[inx] = val;
     }
 
-    BoolInx intern_bool(bool value) {
-        // create storage for an int value, and FP ptr too
-        cache_bools.push_back(value?1:0);
-        fp_bool_ptrs.push_back(&(cache_bools.back()));
-        return BoolInx(fp_bool_ptrs.size() - 1);
+    BoolInx intern_bool(bool val) {
+        BoolInx binx( fp_bool_ptrs.size() );
+        cache_bools[binx()] = val;
+        fp_bool_ptrs.push_back(&(cache_bools[binx()]));
+        return binx;
     }
 
     void update_bool(uint32_t inx, bool val) {
@@ -395,13 +396,13 @@ protected:
     }
 
 public:
-    DataLayCache(int intern_capacity = 256) {
-        fp_float_ptrs.reserve(intern_capacity);
-        fp_int_ptrs.reserve(intern_capacity);
-        fp_char_ptrs.reserve(intern_capacity);
-        cache_strings.reserve(intern_capacity);
-        cache_ints.reserve(intern_capacity);
-        cache_floats.reserve(intern_capacity);
+    DataLayCache(int capacity = 256) {
+        fp_float_ptrs.reserve(capacity);
+        fp_int_ptrs.reserve(capacity);
+        fp_char_ptrs.reserve(capacity);
+        cache_strings.reserve(capacity);
+        cache_ints.reserve(capacity);
+        cache_floats.reserve(capacity);
 
         EntityInx winx = add_string<EntityID>(Static::i_am_noop_cs, WidgetID);
         noop_widget = std::make_shared<NDWidget>(RenderMethod::Noop, winx);
@@ -507,7 +508,7 @@ public:
         return fp_int_ptrs[inx()];
     }
 
-    uint8_t* get_bool_value(BoolInx inx) {
+    uint32_t* get_bool_value(BoolInx inx) {
         return fp_bool_ptrs[inx()];
     }
 
@@ -516,15 +517,23 @@ public:
         return intern_string<CIT::Address>(addr);
     }
 
-    IntInx add_int(int* v) {
+    IntInx extern_int(int* v) {
         cache_ints.push_back(*v);
         fp_int_ptrs.push_back(v);
         return IntInx(fp_int_ptrs.size() - 1);
     }
 
-    FloatInx add_float(float* v) {
+    FloatInx extern_float(float* v) {
+        cache_floats.push_back(*v);
         fp_float_ptrs.push_back(v);
         return FloatInx(fp_float_ptrs.size() - 1);
+    }
+
+    BoolInx extern_bool(bool* v) {
+        fp_bool_ptrs.push_back(v);
+        BoolInx binx( fp_bool_ptrs.size() - 1 );
+        cache_bools[binx()] = *v;
+        return binx;
     }
 
     const char* render_name(RenderMethod rm) {
@@ -687,6 +696,7 @@ private:
         { Table, {{cs_qname, cdResultSet}}}
     };
 
+public:
     int report_cache_strings() {
         int fp_len = fp_char_ptrs.size();
         int cs_len = cache_strings.size();
