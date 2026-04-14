@@ -29,6 +29,7 @@ struct DataCacheFixture {
     // cf ImGuiStyle::FontScaleMain
     float font_scale_main{ 1.0 };
     // cf proxy.get_server_url()
+    bool show_footer_db{ false };
     std::string server_url{ "wss://localhost/api/websock" };
     // for test data paths
     std::string nd_home;
@@ -82,7 +83,7 @@ BOOST_FIXTURE_TEST_CASE(AddInt, DataCacheFixture)
     std::string addr_str{ "style_coloring" };
     AddrInx addr_inx = dc.add_address(addr_str);
     backed_str_count = 2;
-    IntInx int_inx = dc.add_int(&style_coloring);   // not backed
+    IntInx int_inx = dc.extern_int(&style_coloring);
     BOOST_TEST(IntInx::item_type == CIT::Value);
     BOOST_TEST(IntInx::data_type == CDT::cdInt);
     BOOST_TEST(int_inx.magic_index == 0x02010000);
@@ -90,11 +91,25 @@ BOOST_FIXTURE_TEST_CASE(AddInt, DataCacheFixture)
     report_cache_state();
 }
 
+BOOST_FIXTURE_TEST_CASE(AddBool, DataCacheFixture)
+{
+    std::string addr_str{ "show_footer_db" };
+    AddrInx addr_inx = dc.add_address(addr_str);
+    backed_str_count = 2;
+    BoolInx bool_inx = dc.extern_bool(&show_footer_db);   // not backed
+    BOOST_TEST(IntInx::item_type == CIT::Value);
+    BOOST_TEST(IntInx::data_type == CDT::cdInt);
+    BOOST_TEST(bool_inx.magic_index == 0x02030000);
+    BOOST_TEST(bool_inx() == 0);
+    report_cache_state();
+}
+
+
 BOOST_FIXTURE_TEST_CASE(AddFloat, DataCacheFixture)
 {
     AddrInx addr_inx = dc.add_address(std::string{ "font_scale_main" });
     backed_str_count = 2;
-    FloatInx float_inx = dc.add_float(&font_scale_main);    // not backed
+    FloatInx float_inx = dc.extern_float(&font_scale_main);    // not backed
     BOOST_TEST(FloatInx::item_type == CIT::Value);
     BOOST_TEST(FloatInx::data_type == CDT::cdFloat);
     BOOST_TEST(float_inx.magic_index == 0x02020000);
@@ -237,7 +252,7 @@ BOOST_FIXTURE_TEST_CASE(ExfServerLayout, DataCacheFixture)
     auto layout = JParse<nlohmann::json>(layout_json);
 #endif
     backed_str_count = 41;
-    backed_int_count = 21;
+    backed_int_count = 15;
     dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.widget_vec_size() == 3);
     BOOST_TEST(dc.pushables_size() == 2);
