@@ -50,7 +50,7 @@ struct DataCacheFixture {
         std::cout << "==== " << boost::unit_test::framework::current_test_case().p_name << std::endl;
     }
 
-    void report_cache_state() {
+    void assert_cache_state() {
         int bsc = dc.report_cache_strings();
         BOOST_TEST(backed_str_count == bsc);
         int bic = dc.report_cache_ints();
@@ -75,7 +75,7 @@ BOOST_FIXTURE_TEST_CASE(AddAddr, DataCacheFixture)
     BOOST_TEST(AddrInx::data_type == CDT::cdStr);
     BOOST_TEST(addr_inx.magic_index == 0x01040001);
     BOOST_TEST(addr_inx() == 1);
-    report_cache_state();
+    assert_cache_state();
 }
 
 BOOST_FIXTURE_TEST_CASE(AddInt, DataCacheFixture)
@@ -88,7 +88,7 @@ BOOST_FIXTURE_TEST_CASE(AddInt, DataCacheFixture)
     BOOST_TEST(IntInx::data_type == CDT::cdInt);
     BOOST_TEST(int_inx.magic_index == 0x02010000);
     BOOST_TEST(int_inx() == 0);
-    report_cache_state();
+    assert_cache_state();
 }
 
 BOOST_FIXTURE_TEST_CASE(AddBool, DataCacheFixture)
@@ -101,7 +101,7 @@ BOOST_FIXTURE_TEST_CASE(AddBool, DataCacheFixture)
     BOOST_TEST(IntInx::data_type == CDT::cdInt);
     BOOST_TEST(bool_inx.magic_index == 0x02030000);
     BOOST_TEST(bool_inx() == 0);
-    report_cache_state();
+    assert_cache_state();
 }
 
 
@@ -114,7 +114,7 @@ BOOST_FIXTURE_TEST_CASE(AddFloat, DataCacheFixture)
     BOOST_TEST(FloatInx::data_type == CDT::cdFloat);
     BOOST_TEST(float_inx.magic_index == 0x02020000);
     BOOST_TEST(float_inx() == 0);
-    report_cache_state();
+    assert_cache_state();
 }
 
 BOOST_FIXTURE_TEST_CASE(AddString, DataCacheFixture)
@@ -133,7 +133,7 @@ BOOST_FIXTURE_TEST_CASE(AddString, DataCacheFixture)
     BOOST_TEST(AddrInx::data_type == CDT::cdStr);
     BOOST_TEST(addr_inx.magic_index == 0x01040001);
     BOOST_TEST(addr_inx() == 1);
-    report_cache_state();
+    assert_cache_state();
 }
 
 BOOST_FIXTURE_TEST_CASE(BadIndex, DataCacheFixture)
@@ -157,7 +157,7 @@ BOOST_FIXTURE_TEST_CASE(InitData, DataCacheFixture)
     dc.on_json(data, layout, [&]() {dc.on_init(); });
     BOOST_TEST(dc.addr_map_size() == 1);
     BOOST_TEST(dc.actions_size() == 2);
-    report_cache_state();
+    assert_cache_state();
 }
 
 BOOST_FIXTURE_TEST_CASE(InitLayout, DataCacheFixture)
@@ -178,7 +178,7 @@ BOOST_FIXTURE_TEST_CASE(InitLayout, DataCacheFixture)
     dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.widget_vec_size() == 2);
     BOOST_TEST(dc.pushables_size() == 1);
-    report_cache_state();
+    assert_cache_state();
 }
 
 BOOST_FIXTURE_TEST_CASE(AddServerData, DataCacheFixture)
@@ -196,7 +196,7 @@ BOOST_FIXTURE_TEST_CASE(AddServerData, DataCacheFixture)
     dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.addr_map_size() == 3);
     BOOST_TEST(dc.actions_size() == 0);
-    report_cache_state();
+    assert_cache_state();
 }
 
 BOOST_FIXTURE_TEST_CASE(AddServerLayout, DataCacheFixture)
@@ -217,7 +217,7 @@ BOOST_FIXTURE_TEST_CASE(AddServerLayout, DataCacheFixture)
     dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.widget_vec_size() == 1);
     BOOST_TEST(dc.pushables_size() == 0);
-    report_cache_state();
+    assert_cache_state();
 }
 
 BOOST_FIXTURE_TEST_CASE(ExfServerData, DataCacheFixture)
@@ -235,7 +235,7 @@ BOOST_FIXTURE_TEST_CASE(ExfServerData, DataCacheFixture)
     dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.addr_map_size() == 10);
     BOOST_TEST(dc.actions_size() == 4);
-    report_cache_state();
+    assert_cache_state();
 }
 
 BOOST_FIXTURE_TEST_CASE(ExfServerLayout, DataCacheFixture)
@@ -256,6 +256,6 @@ BOOST_FIXTURE_TEST_CASE(ExfServerLayout, DataCacheFixture)
     dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.widget_vec_size() == 3);
     BOOST_TEST(dc.pushables_size() == 2);
-    report_cache_state();
+    assert_cache_state();
 }
 
