@@ -38,8 +38,11 @@ protected:
     StringVec                   bad_action_keys;
 
     // Valid cache addresses
-    std::map<std::string, AddrInx>  address_map;
-    std::map<AddrInx, DataRef>      data_ref_map;
+    std::map<std::string, AddrInx>      address_map;
+    std::map<AddrInx, DataRef>          data_ref_map;
+
+    // EntityIDs created as QueryIDs.
+    std::map<std::string, EntityInx>    entity_map;
 
     template <CIT itype>
     auto intern_string(const std::string& s, CST stype = CST::None) {
@@ -56,8 +59,10 @@ protected:
 
     void update_string(uint32_t inx, const std::string& val) {
         if (inx >= cache_strings.size())
-            throw std::runtime_error("NoDOM BAD_ADDR");
+            throw std::runtime_error("NoDOM BAD_ADDR:update_string:"
+                + std::to_string(inx) + ":" + val);
         cache_strings[inx] = val;
+        fp_char_ptrs[inx] = cache_strings[inx].c_str();
     }
 
     IntInx intern_int(int value) {
@@ -69,7 +74,7 @@ protected:
 
     void update_int(uint32_t inx, int val) {
         if (inx >= fp_int_ptrs.size())
-            throw std::runtime_error("NoDOM BAD_ADDR");
+            throw std::runtime_error("NoDOM BAD_ADDR:update_int");
         cache_ints[inx] = val;
     }
 
@@ -82,7 +87,7 @@ protected:
 
     void update_bool(uint32_t inx, bool val) {
         if (inx >= fp_bool_ptrs.size())
-            throw std::runtime_error("NoDOM BAD_ADDR");
+            throw std::runtime_error("NoDOM BAD_ADDR:update_bool");
         cache_bools[inx] = val ? 1 : 0;
     }
 
@@ -136,9 +141,9 @@ protected:
                 // ui_push must be a widget_id. Since action parsing happens before
                 // layout, this is the first time we may encounter encounter a
                 // widget_id. NB there may be widget_ids in layout that aren't 
-                // referemced in actions.
+                // referenced in actions.
                 std::string widget_id = JAsString(action_defn, Static::ui_push_cs);
-                action.push_ui = intern_string<EntityID>(widget_id, CST::WidgetID);
+                action.push_ui = add_widget_id(widget_id);
                 interned.push_ui = (char*)get_string_value(action.push_ui);
             }
             if (JContains(action_defn, Static::db_action_cs)) {
@@ -148,11 +153,12 @@ protected:
                 action.db_action = DBEventTypeFromString(db_action);
                 interned.db_action = (char*)db_event_types[action.db_action];
                 std::string query_id = JAsString(action_defn, Static::query_id_cs);
-                action.query_id = intern_string<EntityID>(query_id, CST::QueryID);
+                action.query_id = add_query_id(query_id);
                 interned.query_id = (char*)get_string_value(action.query_id);
+
                 if (action.db_action == dbCommand || action.db_action == dbQuery) {
                     std::string sql_cache_key = JAsString(action_defn, Static::sql_cname_cs);
-                    action.sql_cname = intern_string<Address>(sql_cache_key);
+                    action.sql_cname = add_address(sql_cache_key);
                     // check that the sql cname refers to a cache data entry
                     interned.sql_cname = (char*)get_addr_value(action.sql_cname);
                     if (address_map.find(sql_cache_key) == address_map.end()) {
@@ -309,7 +315,14 @@ protected:
                 std::string addr_s{JAsString(cspec, ref_name)};
                 auto amit = address_map.find(addr_s);
                 if (amit == address_map.end()) {
-                    // error: cname|cindex|qname value not in data
+                    if (ref_name == Static::cname_cs ||
+                        ref_name == Static::cindex_cs) {
+                        // error: cname|cindex value not in data
+                        throw std::runtime_error("NoDOM BAD_ADDR:" + addr_s);
+                    }
+                    else {
+                        // qname should be an EntityID, specifically a QueryID
+                    }
                 }
                 else {
                     // NB amit->second is AddrInx
@@ -423,10 +436,16 @@ public:
     void on_data_change(const std::string& addr, const JSON& dc) {
         AddrInx ainx{ get_addr_inx(addr) };
         if (!ainx.is_valid())
-            throw std::runtime_error("NoDOM BAD_ADDR");
+            throw std::runtime_error("NoDOM BAD_ADDR:on_data_change:"+addr);
         auto it = data_ref_map.find(ainx);
-        if (it == data_ref_map.end())
-            throw std::runtime_error("NoDOM BAD_ADDR");
+        if (it == data_ref_map.end()) {
+            // Not in data_ref_map means there are no cspec cindex or cname
+            // refs to this addr in data, so assume it's a string...
+            std::string new_val = JAsString(dc, Static::new_value_cs);
+            update_string(ainx(), new_val);
+            return;
+        }
+            
         DataRef& data_ref{it->second};
         assert(data_ref.addr_inx() == ainx());
 
@@ -477,7 +496,7 @@ public:
     WidgetPtr get_pushable(EntityInx widget_id) {
         auto pit = pushables.find(widget_id);
         if (pit != pushables.end()) return pit->second;
-        throw std::runtime_error("NoDOM BAD_ENTITY_OD");
+        throw std::runtime_error("NoDOM BAD_WIDGET_ID:"+std::to_string(widget_id()));
     }
 
     WidgetPtr get_home() {
@@ -514,6 +533,18 @@ public:
 
     AddrInx add_address(const std::string& addr) {
         return intern_string<CIT::Address>(addr);
+    }
+
+    EntityInx add_widget_id(const std::string& wid) {
+        EntityInx inx{ intern_string<CIT::EntityID>(wid, CST::WidgetID) };
+        entity_map[wid] = inx;
+        return inx;
+    }
+
+    EntityInx add_query_id(const std::string& qid) {
+        EntityInx inx{ intern_string<CIT::EntityID>(qid, CST::QueryID) };
+        entity_map[qid] = inx;
+        return inx;
     }
 
     IntInx extern_int(int* v) {
@@ -644,7 +675,7 @@ private:
         cdBool,     // cs_show_footer_id_stack
         cdBool,     // cs_show_footer_font_scale
         cdBool,     // cs_show_footer_style
-        cdAny,      //.cs_cname
+        cdAny,      // cs_cname
         cdAny,      // cs_cindex
         cdResultSet // cs_qname
     };
@@ -692,7 +723,7 @@ private:
         {DatePicker, {{cs_cname, cdIntVec}}},
         {LoadingModal, {{cs_cname, cdStrVec}}},
         {DuckTableSummaryModal, {{cs_qname, cdResultSet}}},
-        { Table, {{cs_qname, cdResultSet}}}
+        {Table, {{cs_qname, cdResultSet}}}
     };
 
 public:
@@ -799,11 +830,11 @@ public:
     }
 
     void report_cache_state() {
-        dc.report_cache_strings();
-        dc.report_cache_ints();
-        dc.report_cache_floats();
-        dc.report_address_map();
-        dc.report_actions();
+        report_cache_strings();
+        report_cache_ints();
+        report_cache_floats();
+        report_address_map();
+        report_actions();
         std::cout << std::endl;
     }
 };
