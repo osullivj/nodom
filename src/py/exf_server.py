@@ -176,7 +176,7 @@ EXF_LAYOUT = [
     ),
 ]
 
-SCAN_SQL = "BEGIN; DROP TABLE IF EXISTS depth; CREATE TABLE depth as select * from parquet_scan(%(scan_urls)s); COMMIT;"
+SCAN_SQL = "BEGIN; DROP TABLE IF EXISTS depth; CREATE TABLE depth as select * from parquet_scan(%s); COMMIT;"
 QUERY_SQL = "select * from depth where LastTradeSize!=0 and AskQty5!=0 and BidQty5!=0 order by SeqNo;"
 SUMMARY_SQL = "summarize select * from depth;"
 
@@ -255,7 +255,7 @@ EXF_DATA = dict(
     ),
     selected_instrument=0,
     # depth scan SQL, ID and URLs
-    scan_sql=SCAN_SQL % dict(scan_urls=[INIT_URL]),
+    scan_sql=SCAN_SQL % [INIT_URL],
     scan_urls=[INIT_URL],
     # depth query SQL and ID
     query_sql=QUERY_SQL % dict(depth_offset=0),
@@ -335,7 +335,7 @@ class DepthService(nd_utils.Service):
             ]
             data_cache["scan_urls"] = new_urls_val
             old_sql_val = data_cache["scan_sql"]
-            new_sql_val = SCAN_SQL % data_cache
+            new_sql_val = SCAN_SQL % new_urls_val
             data_cache["scan_sql"] = new_sql_val
             # finally, return the extra changes to be processed by the client
             return [
