@@ -797,4 +797,13 @@ public:
             }
         }
     }
+
+    void report_cache_state() {
+        dc.report_cache_strings();
+        dc.report_cache_ints();
+        dc.report_cache_floats();
+        dc.report_address_map();
+        dc.report_actions();
+        std::cout << std::endl;
+    }
 };
