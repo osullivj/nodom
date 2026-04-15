@@ -249,6 +249,8 @@ public:
         // init the fast path vars from the settings established in im_render.hpp:im_start()
         ImGuiStyle& style = ImGui::GetStyle();
 
+        data_lay_cache.report_cache_state();
+
         // init the render stack
         stack.clear();
         stack.push_back(data_lay_cache.get_home());
