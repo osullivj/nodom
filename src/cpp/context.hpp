@@ -867,33 +867,12 @@ protected:
     void render_home(WidgetPtr w) {
         const static char* method = "NDContext::render_home: ";
 
-        /*
-        if (!JContains(w, Static::cspec_cs)) {
-            NDLogger::cerr() << method << "no cspec in w(" << w << ")" << std::endl;
-            return;
-        }
-        const JSON& cspec( w[Static::cspec_cs]);
-        std::string title(Static::nodom_cs);
-        if (JContains(cspec, Static::title_cs)) {
-            title = JAsString(cspec, Static::title_cs);
-        } */
-
         const char* title = cspec_string(cs_title, w->cspec_str, method);
         LocalFont title_font(w, cs_title_font, cs_title_font_size);
-        // Static::title_font_cs, Static::title_font_size_cs);
-
-        /*
-        bool fpop = false;
-        if (JContains(cspec, Static::title_font_cs))
-            fpop = push_font(w, Static::title_font_cs, Static::title_font_size_cs);
-            */
 
         ImGui::Begin(title); //  .c_str());
         if (cache_is_loaded()) {
-            // const JSON& children(w[Static::children_cs]);
-            // int child_count = JSize(children);
             for (int inx = 0; inx < w->children.size(); inx++) {
-                // const JSON& child(children[inx]);
                 dispatch_render(w->children[inx]);
             }
         }
@@ -914,9 +893,6 @@ protected:
                 }
             }
         }
-        /* if (fpop) {
-            pop_font();
-        } */
         ImGui::End();
     }
 
@@ -952,34 +928,15 @@ protected:
 
     void render_combo(WidgetPtr w) {
         const static char* method = "NDContext::render_combo: ";
-        // Static storage for the combo list
-        // NB single GUI thread!
+        // Static storage for the combo list. NB single GUI thread!
         // No malloc at runtime, but we will clear the array with a memset
         // on each visit. JOS 2025-01-26
-        static StringVec combo_list;
         static const char* cs_combo_list[ND_MAX_COMBO_LIST];
-        static int combo_selection;
         memset(cs_combo_list, 0, ND_MAX_COMBO_LIST * sizeof(char*));
-        combo_selection = 0;
-        combo_list.clear();
-        /*
-        if (!JContains(w, Static::cspec_cs)) {
-            NDLogger::cerr() << method << "no cspec in w(" << JPrettyPrint(w) << ")" << std::endl;
-            return;
-        }
-        const JSON& cspec(w["cspec"]); 
-        std::string label; */
 
         int step = 1;
         const char* label = cspec_string(cs_label, w->cspec_str, method);
         cspec_int(cs_step, w->cspec_int, &step);
-
-        // if (JContains(cspec, Static::text_cs)) label = JAsString(cspec, Static::text_cs);
-        // if (JContains(cspec, Static::step_cs)) step = JAsInt(cspec, Static::step_cs);
-        // no value params in layout here; all combo layout is data cache refs
-        // /cspec/cname should give us a data cache addr for the combo list
-        // std::string combo_list_cache_addr(JAsString(cspec, Static::cname_cs));
-        // std::string combo_index_cache_addr(JAsString(cspec, Static::cindex_cs));
 
         DataRef* combo_list_data_ref = cspec_data_ref(cs_cname, w->data_refs);
         DataRef* combo_inx_data_ref = cspec_data_ref(cs_cindex, w->data_refs);
@@ -1002,46 +959,14 @@ protected:
                 notify_server(combo_inx_data_ref, old_val, new_val);
             }
         }
-
-        // if no label use cache addr
-        /*
-        if (!label.size()) label = combo_list_cache_addr;
-        int combo_count = 0;
-        JAsStringVec(data, combo_list_cache_addr.c_str(), combo_list);
-        for (auto it = combo_list.begin(); it != combo_list.end(); ++it) {
-            cs_combo_list[combo_count++] = it->c_str();
-            if (combo_count == ND_MAX_COMBO_LIST) break;
-        }
-        int old_val = combo_selection = JAsInt(data, combo_index_cache_addr.c_str());
-        ImGui::Combo(label.c_str(), &combo_selection, cs_combo_list, combo_count, combo_count);
-        if (combo_selection != old_val) {
-            JSet(data, combo_index_cache_addr.c_str(), combo_selection);
-            // Do not use list_init style ctors with nlohmann::json, 
-            // they'll serialize as [old_val], [combo_selection],
-            // and we want them to serialize as atomic vals, not lists
-            JSON j_old_val(old_val);
-            JSON j_combo_selection(combo_selection);
-            notify_server(combo_index_cache_addr, j_old_val, j_combo_selection);
-        } */
     }
 
     void render_checkbox(WidgetPtr w) {
         const static char* method = "NDContext::render_checkbox: ";
 
-        /*
-        if (!JContains(w, Static::cspec_cs)) {
-            NDLogger::cerr() << method << "no cspec in w(" << w << ")" << std::endl;
-            return;
-        }
-        const JSON& cspec(w[Static::cspec_cs]);
-        std::string cname_cache_addr(JAsString(cspec, Static::cname_cs));
-        std::string text(cname_cache_addr);
-        if (JContains(cspec, Static::text_cs))
-            text = JAsString(cspec, Static::text_cs); */
-
         const char* button_text = cspec_string(cs_text, w->cspec_str, method);
-
         DataRef* bool_data_ref = cspec_data_ref(cs_cname, w->data_refs);
+
         if (bool_data_ref != nullptr &&
             bool_data_ref->tipe == cdBool) {
             BoolInx binx{ bool_data_ref->ref_inx };
@@ -1054,18 +979,6 @@ protected:
                 }
             }
         }
-
-        /*
-        bool checked_value = JAsBool(data, cname_cache_addr.c_str());
-        bool old_checked_value = checked_value;
-        ImGui::Checkbox(text.c_str(), &checked_value);
-
-        if (checked_value != old_checked_value) {
-            JSet(data, cname_cache_addr.c_str(), checked_value);
-            JSON j_old_checked_value{ old_checked_value };
-            JSON j_checked_value{ checked_value };
-            notify_server(cname_cache_addr, j_old_checked_value, j_checked_value);
-        } */
     }
 
     void render_footer(WidgetPtr w) {
@@ -1213,14 +1126,7 @@ protected:
 
     void render_text(WidgetPtr w) {
         const static char* method = "NDContext::render_text: ";
-        /*
-        if (!JContains(w, Static::cspec_cs)) {
-            NDLogger::cerr() << method << "no cspec in w(" << w << ")" << std::endl;
-            return;
-        }
-        const JSON& cspec(w[Static::cspec_cs]);
-        std::string rtext = JAsString(cspec, Static::text_cs);
-        */
+
         const char* rtext = cspec_string(cs_text, w->cspec_str, method);
         ImGui::Text(rtext);
     }
@@ -1228,21 +1134,6 @@ protected:
     void render_button(WidgetPtr w) {
         const static char* method = "NDContext::render_button: ";
 
-        /*
-        if (!JContains(w, Static::cspec_cs)) {
-            NDLogger::cerr() << method << "no cspec in w(" << w << ")" << std::endl;
-            return;
-        }
-        const JSON& cspec(w[Static::cspec_cs]);
-        if (!JContains(cspec, Static::text_cs)) {
-            NDLogger::cerr() << method << "no text in cspec(" << cspec << ")" << std::endl;
-            return;
-        }
-        std::string button_text = JAsString(cspec, Static::text_cs);
-        std::string widget_id(button_text);
-        if (JContains(cspec, Static::widget_id_cs)) {
-            widget_id = JAsString(cspec, Static::widget_id_cs);
-        }*/
         const char* button_text = cspec_string(cs_text, w->cspec_str, method);
 
         if (ImGui::Button(button_text)) {
@@ -1559,15 +1450,7 @@ protected:
         // cache datum to which we refer, so no cname. However, we do look
         // require a title (for imgui ID purposes) and we can have styling
         // attributes like ImGuiChildFlags
-        /*
-        if (!JContains(w, Static::cspec_cs) || !JContains(w[Static::cspec_cs], Static::title_cs)) {
-            NDLogger::cerr() << method << Static::BAD_CSPEC_cs << JPrettyPrint(w) << std::endl;
-            return;
-        }
-        const JSON& cspec(w[Static::cspec_cs]);
-        std::string title(JAsString(cspec, Static::title_cs));
-        */
-        // default title
+ 
         const char* title = cspec_string(cs_title, w->cspec_str, method);
 
         int child_flags = 0;
@@ -1615,13 +1498,6 @@ protected:
         // get size if specified, otherwise default to 0
         int font_size_base = 0;
         cspec_int(cs_font_size, w->cspec_int, &font_size_base);
-        /*
-        auto cs_int_it = w->cspec_int.find(font_size_spec);
-        if (cs_int_it != w->cspec_int.end()) {
-            int* font_size_val_ptr = data_lay_cache.get_int_value(cs_int_it->second);
-            if (font_size_val_ptr != nullptr)
-                font_size_base = *font_size_val_ptr;
-        } */
 
         // defaults so resolution failure doesn't stop us pushing
         ImFont* font = font_map[Static::default_cs];
@@ -1630,22 +1506,6 @@ protected:
             auto font_it = font_map.find(font_name);
             if (font_it != font_map.end()) font = font_it->second;
         }
-
-        /*
-        auto cs_str_it = w->cspec_str.find(font_name_spec);
-        if (cs_str_it != w->cspec_str.end()) {
-            StrInx font_name_inx{ cs_str_it->second };
-            const char* font_name = data_lay_cache.get_string_value<StrInx>(font_name_inx);
-            if (font_name != nullptr) {
-                auto font_it = font_map.find(font_name);
-                if (font_it != font_map.end()) {
-                    font = font_it->second;
-                }
-                else {
-                    bad_font_pushes.push_back(font_name_inx);
-                }
-            }
-        } */
 
         ImGui::PushFont(font, font_size_base);
         font_push_count++;
