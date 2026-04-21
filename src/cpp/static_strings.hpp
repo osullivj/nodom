@@ -1,5 +1,5 @@
 #pragma once
-
+#include <array>
 // Python consts
 // TODO: move into statics.hpp which should be
 // included in main<>.cpp so expanded template
@@ -31,13 +31,7 @@ struct Static {
 	inline static const char* rm_pop_font_cs{ "PopFont" };
 
 	inline static const char* is_duck_app_cs{"is_duck_app"};
-	
-
 	inline static const char* __nodom__cs{ "__nodom__" };
-
-
-	
-
 	inline static const char* sys_cs{ "sys" };
 
 	// cspec keys
@@ -173,7 +167,53 @@ struct Static {
 	inline static const char* period_cs{"."};
 	inline static const char* colon_cs{ ":" };
 	inline static const char* db_config_cs{ "db_config" };
+	// DatePicker
+	inline static const char* double_hash_cs{ "##" };
+	inline static const char* month_combo_cs{ "##MonthCombo_" };
+	inline static const char* year_input_int_cs{ "##YearInputInt_" };
+	inline static const char* prev_month_cs{ "##PrevMonth_" };
+	inline static const char* next_month_cs{ "##NextMonth_" };
+	inline static const char* mid_button_cs{ "##MidButton_" };
+	inline static const char* date_table_cs{ "##DateTable_" };
 
+	inline static const std::array<char*,12> months_array_cs{
+		"January",
+		"February",
+		"March",
+		"April",
+		"May",
+		"June",
+		"July",
+		"August",
+		"September",
+		"October",
+		"November",
+		"December"
+	};
+	inline static const std::array<char*, 7> day_array_cs{
+		"Mo",
+		"Tu",
+		"We",
+		"Th",
+		"Fr",
+		"Sa",
+		"Su"
+
+	};
+	inline static std::array<int, 12> month_day_count{
+		31, // Jan
+		0,  // Feb
+		31, // Mar
+		30, // Apr
+		31, // May
+		30, // Jun
+		31, // Jul
+		31, // Aug
+		30, // Sep
+		31, // Oct
+		30, // Nov
+		31	// Dec
+	};
 	// Error codes for logging fingerprints
 	inline static const char* BAD_CSPEC_cs{ "BAD_CSPEC" };
 
