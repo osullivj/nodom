@@ -101,3 +101,10 @@ void SetStyleColoring(int col) {
     }
 }
 
+int MonthDayCount(int month, int year) {
+    if (month == 2) {
+        return IsLeapYear(year) ? 29 : 28;
+    }
+    assert(month < 13);
+    return Static::month_day_count[month - 1];
+}
