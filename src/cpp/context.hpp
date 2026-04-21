@@ -5,6 +5,7 @@
 // #include <filesystem>
 #include <functional>
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "ImGuiDatePicker.hpp"
 #include "proxy.hpp"
 #include "static_strings.hpp"
@@ -147,6 +148,10 @@ private:
     ImColor amber;  // ImGui.COL32(255, 153, 0);
     ImColor db_status_color;
 
+    const ImVec4    vec4z{ 0.0, 0.0, 0.0, 0.0 };
+    const ImVec2    vec2z{ 0.0, 0.0 };
+    ImVec2          vec2;
+
     std::map<std::string, ImFont*>  font_map;
     std::uint32_t font_push_count = 0;
     std::uint32_t font_pop_count = 0;
@@ -160,8 +165,13 @@ private:
 
     // Buffer for action_event compound keys
     char act_ev_key_buf[act_ev_key_buf_len];
-    // Buffer for err msg fmt
+    // Buffers for err msg fmt, labels, dates...
     char string_buffer[STR_BUF_LEN];
+    char date_buffer[STR_BUF_LEN];
+    // "local variable": normally method locals,
+    // but we want to minimise stack thrashing
+    fmt::format_to_n_result<char*> fmt_result;
+    DatePickerLocals    dp_vars;
 
     struct LocalFont {
         inline static VVFunc pop_func{nullptr};
@@ -387,6 +397,7 @@ public:
         msgbuf << "{ \"" << Static::nd_type_cs << "\":\"" << Static::data_change_cs << "\",\""
             << Static::cache_key_cs << "\":\"" << addr << "\",\""
             << Static::new_value_cs << "\":" << new_val << ",\""
+
             << Static::old_value_cs << "\":" << old_val << "}";
         ws_send(msgbuf.str());
     }
@@ -650,20 +661,24 @@ protected:
         }
     }
 
-    void compound_string(char* buf, int buflen, const std::string& s1,
-                            const std::string& s2, const std::string& sep) {
+    void compound_string(char* buf, int buflen, const char* s1,
+                            const char* s2, const char* sep = nullptr) {
         // First, compose the compound action sequence key from action_id and nd_event
         // NB action_id will be a widget_id or query_id
         char* dest = buf;
         int space = buflen;
+        size_t slen = strlen(s1);
         memset(dest, 0, space);
-        strncpy(dest, s1.c_str(), space);
-        dest += s1.size();
-        space -= s1.size();
-        strncpy(dest, sep.c_str(), space);
-        dest += sep.size();
-        space -= sep.size();
-        strncpy(dest, s2.c_str(), space);
+        strncpy(dest, s1, space);
+        dest += slen;
+        space -= slen;
+        if (sep != nullptr) {
+            slen = strlen(sep);
+            strncpy(dest, sep, space);
+            dest += slen;
+            space -= slen;
+        }
+        strncpy(dest, s2, space);
     }
 
     // void action_dispatch(const std::string& action_id, const std::string& nd_event) {
@@ -858,7 +873,6 @@ protected:
                 JSet(db_request, Static::sql_cs, sql);
             }
         }
-
     }
 
     // Render functions
@@ -884,7 +898,7 @@ protected:
                     if (critical_messages[WebSockConnectionFailed].empty()) {
                         compound_string(string_buffer, STR_BUF_LEN,
                             Static::could_not_connect_cs,
-                            proxy.get_server_url(), Static::space_cs);
+                            proxy.get_server_url().c_str(), Static::space_cs);
                         critical_messages[WebSockConnectionFailed] = std::string(string_buffer);
                     }
                     for (int i = WebSockConnectionFailed; i < EndCritical; ++i) {
@@ -1064,13 +1078,149 @@ protected:
     void render_date_picker(WidgetPtr w) {
         const static char* method = "NDContext::render_date_picker: ";
 
-        static int default_table_flags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_SizingFixedSame;
-        static int default_combo_flags = ImGuiComboFlags_HeightRegular;
-        static std::vector<int> ymd_i = { 0, 0, 0 };
-        ImFont* year_month_font = nullptr;
-        ImFont* day_date_font = nullptr;
-        uint32_t year_month_font_size_base = 0;
-        uint32_t day_date_font_size_base = 0;
+        // don't bother rendering if not visible
+        ImGuiWindow* window = ImGui::GetCurrentWindow();
+        if (window == nullptr || window->SkipItems)
+            return;
+
+        const char* title = cspec_string(cs_title, w->cspec_str, method);
+        dp_vars.combo_flags = ImGuiComboFlags_HeightRegular;
+        cspec_int(cs_combo_flags, w->cspec_int, &dp_vars.combo_flags);
+        // title will be eg "Start date" next to the combo
+        // so we need a hidden label for the Combo
+        compound_string(string_buffer, STR_BUF_LEN, Static::double_hash_cs, title);
+
+        // now get hold of the YMD int[3]
+        DataRef* ymd_data_ref = cspec_data_ref(cs_cname, w->data_refs);
+        assert(ymd_data_ref != nullptr);
+        assert(ymd_data_ref->tipe == cdIntVec);
+        IntInx iinx{ ymd_data_ref->ref_inx };
+        int* int_ptr = data_lay_cache.get_int_value(iinx);
+        assert(int_ptr != nullptr);
+
+        // convert YMD int[3] to string for combo...
+        std::copy_n(int_ptr, dp_vars.old_date.size(), dp_vars.old_date.begin());
+        fmt_result = fmt::format_to_n(date_buffer, STR_BUF_LEN, 
+            "{:04d}-{:02d}-{:02d}", dp_vars.old_date[0], 
+                dp_vars.old_date[1], dp_vars.old_date[2]);
+        date_buffer[fmt_result.size] = 0;
+        dp_vars.new_date = dp_vars.old_date;
+
+        // Main drop down combo for the date
+        if (ImGui::BeginCombo(string_buffer, date_buffer, dp_vars.combo_flags)) {
+            LocalFont year_month_font(w, cs_year_month_font, cs_year_month_font_size);
+            // compose hidden label for the month combo box
+            compound_string(string_buffer, STR_BUF_LEN, Static::month_combo_cs, title);
+            if (ImGui::Combo(string_buffer, &int_ptr[Month], Static::months_array_cs.data(), 12)) {
+                dp_vars.new_date[Month] = 1 + int_ptr[Month];         // jan index 0, month 1
+                assert(dp_vars.new_date[Month] != dp_vars.old_date[Month]);
+            }
+            // compose hidden label for the year input int
+            compound_string(string_buffer, STR_BUF_LEN, Static::year_input_int_cs, title);
+            if (ImGui::InputInt(string_buffer, &int_ptr[Year])) {
+                dp_vars.new_date[Year] = 1 + int_ptr[Year];
+                assert(dp_vars.new_date[Year] != dp_vars.old_date[Year]);
+            }
+            dp_vars.content_width = ImGui::GetContentRegionAvail().x;
+            dp_vars.arrow_size = ImGui::GetFrameHeight();
+            dp_vars.arrow_button_width = dp_vars.arrow_size * 2.0f + ImGui::GetStyle().ItemSpacing.x;
+            dp_vars.bullet_size = dp_vars.arrow_size - 5.0f;
+            dp_vars.bullet_button_width = dp_vars.bullet_size + ImGui::GetStyle().ItemSpacing.x;
+            dp_vars.combined_width = dp_vars.arrow_button_width + dp_vars.bullet_button_width;
+            dp_vars.offset = (dp_vars.content_width - dp_vars.combined_width) * 0.5f;
+
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + dp_vars.offset);
+            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 20.0f);
+            ImGui::PushStyleColor(ImGuiCol_Button, vec4z);
+            ImGui::PushStyleColor(ImGuiCol_Border, vec4z);
+            // ImGui::BeginDisabled(IsMinDate(ymd));
+            
+            // Left arrow for previous month; compose hidden label
+            compound_string(string_buffer, STR_BUF_LEN, Static::prev_month_cs, title);
+            vec2[1] = vec2[0] = dp_vars.arrow_size;
+            if (ImGui::ArrowButtonEx(string_buffer, ImGuiDir_Left, vec2)) {
+                DecrementMonth(dp_vars.new_date);
+            }
+            // ImGui::EndDisabled();
+            ImGui::PopStyleColor(2);
+            ImGui::SameLine();
+            ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_Text));
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 2.0f);
+
+            // Centre button
+            compound_string(string_buffer, STR_BUF_LEN, Static::mid_button_cs, title);
+            vec2[1] = vec2[0] = dp_vars.arrow_size;
+            if (ImGui::ButtonEx(string_buffer, vec2)) {
+                ImGui::CloseCurrentPopup();
+            }
+            // Right arrow for next month
+            compound_string(string_buffer, STR_BUF_LEN, Static::next_month_cs, title);
+            vec2[1] = vec2[0] = dp_vars.arrow_size;
+            if (ImGui::ArrowButtonEx(string_buffer, ImGuiDir_Right, vec2)) {
+                IncrementMonth(dp_vars.new_date);
+            }
+            ImGui::EndDisabled();
+            ImGui::PopStyleColor(2);
+            ImGui::PopStyleVar();
+
+            // Now for the day date table; a table full of DD
+            // with 7 cols for Mo, Tu, We, Th, Fr, Sa, Su and 
+            // several rows for the dates
+            // eg  1  2  3  4  5  6  7
+            //     8  9 10 11 12 13 14
+            //    15 16 17 18 19 20 21
+            int table_flags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_SizingFixedSame;
+            cspec_int(cs_table_flags, w->cspec_int, &table_flags);
+            compound_string(string_buffer, STR_BUF_LEN, Static::date_table_cs, title);
+            if (ImGui::BeginTable(string_buffer, 7, table_flags)) {
+                LocalFont day_date_font(w, cs_day_date_font, cs_day_date_font_size);
+                for (const auto& day : Static::day_array_cs) {
+                    ImGui::TableSetupColumn(day);
+                }
+                ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImGui::GetStyleColorVec4(ImGuiCol_TableHeaderBg));
+                ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImGui::GetStyleColorVec4(ImGuiCol_TableHeaderBg));
+                ImGui::TableHeadersRow();
+                ImGui::PopStyleColor(2);
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+
+                int month = 1 + int_ptr[Month];
+                int first_day_of_month = WeekDay(1, month, int_ptr[Year]);
+                int month_day_count = MonthDayCount(month, int_ptr[Year]);
+                int month_week_count = MonthWeekCount(month, int_ptr[Year]);
+
+                for (int i = 1; i <= month_week_count; ++i) {
+                    WeekDates(i, first_day_of_month, month_day_count, dp_vars.day_array);
+                    for (auto day : dp_vars.day_array) {
+                        if (day != 0) {
+                            const bool selected = day == int_ptr[Day];
+                            if (!selected) {
+                                ImGui::PushStyleColor(ImGuiCol_Button, vec4z);
+                                ImGui::PushStyleColor(ImGuiCol_Border, vec4z);
+                            }
+                            if (ImGui::Button(std::to_string(day).c_str(), vec2z)) {
+                                // NB ImGui::Button doesn't operate directly
+                                // on int_ptr data, unlike Combo and InputInt,
+                                // so we set explicitly here.
+                                int_ptr[Day] = day; // v = EncodeTimePoint(day, month, year);
+                                dp_vars.new_date[Day] = day;
+                                ImGui::CloseCurrentPopup();
+                            }
+                            if (!selected)
+                                ImGui::PopStyleColor(2);
+                        }
+                        if (day != month_day_count)
+                            ImGui::TableNextColumn();
+                    }
+                }
+                ImGui::EndTable();
+            }
+        }
+
+        if (dp_vars.new_date != dp_vars.old_date) {
+            notify_server(ymd_data_ref, dp_vars.old_date, dp_vars.new_date);
+        }
+
         /*
             if (!JContains(w, Static::cspec_cs)) {
                 NDLogger::cerr() << method << "no cspec in w(" << w << ")" << std::endl;
