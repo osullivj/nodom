@@ -1086,12 +1086,8 @@ protected:
         if (window == nullptr || window->SkipItems)
             return;
 
-        const char* title = cspec_string(cs_title, w->cspec_str, method);
         dp_vars.combo_flags = ImGuiComboFlags_HeightRegular;
         cspec_int(cs_combo_flags, w->cspec_int, &dp_vars.combo_flags);
-        // title will be eg "Start date" next to the combo
-        // so we need a hidden label for the Combo
-        compound_string(string_buffer, STR_BUF_LEN, Static::double_hash_cs, title);
 
         // now get hold of the YMD int[3]
         DataRef* ymd_data_ref = cspec_data_ref(cs_cname, w->data_refs);
@@ -1100,6 +1096,15 @@ protected:
         IntInx iinx{ ymd_data_ref->ref_inx };
         int* int_ptr = data_lay_cache.get_int_value(iinx);
         assert(int_ptr != nullptr);
+
+        // get hold of the the original cname char* in case we
+        // don't have label in the cspec
+        const char* cname = data_lay_cache.get_addr_value(ymd_data_ref->addr_inx);
+        const char* _label = cspec_string(cs_label, w->cspec_str, cname);
+        const char* label = _label == nullptr ? cname : _label;
+        // label will be eg "Start date" next to the combo
+        // so we need a hidden label for the Combo
+        compound_string(string_buffer, STR_BUF_LEN, Static::double_hash_cs, label);
 
         // convert YMD int[3] to string for combo...
         std::copy_n(int_ptr, dp_vars.old_date.size(), dp_vars.old_date.begin());
@@ -1113,13 +1118,13 @@ protected:
         if (ImGui::BeginCombo(string_buffer, date_buffer, dp_vars.combo_flags)) {
             LocalFont year_month_font(w, cs_year_month_font, cs_year_month_font_size);
             // compose hidden label for the month combo box
-            compound_string(string_buffer, STR_BUF_LEN, Static::month_combo_cs, title);
+            compound_string(string_buffer, STR_BUF_LEN, Static::month_combo_cs, label);
             if (ImGui::Combo(string_buffer, &int_ptr[Month], Static::months_array_cs.data(), 12)) {
                 dp_vars.new_date[Month] = 1 + int_ptr[Month];         // jan index 0, month 1
                 assert(dp_vars.new_date[Month] != dp_vars.old_date[Month]);
             }
             // compose hidden label for the year input int
-            compound_string(string_buffer, STR_BUF_LEN, Static::year_input_int_cs, title);
+            compound_string(string_buffer, STR_BUF_LEN, Static::year_input_int_cs, label);
             if (ImGui::InputInt(string_buffer, &int_ptr[Year])) {
                 dp_vars.new_date[Year] = 1 + int_ptr[Year];
                 assert(dp_vars.new_date[Year] != dp_vars.old_date[Year]);
@@ -1138,7 +1143,7 @@ protected:
             ImGui::PushStyleColor(ImGuiCol_Border, vec4z);
             
             // Left arrow for previous month; compose hidden label
-            compound_string(string_buffer, STR_BUF_LEN, Static::prev_month_cs, title);
+            compound_string(string_buffer, STR_BUF_LEN, Static::prev_month_cs, label);
             vec2[1] = vec2[0] = dp_vars.arrow_size;
             if (ImGui::ArrowButtonEx(string_buffer, ImGuiDir_Left, vec2)) {
                 DecrementMonth(dp_vars.new_date);
@@ -1149,13 +1154,13 @@ protected:
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 2.0f);
 
             // Centre button
-            compound_string(string_buffer, STR_BUF_LEN, Static::mid_button_cs, title);
+            compound_string(string_buffer, STR_BUF_LEN, Static::mid_button_cs, label);
             vec2[1] = vec2[0] = dp_vars.arrow_size;
             if (ImGui::ButtonEx(string_buffer, vec2)) {
                 ImGui::CloseCurrentPopup();
             }
             // Right arrow for next month
-            compound_string(string_buffer, STR_BUF_LEN, Static::next_month_cs, title);
+            compound_string(string_buffer, STR_BUF_LEN, Static::next_month_cs, label);
             vec2[1] = vec2[0] = dp_vars.arrow_size;
             if (ImGui::ArrowButtonEx(string_buffer, ImGuiDir_Right, vec2)) {
                 IncrementMonth(dp_vars.new_date);
@@ -1171,7 +1176,7 @@ protected:
             //    15 16 17 18 19 20 21
             int table_flags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_SizingFixedSame;
             cspec_int(cs_table_flags, w->cspec_int, &table_flags);
-            compound_string(string_buffer, STR_BUF_LEN, Static::date_table_cs, title);
+            compound_string(string_buffer, STR_BUF_LEN, Static::date_table_cs, label);
             if (ImGui::BeginTable(string_buffer, 7, table_flags)) {
                 LocalFont day_date_font(w, cs_day_date_font, cs_day_date_font_size);
                 for (const auto& day : Static::day_array_cs) {
