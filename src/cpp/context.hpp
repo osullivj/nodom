@@ -8,7 +8,9 @@
 #include "imgui_internal.h"
 #include "ImGuiDatePicker.hpp"
 #include "proxy.hpp"
-#include "static_strings.hpp"
+#include "locals.hpp"
+#include "ufuncs.hpp"
+#include "widgets.hpp"
 #include "db_cache.hpp"
 #include "dl_cache.hpp"
 #include "logger.hpp"
@@ -172,6 +174,7 @@ private:
     // but we want to minimise stack thrashing
     fmt::format_to_n_result<char*> fmt_result;
     DatePickerLocals    dp_vars;
+    SpinnerLocals       sp_vars;
 
     struct LocalFont {
         inline static VVFunc pop_func{nullptr};
@@ -1489,18 +1492,15 @@ protected:
                     sinx++;
                 }
             }
-            // if (bpop) pop_font();
-            int spinner_radius = 5;
-            int spinner_thickness = 2;
-            cspec_int(cs_spinner_radius, w->cspec_int, &spinner_radius);
-            cspec_int(cs_spinner_thickness, w->cspec_int, &spinner_thickness);
+            cspec_int(cs_spinner_radius, w->cspec_int, &sp_vars.radius);
+            cspec_int(cs_spinner_thickness, w->cspec_int, &sp_vars.thickness);
             /*
             if (JContains(cspec, Static::spinner_radius_cs))
                 spinner_radius = JAsInt(cspec, Static::spinner_radius_cs);
             if (JContains(cspec, Static::spinner_thickness_cs))
                 spinner_thickness = JAsInt(cspec, Static::spinner_thickness_cs);
                 */
-            if (!ImGui::Spinner(Static::i_am_loading_spinner_cs, (float)spinner_radius, spinner_thickness, 0)) {
+            if (!Spinner(Static::i_am_loading_spinner_cs, sp_vars)) {
                 // TODO: spinner always fails IsClippedEx on first render
                 NDLogger::cout() << method << "SPINNER_FAIL" << std::endl;
             }
