@@ -165,7 +165,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\fmt\src\format.cc" />
-    <ClCompile Include="..\..\ImGuiDatePicker\ImGuiDatePicker.cpp" />
     <ClCompile Include="..\..\imgui\backends\imgui_impl_glfw.cpp" />
     <ClCompile Include="..\..\imgui\backends\imgui_impl_opengl3.cpp" />
     <ClCompile Include="..\..\imgui\imgui.cpp" />
@@ -178,7 +177,6 @@
     <ClCompile Include="perf.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\ImGuiDatePicker\ImGuiDatePicker.hpp" />
     <ClInclude Include="..\..\imgui\imconfig.h" />
     <ClInclude Include="..\..\imgui\imgui.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
@@ -195,7 +193,9 @@
     <ClInclude Include="nlohmann.hpp" />
     <ClInclude Include="proxy.hpp" />
     <ClInclude Include="static_strings.hpp" />
+    <ClInclude Include="ufuncs.hpp" />
     <ClInclude Include="websock.hpp" />
+    <ClInclude Include="widgets.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\misc\debuggers\imgui.natvis" />
