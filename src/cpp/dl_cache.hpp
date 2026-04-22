@@ -701,7 +701,7 @@ private:
         {Footer, {cs_show_footer_db, cs_show_footer_fps, cs_show_footer_demo, 
                     cs_show_footer_id_stack, cs_show_footer_font_scale, 
                         cs_show_footer_style}},
-        {DatePicker, {cs_year_month_font, cs_year_month_font_size,
+        {DatePicker, {cs_label, cs_year_month_font, cs_year_month_font_size,
                         cs_day_date_font, cs_day_date_font_size,
                         cs_table_flags, cs_combo_flags}},
         {DuckTableSummaryModal, {cs_title, cs_title_font, cs_title_font_size,
