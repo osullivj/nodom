@@ -1133,7 +1133,6 @@ protected:
             ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 20.0f);
             ImGui::PushStyleColor(ImGuiCol_Button, vec4z);
             ImGui::PushStyleColor(ImGuiCol_Border, vec4z);
-            // ImGui::BeginDisabled(IsMinDate(ymd));
             
             // Left arrow for previous month; compose hidden label
             compound_string(string_buffer, STR_BUF_LEN, Static::prev_month_cs, title);
@@ -1141,7 +1140,6 @@ protected:
             if (ImGui::ArrowButtonEx(string_buffer, ImGuiDir_Left, vec2)) {
                 DecrementMonth(dp_vars.new_date);
             }
-            // ImGui::EndDisabled();
             ImGui::PopStyleColor(2);
             ImGui::SameLine();
             ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_Text));
@@ -1159,7 +1157,6 @@ protected:
             if (ImGui::ArrowButtonEx(string_buffer, ImGuiDir_Right, vec2)) {
                 IncrementMonth(dp_vars.new_date);
             }
-            ImGui::EndDisabled();
             ImGui::PopStyleColor(2);
             ImGui::PopStyleVar();
 
