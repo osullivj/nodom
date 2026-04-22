@@ -1,0 +1,34 @@
+// Local working state structs for renderables
+#pragma once
+#include "nd_types.hpp"
+
+struct DatePickerLocals {
+    YMD     old_date{ 1970, 1, 1 };   // render_date_picker
+    YMD     new_date{ 1970, 1, 1 };
+    int     combo_flags{ 0 };
+    float   content_width{ 0.0 };
+    float   arrow_size{ 0.0 };
+    float   bullet_size{ 0.0 };
+    float   arrow_button_width{ 0.0 };
+    float   bullet_button_width{ 0.0 };
+    float   combined_width{ 0.0 };
+    float   offset{ 0.0 };
+    WEEK    day_array{ 0,0,0,0,0,0,0 };
+};
+
+struct SpinnerLocals {
+    int     radius{ 0 };          // parameters
+    int     thickness{ 0 };
+    int     segments{ 30 };
+    int     color{ 0 };
+    ImU32   col;
+    ImGuiID id;
+    ImVec2  position;
+    ImVec2  size;
+    ImRect  bounding_box;
+    int     start;
+    float   a_min;
+    float   a_max;
+    float   a;
+    ImVec2  centre;
+};
