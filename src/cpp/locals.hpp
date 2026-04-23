@@ -5,6 +5,7 @@
 struct DatePickerLocals {
     YMD     old_date{ 1970, 1, 1 };   // render_date_picker
     YMD     new_date{ 1970, 1, 1 };
+    int     month_index{ 0 };
     int     combo_flags{ 0 };
     float   content_width{ 0.0 };
     float   arrow_size{ 0.0 };
