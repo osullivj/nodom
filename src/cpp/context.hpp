@@ -1120,15 +1120,17 @@ protected:
                 LocalFont year_month_font(w, cs_year_month_font, cs_year_month_font_size);
                 // compose hidden label for the month combo box
                 compound_string(string_buffer, STR_BUF_LEN, Static::month_combo_cs, label);
-                if (ImGui::Combo(string_buffer, &int_ptr[Month], Static::months_array_cs.data(), 12)) {
-                    dp_vars.new_date[Month] = 1 + int_ptr[Month];         // jan index 0, month 1
-                    assert(dp_vars.new_date[Month] != dp_vars.old_date[Month]);
+                dp_vars.month_index = int_ptr[Month] - 1;
+                if (ImGui::Combo(string_buffer, &dp_vars.month_index, Static::months_array_cs.data(), 12)) {
+                    dp_vars.new_date[Month] = 1 + dp_vars.month_index;         // jan index 0, month 1
+                    int_ptr[Month] = 1 + dp_vars.month_index;
+                    // assert(dp_vars.new_date[Month] != dp_vars.old_date[Month]);
                 }
                 // compose hidden label for the year input int
                 compound_string(string_buffer, STR_BUF_LEN, Static::year_input_int_cs, label);
                 if (ImGui::InputInt(string_buffer, &int_ptr[Year])) {
                     dp_vars.new_date[Year] = int_ptr[Year];
-                    assert(dp_vars.new_date[Year] != dp_vars.old_date[Year]);
+                    // assert(dp_vars.new_date[Year] != dp_vars.old_date[Year]);
                 }
             }
 
