@@ -87,7 +87,7 @@ inline void WeekDates(int week, int day_one, int days_in_month, WEEK& wk) {
         wk[Mon] = start_of_week;
     }
     for (int i = Tues; i < EndWeekDay; ++i) {
-        int date = day_one + i;
+        int date = start_of_week + i;
         if ((date >= 1) && (date <= days_in_month)) {
             wk[i] = date;
         }
