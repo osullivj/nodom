@@ -1124,13 +1124,11 @@ protected:
                 if (ImGui::Combo(string_buffer, &dp_vars.month_index, Static::months_array_cs.data(), 12)) {
                     dp_vars.new_date[Month] = 1 + dp_vars.month_index;         // jan index 0, month 1
                     int_ptr[Month] = 1 + dp_vars.month_index;
-                    // assert(dp_vars.new_date[Month] != dp_vars.old_date[Month]);
                 }
                 // compose hidden label for the year input int
                 compound_string(string_buffer, STR_BUF_LEN, Static::year_input_int_cs, label);
                 if (ImGui::InputInt(string_buffer, &int_ptr[Year])) {
                     dp_vars.new_date[Year] = int_ptr[Year];
-                    // assert(dp_vars.new_date[Year] != dp_vars.old_date[Year]);
                 }
             }
 
@@ -1199,10 +1197,9 @@ protected:
                 ImGui::TableNextRow();
                 ImGui::TableSetColumnIndex(0);
 
-                int month = 1 + int_ptr[Month];
-                int first_day_of_month = WeekDay(1, month, int_ptr[Year]);
-                int month_day_count = MonthDayCount(month, int_ptr[Year]);
-                int month_week_count = MonthWeekCount(month, int_ptr[Year]);
+                int first_day_of_month = WeekDay(1, int_ptr[Month], int_ptr[Year]);
+                int month_day_count = MonthDayCount(int_ptr[Month], int_ptr[Year]);
+                int month_week_count = MonthWeekCount(int_ptr[Month], int_ptr[Year]);
 
                 for (int i = 1; i <= month_week_count; ++i) {
                     WeekDates(i, first_day_of_month, month_day_count, dp_vars.day_array);
@@ -1213,7 +1210,7 @@ protected:
                                 ImGui::PushStyleColor(ImGuiCol_Button, vec4z);
                                 ImGui::PushStyleColor(ImGuiCol_Border, vec4z);
                             }
-                            if (ImGui::Button(std::to_string(day).c_str(), vec2z)) {
+                            if (ImGui::Button(Static::integers_cs[day], vec2z)) {
                                 // NB ImGui::Button doesn't operate directly
                                 // on int_ptr data, unlike Combo and InputInt,
                                 // so we set explicitly here.
