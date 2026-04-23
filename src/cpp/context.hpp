@@ -1116,19 +1116,22 @@ protected:
 
         // Main drop down combo for the date
         if (ImGui::BeginCombo(string_buffer, date_buffer, dp_vars.combo_flags)) {
-            LocalFont year_month_font(w, cs_year_month_font, cs_year_month_font_size);
-            // compose hidden label for the month combo box
-            compound_string(string_buffer, STR_BUF_LEN, Static::month_combo_cs, label);
-            if (ImGui::Combo(string_buffer, &int_ptr[Month], Static::months_array_cs.data(), 12)) {
-                dp_vars.new_date[Month] = 1 + int_ptr[Month];         // jan index 0, month 1
-                assert(dp_vars.new_date[Month] != dp_vars.old_date[Month]);
+            {   // local scope so year_month_font is popped before the day date table
+                LocalFont year_month_font(w, cs_year_month_font, cs_year_month_font_size);
+                // compose hidden label for the month combo box
+                compound_string(string_buffer, STR_BUF_LEN, Static::month_combo_cs, label);
+                if (ImGui::Combo(string_buffer, &int_ptr[Month], Static::months_array_cs.data(), 12)) {
+                    dp_vars.new_date[Month] = 1 + int_ptr[Month];         // jan index 0, month 1
+                    assert(dp_vars.new_date[Month] != dp_vars.old_date[Month]);
+                }
+                // compose hidden label for the year input int
+                compound_string(string_buffer, STR_BUF_LEN, Static::year_input_int_cs, label);
+                if (ImGui::InputInt(string_buffer, &int_ptr[Year])) {
+                    dp_vars.new_date[Year] = int_ptr[Year];
+                    assert(dp_vars.new_date[Year] != dp_vars.old_date[Year]);
+                }
             }
-            // compose hidden label for the year input int
-            compound_string(string_buffer, STR_BUF_LEN, Static::year_input_int_cs, label);
-            if (ImGui::InputInt(string_buffer, &int_ptr[Year])) {
-                dp_vars.new_date[Year] = 1 + int_ptr[Year];
-                assert(dp_vars.new_date[Year] != dp_vars.old_date[Year]);
-            }
+
             dp_vars.content_width = ImGui::GetContentRegionAvail().x;
             dp_vars.arrow_size = ImGui::GetFrameHeight();
             dp_vars.arrow_button_width = dp_vars.arrow_size * 2.0f + ImGui::GetStyle().ItemSpacing.x;
@@ -1159,6 +1162,11 @@ protected:
             if (ImGui::ButtonEx(string_buffer, vec2)) {
                 ImGui::CloseCurrentPopup();
             }
+            ImGui::PopStyleColor();
+            ImGui::SameLine();
+            ImGui::PushStyleColor(ImGuiCol_Button, vec4z);
+            ImGui::PushStyleColor(ImGuiCol_Border, vec4z);
+
             // Right arrow for next month
             compound_string(string_buffer, STR_BUF_LEN, Static::next_month_cs, label);
             vec2[1] = vec2[0] = dp_vars.arrow_size;
@@ -1220,6 +1228,7 @@ protected:
                 }
                 ImGui::EndTable();
             }
+            ImGui::EndCombo();
         }
 
         if (dp_vars.new_date != dp_vars.old_date) {
