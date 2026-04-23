@@ -30,7 +30,7 @@ struct Static {
 	inline static const char* rm_push_font_cs{ "PushFont" };	// Fonts
 	inline static const char* rm_pop_font_cs{ "PopFont" };
 
-	inline static const char* is_duck_app_cs{"is_duck_app"};
+	inline static const char* is_duck_app_cs{ "is_duck_app" };
 	inline static const char* __nodom__cs{ "__nodom__" };
 	inline static const char* sys_cs{ "sys" };
 
@@ -67,33 +67,33 @@ struct Static {
 	inline static const char* style_cs{ "style" };
 
 	inline static const char* lb_footer_style_cs{ "Style" };
-	inline static const char* cspec_cs{"cspec"};
-	inline static const char* cname_cs{"cname"};
-	inline static const char* qname_cs{"qname"};
-	inline static const char* rname_cs{"rname"};
+	inline static const char* cspec_cs{ "cspec" };
+	inline static const char* cname_cs{ "cname" };
+	inline static const char* qname_cs{ "qname" };
+	inline static const char* rname_cs{ "rname" };
 	inline static const char* cindex_cs{ "cindex" };
 
 	inline static const char* sql_cs{ "sql" };
 
 
-	inline static const char* path_cs{"path"};
-	inline static const char* service_cs{"service"};
-	inline static const char* children_cs{"children"};
-	inline static const char* breadboard_cs{"breadboard"};
-	inline static const char* duck_module_cs{"duck_module"};
-	inline static const char* empty_cs{""};
-	inline static const char* nodom_cs{"NoDOM"};
-	
-	inline static const char* size_cs{"size"};
-	inline static const char* widget_id_cs{"widget_id"};
-	
-	inline static const char* layout_cs{"layout"};
-	inline static const char* data_cs{"data"};
-	inline static const char* value_cs{"value"};
-	inline static const char* error_cs{"Error"};
-	inline static const char* default_cs{"Default"};
-	inline static const char* ok_cs{"OK"};
-	inline static const char* cancel_cs{"Cancel"};
+	inline static const char* path_cs{ "path" };
+	inline static const char* service_cs{ "service" };
+	inline static const char* children_cs{ "children" };
+	inline static const char* breadboard_cs{ "breadboard" };
+	inline static const char* duck_module_cs{ "duck_module" };
+	inline static const char* empty_cs{ "" };
+	inline static const char* nodom_cs{ "NoDOM" };
+
+	inline static const char* size_cs{ "size" };
+	inline static const char* widget_id_cs{ "widget_id" };
+
+	inline static const char* layout_cs{ "layout" };
+	inline static const char* data_cs{ "data" };
+	inline static const char* value_cs{ "value" };
+	inline static const char* error_cs{ "Error" };
+	inline static const char* default_cs{ "Default" };
+	inline static const char* ok_cs{ "OK" };
+	inline static const char* cancel_cs{ "Cancel" };
 
 	// compound widget IDs: we alreay use _id as a var name suffix eg widget_id
 	// and query_id, so we signal the IDness of these strings with i_am_ prefix
@@ -105,25 +105,25 @@ struct Static {
 	// inline static const char* i_am_loading_modal_cs{ "i_am_loading_modal" };
 
 	// DB
-	inline static const char* null_cs{"NULL"};
-	inline static const char* bad_cs{"BAD"};
+	inline static const char* null_cs{ "NULL" };
+	inline static const char* bad_cs{ "BAD" };
 
 	// Actions: data.actions should be a dict
 	// of dicts. Those leaf dicts should supply
 	// a list of strings as the nd_events value
 	// specifying which events can trigger the action.
-	inline static const char* actions_cs{"actions"};
-	inline static const char* nd_events_cs{"nd_events"};
+	inline static const char* actions_cs{ "actions" };
+	inline static const char* nd_events_cs{ "nd_events" };
 	// An action can push or pop a UI element
-	inline static const char* ui_pop_cs{"ui_pop"};
-	inline static const char* ui_push_cs{"ui_push"};
+	inline static const char* ui_pop_cs{ "ui_pop" };
+	inline static const char* ui_push_cs{ "ui_push" };
 	// An action dict may have a db subdict
 	// specifying a DB action
-	inline static const char* db_action_cs{"db_action"};
+	inline static const char* db_action_cs{ "db_action" };
 	// DB subdict must supply an action (Command|Query|BatchRequest),
 	// a unique query ID and a cache address for the SQL in sql_cname
-	inline static const char* action_cs{"action"};
-	inline static const char* sql_cname_cs{"sql_cname"};
+	inline static const char* action_cs{ "action" };
+	inline static const char* sql_cname_cs{ "sql_cname" };
 
 	// Events: message keys
 	inline static const char* nd_type_cs{ "nd_type" };
@@ -134,18 +134,18 @@ struct Static {
 	inline static const char* query_id_cs{ "query_id" };
 
 	// Events: possible values for nd_type
-	inline static const char* batch_request_cs{"BatchRequest"};
-	inline static const char* batch_response_cs{"BatchResponse"};
-	inline static const char* cache_response_cs{"CacheResponse"};
-	inline static const char* cache_request_cs{"CacheRequest"};
-	inline static const char* click_cs{"Click"};
+	inline static const char* batch_request_cs{ "BatchRequest" };
+	inline static const char* batch_response_cs{ "BatchResponse" };
+	inline static const char* cache_response_cs{ "CacheResponse" };
+	inline static const char* cache_request_cs{ "CacheRequest" };
+	inline static const char* click_cs{ "Click" };
 	inline static const char* online_cs{ "Online" };
-	inline static const char* data_change_cs{"DataChange"};
-	inline static const char* data_change_confirmed_cs{"DataChangeConfirmed"};
-		inline static const char* query_cs{"Query"};
-	inline static const char* query_result_cs{"QueryResult"};
-	inline static const char* command_cs{"Command"};
-	inline static const char* command_result_cs{"CommandResult"};
+	inline static const char* data_change_cs{ "DataChange" };
+	inline static const char* data_change_confirmed_cs{ "DataChangeConfirmed" };
+	inline static const char* query_cs{ "Query" };
+	inline static const char* query_result_cs{ "QueryResult" };
+	inline static const char* command_cs{ "Command" };
+	inline static const char* command_result_cs{ "CommandResult" };
 
 	inline static const char* gui_cs{ "GUI" };
 	inline static const char* websock_cs{ "WebSock" };
@@ -162,9 +162,9 @@ struct Static {
 
 	// Misc
 	inline static const char* space_cs{ " " };
-	inline static const char* indent_cs{"  "};
-	inline static const char* chunk_cs{"chunk"};
-	inline static const char* period_cs{"."};
+	inline static const char* indent_cs{ "  " };
+	inline static const char* chunk_cs{ "chunk" };
+	inline static const char* period_cs{ "." };
 	inline static const char* colon_cs{ ":" };
 	inline static const char* db_config_cs{ "db_config" };
 	// DatePicker
@@ -176,7 +176,7 @@ struct Static {
 	inline static const char* mid_button_cs{ "##MidButton_" };
 	inline static const char* date_table_cs{ "##DateTable_" };
 
-	inline static const std::array<char*,12> months_array_cs{
+	inline static const std::array<char*, 12> months_array_cs{
 		"January",
 		"February",
 		"March",
@@ -191,14 +191,7 @@ struct Static {
 		"December"
 	};
 	inline static const std::array<char*, 7> day_array_cs{
-		"Mo",
-		"Tu",
-		"We",
-		"Th",
-		"Fr",
-		"Sa",
-		"Su"
-
+		"Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"
 	};
 	inline static std::array<int, 12> month_day_count{
 		31, // Jan
@@ -214,6 +207,13 @@ struct Static {
 		30, // Nov
 		31	// Dec
 	};
+	inline static std::array<const char*, 32> integers_cs{
+		"0",	"1",	"2",	"3",	"4",	"5",	"6",	"7",
+		"8",	"9",	"10",	"11",	"12",	"13",	"14",	"15",
+		"16",	"17",	"18",	"19",	"20",	"21",	"22",	"23",
+		"24",	"25",	"26",	"27",	"28",	"29",	"30",	"31"
+	};
+
 	// Error codes for logging fingerprints
 	inline static const char* BAD_CSPEC_cs{ "BAD_CSPEC" };
 
