@@ -188,6 +188,7 @@
     <ClInclude Include="facade.hpp" />
     <ClInclude Include="im_render.hpp" />
     <ClInclude Include="json_ops.hpp" />
+    <ClInclude Include="locals.hpp" />
     <ClInclude Include="logger.hpp" />
     <ClInclude Include="nd_types.hpp" />
     <ClInclude Include="nlohmann.hpp" />
