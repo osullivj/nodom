@@ -115,7 +115,7 @@ protected:
         address_map.clear();
     }
 
-    void parse_actions(const JSON& action_seq, ActionVec& nd_action_vec, ActionInternVec& act_intern_vec, ActionErrorVec& act_error_vec) {
+    void parse_actions(const JSON& data, const JSON& action_seq, ActionVec& nd_action_vec, ActionInternVec& act_intern_vec, ActionErrorVec& act_error_vec) {
         const static char* method = "DataLayCache::parse_actions: ";
         int action_seq_len = JSize(action_seq);
         for (int inx = 0; inx < action_seq_len; inx++) {
@@ -161,11 +161,19 @@ protected:
                     action.sql_cname = add_address(sql_cache_key);
                     // check that the sql cname refers to a cache data entry
                     interned.sql_cname = (char*)get_addr_value(action.sql_cname);
-                    if (address_map.find(sql_cache_key) == address_map.end()) {
+                    auto amit = address_map.find(sql_cache_key);
+                    if (amit == address_map.end()) {
                         std::stringstream ss{ "CACHE_KEY_NOT_FOUND(" };
                         ss << sql_cache_key << ")";
                         errors.error_vec.push_back(ss.str());
                         errors.inx = inx;
+                    }
+                    else {
+                        // create data_ref_map entry for the query/cmd
+                        DataRef data_ref{ cdStr, amit->second };
+                        data_ref.size = 1;
+                        std::string sql = JAsString(data, sql_cache_key);
+                        data_ref.ref_inx = intern_string<CIT::Value>(sql)();
                     }
                 }
             }
@@ -223,13 +231,13 @@ protected:
                 continue;
             }
             AddrInx ainx = add_address(key);
-            address_map[key] = ainx;
             // We could try and parse the values here, but how do
             // we tell an int from a float? We cannot, because JS only
             // has "number". We can figure atomic vs array, and string vs
             // number, but not float vs int. However, when we parse
             // cspecs in on_layout, we can know from context what type
-            // is required.
+            // is required. That's when we can create the data_ref_map
+            // entry that matches the address_map entry.
         }
 
         if (we_have_actions) {
@@ -261,7 +269,7 @@ protected:
                 ActionErrorVec action_error_vec{};
                 JSON action_seq = JSON::array();
                 action_seq = jactions[action_key_s];
-                parse_actions(action_seq, nd_action_vec, action_intern_vec, action_error_vec);
+                parse_actions(data, action_seq, nd_action_vec, action_intern_vec, action_error_vec);
                 actions[action_key] = nd_action_vec;
                 actions_interned[action_key] = action_intern_vec;
                 actions_errors[action_key] = action_error_vec;
@@ -336,8 +344,8 @@ protected:
                     case cdResultSet:
                         assert(false);
                         break;
-                    case cdFloat:       // not required by any widget yet
                     case cdStr:
+                    case cdFloat:       // not required by any widget yet
                         assert(false);
                         break;
                     case cdInt: // spec:cindex, sz:1
@@ -532,7 +540,9 @@ public:
     }
 
     AddrInx add_address(const std::string& addr) {
-        return intern_string<CIT::Address>(addr);
+        AddrInx ainx = intern_string<CIT::Address>(addr);
+        address_map[addr] = ainx;
+        return ainx;
     }
 
     EntityInx add_widget_id(const std::string& wid) {
