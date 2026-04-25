@@ -2,11 +2,9 @@
 #include <string>
 #include <map>
 #include <queue>
-// #include <filesystem>
 #include <functional>
 #include "imgui.h"
 #include "imgui_internal.h"
-#include "ImGuiDatePicker.hpp"
 #include "proxy.hpp"
 #include "locals.hpp"
 #include "ufuncs.hpp"
@@ -1229,61 +1227,9 @@ protected:
             }
             ImGui::EndCombo();
         }
-
         if (dp_vars.new_date != dp_vars.old_date) {
             notify_server(ymd_data_ref, dp_vars.old_date, dp_vars.new_date);
         }
-
-        /*
-            if (!JContains(w, Static::cspec_cs)) {
-                NDLogger::cerr() << method << "no cspec in w(" << w << ")" << std::endl;
-                return;
-            }
-            const JSON& cspec(w[Static::cspec_cs]);
-            if (JContains(cspec, Static::year_month_font_cs)) {
-                std::string ym_font(JAsString(cspec, Static::year_month_font_cs));
-                auto font_it = font_map.find(ym_font);
-                if (font_it != font_map.end()) {
-                    year_month_font = font_it->second;
-                    if (JContains(cspec, Static::year_month_font_size_cs))
-                        year_month_font_size_base = JAsInt(cspec, Static::year_month_font_size_cs);
-                }
-                else {
-                    // Use Default font installed by im_start instead
-                    year_month_font = font_map[Static::default_cs];
-                }
-            }
-            if (JContains(cspec, Static::day_date_font_cs)) {
-                std::string dd_font(JAsString(cspec, Static::day_date_font_cs));
-                auto font_it = font_map.find(dd_font);
-                if (font_it != font_map.end()) {
-                    day_date_font = font_it->second;
-                    if (JContains(cspec, Static::day_date_font_size_cs))
-                        day_date_font_size_base = JAsInt(cspec, Static::day_date_font_size_cs);
-                }
-                else {
-                    // Use Default font installed by im_start instead
-                    day_date_font = font_map[Static::default_cs];
-                }
-            }
-            int table_flags = default_table_flags;
-            if (JContains(cspec, Static::table_flags_cs))
-                table_flags = JAsInt(cspec, Static::table_flags_cs);
-            int combo_flags = default_combo_flags;
-            if (JContains(cspec, Static::combo_flags_cs))
-                combo_flags = JAsInt(cspec, Static::combo_flags_cs);
-            std::string ckey = JAsString(cspec, Static::cname_cs);
-            JSON ymd_old_j = JSON::array();
-            ymd_old_j = data[ckey];
-            ymd_i[0] = JAsInt(ymd_old_j, 0);
-            ymd_i[1] = JAsInt(ymd_old_j, 1);
-            ymd_i[2] = JAsInt(ymd_old_j, 2);
-            if (ImGui::DatePicker(ckey.c_str(), ymd_i.data(), combo_flags, table_flags, year_month_font, day_date_font, year_month_font_size_base, day_date_font_size_base)) {
-                auto ymd_new_j = JArray(ymd_i);
-                JSet(data, ckey.c_str(), ymd_new_j);
-                notify_server(ckey, ymd_old_j, ymd_new_j);
-            }
-            */
     }
 
 
@@ -1300,7 +1246,6 @@ protected:
         const char* button_text = cspec_string(cs_text, w->cspec_str, method);
 
         if (ImGui::Button(button_text)) {
-            // action_dispatch(widget_id, Static::click_cs);
             action_dispatch(w->widget_inx, einx_Click);
         }
     }
