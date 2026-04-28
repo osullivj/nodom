@@ -267,11 +267,37 @@ public:
         stack.push_back(data_lay_cache.get_home());
     }
 
-    EventInx next_db_event(EventInx einx) {
-        if (einx == einx_Command) return einx_CommandResult;
-        if (einx == einx_Query) return einx_QueryResult;
-        if (einx == einx_BatchRequest) return einx_BatchResponse;
-        return einx_Invalid;
+    // EventInx next_db_event(EventInx einx) {
+    DBEventType next_db_event(DBEventType dbet) {
+        switch (dbet) {
+        case dbCommand:
+            return dbCommandResult;
+        case dbQuery:
+            return dbQueryResult;
+        case dbBatchRequest:
+            return dbBatchResponse;
+        default:
+            return EndDBEventTypes;
+        }
+    }
+
+    EventInx db_event_type_to_event_inx(DBEventType dbet) {
+        switch (dbet) {
+        case dbCommand:
+            return einx_Command;
+        case dbCommandResult:
+            return einx_CommandResult;
+        case dbQuery:
+            return einx_Query;
+        case dbQueryResult:
+            return einx_QueryResult;
+        case dbBatchRequest:
+            return einx_BatchRequest;
+        case dbBatchResponse:
+            return einx_BatchResponse;
+        default:
+            return EndDBEventTypes;
+        }
     }
 
     // Helpers and accessors
@@ -687,33 +713,14 @@ protected:
 
         const static char* method = "NDContext::action_dispatch: ";
 
-        /*
-        compound_string(act_ev_key_buf, act_ev_key_buf_len, 
-            action_id, nd_event, Static::period_cs);
-
-        NDLogger::cout() << method << "ACT_EV(" << act_ev_key_buf << ")" << std::endl;
-
-        if (!JContains(data, Static::actions_cs)) {
-            NDLogger::cout() << method << "no actions in data!" << std::endl;
-            return;
-        } 
-        // Get hold of "actions" in data: do we a matching action?
-        // NB if there isn't a matching action.event compound key in data.actions,
-        // then we have to check the in flight sequences...
-        const JSON& actions(data[Static::actions_cs]);
-        JSON action_seq = JSON::array(); */
         std::list<InFlight> new_in_flight_list;
         ActionKey akey{ ninx, einx };
         ActionVec* avec = data_lay_cache.get_action_vec(akey);
-        // if (JContains(actions, act_ev_key_buf)) {
         if (avec) {
             InFlight resume;
             // we have a match in data.actions to kick off a sequence
-            // action_seq = actions[act_ev_key_buf];
-            // action_execute(action_seq, 0, resume);
             action_execute(avec, 0, resume);
             // If there's a continuation, add to new list
-            // if (resume.next != nullptr)
             if (resume.next.is_valid())
                 new_in_flight_list.emplace_back(resume);
         }
@@ -722,12 +729,11 @@ protected:
         // there were any in flight sequences waiting for an action.event
         auto if_iter = in_flight_list.begin();
         while (if_iter != in_flight_list.end()) {
-            if (if_iter->query_id == ninx /*action_id*/ && /*nd_event*/einx == if_iter->next) {
+            if (if_iter->query_id == ninx && einx == if_iter->next) {
                 // we have an in flight match with action.event so execute
                 // then add any resumption to new list
                 InFlight resume;
                 action_execute(if_iter->sequence, if_iter->inx, resume);
-                // if (resume.next != nullptr)
                 if (resume.next.is_valid())
                     new_in_flight_list.emplace_back(resume);
             }
@@ -743,103 +749,41 @@ protected:
             in_flight_list.swap(new_in_flight_list);
         }
     }
-    // void action_execute(JSON& action_seq, int action_inx, InFlight& resume) {
+
+
     void action_execute(ActionVec* action_seq, int action_inx, InFlight& resume) {
         const static char* method = "NDContext::action_execute: ";
+
+        assert(action_seq != nullptr);
         int seq_len = action_seq->size(); // JSize(action_seq);
         if (action_inx >= seq_len) {
             NDLogger::cerr() << method << "ACT_EXEC: inx(" << action_inx
                 << ") >= len(" << seq_len << ")" << std::endl;
             return;
         }
-        // const JSON& action_defn(action_seq[action_inx]);
         const NDAction& action_defn{ (*action_seq)[action_inx] };
         // Now we have a matched action definition in hand we can look
         // for UI push/pop and DB scan/query. If there's both push and pop,
         // pop goes first naturally!
-        // if (JContains(action_defn, Static::ui_pop_cs)) {
         if (render_is_valid(action_defn.pop_ui)) {
             // for pops we supply the rname, not the pushable name so
             // the context can check the widget type on pops
-            // std::string rname(JAsString(action_defn, Static::ui_pop_cs));
-            // NDLogger::cout() << method << "ui_pop(" << rname << ")" << std::endl;
-            // pending_pops.push_back(rname);
             pending_pops.push_back(action_defn.pop_ui);
         }
-        // if (JContains(action_defn, Static::ui_push_cs)) {
         if (action_defn.push_ui.is_valid()) {
             // for pushes we supply widget_id, not the rname
-            // std::string widget_id(JAsString(action_defn, Static::ui_push_cs));
-            // uint32_t int_widget_id{ 0 };
-            // TODO: memoize action_defn to yield widget_id as uint32, not str
-            // salt'n'pepa in da house!
-            /*
-            auto find_it = entity_indices.find(widget_id);
-            if (find_it == entity_indices.end()) {
-                NDLogger::cerr() << method << "ui_push(" << widget_id << ") no such pushable" << std::endl;
-            }
-            else {
-                // TODO: fix after C2 refactor
-                int_widget_id = find_it->second;
-            } */
-            // new above, slightly amended below...
-            // auto push_it = pushable.find(action_defn.push_ui);
             pending_pushes.push_back(action_defn.push_ui);
-            /*
-            if (push_it != pushable.end()) {
-                NDLogger::cout() << method << "ui_push(" << action_defn.push_ui << ")" << std::endl;
-                // NB action_dispatch is called by eg render_button, which ultimately is called
-                // by render(), which iterates over stack. So we cannot change stack here...
-                pending_pushes.push_back(push_it->second);
-            }
-            else {
-                NDLogger::cerr() << method << "ui_push(" << action_defn.push_ui << ") no such pushable" << std::endl;
-            }*/
         }
         // Finally, do we have a DB op to handle?
-        // TODO: rejig!
-        std::string db_action;
-        std::string query_id;
-        std::string sql_cache_key;
         if (db_event_is_valid(action_defn.db_action)) {
-        // if (JContains(action_defn, Static::db_action_cs)) {
             db_dispatch(action_defn);
-            /*
-            if (action_defn.db_action == dbBatchRequest) {
-                db_dispatch(action_defn.db_)
-            }
-            db_action = JAsString(action_defn, Static::db_action_cs);
-            if (!JContains(action_defn, Static::query_id_cs)) {
-                NDLogger::cerr() << method << "ACT_EXEC_FAIL db_action(" << db_action << ") missing query_id" << std::endl;
-                return;
-            }
-            query_id = JAsString(action_defn, Static::query_id_cs);
-            if (db_action == Static::batch_request_cs) {
-                db_dispatch(db_action, query_id);
-            }
-            else {
-                if (!JContains(action_defn, Static::sql_cname_cs)) {
-                    NDLogger::cerr() << method << "ACT_EXEC_FAIL db_action(" << db_action << ") missing sql_cname" << std::endl;
-                    return;
-                }
-                sql_cache_key = JAsString(action_defn, Static::sql_cname_cs);
-                if (!JContains(data, sql_cache_key.c_str())) {
-                    NDLogger::cerr() << method << "ACT_EXEC_FAIL db_action(" << db_action << ") sql_cname(" << sql_cache_key << ") does not resolve!" << std::endl;
-                    return;
-                }
-                else {
-                    std::string sql(JAsString(data, sql_cache_key.c_str()));
-                    db_dispatch(db_action, query_id, sql);
-                }
-            }*/
             // We've dispatched a DB op from a sequence, so there's a 
             // continuation if this is not the last action.
             if (++action_inx < seq_len) {
                 resume.sequence = action_seq;
                 resume.inx = action_inx;
                 resume.query_id = action_defn.query_id;
-                // resume.next = NextEvent(db_action.c_str());
-                resume.next = next_db_event(action_defn.db_action);
+                resume.next = db_event_type_to_event_inx(next_db_event(action_defn.db_action));
             }
         }
     }
