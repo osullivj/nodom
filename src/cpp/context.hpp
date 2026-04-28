@@ -844,22 +844,6 @@ protected:
         }
     }
 
-    /*
-    void db_dispatch(const std::string& nd_type, const std::string& qid, 
-                    const std::string& sql) {
-        auto db_request = JNewObject();
-        JSet(db_request, Static::nd_type_cs, nd_type.c_str());
-        JSet(db_request, Static::sql_cs, sql.c_str());
-        JSet(db_request, Static::query_id_cs, qid.c_str());
-        proxy.db_dispatch(db_request);
-    }
-
-    void db_dispatch(const std::string& nd_type, const std::string& qid) {
-        auto db_request = JNewObject();
-        JSet(db_request, Static::nd_type_cs, nd_type.c_str());
-        JSet(db_request, Static::query_id_cs, qid.c_str());
-        proxy.db_dispatch(db_request);
-    } */
 
     void db_dispatch(const NDAction& action_defn) {
         const static char* method = "NDContext::db_dispatch: ";
