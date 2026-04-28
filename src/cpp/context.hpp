@@ -1326,77 +1326,38 @@ protected:
         const static char* method = "NDContext::render_loading_modal: ";
 
         static ImVec2 position = { 0.5, 0.5 };
-        /*
-        if (!JContains(w, Static::cspec_cs) || 
-            !JContains(w[Static::cspec_cs], Static::cname_cs) || 
-            !JContains(w[Static::cspec_cs], Static::title_cs)) {
-            NDLogger::cerr() << method << "BAD_CSPEC" << w << std::endl;
-            return;
-        }
-        const JSON& cspec(w[Static::cspec_cs]);
-        std::string cname_cache_addr(JAsString(cspec, Static::cname_cs));
-        std::string title(cname_cache_addr);
-        if (JContains(cspec, Static::title_cs))
-            title = JAsString(cspec, Static::title_cs);
-            */
-
         const char* title = cspec_string(cs_title, w->cspec_str, method);
-
-        /*
-        bool tpop = false;
-        if (JContains(cspec, Static::title_font_cs))
-            tpop = push_font(w, Static::title_font_cs, Static::title_font_size_cs);
-        */
         LocalFont title_font(w, cs_title_font, cs_title_font_size);
-
-        ImGui::OpenPopup(title); // .c_str());
-
+        ImGui::OpenPopup(title);
         // Always center this window when appearing
         ImGuiViewport* vp = ImGui::GetMainViewport();
-        if (!vp) {
-            NDLogger::cerr() << method << title << ": NULL_VP_PTR";
-        }
+        assert(vp != nullptr);
         auto center = vp->GetCenter();
         ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, position);
-
         // Get the text list
-        // StringVec text_vec;
-        // JAsStringVec(data, cname_cache_addr.c_str(), text_vec);
         DataRef* str_vec_data_ref = cspec_data_ref(cs_cname, w->data_refs);
 
         if (ImGui::BeginPopupModal(title/*.c_str()*/, nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-            LocalFont body_font(w, cs_body_font, cs_body_font_size);
-            /*
-            bool bpop = false;
-            if (JContains(cspec, Static::body_font_cs))
-                bpop = push_font(w, Static::body_font_cs, Static::body_font_size_cs);
-            for (auto text_iter = text_vec.begin(); text_iter != text_vec.end(); ++text_iter) {
-                    ImGui::TextUnformatted(text_iter->c_str());
-            } */
-            if (str_vec_data_ref != nullptr &&
-                str_vec_data_ref->tipe == cdStr) {
-                StrInx sinx{str_vec_data_ref->ref_inx};
-                for (int i = 0; i < str_vec_data_ref->size; i++) {
-                    const char* text = data_lay_cache.get_string_value(sinx);
-                    if (text) ImGui::TextUnformatted(text);
-                    sinx++;
+            {   // local scope for LocalFont so it pops before ImGui::EndPopup()
+                LocalFont body_font(w, cs_body_font, cs_body_font_size);
+                if (str_vec_data_ref != nullptr &&
+                    str_vec_data_ref->tipe == cdStr) {
+                    StrInx sinx{ str_vec_data_ref->ref_inx };
+                    for (int i = 0; i < str_vec_data_ref->size; i++) {
+                        const char* text = data_lay_cache.get_string_value(sinx);
+                        if (text) ImGui::TextUnformatted(text);
+                        sinx++;
+                    }
                 }
-            }
-            cspec_int(cs_spinner_radius, w->cspec_int, &sp_vars.radius);
-            cspec_int(cs_spinner_thickness, w->cspec_int, &sp_vars.thickness);
-            /*
-            if (JContains(cspec, Static::spinner_radius_cs))
-                spinner_radius = JAsInt(cspec, Static::spinner_radius_cs);
-            if (JContains(cspec, Static::spinner_thickness_cs))
-                spinner_thickness = JAsInt(cspec, Static::spinner_thickness_cs);
-                */
-            if (!Spinner(Static::i_am_loading_spinner_cs, sp_vars)) {
-                // TODO: spinner always fails IsClippedEx on first render
-                NDLogger::cout() << method << "SPINNER_FAIL" << std::endl;
+                cspec_int(cs_spinner_radius, w->cspec_int, &sp_vars.radius);
+                cspec_int(cs_spinner_thickness, w->cspec_int, &sp_vars.thickness);
+                if (!Spinner(Static::i_am_loading_spinner_cs, sp_vars)) {
+                    // TODO: spinner always fails IsClippedEx on first render
+                    NDLogger::cout() << method << "SPINNER_FAIL" << std::endl;
+                }
             }
             ImGui::EndPopup();
         }
-        // if (tpop) pop_font();
     }
 
     void render_table(WidgetPtr w) {
