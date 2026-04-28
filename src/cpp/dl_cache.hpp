@@ -434,6 +434,7 @@ public:
     size_t widget_vec_size() { return widget_vec.size(); }
     size_t pushables_size() { return pushables.size(); }
     size_t actions_size() { return actions.size(); }
+    size_t data_ref_map_size() { return data_ref_map.size(); }
 
     void on_json(const JSON& data, const JSON& layout, VVFunc on_init) {
         clear();
