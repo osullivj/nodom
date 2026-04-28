@@ -797,14 +797,17 @@ protected:
         const char* qid = data_lay_cache.get_string_value(action_defn.query_id);
         assert(qid != nullptr);
         JSet(db_request, Static::query_id_cs, qid);
-        assert(action_defn.sql_cname.is_valid());
-        const char* sql_cname = data_lay_cache.get_addr_value(action_defn.sql_cname);
-        assert(sql_cname != nullptr);
-        DataRef* data_ref = data_lay_cache.get_data_ref(action_defn.sql_cname);
-        assert(data_ref != nullptr);
-        const char* sql = data_lay_cache.get_string_value<AddrInx>(data_ref->ref_inx);
-        assert(sql != nullptr);
-        JSet(db_request, Static::sql_cs, sql);
+        // BatchRequest just needs QID, no SQL; Command and Query need SQL
+        if (action_defn.db_action != dbBatchRequest) {
+            assert(action_defn.sql_cname.is_valid());
+            const char* sql_cname = data_lay_cache.get_addr_value(action_defn.sql_cname);
+            assert(sql_cname != nullptr);
+            DataRef* data_ref = data_lay_cache.get_data_ref(action_defn.sql_cname);
+            assert(data_ref != nullptr);
+            const char* sql = data_lay_cache.get_string_value<AddrInx>(data_ref->ref_inx);
+            assert(sql != nullptr);
+            JSet(db_request, Static::sql_cs, sql);
+        }
         proxy.db_dispatch(db_request);
     }
 
