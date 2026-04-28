@@ -862,18 +862,22 @@ protected:
     } */
 
     void db_dispatch(const NDAction& action_defn) {
+        const static char* method = "NDContext::db_dispatch: ";
+
         auto db_request = JNewObject();
         JSet(db_request, Static::nd_type_cs, DBEventTypeToString(action_defn.db_action));
         const char* qid = data_lay_cache.get_string_value(action_defn.query_id);
-        if (qid != nullptr) {
-            JSet(db_request, Static::query_id_cs, qid);
-        }
-        if (action_defn.sql_cname.is_valid()) {
-            const char* sql = data_lay_cache.get_addr_value(action_defn.sql_cname);
-            if (sql != nullptr) {
-                JSet(db_request, Static::sql_cs, sql);
-            }
-        }
+        assert(qid != nullptr);
+        JSet(db_request, Static::query_id_cs, qid);
+        assert(action_defn.sql_cname.is_valid());
+        const char* sql_cname = data_lay_cache.get_addr_value(action_defn.sql_cname);
+        assert(sql_cname != nullptr);
+        DataRef* data_ref = data_lay_cache.get_data_ref(action_defn.sql_cname);
+        assert(data_ref != nullptr);
+        const char* sql = data_lay_cache.get_string_value<AddrInx>(data_ref->ref_inx);
+        assert(sql != nullptr);
+        JSet(db_request, Static::sql_cs, sql);
+        proxy.db_dispatch(db_request);
     }
 
     // Render functions
