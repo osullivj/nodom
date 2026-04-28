@@ -174,6 +174,7 @@ protected:
                         data_ref.size = 1;
                         std::string sql = JAsString(data, sql_cache_key);
                         data_ref.ref_inx = intern_string<CIT::Value>(sql)();
+                        data_ref_map[data_ref.addr_inx] = data_ref;
                     }
                 }
             }
@@ -497,6 +498,14 @@ public:
         auto it = actions.find(ak);
         if (it != actions.end()) {
             return &(it->second);
+        }
+        return nullptr;
+    }
+
+    DataRef* get_data_ref(AddrInx ainx) {
+        auto it = data_ref_map.find(ainx);
+        if (it != data_ref_map.end()) {
+            return &it->second;
         }
         return nullptr;
     }
