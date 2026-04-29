@@ -32,6 +32,7 @@ SCAN_BUTTON_TEXT = "Scan"
 SCAN_BUTTON_ID = "i_am_scan_button"
 SUMMARY_BUTTON_TEXT = "Summary"
 SUMMARY_BUTTON_ID = "i_am_summary_button"
+SUMMARY_MODAL_ID = "i_am_depth_summary_modal"
 DB_ONLINE = "DBOnline"
 DB_BUTTON_ID = "i_am_footer_db_button"
 EXF_LAYOUT = [
@@ -147,7 +148,7 @@ EXF_LAYOUT = [
     ),
     # not a Home child? Must have an ID to be pushable
     dict(
-        widget_id="i_am_depth_summary_modal",
+        widget_id=SUMMARY_MODAL_ID,
         rname="DuckTableSummaryModal",
         cspec=dict(
             title="Depth table",
@@ -273,7 +274,7 @@ EXF_DATA = dict(
         f"{SUMMARY_BUTTON_ID}.Click": [
             dict(
                 # depth_summary_modal is self popping,
-                ui_push="depth_summary_modal",
+                ui_push=SUMMARY_MODAL_ID
             )
         ],
         f"{DB_ONLINE}.DuckInstance": SUMMARY_SEQUENCE,
