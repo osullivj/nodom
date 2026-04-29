@@ -190,7 +190,7 @@ LAUNCH_SCAN = dict(  # raise scanning modal, send scan request to DuckDB
 )
 
 LAUNCH_SUMMARY = dict(  # close scanning modal, send query request to DuckDB
-    ui_pop="parquet_loading_modal",
+    ui_pop="LoadingModal",
     db_action="Query",
     query_id=SUMMARY_QID,
     sql_cname="summary_sql",
