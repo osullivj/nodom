@@ -469,8 +469,10 @@ public:
             assert(false);
             break;
         case cdFloat:       // not required by any widget yet
-        case cdStr:
             assert(false);
+            break;
+        case cdStr:         // NDAction::sql_cname SQL data_ref
+            update_string(data_ref.ref_inx, JAsString(dc, Static::new_value_cs));
             break;
         case cdInt: // spec:cindex, sz:1
             update_int(data_ref.ref_inx, JAsInt(dc, Static::new_value_cs));
