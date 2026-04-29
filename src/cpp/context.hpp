@@ -1254,13 +1254,9 @@ protected:
         std::uint64_t colm_count = SMRY_COLM_CNT;
         int colm_index = 0;
         bool body_pop = false;
-        if (ImGui::BeginPopupModal(title/*.c_str()*/, nullptr, window_flags)) {
-            // if (title_pop) pop_font();
+        if (ImGui::BeginPopupModal(title, nullptr, window_flags)) {
             LocalFont body_font(w, cs_body_font, cs_body_font_size);
             /*
-            if (JContains(cspec, Static::body_font_cs))
-                body_pop = push_font(w, Static::body_font_cs, Static::body_font_size_cs);
-
             std::uint64_t result_handle = proxy.get_handle(qname);
             if (!result_handle) {
                 auto [iter, inserted] = bad_handle_map.insert(std::make_pair(std::move(qname), 1));
@@ -1292,13 +1288,6 @@ protected:
             */
             ImGui::Separator();
         }
-        /*
-        if (body_pop) pop_font();
-
-        bool button_pop = false;
-        if (JContains(cspec, Static::button_font_cs))
-            button_pop = push_font(w, Static::button_font_cs, Static::button_font_size_cs);
-            */
         {   // Local scope so we're poppped before ImGui::EndPopup()
             LocalFont button_font(w, cs_button_font, cs_button_font_size);
 
@@ -1320,9 +1309,6 @@ protected:
                 pending_pops.push_back(DuckTableSummaryModal);
             }
         }
-
-        // if (button_pop) pop_font();
-
         ImGui::EndPopup();
     }
 
