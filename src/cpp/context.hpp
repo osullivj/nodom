@@ -1299,25 +1299,26 @@ protected:
         if (JContains(cspec, Static::button_font_cs))
             button_pop = push_font(w, Static::button_font_cs, Static::button_font_size_cs);
             */
+        {   // Local scope so we're poppped before ImGui::EndPopup()
+            LocalFont button_font(w, cs_button_font, cs_button_font_size);
 
-        LocalFont button_font(w, cs_button_font, cs_button_font_size);
-
-        // Note we do not invoke pop_widget() here as we're
-        // rendering, and that would change the stack while
-        // the topmost render method is iterating over it.
-        // Instead we add it to the list of pending_pops
-        // so top level render will invoke pop_widget for us.
-        // NB we pop_widget asymmetrically with an rname,
-        // not a widget_id
-        if (ImGui::Button(Static::ok_cs)) {
-            ImGui::CloseCurrentPopup();
-            pending_pops.push_back(DuckTableSummaryModal);
-        }
-        ImGui::SetItemDefaultFocus();
-        ImGui::SameLine();
-        if (ImGui::Button(Static::cancel_cs)) {
-            ImGui::CloseCurrentPopup();
-            pending_pops.push_back(DuckTableSummaryModal);
+            // Note we do not invoke pop_widget() here as we're
+            // rendering, and that would change the stack while
+            // the topmost render method is iterating over it.
+            // Instead we add it to the list of pending_pops
+            // so top level render will invoke pop_widget for us.
+            // NB we pop_widget asymmetrically with an rname,
+            // not a widget_id
+            if (ImGui::Button(Static::ok_cs)) {
+                ImGui::CloseCurrentPopup();
+                pending_pops.push_back(DuckTableSummaryModal);
+            }
+            ImGui::SetItemDefaultFocus();
+            ImGui::SameLine();
+            if (ImGui::Button(Static::cancel_cs)) {
+                ImGui::CloseCurrentPopup();
+                pending_pops.push_back(DuckTableSummaryModal);
+            }
         }
 
         // if (button_pop) pop_font();
