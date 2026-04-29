@@ -1340,15 +1340,17 @@ protected:
         // Get the text list
         DataRef* str_vec_data_ref = cspec_data_ref(cs_cname, w->data_refs);
 
-        if (ImGui::BeginPopupModal(title/*.c_str()*/, nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        if (ImGui::BeginPopupModal(title, nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
             {   // local scope for LocalFont so it pops before ImGui::EndPopup()
                 LocalFont body_font(w, cs_body_font, cs_body_font_size);
-                if (str_vec_data_ref != nullptr &&
-                    str_vec_data_ref->tipe == cdStr) {
+                if (str_vec_data_ref != nullptr) {
+                    assert(str_vec_data_ref->tipe == cdStrVec);
                     StrInx sinx{ str_vec_data_ref->ref_inx };
                     for (int i = 0; i < str_vec_data_ref->size; i++) {
                         const char* text = data_lay_cache.get_string_value(sinx);
-                        if (text) ImGui::TextUnformatted(text);
+                        if (text) {
+                            ImGui::TextUnformatted(text);
+                        }
                         sinx++;
                     }
                 }
