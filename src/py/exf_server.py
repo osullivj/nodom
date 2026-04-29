@@ -132,7 +132,7 @@ EXF_LAYOUT = [
                 rname="Table",
                 cspec=dict(
                     title="Depth grid",
-                    qname=SELECT_QID,
+                    query_id=SELECT_QID,
                     table_flags=TableFlags.SCROLL_X
                     | TableFlags.SCROLL_Y
                     | TableFlags.ROW_BG
@@ -157,7 +157,7 @@ EXF_LAYOUT = [
             body_font_size=8,
             button_font="CourierNew",
             button_font_size=12,
-            qname="depth_summary",
+            query_id=SUMMARY_QID,
             geom="Vanilla",  # redundant as summary table is always Vanilla
             window_flags=WindowFlags.ALWAYS_AUTO_RESIZE
             | WindowFlags.HORIZONTAL_SCROLLBAR,
