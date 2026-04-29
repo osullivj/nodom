@@ -261,7 +261,8 @@ EXF_DATA = dict(
     query_sql=QUERY_SQL % dict(depth_offset=0),
     summary_sql=SUMMARY_SQL,
     ui_sql="CALL start_ui();",
-    enable_logging_sql="INSTALL parquet; CALL enable_logging(level='debug', storage='stdout');",
+    # change to level='debug' for more DuckDB logging
+    enable_logging_sql="INSTALL parquet; CALL enable_logging(level='info', storage='stdout');",
     actions={
         f"{DB_BUTTON_ID}.Click": [LAUNCH_UI],
         # match on scan button click
