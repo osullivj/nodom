@@ -169,7 +169,7 @@ protected:
                         errors.inx = inx;
                     }
                     else {
-                        // create data_ref_map entry for the query/cmd
+                        // create data_ref_map entry for the query/cmd SQL source
                         DataRef data_ref{ cdStr, amit->second };
                         data_ref.size = 1;
                         std::string sql = JAsString(data, sql_cache_key);
@@ -324,14 +324,17 @@ protected:
                 std::string addr_s{JAsString(cspec, ref_name)};
                 auto amit = address_map.find(addr_s);
                 if (amit == address_map.end()) {
+                    throw std::runtime_error("NoDOM BAD_ADDR:" + addr_s);
+                    /*
                     if (ref_name == Static::cname_cs ||
                         ref_name == Static::cindex_cs) {
                         // error: cname|cindex value not in data
                         throw std::runtime_error("NoDOM BAD_ADDR:" + addr_s);
                     }
-                    else {
+                    else {  // ref_name:qname entails addr_s is a query_id
                         // qname should be an EntityID, specifically a QueryID
-                    }
+                        EntityInx einx = add_query_id(addr_s);
+                    } */
                 }
                 else {
                     // NB amit->second is AddrInx
@@ -342,12 +345,15 @@ protected:
                     
                     switch (ref_type) {
                     case cdAny:         // shouldn't be in addr_cspecs!
-                    case cdResultSet:
                         assert(false);
                         break;
                     case cdStr:
                     case cdFloat:       // not required by any widget yet
                         assert(false);
+                        break;
+                    case cdResultSet:
+                        // no need to set data_ref.ref_inx as the result set
+                        // is not in the data cache
                         break;
                     case cdInt: // spec:cindex, sz:1
                         data_ref.ref_inx = intern_int(JAsInt(data, addr_s))();
@@ -564,6 +570,9 @@ public:
     }
 
     EntityInx add_query_id(const std::string& qid) {
+        // Create an address_map entry too so that later
+        // layout parsing can create a cdResultSet DataRef 
+        AddrInx ainx = intern_string<CIT::Address>(qid);
         EntityInx inx{ intern_string<CIT::EntityID>(qid, CST::QueryID) };
         entity_map[qid] = inx;
         return inx;
@@ -699,7 +708,7 @@ private:
         cdBool,     // cs_show_footer_style
         cdAny,      // cs_cname
         cdAny,      // cs_cindex
-        cdResultSet // cs_qname
+        cdResultSet // cs_query_id
     };
 
     inline static std::map<RenderMethod, CacheDataType> cname_cspec_types{
@@ -744,8 +753,8 @@ private:
         {Checkbox, {{cs_cname, cdBool}}},
         {DatePicker, {{cs_cname, cdIntVec}}},
         {LoadingModal, {{cs_cname, cdStrVec}}},
-        {DuckTableSummaryModal, {{cs_qname, cdResultSet}}},
-        {Table, {{cs_qname, cdResultSet}}}
+        {DuckTableSummaryModal, {{cs_query_id, cdResultSet}}},
+        {Table, {{cs_query_id, cdResultSet}}}
     };
 
 public:
