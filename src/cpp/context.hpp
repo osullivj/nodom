@@ -1200,19 +1200,6 @@ protected:
             "q50", "q75",   // DUCKDB_TYPE_VARCHAR, DUCKDB_TYPE_VARCHAR,
             "cnt", "null"   // DUCKDB_TYPE_BIGINT, DUCKDB_TYPE_DECIMAL
         };
-        /*
-        if (!JContains(w, Static::cspec_cs) || 
-            !JContains(w[Static::cspec_cs], Static::qname_cs) || 
-            !JContains(w[Static::cspec_cs], Static::title_cs)) {
-            NDLogger::cerr() << method << Static::BAD_CSPEC_cs << JPrettyPrint(w) << std::endl;
-            return;
-        }
-        const JSON& cspec(w[Static::cspec_cs]);
-        const std::string qname(JAsString(cspec, Static::qname_cs));
-        std::string title(qname);
-        if (JContains(cspec, Static::title_cs))
-            title = JAsString(cspec, Static::title_cs);
-            */
 
         const char* title = cspec_string(cs_title, w->cspec_str, method);
 
@@ -1220,29 +1207,16 @@ protected:
         int window_flags = default_window_flags;
         cspec_int(cs_table_flags, w->cspec_int, &table_flags);
         cspec_int(cs_window_flags, w->cspec_int, &window_flags);
-        /*
-        if (JContains(cspec, Static::table_flags_cs)) {
-            table_flags = JAsInt(cspec, Static::table_flags_cs);
-        }
-        if (JContains(cspec, Static::window_flags_cs)) {
-            window_flags = JAsInt(cspec, Static::window_flags_cs);
-        }*/
 
-        /*
-        bool title_pop = false;
-        if (JContains(cspec, Static::title_font_cs))
-            title_pop = push_font(w, Static::title_font_cs, Static::title_font_size_cs);
-            */
+        DataRef* result_set_data_ref = cspec_data_ref(cs_query_id, w->data_refs);
+        const char* query_id = data_lay_cache.get_string_value(result_set_data_ref->addr_inx);
+
         if (title) {    // scope to fire title_font dtor and pop before body
             LocalFont title_font(w, cs_title_font, cs_title_font_size);
-
-            ImGui::OpenPopup(title); // .c_str());
+            ImGui::OpenPopup(title);
             // Always center this window when appearing
             ImGuiViewport* vp = ImGui::GetMainViewport();
-            if (!vp) {
-                NDLogger::cerr() << method << "NULL_VP_PTR!" << std::endl;
-                return;
-            }
+            assert(vp != nullptr);
             auto center = vp->GetCenter();
             ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, { 0.5, 0.5 });
         }
@@ -1256,14 +1230,13 @@ protected:
         bool body_pop = false;
         if (ImGui::BeginPopupModal(title, nullptr, window_flags)) {
             LocalFont body_font(w, cs_body_font, cs_body_font_size);
-            /*
-            std::uint64_t result_handle = proxy.get_handle(qname);
+            std::uint64_t result_handle = proxy.get_handle(query_id);
             if (!result_handle) {
-                auto [iter, inserted] = bad_handle_map.insert(std::make_pair(std::move(qname), 1));
+                auto [iter, inserted] = bad_handle_map.insert(std::make_pair(query_id, 1));
                 if (!inserted) iter->second++;
                 return;
             }
-            if (ImGui::BeginTable(qname.c_str(), (int)colm_count, table_flags)) {
+            if (ImGui::BeginTable(query_id, (int)colm_count, table_flags)) {
                 for (colm_index = 0; colm_index < colm_count; colm_index++) {
                     ImGui::TableSetupColumn(colm_names[colm_index]);
                 }
@@ -1285,7 +1258,6 @@ protected:
                 }
                 ImGui::EndTable();
             }
-            */
             ImGui::Separator();
         }
         {   // Local scope so we're poppped before ImGui::EndPopup()
