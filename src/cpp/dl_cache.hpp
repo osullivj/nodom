@@ -32,20 +32,27 @@ protected:
     PushableMap                 pushables;
     WidgetPtr                   noop_widget;
 
-    ActionMap                   actions;
-    ActionInternMap             actions_interned;
-    ActionErrorMap              actions_errors;
+    ActionMap                   action_map;
+    ActionInternMap             action_interned_map;
+    ActionErrorMap              action_error_map;
     StringVec                   bad_action_keys;
+    StringVec                   action_errors;
 
     // Valid cache addresses
     std::map<std::string, AddrInx>      address_map;
     std::map<AddrInx, DataRef>          data_ref_map;
+    StringVec                           bad_addrs;
+    StringVec                           bad_data_refs;
+    StringVec                           layout_errors;
 
     // EntityIDs created as QueryIDs.
-    std::map<std::string, EntityInx>    entity_map;
+    std::map<std::string, EntityInx>    query_map;
+    std::map<std::string, EntityInx>    widget_map;
+    EntityInx                           invalid_entity;
 
+public:
     template <CIT itype>
-    auto intern_string(const std::string& s, CST stype = CST::None) {
+    auto get_string_index(const std::string& s, CST stype = CST::None) {
         auto iter = std::find(cache_strings.begin(), cache_strings.end(), s);
         if (iter == cache_strings.end()) {
             cache_strings.push_back(s);
@@ -57,6 +64,7 @@ protected:
         return DataCacheIndex<itype, CDT::cdStr>(inx, stype);
     }
 
+protected:
     void update_string(uint32_t inx, const std::string& val) {
         if (inx >= cache_strings.size())
             throw std::runtime_error("NoDOM BAD_ADDR:update_string:"
@@ -65,7 +73,7 @@ protected:
         fp_char_ptrs[inx] = cache_strings[inx].c_str();
     }
 
-    IntInx intern_int(int value) {
+    IntInx get_int_index(int value) {
         // create storage for an int value, and FP ptr too
         cache_ints.push_back(value);
         fp_int_ptrs.push_back(&(cache_ints.back()));
@@ -78,7 +86,7 @@ protected:
         cache_ints[inx] = val;
     }
 
-    BoolInx intern_bool(bool val) {
+    BoolInx get_bool_index(bool val) {
         BoolInx binx( fp_bool_ptrs.size() );
         cache_bools[binx()] = val;
         fp_bool_ptrs.push_back(&(cache_bools[binx()]));
@@ -91,7 +99,7 @@ protected:
         cache_bools[inx] = val ? 1 : 0;
     }
 
-    FloatInx intern_float(float value) {
+    FloatInx get_float_index(float value) {
         // cannot be a ptr to value in fp_int_ptrs as it's rval,
         // so go ahead and create new cache_floats backed storage
         cache_floats.push_back(value);
@@ -108,11 +116,14 @@ protected:
         cache_floats.clear();
         widget_vec.clear();
         pushables.clear();
-        actions.clear();
-        actions_interned.clear();
-        actions_errors.clear();
+        action_map.clear();
+        action_interned_map.clear();
+        action_error_map.clear();
         bad_action_keys.clear();
         address_map.clear();
+        bad_addrs.clear();
+        bad_data_refs.clear();
+        layout_errors.clear();
     }
 
     void parse_actions(const JSON& data, const JSON& action_seq, ActionVec& nd_action_vec, ActionInternVec& act_intern_vec, ActionErrorVec& act_error_vec) {
@@ -130,8 +141,10 @@ protected:
                 if (action.pop_ui == EndRenderMethod) {
                     std::stringstream ss{ "BAD_RNAME(" };
                     ss << rname << ")";
-                    errors.error_vec.push_back(ss.str());
+                    std::string error{ ss.str() };
+                    errors.error_vec.push_back(error);
                     errors.inx = inx;
+                    action_errors.push_back(error);
                 }
                 else {
                     interned.pop_ui = (char*)render_names[action.pop_ui];
@@ -165,15 +178,17 @@ protected:
                     if (amit == address_map.end()) {
                         std::stringstream ss{ "CACHE_KEY_NOT_FOUND(" };
                         ss << sql_cache_key << ")";
-                        errors.error_vec.push_back(ss.str());
+                        std::string error{ ss.str() };
+                        errors.error_vec.push_back(error);
                         errors.inx = inx;
+                        action_errors.push_back(error);
                     }
                     else {
                         // create data_ref_map entry for the query/cmd SQL source
                         DataRef data_ref{ cdStr, amit->second };
                         data_ref.size = 1;
                         std::string sql = JAsString(data, sql_cache_key);
-                        data_ref.ref_inx = intern_string<CIT::Value>(sql)();
+                        data_ref.ref_inx = get_string_index<CIT::Value>(sql)();
                         data_ref_map[data_ref.addr_inx] = data_ref;
                     }
                 }
@@ -256,13 +271,13 @@ protected:
                 // The EntityInx and EventInx created here are only used
                 // to compose the ActionKey, and are then discarded. Their
                 // values will be recreated on layout parsing.
-                EntityInx entity_inx = intern_string<CIT::EntityID>(entity);
+                EntityInx entity_inx = get_string_index<CIT::EntityID>(entity);
                 std::string event;
                 if (!std::getline(ss, event, Static::period_c)) {
                     bad_action_keys.push_back(action_key_s);
                     continue;
                 }
-                EventInx event_inx = intern_string<CIT::Event>(event);
+                EventInx event_inx = get_string_index<CIT::Event>(event);
                 // combine two inx...
                 ActionKey action_key{ entity_inx, event_inx };
                 ActionVec nd_action_vec{};
@@ -271,9 +286,9 @@ protected:
                 JSON action_seq = JSON::array();
                 action_seq = jactions[action_key_s];
                 parse_actions(data, action_seq, nd_action_vec, action_intern_vec, action_error_vec);
-                actions[action_key] = nd_action_vec;
-                actions_interned[action_key] = action_intern_vec;
-                actions_errors[action_key] = action_error_vec;
+                action_map[action_key] = nd_action_vec;
+                action_interned_map[action_key] = action_intern_vec;
+                action_error_map[action_key] = action_error_vec;
             }
         }
     }
@@ -291,16 +306,16 @@ protected:
             if (JContains(cspec, value_name)) {
                 switch (value_type) {
                 case cdInt:
-                    widget->cspec_int[spec] = intern_int(JAsInt(cspec, value_name));
+                    widget->cspec_int[spec] = get_int_index(JAsInt(cspec, value_name));
                     break;
                 case cdFloat:
-                    widget->cspec_float[spec] = intern_float(JAsFloat(cspec, value_name));
+                    widget->cspec_float[spec] = get_float_index(JAsFloat(cspec, value_name));
                     break;
                 case cdBool:
-                    widget->cspec_bool[spec] = intern_bool(JAsBool(cspec, value_name)?1:0);
+                    widget->cspec_bool[spec] = get_bool_index(JAsBool(cspec, value_name)?1:0);
                     break;
                 case cdStr:
-                    widget->cspec_str[spec] = intern_string<Value>(JAsString(cspec, value_name));
+                    widget->cspec_str[spec] = get_string_index<Value>(JAsString(cspec, value_name));
                     break;
                 case cdIntVec:
                 case cdStrVec:
@@ -318,75 +333,82 @@ protected:
             // if we did ref_type = cspec_types[spec] we'd get cdAny
             // for cname. Instead we get it from the CacheSpecTypeMap 
             CacheDataType ref_type{ ctmit->second };
-            std::string ref_name = cspec_names[spec];   // [cindex|cname|qname]
-            if (JContains(cspec, ref_name.c_str())) {
-                // addr should already be interned by on_data()
-                std::string addr_s{JAsString(cspec, ref_name)};
-                auto amit = address_map.find(addr_s);
-                if (amit == address_map.end()) {
-                    throw std::runtime_error("NoDOM BAD_ADDR:" + addr_s);
-                    /*
-                    if (ref_name == Static::cname_cs ||
-                        ref_name == Static::cindex_cs) {
-                        // error: cname|cindex value not in data
-                        throw std::runtime_error("NoDOM BAD_ADDR:" + addr_s);
-                    }
-                    else {  // ref_name:qname entails addr_s is a query_id
-                        // qname should be an EntityID, specifically a QueryID
-                        EntityInx einx = add_query_id(addr_s);
-                    } */
-                }
-                else {
-                    // NB amit->second is AddrInx
-                    DataRef data_ref{ ref_type, amit->second };
-                    StringVec svec;
-                    IntVec ivec;
-                    JSON jvec{ JSON::array() };
-                    
-                    switch (ref_type) {
-                    case cdAny:         // shouldn't be in addr_cspecs!
-                        assert(false);
-                        break;
-                    case cdStr:
-                    case cdFloat:       // not required by any widget yet
-                        assert(false);
-                        break;
-                    case cdResultSet:
-                        // no need to set data_ref.ref_inx as the result set
-                        // is not in the data cache
-                        break;
-                    case cdInt: // spec:cindex, sz:1
-                        data_ref.ref_inx = intern_int(JAsInt(data, addr_s))();
-                        break;
-                    case cdBool:
-                        data_ref.ref_inx = intern_bool(JAsInt(data, addr_s))();
-                        break;
-                    case cdIntVec:
-                        jvec = data[addr_s];
-                        data_ref.size = JSize(jvec);
-                        if (data_ref.size > 0) {
-                            // capture the "base" index; subsequent indices
-                            // are implied by data_ref.size
-                            data_ref.ref_inx = intern_int(jvec[0])();
-                            for (int jinx = 1; jinx < data_ref.size; jinx++)
-                                intern_int(jvec[jinx]);
-                        }
-                        break;
-                    case cdStrVec:
-                        JAsStringVec(data, addr_s.c_str(), svec);
-                        data_ref.size = svec.size();
-                        if (data_ref.size > 0) {
-                            auto it = svec.begin();
-                            data_ref.ref_inx = intern_string<CIT::Value>(*it++)();
-                            while (it != svec.end())
-                                intern_string<CIT::Value>(*it++);
-                        }
-                        break;
-                    }
-                    widget->data_refs[spec] = data_ref;
-                    data_ref_map[data_ref.addr_inx] = data_ref;
-                }
+            std::string ref_name = cspec_names[spec];   // [cindex|cname|query_id]
+            uint32_t entity_inx{ 0 };
+            if (!JContains(cspec, ref_name.c_str())) {
+                bad_data_refs.push_back(ref_name);
+                std::stringstream ss{ "BAD_DATA_REF(" };
+                ss << ref_name << ") in cspec:";
+                ss << cspec;
+                layout_errors.push_back(ss.str());
+                continue;
             }
+            // cname|cindex: ref_name will be a data addr
+            // query_id: ref_name will be an EntityInx
+            std::string addr_or_qid{ JAsString(cspec, ref_name) };
+            // NB amit->second is AddrInx. Either amit->second
+            // will be good, or query_inx
+            auto amit = address_map.find(addr_or_qid);
+            EntityInx query_inx = get_query_id(addr_or_qid);
+
+            // cindex|cname data_refs must have an address_map entry
+            if ((ref_name == Static::cname_cs || ref_name == Static::cindex_cs)
+                            && amit == address_map.end()) {
+                bad_data_refs.push_back(ref_name);
+                std::stringstream ss{ "BAD_DATA_REF(" };
+                ss << ref_name << ") not address mapped in cspec:";
+                ss << cspec;
+                layout_errors.push_back(ss.str());
+                continue;
+            }
+            DataRef data_ref{ ref_type, query_inx.is_valid() ? query_inx() : amit->second()};
+            StringVec svec;
+            IntVec ivec;
+            JSON jvec{ JSON::array() };
+
+            switch (ref_type) {
+            case cdAny:         // shouldn't be in addr_cspecs!
+                assert(false);
+                break;
+            case cdStr:
+            case cdFloat:       // not required by any widget yet
+                assert(false);
+                break;
+            case cdResultSet:
+                // no need to set data_ref.ref_inx as the result set
+                // is not in the data cache
+                assert(true);
+                break;
+            case cdInt: // spec:cindex, sz:1
+                data_ref.ref_inx = get_int_index(JAsInt(data, addr_or_qid))();
+                break;
+            case cdBool:
+                data_ref.ref_inx = get_bool_index(JAsInt(data, addr_or_qid))();
+                break;
+            case cdIntVec:
+                jvec = data[addr_or_qid];
+                data_ref.size = JSize(jvec);
+                if (data_ref.size > 0) {
+                    // capture the "base" index; subsequent indices
+                    // are implied by data_ref.size
+                    data_ref.ref_inx = get_int_index(jvec[0])();
+                    for (int jinx = 1; jinx < data_ref.size; jinx++)
+                        get_int_index(jvec[jinx]);
+                }
+                break;
+            case cdStrVec:
+                JAsStringVec(data, addr_or_qid.c_str(), svec);
+                data_ref.size = svec.size();
+                if (data_ref.size > 0) {
+                    auto it = svec.begin();
+                    data_ref.ref_inx = get_string_index<CIT::Value>(*it++)();
+                    while (it != svec.end())
+                        get_string_index<CIT::Value>(*it++);
+                }
+                break;
+            }
+            widget->data_refs[spec] = data_ref;
+            data_ref_map[data_ref.addr_inx] = data_ref;
         }
     }
 
@@ -402,7 +424,7 @@ protected:
             // The only NDWidget ctor invocation...
             EntityInx winx; // invalid on init
             std::string widget_id_s{ extract_string(w, Static::widget_id_cs) };
-            if (!widget_id_s.empty()) winx = add_string<EntityID>(widget_id_s, WidgetID);
+            if (!widget_id_s.empty()) winx = get_string_index<EntityID>(widget_id_s, WidgetID);
             auto wptr = std::make_shared<NDWidget>(extract_render_name(w), winx);
             wvec->push_back(wptr);
             orthogonalize_cspec(cspec, data, wvec->back());
@@ -432,7 +454,7 @@ public:
         cache_ints.reserve(capacity);
         cache_floats.reserve(capacity);
 
-        EntityInx winx = add_string<EntityID>(Static::i_am_noop_cs, WidgetID);
+        EntityInx winx = get_string_index<EntityID>(Static::i_am_noop_cs, WidgetID);
         noop_widget = std::make_shared<NDWidget>(RenderMethod::Noop, winx);
     }
 
@@ -441,6 +463,7 @@ public:
     size_t pushables_size() { return pushables.size(); }
     size_t actions_size() { return actions.size(); }
     size_t data_ref_map_size() { return data_ref_map.size(); }
+    size_t error_count() { return action_errors.size() + layout_errors.size(); }
 
     void on_json(const JSON& data, const JSON& layout, VVFunc on_init) {
         clear();
@@ -504,8 +527,8 @@ public:
     }
 
     ActionVec* get_action_vec(ActionKey ak) {
-        auto it = actions.find(ak);
-        if (it != actions.end()) {
+        auto it = action_map.find(ak);
+        if (it != action_map.end()) {
             return &(it->second);
         }
         return nullptr;
@@ -528,11 +551,6 @@ public:
     WidgetPtr get_home() {
         assert(widget_vec.size() > 0);
         return widget_vec[0];
-    }
-
-    template <CIT itype>
-    auto add_string(const std::string& s, CST stype = CST::None) {
-        return intern_string<itype>(s, stype);
     }
 
     template <typename INX>
@@ -558,24 +576,28 @@ public:
     }
 
     AddrInx add_address(const std::string& addr) {
-        AddrInx ainx = intern_string<CIT::Address>(addr);
+        AddrInx ainx = get_string_index<CIT::Address>(addr);
         address_map[addr] = ainx;
         return ainx;
     }
 
     EntityInx add_widget_id(const std::string& wid) {
-        EntityInx inx{ intern_string<CIT::EntityID>(wid, CST::WidgetID) };
-        entity_map[wid] = inx;
+        EntityInx inx{ get_string_index<CIT::EntityID>(wid, CST::WidgetID) };
+        widget_map[wid] = inx;
         return inx;
     }
 
     EntityInx add_query_id(const std::string& qid) {
-        // Create an address_map entry too so that later
-        // layout parsing can create a cdResultSet DataRef 
-        AddrInx ainx = intern_string<CIT::Address>(qid);
-        EntityInx inx{ intern_string<CIT::EntityID>(qid, CST::QueryID) };
-        entity_map[qid] = inx;
+        EntityInx inx{ get_string_index<CIT::EntityID>(qid, CST::QueryID) };
+        query_map[qid] = inx;
         return inx;
+    }
+
+    EntityInx get_query_id(const std::string& qid) {
+        auto qmit = query_map.find(qid);
+        if (qmit != query_map.end())
+            return qmit->second;
+        return invalid_entity;
     }
 
     IntInx extern_int(int* v) {
@@ -673,7 +695,7 @@ private:
         Static::style_cs,        // cs_style
         Static::cname_cs,
         Static::cindex_cs,
-        Static::qname_cs
+        Static::query_id_cs
     };
 
     inline static std::array<CacheDataType, cs_end_cache_specs> cspec_types{
@@ -867,5 +889,16 @@ public:
         report_address_map();
         report_actions();
         std::cout << std::endl;
+    }
+
+    void report_errors() {
+        std::cout << "== layout errors" << std::endl;
+        for (auto error : layout_errors) {
+            std::cout << error << std::endl;
+        }
+        std::cout << "== action errors" << std::endl;
+        for (auto error : action_errors) {
+            std::cout << error << std::endl;
+        }
     }
 };
