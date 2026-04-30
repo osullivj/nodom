@@ -233,38 +233,41 @@ public:
         // Entity and Event indices for our action_dispatch() impl.
 
         // First EntityIDs for subsystem events from GUI or Websock
-        ninx_GUI = data_lay_cache.add_string<CIT::EntityID>(Static::gui_cs, CST::SubSysID);
-        ninx_Websock = data_lay_cache.add_string<CIT::EntityID>(Static::websock_cs, CST::SubSysID);
-        ninx_DuckDB = data_lay_cache.add_string<CIT::EntityID>(Static::duck_db_cs, CST::SubSysID);
+        ninx_GUI = data_lay_cache.get_string_index<CIT::EntityID>(Static::gui_cs, CST::SubSysID);
+        ninx_Websock = data_lay_cache.get_string_index<CIT::EntityID>(Static::websock_cs, CST::SubSysID);
+        ninx_DuckDB = data_lay_cache.get_string_index<CIT::EntityID>(Static::duck_db_cs, CST::SubSysID);
 
         // EntityIDs for predefined widgets like LoadingModal
-        ninx_FooterDBButton = data_lay_cache.add_string<CIT::EntityID>(Static::i_am_footer_db_button_cs, CST::WidgetID);
+        ninx_FooterDBButton = data_lay_cache.get_string_index<CIT::EntityID>(Static::i_am_footer_db_button_cs, CST::WidgetID);
 
         // Events: subsys
-        einx_WebSockConnectionFailed = data_lay_cache.add_string<CIT::Event>(
+        einx_WebSockConnectionFailed = data_lay_cache.get_string_index<CIT::Event>(
                                         CriticalToString(WebSockConnectionFailed), CST::SubSysEvent);
-        einx_Online = data_lay_cache.add_string<CIT::Event>(Static::online_cs, CST::SubSysEvent);
-        einx_CacheLoaded = data_lay_cache.add_string<CIT::Event>(Static::cache_loaded_cs, CST::SubSysEvent);
+        einx_Online = data_lay_cache.get_string_index<CIT::Event>(Static::online_cs, CST::SubSysEvent);
+        einx_CacheLoaded = data_lay_cache.get_string_index<CIT::Event>(Static::cache_loaded_cs, CST::SubSysEvent);
 
         // Events: widget
-        einx_Click = data_lay_cache.add_string<CIT::Event>(Static::click_cs, CST::WidgetEvent);
+        einx_Click = data_lay_cache.get_string_index<CIT::Event>(Static::click_cs, CST::WidgetEvent);
 
         // Events: DB
-        einx_Command = data_lay_cache.add_string<CIT::Event>(Static::command_cs, CST::DBEvent);
-        einx_CommandResult = data_lay_cache.add_string<CIT::Event>(Static::command_result_cs, CST::DBEvent);
-        einx_Query = data_lay_cache.add_string<CIT::Event>(Static::query_cs, CST::DBEvent);
-        einx_QueryResult = data_lay_cache.add_string<CIT::Event>(Static::query_result_cs, CST::DBEvent);
-        einx_BatchRequest = data_lay_cache.add_string<CIT::Event>(Static::batch_request_cs, CST::DBEvent);
-        einx_BatchResponse = data_lay_cache.add_string<CIT::Event>(Static::batch_response_cs, CST::DBEvent);
+        einx_Command = data_lay_cache.get_string_index<CIT::Event>(Static::command_cs, CST::DBEvent);
+        einx_CommandResult = data_lay_cache.get_string_index<CIT::Event>(Static::command_result_cs, CST::DBEvent);
+        einx_Query = data_lay_cache.get_string_index<CIT::Event>(Static::query_cs, CST::DBEvent);
+        einx_QueryResult = data_lay_cache.get_string_index<CIT::Event>(Static::query_result_cs, CST::DBEvent);
+        einx_BatchRequest = data_lay_cache.get_string_index<CIT::Event>(Static::batch_request_cs, CST::DBEvent);
+        einx_BatchResponse = data_lay_cache.get_string_index<CIT::Event>(Static::batch_response_cs, CST::DBEvent);
 
         // init the fast path vars from the settings established in im_render.hpp:im_start()
         ImGuiStyle& style = ImGui::GetStyle();
 
-        data_lay_cache.report_cache_state();
-
-        // init the render stack
-        stack.clear();
-        stack.push_back(data_lay_cache.get_home());
+        if (data_lay_cache.error_count() > 0) {
+            data_lay_cache.report_errors();
+        }
+        else {
+            // init the render stack
+            stack.clear();
+            stack.push_back(data_lay_cache.get_home());
+        }
     }
 
     // EventInx next_db_event(EventInx einx) {
@@ -519,8 +522,8 @@ public:
         NDLogger::cout() << method << nd_type << ", QID: " << qid << std::endl;
 
         // Here add_string acts as find_string
-        EntityInx ninx{data_lay_cache.add_string<EntityID>(qid, CST::QueryID)};
-        EventInx einx{ data_lay_cache.add_string<Event>(nd_type, CST::DBEvent) };
+        EntityInx ninx{data_lay_cache.get_string_index<EntityID>(qid, CST::QueryID)};
+        EventInx einx{ data_lay_cache.get_string_index<Event>(nd_type, CST::DBEvent) };
 
         // if (nd_type == Static::command_cs) {
         if (einx == einx_Command) {
@@ -1202,13 +1205,13 @@ protected:
         };
 
         const char* title = cspec_string(cs_title, w->cspec_str, method);
-
         int table_flags = default_summary_table_flags;
         int window_flags = default_window_flags;
         cspec_int(cs_table_flags, w->cspec_int, &table_flags);
         cspec_int(cs_window_flags, w->cspec_int, &window_flags);
 
         DataRef* result_set_data_ref = cspec_data_ref(cs_query_id, w->data_refs);
+        assert(result_set_data_ref != nullptr);
         const char* query_id = data_lay_cache.get_string_value(result_set_data_ref->addr_inx);
 
         if (title) {    // scope to fire title_font dtor and pop before body
