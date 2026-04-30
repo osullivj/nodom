@@ -1191,9 +1191,9 @@ protected:
     
     void render_duck_table_summary_modal(WidgetPtr w) {
         const static char* method = "NDContext::render_duck_table_summary_modal: ";
+
         static int default_summary_table_flags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY;
         static int default_window_flags = ImGuiWindowFlags_AlwaysAutoResize;
-
 
         const char* title = cspec_string(cs_title, w->cspec_str, method);
         int table_flags = default_summary_table_flags;
@@ -1320,75 +1320,57 @@ protected:
 
     void render_table(WidgetPtr w) {
         const static char* method = "NDContext::render_table: ";
-        static int default_summary_table_flags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY;
-        static int default_window_flags = ImGuiWindowFlags_AlwaysAutoResize;
 
-        /*
-        if (!JContains(w, Static::cspec_cs) || !JContains(w[Static::cspec_cs], Static::qname_cs)) {
-            NDLogger::cerr() << method << "BAD_CSPEC" << w << std::endl;
-            return;
-        }
-        const JSON& cspec(w[Static::cspec_cs]);
-        const std::string qname(JAsString(cspec, Static::qname_cs));*/
+        static int default_table_flags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY;
 
-        int table_flags = default_summary_table_flags;
+        const char* title = cspec_string(cs_title, w->cspec_str, method);
+        int table_flags = default_table_flags;
         cspec_int(cs_table_flags, w->cspec_int, &table_flags);
-        /*
-        if (JContains(cspec, Static::table_flags_cs)) {
-            table_flags = JAsInt(cspec, Static::table_flags_cs);
-        }*/
 
-        int window_flags = default_window_flags;
-        cspec_int(cs_window_flags, w->cspec_int, &window_flags);
-        /*
-        if (JContains(cspec, Static::window_flags_cs)) {
-            window_flags = JAsInt(cspec, Static::window_flags_cs);
-        }*/
+        DataRef* result_set_data_ref = cspec_data_ref(cs_query_id, w->data_refs);
+        assert(result_set_data_ref != nullptr);
+        const char* query_id = data_lay_cache.get_string_value(result_set_data_ref->addr_inx);
 
         // TODO: recode proxy.get_meta_data() to lazy load 
         // and report geom
         std::uint64_t colm_count = 0;
         std::uint64_t row_count = 0;
         int colm_index = 0;
-        /*
-        bool body_pop = false;
-        if (JContains(cspec, Static::body_font_cs))
-            body_pop = push_font(w, Static::body_font_cs, Static::body_font_size_cs);
-            */
-        LocalFont body_font(w, cs_body_font, cs_body_font_size);
-        /*
-        std::uint64_t result_handle = proxy.get_handle(qname);
-        if (!result_handle) {
-            auto [iter, inserted] = bad_handle_map.insert(std::make_pair(std::move(qname), 1));
-            if (!inserted) iter->second++;
-            return;
-        }
-        if (!proxy.get_meta_data(result_handle, colm_count, row_count)) {
-            NDLogger::cout() << method << "GET_META_DATA_FAIL for QID: " << qname << std::endl;
-            return;
-        }
-        StringVec& colm_names = proxy.get_col_names(result_handle);
-        if (ImGui::BeginTable(qname.c_str(), (int)colm_count, table_flags)) {
-            ImGui::TableSetupScrollFreeze(1, 1);
-            for (colm_index = 0; colm_index < colm_count; colm_index++) {
-                ImGui::TableSetupColumn(colm_names[colm_index].c_str());
+        {
+            LocalFont body_font(w, cs_body_font, cs_body_font_size);
+            std::uint64_t result_handle = proxy.get_handle(query_id);
+            if (!result_handle) {
+                auto [iter, inserted] = bad_handle_map.insert(std::make_pair(query_id, 1));
+                if (!inserted) iter->second++;
+                return;
             }
-            ImGui::TableHeadersRow();
-            for (int row_index = 0; row_index < row_count; row_index++) {
-                ImGui::TableNextRow();
+            if (!proxy.get_meta_data(result_handle, colm_count, row_count)) {
+                NDLogger::cout() << method << "GET_META_DATA_FAIL for QID: " << query_id << std::endl;
+                return;
+            }
+            StringVec& colm_names = proxy.get_col_names(result_handle);
+            if (ImGui::BeginTable(title, (int)colm_count, table_flags)) {
+                ImGui::TableSetupScrollFreeze(1, 1);
                 for (colm_index = 0; colm_index < colm_count; colm_index++) {
-                    ImGui::TableSetColumnIndex(colm_index);
-                    const char* endchar = proxy.get_datum(result_handle, colm_index, row_index);
-                    if (endchar) {
-                        ImGui::TextUnformatted(proxy.buffer, endchar);
-                    }
-                    else {
-                        ImGui::TextUnformatted(proxy.buffer);
+                    ImGui::TableSetupColumn(colm_names[colm_index].c_str());
+                }
+                ImGui::TableHeadersRow();
+                for (int row_index = 0; row_index < row_count; row_index++) {
+                    ImGui::TableNextRow();
+                    for (colm_index = 0; colm_index < colm_count; colm_index++) {
+                        ImGui::TableSetColumnIndex(colm_index);
+                        const char* endchar = proxy.get_datum(result_handle, colm_index, row_index);
+                        if (endchar) {
+                            ImGui::TextUnformatted(proxy.buffer, endchar);
+                        }
+                        else {
+                            ImGui::TextUnformatted(proxy.buffer);
+                        }
                     }
                 }
+                ImGui::EndTable();
             }
-            ImGui::EndTable();
-        }*/
+        }
     }
 
     void render_push_font(WidgetPtr w) {
