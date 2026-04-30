@@ -247,4 +247,17 @@ struct Static {
 
 	// error messages
 	inline static const char* could_not_connect_cs{ "Could not connect to" };
+
+	inline constexpr static int SMRY_COLM_CNT = 12;
+
+	inline static const char* duck_table_summary_colm_names[SMRY_COLM_CNT] = {
+	"name", "type", // DUCKDB_TYPE_VARCHAR, DUCKDB_TYPE_VARCHAR, 
+	"min", "max",   // DUCKDB_TYPE_VARCHAR, DUCKDB_TYPE_VARCHAR,
+	"apxu", "avg",  // DUCKDB_TYPE_BIGINT, DUCKDB_TYPE_DOUBLE,
+	"std", "q25",   // DUCKDB_TYPE_DOUBLE, DUCKDB_TYPE_VARCHAR,
+	"q50", "q75",   // DUCKDB_TYPE_VARCHAR, DUCKDB_TYPE_VARCHAR,
+	"cnt", "null"   // DUCKDB_TYPE_BIGINT, DUCKDB_TYPE_DECIMAL
+	};
+
+
 };

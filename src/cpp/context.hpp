@@ -1188,21 +1188,12 @@ protected:
         }
     }
 
-    constexpr static int SMRY_COLM_CNT = 12;
     
     void render_duck_table_summary_modal(WidgetPtr w) {
         const static char* method = "NDContext::render_duck_table_summary_modal: ";
         static int default_summary_table_flags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY;
         static int default_window_flags = ImGuiWindowFlags_AlwaysAutoResize;
 
-        const static char* colm_names[SMRY_COLM_CNT] = {
-            "name", "type", // DUCKDB_TYPE_VARCHAR, DUCKDB_TYPE_VARCHAR, 
-            "min", "max",   // DUCKDB_TYPE_VARCHAR, DUCKDB_TYPE_VARCHAR,
-            "apxu", "avg",  // DUCKDB_TYPE_BIGINT, DUCKDB_TYPE_DOUBLE,
-            "std", "q25",   // DUCKDB_TYPE_DOUBLE, DUCKDB_TYPE_VARCHAR,
-            "q50", "q75",   // DUCKDB_TYPE_VARCHAR, DUCKDB_TYPE_VARCHAR,
-            "cnt", "null"   // DUCKDB_TYPE_BIGINT, DUCKDB_TYPE_DECIMAL
-        };
 
         const char* title = cspec_string(cs_title, w->cspec_str, method);
         int table_flags = default_summary_table_flags;
@@ -1228,7 +1219,7 @@ protected:
             return;
         }
 
-        std::uint64_t colm_count = SMRY_COLM_CNT;
+        std::uint64_t colm_count = Static::SMRY_COLM_CNT;
         int colm_index = 0;
         bool body_pop = false;
         if (ImGui::BeginPopupModal(title, nullptr, window_flags)) {
@@ -1241,7 +1232,7 @@ protected:
             }
             if (ImGui::BeginTable(query_id, (int)colm_count, table_flags)) {
                 for (colm_index = 0; colm_index < colm_count; colm_index++) {
-                    ImGui::TableSetupColumn(colm_names[colm_index]);
+                    ImGui::TableSetupColumn(Static::duck_table_summary_colm_names[colm_index]);
                 }
                 ImGui::TableHeadersRow();
                 std::uint64_t row_count = proxy.get_row_count(result_handle);
