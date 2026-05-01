@@ -58,6 +58,7 @@ struct Static {
 	inline static const char* table_flags_cs{ "table_flags" };
 	inline static const char* combo_flags_cs{ "combo_flags" };
 	inline static const char* window_flags_cs{ "window_flags" };
+	inline static const char* column_flags_cs{ "column_flags" };
 	inline static const char* child_flags_cs{ "child_flags" };
 	inline static const char* db_cs{ "db" };
 	inline static const char* fps_cs{ "fps" };
