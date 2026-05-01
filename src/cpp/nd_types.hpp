@@ -415,6 +415,7 @@ enum CacheSpecifier : uint32_t {
     cs_table_flags,
     cs_combo_flags,
     cs_window_flags,
+    cs_column_flags,
     cs_show_footer_db,
     cs_show_footer_fps,
     cs_show_footer_demo,
