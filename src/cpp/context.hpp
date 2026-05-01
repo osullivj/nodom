@@ -1361,13 +1361,14 @@ protected:
                 for (int row_index = 0; row_index < row_count; row_index++) {
                     ImGui::TableNextRow();
                     for (colm_index = 0; colm_index < colm_count; colm_index++) {
-                        ImGui::TableSetColumnIndex(colm_index);
-                        const char* endchar = proxy.get_datum(result_handle, colm_index, row_index);
-                        if (endchar) {
-                            ImGui::TextUnformatted(proxy.buffer, endchar);
-                        }
-                        else {
-                            ImGui::TextUnformatted(proxy.buffer);
+                        if (ImGui::TableSetColumnIndex(colm_index)) {
+                            const char* endchar = proxy.get_datum(result_handle, colm_index, row_index);
+                            if (endchar) {
+                                ImGui::TextUnformatted(proxy.buffer, endchar);
+                            }
+                            else {
+                                ImGui::TextUnformatted(proxy.buffer);
+                            }
                         }
                     }
                 }
