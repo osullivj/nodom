@@ -395,7 +395,9 @@ public:
         duckdb_result* result_ptr = reinterpret_cast<duckdb_result*>(h);
         ResultHandle handle = static_cast<ResultHandle>(h);
 
-        const Bobbin& bob{ bobbin_map.at(handle)};
+        auto bmit = bobbin_map.find(handle);
+        assert(bmit != bobbin_map.end());
+        const Bobbin& bob{ bmit->second};
         duckdb_data_chunk chunk;
 
         int rel_index = row_index % duck_chunk_size;
