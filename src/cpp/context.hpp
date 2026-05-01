@@ -1192,7 +1192,11 @@ protected:
     void render_duck_table_summary_modal(WidgetPtr w) {
         const static char* method = "NDContext::render_duck_table_summary_modal: ";
 
-        static int default_summary_table_flags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY;
+        // Window, table, col layout disussion...
+        // https://github.com/ocornut/imgui/issues/5478
+        // ...uses these: ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter
+        // removed from prev impl: ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY;
+        static int default_summary_table_flags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit;
         static int default_window_flags = ImGuiWindowFlags_AlwaysAutoResize;
 
         const char* title = cspec_string(cs_title, w->cspec_str, method);
@@ -1221,7 +1225,6 @@ protected:
 
         std::uint64_t colm_count = Static::SMRY_COLM_CNT;
         int colm_index = 0;
-        bool body_pop = false;
         if (ImGui::BeginPopupModal(title, nullptr, window_flags)) {
             LocalFont body_font(w, cs_body_font, cs_body_font_size);
             std::uint64_t result_handle = proxy.get_handle(query_id);
