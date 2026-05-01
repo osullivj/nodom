@@ -1355,10 +1355,13 @@ protected:
             if (ImGui::BeginTable(title, (int)colm_count, table_flags)) {
                 ImGui::TableSetupScrollFreeze(1, 1);
                 for (colm_index = 0; colm_index < colm_count; colm_index++) {
-                    ImGui::TableSetupColumn(colm_names[colm_index].c_str());
+                    ImGui::TableSetupColumn(colm_names[colm_index].c_str(), ImGuiTableColumnFlags_None);
                 }
                 ImGui::TableHeadersRow();
-                for (int row_index = 0; row_index < row_count; row_index++) {
+                ImGuiListClipper clipper;
+                clipper.Begin(row_count);
+                for (int row_index = clipper.DisplayStart; row_index < clipper.DisplayEnd; row_index++) {
+                // for (int row_index = 0; row_index < row_count; row_index++) {
                     ImGui::TableNextRow();
                     for (colm_index = 0; colm_index < colm_count; colm_index++) {
                         if (ImGui::TableSetColumnIndex(colm_index)) {
