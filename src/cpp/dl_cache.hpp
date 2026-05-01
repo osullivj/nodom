@@ -687,6 +687,7 @@ private:
         Static::table_flags_cs,      // cs_table_flags
         Static::combo_flags_cs,      // cs_combo_flags
         Static::window_flags_cs,      // cs_window_flags
+        Static::column_flags_cs,      // cs_column_flags
         Static::db_cs,     // cs_db,
         Static::fps_cs,     // cs_fps,
         Static::demo_cs,     // cs_demo,
@@ -722,6 +723,7 @@ private:
         cdInt,      // cs_table_flags
         cdInt,      // cs_combo_flags
         cdInt,      // cs_window_flags
+        cdInt,      // cs_column_flags
         cdBool,     // cs_show_footer_db
         cdBool,     // cs_show_footer_fps
         cdBool,     // cs_show_footer_demo
@@ -750,7 +752,7 @@ private:
         {Button, {cs_text}},
         {Table, {cs_title, cs_title_font, cs_title_font_size,
                     cs_body_font, cs_body_font_size,
-                    cs_table_flags, cs_window_flags}},
+                    cs_table_flags, cs_window_flags, cs_column_flags}},
         {Footer, {cs_show_footer_db, cs_show_footer_fps, cs_show_footer_demo, 
                     cs_show_footer_id_stack, cs_show_footer_font_scale, 
                         cs_show_footer_style}},
@@ -759,7 +761,7 @@ private:
                         cs_table_flags, cs_combo_flags}},
         {DuckTableSummaryModal, {cs_title, cs_title_font, cs_title_font_size,
                     cs_body_font, cs_body_font_size,
-                    cs_table_flags, cs_window_flags,
+                    cs_table_flags, cs_window_flags, cs_column_flags,
                     cs_button_font, cs_button_font_size}},
         {LoadingModal, {cs_title, cs_title_font, cs_title_font_size,
                     cs_body_font, cs_body_font_size,
