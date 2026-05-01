@@ -217,7 +217,7 @@ using CDT = CacheDataType;
 // cache index range is 16 bits 0x0000->0xFFFF
 // eg 0->65535
 static constexpr int MAX_DCI = 0xFFFF;  // 65536
-static constexpr int OH_FECK = 0x0FEC000;
+static constexpr int OH_FECK = 0x0FEC0000;
 
 template <CIT itype, CDT dtype>
 struct DataCacheIndex {
