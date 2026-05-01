@@ -47,7 +47,7 @@ EXF_LAYOUT = [
             dict(
                 rname="BeginChild",
                 cspec=dict(
-                    title="Left pane",
+                    title="Main pane",
                     child_flags=ChildFlags.BORDERS | ChildFlags.RESIZE_X,
                 ),
             ),
@@ -125,8 +125,6 @@ EXF_LAYOUT = [
                     style=True,
                 ),
             ),
-            dict(rname="EndChild"),
-            dict(rname="SameLine"),
             # The DepthGrid table shows one row of depth at a time with 5 bids and asks
             dict(
                 rname="Table",
@@ -143,6 +141,7 @@ EXF_LAYOUT = [
                     | TableFlags.HIDEABLE,
                 ),
             ),
+            dict(rname="EndChild"),
             dict(rname="PopFont"),
         ],
     ),
