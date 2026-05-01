@@ -396,7 +396,8 @@ public:
         ResultHandle handle = static_cast<ResultHandle>(h);
 
         auto bmit = bobbin_map.find(handle);
-        assert(bmit != bobbin_map.end());
+        if (bmit == bobbin_map.end())
+            return nullptr;
         const Bobbin& bob{ bmit->second};
         duckdb_data_chunk chunk;
 
@@ -506,7 +507,7 @@ public:
         else {
             buffer = (char*)Static::null_cs;
         }
-        return 0;
+        return nullptr;
     }
 };
 
