@@ -49,19 +49,19 @@ using ChunkMap = std::map<std::string, ChunkVec>;
 // These are arrow-js enums...
 // https://github.com/apache/arrow-js/blob/main/src/enum.ts
 // ...so do not make size explicit like C/C++ types.
-enum DuckType : int32_t {
-    dtInt = 2,
-    dtFloat = 3,
-    dtUtf8 = 5,
-    dtTimestamp = 10,
-    dtTimestamp_s = -15,
-    dtTimestamp_ms = -16,
-    dtTimestamp_us = -17,
-    dtTimestamp_ns = -18
+enum WasmDuckType : int32_t {
+    wdtInt = 2,
+    wdtFloat = 3,
+    wdtUtf8 = 5,
+    wdtTimestamp = 10,
+    wdtTimestamp_s = -15,
+    wdtTimestamp_ms = -16,
+    wdtTimestamp_us = -17,
+    wdtTimestamp_ns = -18
 };
 
-const char* DuckTypeToString(DuckType dt);
-int DuckTypeToSize(DuckType dt);
+const char* WasmDuckTypeToString(WasmDuckType dt);
+int WasmDuckTypeToSize(WasmDuckType dt);
 
 enum PixReportType : int32_t {
     RenderFPS = 2,
@@ -222,6 +222,7 @@ static constexpr int OH_FECK = 0x0FEC0000;
 template <CIT itype, CDT dtype>
 struct DataCacheIndex {
 
+
     static constexpr CIT item_type{ itype };
     static constexpr CDT data_type{ dtype };
 
@@ -315,11 +316,11 @@ struct DataCacheIndex {
     }
 
     friend std::ostream& operator<<(std::ostream& os, const DataCacheIndex<itype, dtype>& dci) {
-        os << "0x" << std::setfill('0') << std::setw(8) << std::hex << dci.magic_index;
+        os << "0x" << std::setfill('0') << std::setw(8) << std::hex << dci.magic_index << std::dec;
         return os;
     }
 
-    friend static bool operator<(const DataCacheIndex<itype, dtype>& lhs, const DataCacheIndex<itype, dtype>& rhs) {
+    friend bool operator<(const DataCacheIndex<itype, dtype>& lhs, const DataCacheIndex<itype, dtype>& rhs) {
         return lhs.magic_index < rhs.magic_index;
     }
 };
@@ -385,7 +386,7 @@ struct ActionKey {
         os << "0x" << std::setfill('0') << std::setw(8) << std::hex << ak.key;
         return os;
     }
-    friend static bool operator<(const ActionKey& lhs, const ActionKey& rhs) {
+    friend bool operator<(const ActionKey& lhs, const ActionKey& rhs) {
         return lhs.key < rhs.key;
     }
 
