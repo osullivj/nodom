@@ -10,6 +10,7 @@
 #include <emscripten/val.h>
 #endif
 #include "nd_types.hpp"
+#include "dl_types.hpp"
 // non specialised func decls: no impl
 // because same logic cannot work for
 // both nlohmann::json and emscripten::val
@@ -28,6 +29,9 @@ float JAsFloat(const JSON& obj, const char* key);
 
 template <typename JSON, typename K>
 float JAsInt(const JSON& obj, K key);
+
+template <typename JSON>
+float JAsInt(const JSON& obj);
 
 template <typename JSON>
 bool JAsBool(const JSON& obj, const char* key);
@@ -83,6 +87,10 @@ float JAsFloat(const nlohmann::json& obj, const char* key) {
 template <typename K>
 int JAsInt(const nlohmann::json& obj, K key) {
 	return obj[key].template get<int>();
+}
+
+int JAsInt(const nlohmann::json& obj) {
+	return obj.template get<int>();
 }
 
 template <>
@@ -143,6 +151,10 @@ float JAsFloat(const emscripten::val& obj, const char* key) {
 template <typename K>
 int JAsInt(const emscripten::val& obj, K key) {
 	return obj[key].template as<int>();
+}
+
+int JAsInt(const emscripten::val& obj) {
+	return obj.template as<int>();
 }
 
 template <>
@@ -222,7 +234,7 @@ template <typename JSON>
 RenderMethod extract_render_name(const JSON& w) {
 	if (JContains(w, Static::rname_cs)) {
 		std::string rname(JAsString(w, Static::rname_cs));
-		return RenderMethodFromString(rname.c_str());
+		return RenderMethodFromString(rname);
 	}
 	return EndRenderMethod;
 }
