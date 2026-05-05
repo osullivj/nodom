@@ -391,9 +391,9 @@ protected:
                 if (data_ref.size > 0) {
                     // capture the "base" index; subsequent indices
                     // are implied by data_ref.size
-                    data_ref.ref_inx = get_int_index(jvec[0])();
+                    data_ref.ref_inx = get_int_index(JAsInt(jvec[0]))();
                     for (int jinx = 1; jinx < data_ref.size; jinx++)
-                        get_int_index(jvec[jinx]);
+                        get_int_index(JAsInt(jvec[jinx]));
                 }
                 break;
             case cdStrVec:
@@ -461,7 +461,7 @@ public:
     size_t addr_map_size() { return address_map.size(); }
     size_t widget_vec_size() { return widget_vec.size(); }
     size_t pushables_size() { return pushables.size(); }
-    size_t actions_size() { return actions.size(); }
+    size_t action_map_size() { return action_map.size(); }
     size_t data_ref_map_size() { return data_ref_map.size(); }
     size_t error_count() { return action_errors.size() + layout_errors.size(); }
 
@@ -513,7 +513,7 @@ public:
             jvec = dc[Static::new_value_cs];
             assert(data_ref.size = JSize(jvec));
             for (int jinx = 0; jinx < data_ref.size; jinx++) {
-                update_int(data_ref.ref_inx + jinx, jvec[jinx]);
+                update_int(data_ref.ref_inx + jinx, JAsInt(jvec[jinx]));
             }
             break;
         case cdStrVec:
@@ -863,9 +863,9 @@ public:
 
     void report_actions() {
         int key_inx{ 0 };
-        int actions_len = actions.size();
+        int actions_len = action_map.size();
         std::cout << "== report_action_map len:" << std::dec << actions_len << std::endl;
-        for (auto cit = actions.cbegin(); cit != actions.cend(); ++cit) {
+        for (auto cit = action_map.cbegin(); cit != action_map.cend(); ++cit) {
             const ActionKey& key{ cit->first };
             const ActionVec& action_vec{ cit->second };
             // action_intern_vec should be same len as action_vec (see 
@@ -873,7 +873,7 @@ public:
             // null op. But if not we'll dflt ctor NDActionInterned
             // to match lengths. The dflt constructed NDActionInterned will
             // all show as nullptr populated anyway...
-            ActionInternVec& action_intern_vec{ actions_interned[key] };
+            ActionInternVec& action_intern_vec{ action_interned_map[key] };
             action_intern_vec.resize(action_vec.size());
             std::cout << std::setfill('0') << std::setw(2) << std::hex << key_inx++ << ":";
             std::cout << key << ":EntityInx(" << key.entity_inx()
