@@ -123,7 +123,7 @@ BOOST_FIXTURE_TEST_CASE(AddString, DataCacheFixture)
     AddrInx addr_inx = dc.add_address(_server_url);
     // DataCacheFixture::server_url is a standin for Proxy::server_url
     // _server_url is the special cache ref that's not in data
-    StrInx str_inx = dc.add_string<CIT::Value>(server_url.c_str());
+    StrInx str_inx = dc.get_string_index<CIT::Value>(server_url.c_str());
     backed_str_count = 3;
     BOOST_TEST(StrInx::item_type == CIT::Value);
     BOOST_TEST(StrInx::data_type == CDT::cdStr);
@@ -156,7 +156,7 @@ BOOST_FIXTURE_TEST_CASE(InitData, DataCacheFixture)
     backed_str_count = 6;
     dc.on_json(data, layout, [&]() {dc.on_init(); });
     BOOST_TEST(dc.addr_map_size() == 1);
-    BOOST_TEST(dc.actions_size() == 2);
+    BOOST_TEST(dc.action_map_size() == 2);
     assert_cache_state();
 }
 
@@ -195,7 +195,7 @@ BOOST_FIXTURE_TEST_CASE(AddServerData, DataCacheFixture)
     backed_str_count = 3;
     dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.addr_map_size() == 3);
-    BOOST_TEST(dc.actions_size() == 0);
+    BOOST_TEST(dc.action_map_size() == 0);
     assert_cache_state();
 }
 
@@ -234,7 +234,7 @@ BOOST_FIXTURE_TEST_CASE(ExfServerData, DataCacheFixture)
     backed_str_count = 22;
     dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.addr_map_size() == 10);
-    BOOST_TEST(dc.actions_size() == 4);
+    BOOST_TEST(dc.action_map_size() == 4);
     BOOST_TEST(dc.data_ref_map_size() == 3);
     assert_cache_state();
 }
