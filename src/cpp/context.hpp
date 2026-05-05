@@ -1359,18 +1359,19 @@ protected:
                 }
                 ImGui::TableHeadersRow();
                 ImGuiListClipper clipper;
-                clipper.Begin(row_count);
-                for (int row_index = clipper.DisplayStart; row_index < clipper.DisplayEnd; row_index++) {
-                // for (int row_index = 0; row_index < row_count; row_index++) {
-                    ImGui::TableNextRow();
-                    for (colm_index = 0; colm_index < colm_count; colm_index++) {
-                        if (ImGui::TableSetColumnIndex(colm_index)) {
-                            const char* endchar = proxy.get_datum(result_handle, colm_index, row_index);
-                            if (endchar) {
-                                ImGui::TextUnformatted(proxy.buffer, endchar);
-                            }
-                            else {
-                                ImGui::TextUnformatted(proxy.buffer);
+                clipper.Begin(row_count, -1.0f);
+                while (clipper.Step()) {
+                    for (int row_index = clipper.DisplayStart; row_index < clipper.DisplayEnd; row_index++) {
+                        ImGui::TableNextRow();
+                        for (colm_index = 0; colm_index < colm_count; colm_index++) {
+                            if (ImGui::TableSetColumnIndex(colm_index)) {
+                                const char* endchar = proxy.get_datum(result_handle, colm_index, row_index);
+                                if (endchar) {
+                                    ImGui::TextUnformatted(proxy.buffer, endchar);
+                                }
+                                else {
+                                    ImGui::TextUnformatted(proxy.buffer);
+                                }
                             }
                         }
                     }
