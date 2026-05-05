@@ -351,7 +351,6 @@ public:
         const static char* method = "NDContext::end_render_cycle: ";
 
         if (render_count == 0) {
-            // action_dispatch(Static::gui_cs, Static::gui_online_cs);
             action_dispatch(ninx_GUI, einx_Online);
         }
 
@@ -455,15 +454,13 @@ public:
                     data = real_data;
                     layout = real_layout;
                     data_lay_cache.on_json(data, layout, [&]() {on_dlc_init(); } );
-                    // NDLogger::cout() << method << "CACHE_LOADED" << std::endl;
-                    // action_dispatch(Static::gui_cs, Static::cache_loaded_cs);
+                    NDLogger::cout() << method << "CACHE_LOADED" << std::endl;
                     action_dispatch(ninx_GUI, einx_CacheLoaded);
                 }
             }
             // Is this a DataChange?
             else if (nd_type == Static::data_change_cs) {
                 std::string ckey = JAsString(resp, Static::cache_key_cs);
-                // JSet(data, ckey.c_str(), resp[Static::new_value_cs]);
                 data_lay_cache.on_data_change(ckey, resp);
             }
             else if (nd_type == Static::data_change_confirmed_cs) {
