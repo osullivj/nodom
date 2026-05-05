@@ -68,12 +68,6 @@ private:
     bool                data_loaded{ true };
     bool                layout_loaded{ true };
 
-    // map layout render func names to the actual C++ impls
-    // std::unordered_map<std::string, std::function<void(const JSON& w)>> rfmap;
-    // top level layout widgets with widget_id eg modals are in pushables
-    // std::unordered_map<std::string, JSON> pushable;
-    // std::unordered_map<uint32_t, WidgetPtr> pushable;
-
     // manage down logging by tracking misconfiged queries that throw
     // BAD_HANDLE_FAIL, especially for browser console log
     std::map<std::string, uint32_t>   bad_handle_map;
@@ -83,21 +77,16 @@ private:
     // render() method. But in C++ we use an STL iterator in the root render
     // method, and that segfaults. So in C++ we have pending pushes done
     // outside the render stack walk. JOS 2025-01-31
-    // std::deque<JSON>        pending_pushes;
     std::deque<EntityInx>       pending_pushes;
     std::deque<RenderMethod>    pending_pops;
     // In flight action sequences. Key is query_id, not query_id.event
-    // TODO: rewrite InFlight to operate on ActionVec/NDAction
     struct InFlight {
         InFlight() {}
-        // InFlight(ActionVec& s, int i, const char* n, const std::string& qid)
         InFlight(ActionVec* avec, int i, EventInx n, EntityInx qid)
-            :sequence(s), inx(i), next(n), query_id(qid) {}
+            :sequence(avec), inx(i), next(n), query_id(qid) {}
         ActionVec* sequence;
         int         inx{ 0 };
-        // const char* next{ nullptr };
         EventInx next;
-        // std::string query_id;
         EntityInx query_id;
     };
     std::list<InFlight> in_flight_list;
@@ -119,17 +108,6 @@ private:
     EventInx    einx_BatchResponse;             // CST::DBEvent
     EventInx    einx_Invalid;                   // !init->OH_FECK
 
-    /* hmm: these are all in the footer cspec,
-        so shouldn't be cache vars...
-    IntInx      binx__footer_show_db;
-    int         _footer_show_db;
-    IntInx      binx__footer_show_fps;
-    int         _footer_show_fps;
-    IntInx      binx__footer_show_demo;
-    IntInx      binx__footer_show_id_stack;
-    IntInx      binx__footer_show_font_scale;
-    IntInx      binx__footer_show_style;
-    */
     bool  footer_show_db{ false };
     bool  footer_show_fps{ false };
     bool  footer_show_demo{ false };
@@ -156,7 +134,6 @@ private:
     std::uint32_t font_push_count = 0;
     std::uint32_t font_pop_count = 0;
     std::uint32_t render_count = 0;
-    // std::uint32_t bad_handle_count = 0;
     std::deque<StrInx> bad_font_pushes;
 
     VSFunc ws_send = nullptr;  // ref to NDWebSockClient::send
@@ -233,29 +210,29 @@ public:
         // Entity and Event indices for our action_dispatch() impl.
 
         // First EntityIDs for subsystem events from GUI or Websock
-        ninx_GUI = data_lay_cache.get_string_index<CIT::EntityID>(Static::gui_cs, CST::SubSysID);
-        ninx_Websock = data_lay_cache.get_string_index<CIT::EntityID>(Static::websock_cs, CST::SubSysID);
-        ninx_DuckDB = data_lay_cache.get_string_index<CIT::EntityID>(Static::duck_db_cs, CST::SubSysID);
+        ninx_GUI = data_lay_cache.template get_string_index<CIT::EntityID>(Static::gui_cs, CST::SubSysID);
+        ninx_Websock = data_lay_cache.template get_string_index<CIT::EntityID>(Static::websock_cs, CST::SubSysID);
+        ninx_DuckDB = data_lay_cache.template get_string_index<CIT::EntityID>(Static::duck_db_cs, CST::SubSysID);
 
         // EntityIDs for predefined widgets like LoadingModal
-        ninx_FooterDBButton = data_lay_cache.get_string_index<CIT::EntityID>(Static::i_am_footer_db_button_cs, CST::WidgetID);
+        ninx_FooterDBButton = data_lay_cache.template get_string_index<CIT::EntityID>(Static::i_am_footer_db_button_cs, CST::WidgetID);
 
         // Events: subsys
-        einx_WebSockConnectionFailed = data_lay_cache.get_string_index<CIT::Event>(
+        einx_WebSockConnectionFailed = data_lay_cache.template get_string_index<CIT::Event>(
                                         CriticalToString(WebSockConnectionFailed), CST::SubSysEvent);
-        einx_Online = data_lay_cache.get_string_index<CIT::Event>(Static::online_cs, CST::SubSysEvent);
-        einx_CacheLoaded = data_lay_cache.get_string_index<CIT::Event>(Static::cache_loaded_cs, CST::SubSysEvent);
+        einx_Online = data_lay_cache.template get_string_index<CIT::Event>(Static::online_cs, CST::SubSysEvent);
+        einx_CacheLoaded = data_lay_cache.template get_string_index<CIT::Event>(Static::cache_loaded_cs, CST::SubSysEvent);
 
         // Events: widget
-        einx_Click = data_lay_cache.get_string_index<CIT::Event>(Static::click_cs, CST::WidgetEvent);
+        einx_Click = data_lay_cache.template get_string_index<CIT::Event>(Static::click_cs, CST::WidgetEvent);
 
         // Events: DB
-        einx_Command = data_lay_cache.get_string_index<CIT::Event>(Static::command_cs, CST::DBEvent);
-        einx_CommandResult = data_lay_cache.get_string_index<CIT::Event>(Static::command_result_cs, CST::DBEvent);
-        einx_Query = data_lay_cache.get_string_index<CIT::Event>(Static::query_cs, CST::DBEvent);
-        einx_QueryResult = data_lay_cache.get_string_index<CIT::Event>(Static::query_result_cs, CST::DBEvent);
-        einx_BatchRequest = data_lay_cache.get_string_index<CIT::Event>(Static::batch_request_cs, CST::DBEvent);
-        einx_BatchResponse = data_lay_cache.get_string_index<CIT::Event>(Static::batch_response_cs, CST::DBEvent);
+        einx_Command = data_lay_cache.template get_string_index<CIT::Event>(Static::command_cs, CST::DBEvent);
+        einx_CommandResult = data_lay_cache.template get_string_index<CIT::Event>(Static::command_result_cs, CST::DBEvent);
+        einx_Query = data_lay_cache.template get_string_index<CIT::Event>(Static::query_cs, CST::DBEvent);
+        einx_QueryResult = data_lay_cache.template get_string_index<CIT::Event>(Static::query_result_cs, CST::DBEvent);
+        einx_BatchRequest = data_lay_cache.template get_string_index<CIT::Event>(Static::batch_request_cs, CST::DBEvent);
+        einx_BatchResponse = data_lay_cache.template get_string_index<CIT::Event>(Static::batch_response_cs, CST::DBEvent);
 
         // init the fast path vars from the settings established in im_render.hpp:im_start()
         ImGuiStyle& style = ImGui::GetStyle();
@@ -522,8 +499,8 @@ public:
         NDLogger::cout() << method << nd_type << ", QID: " << qid << std::endl;
 
         // Here add_string acts as find_string
-        EntityInx ninx{data_lay_cache.get_string_index<EntityID>(qid, CST::QueryID)};
-        EventInx einx{ data_lay_cache.get_string_index<Event>(nd_type, CST::DBEvent) };
+        EntityInx ninx{data_lay_cache.template get_string_index<EntityID>(qid, CST::QueryID)};
+        EventInx einx{ data_lay_cache.template get_string_index<Event>(nd_type, CST::DBEvent) };
 
         // if (nd_type == Static::command_cs) {
         if (einx == einx_Command) {
@@ -600,7 +577,7 @@ protected:
         auto cs_str_iter = str_val_map.find(spec);
         if (cs_str_iter != str_val_map.end()) {
             StrInx text_inx{ cs_str_iter->second };
-            return data_lay_cache.get_string_value<StrInx>(text_inx);
+            return data_lay_cache.template get_string_value<StrInx>(text_inx);
         }
         return dflt;
     }
@@ -807,7 +784,7 @@ protected:
             assert(sql_cname != nullptr);
             DataRef* data_ref = data_lay_cache.get_data_ref(action_defn.sql_cname);
             assert(data_ref != nullptr);
-            const char* sql = data_lay_cache.get_string_value<AddrInx>(data_ref->ref_inx);
+            const char* sql = data_lay_cache.template get_string_value<AddrInx>(data_ref->ref_inx);
             assert(sql != nullptr);
             JSet(db_request, Static::sql_cs, sql);
         }
