@@ -629,7 +629,7 @@ public:
         if (tipes.empty()) {
             tipes.clear();
             for (int i = 0; i < colm_count; i++) {
-                DuckType tipe{ static_cast<int32_t>(*chunk_ptr++) };
+                WasmDuckType tipe{ static_cast<int32_t>(*chunk_ptr++) };
                 tipes.push_back(tipe);
             }
             // Column addresses: one 32 bit word per col
@@ -665,17 +665,17 @@ public:
         static double   ts_fraction{ 0.0 };
         static uint32_t scale{ 1 };
         static const char* decimal_fmt{ nullptr };
-        static std::map<DuckType, int32_t>  timestamp_scale_map{
-            {Timestamp_s, 1},
-            {Timestamp_ms, 1e3},
-            {Timestamp_us, 1e6},
-            {Timestamp_ns, 1e9}
+        static std::map<WasmDuckType, int32_t>  timestamp_scale_map{
+            {wdtTimestamp_s, 1},
+            {wdtTimestamp_ms, 1e3},
+            {wdtTimestamp_us, 1e6},
+            {wdtTimestamp_ns, 1e9}
         };
-        static std::map<DuckType, const char*> timestamp_dec_fmt_map{
-            {Timestamp_s, nullptr},
-            {Timestamp_ms, "%03.3f"},
-            {Timestamp_us, "%06.6f"},
-            {Timestamp_ns, "%09.9f"}
+        static std::map<WasmDuckType, const char*> timestamp_dec_fmt_map{
+            {wdtTimestamp_s, nullptr},
+            {wdtTimestamp_ms, "%03.3f"},
+            {wdtTimestamp_us, "%06.6f"},
+            {wdtTimestamp_ns, "%09.9f"}
         };
         static int error_count{ 0};
         // type_map and column_map have been populated by an
@@ -704,25 +704,25 @@ public:
         }
         // stride 1 for 32bit data and 2 for 64bit inc str
         uint32_t stride = col_size / 4;
-        DuckType dt{ col_type };
+        WasmDuckType dt{ col_type };
         int32_t* i32data = nullptr;
         double* dbldata = nullptr;
         // In most cases we'll copy into string_buffer, or
         // use sprintf to format into buffer. 
         buffer = string_buffer;
         switch (dt) {
-        case DuckType::Int:
+        case WasmDuckType::wdtInt:
             i32data = reinterpret_cast<int32_t*>(chunk_ptr);
             sprintf(string_buffer, "%d", i32data[row_index]);
             return 0;
-        case DuckType::Float:
+        case WasmDuckType::wdtFloat:
             dbldata = reinterpret_cast<double*>(chunk_ptr);
             sprintf(string_buffer, "%f", dbldata[row_index]);
             return 0;
-        case DuckType::Timestamp_ns:
-        case DuckType::Timestamp_us:
-        case DuckType::Timestamp_ms:
-        case DuckType::Timestamp_s:
+        case WasmDuckType::wdtTimestamp_ns:
+        case WasmDuckType::wdtTimestamp_us:
+        case WasmDuckType::wdtTimestamp_ms:
+        case WasmDuckType::wdtTimestamp_s:
             scale = timestamp_scale_map[dt];
             decimal_fmt = timestamp_dec_fmt_map[dt];
             dbldata = reinterpret_cast<double*>(chunk_ptr);
@@ -740,7 +740,7 @@ public:
                 sprintf(string_buffer + strlen(string_buffer), decimal_fmt, ts_fraction);
             }
             return 0;
-        case DuckType::Utf8:    // null term trunc to 8 bytes
+        case WasmDuckType::wdtUtf8:    // null term trunc to 8 bytes
             dbldata = reinterpret_cast<double*>(chunk_ptr);
             sprintf(string_buffer, "%s", (char*)&(dbldata[row_index]));
             return 0;
