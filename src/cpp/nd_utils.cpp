@@ -5,40 +5,40 @@
 // Two WASM utils for DuckDB-WASM client code in C++
 // Not the same as DuckDB-WASM/Arrow JS client code,
 // or DuckDB C API client code as seen in breadboard.
-const char* DuckTypeToString(DuckType dt) {
+const char* DuckTypeToString(WasmDuckType dt) {
     switch (dt) {
-    case DuckType::dtInt:
+    case WasmDuckType::wdtInt:
         return "Int";
-    case DuckType::dtFloat:
+    case WasmDuckType::wdtFloat:
         return "Float";
-    case DuckType::dtTimestamp:
+    case WasmDuckType::wdtTimestamp:
         return "TS";
-    case DuckType::dtTimestamp_s:
+    case WasmDuckType::wdtTimestamp_s:
         return "TS_s";
-    case DuckType::dtTimestamp_ms:
+    case WasmDuckType::wdtTimestamp_ms:
         return "TS_ms";
-    case DuckType::dtTimestamp_us:
+    case WasmDuckType::wdtTimestamp_us:
         return "TS_us";
-    case DuckType::dtTimestamp_ns:
+    case WasmDuckType::wdtTimestamp_ns:
         return "TS_ns";
-    case DuckType::dtUtf8:
+    case WasmDuckType::wdtUtf8:
         return "Utf8";
     }
     return "Unknown";
 }
 
 
-int DuckTypeToSize(DuckType dt) {
+int DuckTypeToSize(WasmDuckType dt) {
     switch (dt) {
-    case DuckType::dtInt:
+    case WasmDuckType::wdtInt:
         return 4;
-    case DuckType::dtFloat:
-    case DuckType::dtTimestamp:
-    case DuckType::dtTimestamp_s:
-    case DuckType::dtTimestamp_ms:
-    case DuckType::dtTimestamp_us:
-    case DuckType::dtTimestamp_ns:
-    case DuckType::dtUtf8:
+    case WasmDuckType::wdtFloat:
+    case WasmDuckType::wdtTimestamp:
+    case WasmDuckType::wdtTimestamp_s:
+    case WasmDuckType::wdtTimestamp_ms:
+    case WasmDuckType::wdtTimestamp_us:
+    case WasmDuckType::wdtTimestamp_ns:
+    case WasmDuckType::wdtUtf8:
         return 8;
     }
     return 0;
