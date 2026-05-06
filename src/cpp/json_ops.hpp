@@ -240,7 +240,7 @@ RenderMethod extract_render_name(const JSON& w) {
 }
 
 template <typename JSON>
-const JSON& extract_cspec(const JSON& w) {
+const JSON extract_cspec(const JSON& w) {
 	if (JContains(w, Static::cspec_cs)) return w[Static::cspec_cs];
 	// Cannot fail to return an obj, so return an empty one,
 	// and we'll error later when we look for fields in cspec
@@ -248,7 +248,7 @@ const JSON& extract_cspec(const JSON& w) {
 }
 
 template <typename JSON>
-const JSON& extract_children(const JSON& w) {
+const JSON extract_children(const JSON& w) {
 	if (JContains(w, Static::children_cs)) return w[Static::children_cs];
 	// Cannot fail to return an array, so return an empty one
 #ifdef __EMSCRIPTEN__
