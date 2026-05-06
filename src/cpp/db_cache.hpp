@@ -570,7 +570,7 @@ public:
     }
 
     void db_dispatch(emscripten::val& db_request) {
-        const static char* method = "DuckDBWebCache::db_dispatch: ";
+        // const static char* method = "DuckDBWebCache::db_dispatch: ";
         ems_db_dispatch(db_request.as_handle());
     }
 
@@ -615,6 +615,7 @@ public:
     bool get_meta_data(std::uint64_t handle, std::uint64_t& colm_count, std::uint64_t& row_count) {
         // First 3 32 bit words are done, ncols, nrows
         uint32_t* chunk_ptr = reinterpret_cast<uint32_t*>(handle);
+        // TODO: fix done flag handling
         bool done = static_cast<bool>(*chunk_ptr++);
         colm_count = reinterpret_cast<uint32_t>(*chunk_ptr++);
         row_count = reinterpret_cast<uint32_t>(*chunk_ptr++);
@@ -688,7 +689,6 @@ public:
         uint32_t* chunk_ptr = base_chunk_ptr + colm_addr_offset;
         // sanity check column type
         int32_t col_type = *chunk_ptr++;
-        uint32_t col_size = *chunk_ptr++;
 
         if (col_type != tipes[colm_index]) {
             fprintf(stderr, "%s: col type mismatch: base_chunk:%d, col:%d, col_addr_off:%d, mtype:%d, stype:%d\n", 
@@ -698,7 +698,6 @@ public:
                 exit(1);
         }
         // stride 1 for 32bit data and 2 for 64bit inc str
-        uint32_t stride = col_size / 4;
         WasmDuckType dt{ col_type };
         int32_t* i32data = nullptr;
         double* dbldata = nullptr;
