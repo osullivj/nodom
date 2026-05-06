@@ -191,7 +191,7 @@ struct Static {
 		"November",
 		"December"
 	};
-	inline static const std::array<char*, 7> day_array_cs{
+	inline static const std::array<const char*, 7> day_array_cs{
 		"Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"
 	};
 	inline static std::array<int, 12> month_day_count{
