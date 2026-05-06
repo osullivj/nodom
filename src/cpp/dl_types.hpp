@@ -221,6 +221,8 @@ const char* DBEventTypeToString(DBEventType dbet) {
         return Static::batch_request_cs;
     case dbBatchResponse:
         return Static::batch_response_cs;
+    case EndDBEventTypes:
+        return nullptr;
     }
     return nullptr;
 }
