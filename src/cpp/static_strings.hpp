@@ -232,8 +232,21 @@ struct Static {
 	inline static const char* classic_cs{ "Classic" };
 
 	// hardwired init data and layout
-	inline static const char* init_data_cs{ ""};
-	inline static const char* init_layout_cs{ "{rname: 'Home', cspec:{ title: 'NoDOM HW', children: [] }}" };
+	inline static const char* init_data_cs{
+		R"( { )"
+		R"(   "loading_text":["Loading app data from {_server_url}"], )"
+		R"(   "actions":{ )"
+		R"(     "GUI.online":[{"ui_push":"app_loading_modal"}], )"
+		R"(     "WebSock.websock_connection_failed":[{"ui_pop":"LoadingModal"}] )"
+		R"(   } )"
+		R"( } )"
+	};
+	inline static const char* init_layout_cs{
+		R"( [ )"
+		R"( {"rname": "Home", "cspec":{ "title":"NoDOM HW", "children":[]}}, )"
+		R"( {"widget_id":"app_loading_modal", "rname":"LoadingModal", "cspec":{"title":"Loading NoDOM app", "cname":"loading_text"}} )"
+		R"( ] )" 
+	};
 	inline static const char* empty_list_cs{ "[]" };
 
 	// CacheDataType
