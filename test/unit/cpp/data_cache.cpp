@@ -260,3 +260,20 @@ BOOST_FIXTURE_TEST_CASE(ExfServerLayout, DataCacheFixture)
     assert_cache_state();
 }
 
+BOOST_FIXTURE_TEST_CASE(InitDataAndLayout, DataCacheFixture)
+{
+#ifdef __EMSCRIPTEN__
+    // TODO: load from ems FS
+    auto layout = JParse<emscripten::val>(add_server_layout);
+#else
+    auto data = JParse<nlohmann::json>(Static::init_data_cs);
+    auto layout = JParse<nlohmann::json>(Static::init_layout_cs);
+#endif
+    backed_str_count = 9;
+    backed_int_count = 0;
+    dc.on_json(data, layout, [&]() { dc.on_init(); });
+    BOOST_TEST(dc.widget_vec_size() == 2);
+    BOOST_TEST(dc.pushables_size() == 1);
+    assert_cache_state();
+}
+
