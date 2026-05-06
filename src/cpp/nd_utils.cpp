@@ -65,26 +65,12 @@ const char* CriticalToString(Critical crit) {
         return Static::clear_cs;
     case WebSockConnectionFailed:
         return Static::websock_connection_failed_cs;
+    case EndCritical:
+        return nullptr;
     }
     return 0;
 }
 
-// NDContext helper NextEvent: what comes next in a 
-// DB action_dispatch sequence?
-// const char* NextEvent(const char* nd_event) {
-/*
-EventInx NextEvent(EventInx nd_event) {
-    if (strcmp(nd_event, Static::command_cs) == 0) {
-        return Static::command_result_cs;
-    }
-    if (strcmp(nd_event, Static::query_cs) == 0) {
-        return Static::query_result_cs;
-    }
-    if (strcmp(nd_event, Static::batch_request_cs) == 0) {
-        return Static::batch_response_cs;
-    }
-    return nullptr;
-}*/
 
 // NDContext helper: SetStyleColoring
 void SetStyleColoring(int col) {
