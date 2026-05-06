@@ -113,6 +113,7 @@
       <AdditionalIncludeDirectories>%ND_HOME%\fmt\include;%ND_BOOST_HOME%;%ND_HOME%\src\cpp;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <PreprocessorDefinitions>_WIN32_WINNT=0x0601;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalOptions>/bigobj /utf-8 /wd4127 /wd4172 /wd4302 /wd4311 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>

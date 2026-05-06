@@ -107,7 +107,7 @@
       <AdditionalIncludeDirectories>%ND_HOME%\fmt\include;%ND_HOME%\websocketpp;%ND_HOME%\imgui;%ND_HOME%\imgui\backends;%ND_HOME%\imgui\examples\libs\glfw\include;%ND_HOME%\imgui\examples\libs\emscripten;%ND_HOME%\ImGuiDatePicker;%ND_HOME%\venv\lib\site-packages\pyarrow\include;%ND_BOOST_HOME%;%ND_SSL_HOME%\x64\include;%ND_DUCK_HOME%;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <PreprocessorDefinitions>NOMINMAX;USE_PIX;NODOM_DUCK;_WIN32_WINNT=0x0601;BOOST_BIND_GLOBAL_PLACEHOLDERS;_CRT_SECURE_NO_WARNINGS;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalOptions>/bigobj /utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/bigobj /utf-8 /wd4127 /wd4172 /wd4302 /wd4311 %(AdditionalOptions)</AdditionalOptions>
       <PreprocessToFile>false</PreprocessToFile>
     </ClCompile>
     <Link>
