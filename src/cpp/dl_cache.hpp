@@ -127,7 +127,7 @@ protected:
     }
 
     void parse_actions(const JSON& data, const JSON& action_seq, ActionVec& nd_action_vec, ActionInternVec& act_intern_vec, ActionErrorVec& act_error_vec) {
-        const static char* method = "DataLayCache::parse_actions: ";
+        // const static char* method = "DataLayCache::parse_actions: ";
         int action_seq_len = JSize(action_seq);
         for (int inx = 0; inx < action_seq_len; inx++) {
             const JSON& action_defn(action_seq[inx]);
@@ -235,7 +235,7 @@ protected:
     }
 
     void on_data(const JSON& data) {
-        const static char* method = "DataLayCache::on_data: ";
+        // const static char* method = "DataLayCache::on_data: ";
 
         bool we_have_actions{ false };
         StringVec data_keys;
@@ -321,6 +321,7 @@ protected:
                 case cdStrVec:
                 case cdAny:
                 case cdResultSet:
+                case EndDataTypes:
                     assert(false);
                     break;
                 }
@@ -367,6 +368,7 @@ protected:
 
             switch (ref_type) {
             case cdAny:         // shouldn't be in addr_cspecs!
+            case EndDataTypes:
                 assert(false);
                 break;
             case cdStr:
@@ -494,6 +496,7 @@ public:
         switch (data_ref.tipe) {
         case cdAny:         // shouldn't be in addr_cspecs!
         case cdResultSet:
+        case EndDataTypes:
             assert(false);
             break;
         case cdFloat:       // not required by any widget yet
@@ -806,7 +809,6 @@ public:
     int report_cache_ints() {
         size_t fp_len = fp_int_ptrs.size();
         size_t cs_len = cache_ints.size();
-        int ptr_val{ 0 };
         int backed{ 0 };
         std::cout << "== report_cache_ints ptrs:"
             << std::dec << fp_len << ", cached:" << std::dec << cs_len << std::endl;
