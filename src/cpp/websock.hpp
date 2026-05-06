@@ -184,7 +184,7 @@ protected:
         timer.async_wait(boost::bind(&NDWebSockClient::on_timeout, this, ::_1));
     }
 
-    void on_timeout(const boost::system::error_code& e) {
+    void on_timeout(const boost::system::error_code& ) {
         // if im_render returns false someone has closed the app via GUI
         if (!im_render(ctx)) {
             im_end(ctx.get_glfw_window());                 // imgui finalisation
@@ -197,7 +197,7 @@ protected:
         }
     }
 
-    void wspp_on_message(ws_client* c, ws_handle h, message_ptr msg_ptr) {
+    void wspp_on_message(ws_client*, ws_handle h, message_ptr msg_ptr) {
         std::string payload(msg_ptr->get_payload());
         NDLogger::cout() << "NDWebSockClient::on_message: hdl( " << h.lock().get()
             << ")" << std::endl;
@@ -206,19 +206,19 @@ protected:
         server_responses.push(msg_json);
     }
 
-    void wspp_on_open(ws_client* c, ws_handle h) {
+    void wspp_on_open(ws_client*, ws_handle h) {
         NDLogger::cout() << "NDWebSockClient::on_open: hdl:" << h.lock().get() << std::endl;
         handle = h;
         connected = true;
         ctx.on_ws_open();
     }
 
-    void wspp_on_close(ws_client* c, ws_handle h) {
+    void wspp_on_close(ws_client*, ws_handle h) {
         connected = false;
         NDLogger::cout() << "NDWebSockClient::on_close: hdl: " << h.lock().get() << std::endl;
     }
 
-    void wspp_on_fail(ws_client* c, ws_handle h) {
+    void wspp_on_fail(ws_client*, ws_handle h) {
         // connection failure: server not listening, or handshake failure
         NDLogger::cout() << "NDWebSockClient::on_fail: hdl: " << h.lock().get() << std::endl;
         connected = false;
