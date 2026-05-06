@@ -58,9 +58,9 @@ public:
             cache_strings.push_back(s);
             const char* ptr = cache_strings.back().c_str();
             fp_char_ptrs.push_back(ptr);
-            return DataCacheIndex<itype, CDT::cdStr>(cache_strings.size() - 1, stype);
+            return DataCacheIndex<itype, CDT::cdStr>((uint32_t)cache_strings.size() - 1, stype);
         }
-        uint32_t inx = std::distance(cache_strings.begin(), iter);
+        uint32_t inx = (uint32_t)std::distance(cache_strings.begin(), iter);
         return DataCacheIndex<itype, CDT::cdStr>(inx, stype);
     }
 
@@ -77,7 +77,7 @@ protected:
         // create storage for an int value, and FP ptr too
         cache_ints.push_back(value);
         fp_int_ptrs.push_back(&(cache_ints.back()));
-        return IntInx(fp_int_ptrs.size() - 1);
+        return IntInx((uint32_t)fp_int_ptrs.size() - 1);
     }
 
     void update_int(uint32_t inx, int val) {
@@ -87,7 +87,7 @@ protected:
     }
 
     BoolInx get_bool_index(bool val) {
-        BoolInx binx( fp_bool_ptrs.size() );
+        BoolInx binx{ (uint32_t)fp_bool_ptrs.size() };
         cache_bools[binx()] = val;
         fp_bool_ptrs.push_back(&(cache_bools[binx()]));
         return binx;
@@ -104,7 +104,7 @@ protected:
         // so go ahead and create new cache_floats backed storage
         cache_floats.push_back(value);
         fp_float_ptrs.push_back(&(cache_floats.back()));
-        return FloatInx(fp_float_ptrs.size() - 1);
+        return FloatInx((uint32_t)fp_float_ptrs.size() - 1);
     }
 
     void clear() {
@@ -334,7 +334,6 @@ protected:
             // for cname. Instead we get it from the CacheSpecTypeMap 
             CacheDataType ref_type{ ctmit->second };
             std::string ref_name = cspec_names[spec];   // [cindex|cname|query_id]
-            uint32_t entity_inx{ 0 };
             if (!JContains(cspec, ref_name.c_str())) {
                 bad_data_refs.push_back(ref_name);
                 std::stringstream ss{ "BAD_DATA_REF(" };
@@ -392,13 +391,13 @@ protected:
                     // capture the "base" index; subsequent indices
                     // are implied by data_ref.size
                     data_ref.ref_inx = get_int_index(JAsInt(jvec[0]))();
-                    for (int jinx = 1; jinx < data_ref.size; jinx++)
+                    for (uint32_t jinx = 1; jinx < data_ref.size; jinx++)
                         get_int_index(JAsInt(jvec[jinx]));
                 }
                 break;
             case cdStrVec:
                 JAsStringVec(data, addr_or_qid.c_str(), svec);
-                data_ref.size = svec.size();
+                data_ref.size = (uint32_t)svec.size();
                 if (data_ref.size > 0) {
                     auto it = svec.begin();
                     data_ref.ref_inx = get_string_index<CIT::Value>(*it++)();
@@ -512,15 +511,15 @@ public:
         case cdIntVec:
             jvec = dc[Static::new_value_cs];
             assert(data_ref.size = JSize(jvec));
-            for (int jinx = 0; jinx < data_ref.size; jinx++) {
+            for (uint32_t jinx = 0; jinx < data_ref.size; jinx++) {
                 update_int(data_ref.ref_inx + jinx, JAsInt(jvec[jinx]));
             }
             break;
         case cdStrVec:
             JAsStringVec(dc, Static::new_value_cs, svec);
-            assert(data_ref.size = svec.size());
-            for (int jinx = 0; jinx < data_ref.size; jinx++) {
-                update_string(data_ref.ref_inx + jinx, svec[jinx]);
+            assert(data_ref.size = (uint32_t)svec.size());
+            for (size_t jinx = 0; jinx < data_ref.size; jinx++) {
+                update_string(data_ref.ref_inx + (uint32_t)jinx, svec[jinx]);
             }
             break;
         }
@@ -603,18 +602,18 @@ public:
     IntInx extern_int(int* v) {
         cache_ints.push_back(*v);
         fp_int_ptrs.push_back(v);
-        return IntInx(fp_int_ptrs.size() - 1);
+        return IntInx{ (uint32_t)fp_int_ptrs.size() - 1 };
     }
 
     FloatInx extern_float(float* v) {
         cache_floats.push_back(*v);
         fp_float_ptrs.push_back(v);
-        return FloatInx(fp_float_ptrs.size() - 1);
+        return FloatInx{ (uint32_t)fp_float_ptrs.size() - 1 };
     }
 
     BoolInx extern_bool(bool* v) {
         fp_bool_ptrs.push_back(v);
-        BoolInx binx( fp_bool_ptrs.size() - 1 );
+        BoolInx binx{ (uint32_t)fp_bool_ptrs.size() - 1 };
         cache_bools[binx()] = *v;
         return binx;
     }
@@ -783,9 +782,8 @@ private:
 
 public:
     int report_cache_strings() {
-        int fp_len = fp_char_ptrs.size();
-        int cs_len = cache_strings.size();
-        int ptr_val{ 0 };
+        size_t fp_len = fp_char_ptrs.size();
+        size_t cs_len = cache_strings.size();
         int backed{ 0 };
         std::cout << "== report_cache_strings ptrs:"
             << std::dec << fp_len << ", cached:" << std::dec << cs_len << std::endl;
@@ -806,8 +804,8 @@ public:
     }
 
     int report_cache_ints() {
-        int fp_len = fp_int_ptrs.size();
-        int cs_len = cache_ints.size();
+        size_t fp_len = fp_int_ptrs.size();
+        size_t cs_len = cache_ints.size();
         int ptr_val{ 0 };
         int backed{ 0 };
         std::cout << "== report_cache_ints ptrs:"
@@ -829,9 +827,8 @@ public:
     }
 
     int report_cache_floats() {
-        int fp_len = fp_float_ptrs.size();
-        int cs_len = cache_floats.size();
-        int ptr_val{ 0 };
+        size_t fp_len = fp_float_ptrs.size();
+        size_t cs_len = cache_floats.size();
         int backed{ 0 };
         std::cout << "== report_cache_floats ptrs:"
             << std::dec << fp_len << ", cached:" << std::dec << cs_len << std::endl;
@@ -852,7 +849,7 @@ public:
     }
 
     void report_address_map() {
-        int len = address_map.size();
+        size_t len = address_map.size();
         int inx{ 0 };
         std::cout << "== report_address_map len:" << std::dec << len << std::endl;
         for (auto cit = address_map.cbegin(); cit != address_map.cend(); ++cit) {
@@ -863,7 +860,7 @@ public:
 
     void report_actions() {
         int key_inx{ 0 };
-        int actions_len = action_map.size();
+        size_t actions_len = action_map.size();
         std::cout << "== report_action_map len:" << std::dec << actions_len << std::endl;
         for (auto cit = action_map.cbegin(); cit != action_map.cend(); ++cit) {
             const ActionKey& key{ cit->first };
