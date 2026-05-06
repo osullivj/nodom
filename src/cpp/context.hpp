@@ -235,7 +235,7 @@ public:
         einx_BatchResponse = data_lay_cache.template get_string_index<CIT::Event>(Static::batch_response_cs, CST::DBEvent);
 
         // init the fast path vars from the settings established in im_render.hpp:im_start()
-        ImGuiStyle& style = ImGui::GetStyle();
+        // ImGuiStyle& style = ImGui::GetStyle();
 
         if (data_lay_cache.error_count() > 0) {
             data_lay_cache.report_errors();
@@ -367,7 +367,7 @@ public:
         for (auto citer = bad_handle_map.cbegin(); citer != bad_handle_map.end(); ++citer) {
             bad_handle_sum += citer->second;
         }
-        pix_report(RenderBadHandlePC, bad_handle_sum);
+        pix_report(RenderBadHandlePC, (float)bad_handle_sum);
 
         if (render_count % 60 == 0) {   // every 60 renders eg ~1 sec
             for (auto citer = bad_handle_map.cbegin(); citer != bad_handle_map.cend(); ++citer) {
@@ -670,7 +670,7 @@ protected:
         // First, compose the compound action sequence key from action_id and nd_event
         // NB action_id will be a widget_id or query_id
         char* dest = buf;
-        int space = buflen;
+        size_t space = buflen;
         size_t slen = strlen(s1);
         memset(dest, 0, space);
         strncpy(dest, s1, space);
@@ -732,7 +732,7 @@ protected:
         const static char* method = "NDContext::action_execute: ";
 
         assert(action_seq != nullptr);
-        int seq_len = action_seq->size(); // JSize(action_seq);
+        size_t seq_len = action_seq->size(); // JSize(action_seq);
         if (action_inx >= seq_len) {
             NDLogger::cerr() << method << "ACT_EXEC: inx(" << action_inx
                 << ") >= len(" << seq_len << ")" << std::endl;
@@ -871,7 +871,7 @@ protected:
             assert(combo_list_data_ref->tipe == cdStrVec);
             assert(combo_list_data_ref->size < ND_MAX_COMBO_LIST);
             StrInx sinx{ combo_list_data_ref->ref_inx };
-            int combo_count = 0;
+            uint32_t combo_count = 0;
             for (; combo_count < combo_list_data_ref->size; combo_count++) {
                 cs_combo_list[combo_count] = data_lay_cache.get_string_value(sinx);
                 sinx++;
@@ -1276,7 +1276,7 @@ protected:
                 if (str_vec_data_ref != nullptr) {
                     assert(str_vec_data_ref->tipe == cdStrVec);
                     StrInx sinx{ str_vec_data_ref->ref_inx };
-                    for (int i = 0; i < str_vec_data_ref->size; i++) {
+                    for (uint32_t i = 0; i < str_vec_data_ref->size; i++) {
                         const char* text = data_lay_cache.get_string_value(sinx);
                         if (text) {
                             ImGui::TextUnformatted(text);
@@ -1333,7 +1333,7 @@ protected:
                 }
                 ImGui::TableHeadersRow();
                 ImGuiListClipper clipper;
-                clipper.Begin(row_count, -1.0f);
+                clipper.Begin((int)row_count, -1.0f);
                 while (clipper.Step()) {
                     for (int row_index = clipper.DisplayStart; row_index < clipper.DisplayEnd; row_index++) {
                         ImGui::TableNextRow();
@@ -1427,7 +1427,7 @@ protected:
             if (font_it != font_map.end()) font = font_it->second;
         }
 
-        ImGui::PushFont(font, font_size_base);
+        ImGui::PushFont(font, (float)font_size_base);
         font_push_count++;
         return true;
     }
