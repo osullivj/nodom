@@ -36,7 +36,7 @@ public:
     // Data access methods called by tables in NDContext. All DBCache
     // impls must provide these, even EmptyDBCache...
     std::uint64_t get_handle(const std::string& qid) { return 0; }
-    std::uint64_t get_row_count(std::uint64_t handle) { return 0; }
+    std::uint64_t get_row_count(std::uint64_t /* handle */) { return 0; }
     bool get_meta_data(std::uint64_t handle, std::uint64_t& column_count, std::uint64_t& row_count) {return false;}
     const char* get_datum(std::uint64_t handle, std::uint64_t colm_index, std::uint64_t row_index) { return "NULL"; }
 
@@ -297,7 +297,7 @@ public:
                         Bobbin& chunk_deck(bobbin_map[handle]);
                         chunk_deck.push_back(chunk);
                         pix_report(DBBatch, static_cast<float>(batch_count++));
-                        int row_count = duckdb_data_chunk_get_size(chunk);
+                        idx_t row_count = duckdb_data_chunk_get_size(chunk);
                         std::cout << method << "BATCH_OK(" << qid << ") rc(" << row_count << ")" << std::endl;
                     }
                 }
@@ -352,7 +352,6 @@ public:
 
     StringVec& get_col_names(std::uint64_t handle) {
         // First 3 32 bit words are done, ncols, nrows
-        uint64_t* chunk_ptr = reinterpret_cast<uint64_t*>(handle);
         StringVec& colm_names = col_names_map[handle];
         return colm_names;
     }
@@ -392,7 +391,6 @@ public:
 
 
     const char* get_datum(std::uint64_t h, std::uint64_t colm_index, std::uint64_t row_index) {
-        duckdb_result* result_ptr = reinterpret_cast<duckdb_result*>(h);
         ResultHandle handle = static_cast<ResultHandle>(h);
 
         auto bmit = bobbin_map.find(handle);
@@ -401,8 +399,8 @@ public:
         const Bobbin& bob{ bmit->second};
         duckdb_data_chunk chunk;
 
-        int rel_index = row_index % duck_chunk_size;
-        int chunk_index = row_index / duck_chunk_size;
+        uint64_t rel_index = row_index % duck_chunk_size;
+        uint64_t chunk_index = row_index / duck_chunk_size;
         auto bob_iter = bob.cbegin();
         while (chunk_index > 0) {
             --chunk_index;
@@ -423,9 +421,6 @@ public:
             duckdb_type colm_type(types[colm_index]);
             const std::vector<duckdb_logical_type>& logical_types{ logical_type_map.at(handle) };
             duckdb_logical_type colm_type_l(logical_types[colm_index]);
-            char* fraction_cs = nullptr;
-            char* fraction_fmt = nullptr;
-            double fraction{ 0.0 };
 
             switch (colm_type) {
             case DUCKDB_TYPE_VARCHAR:
