@@ -1,7 +1,7 @@
 {
   "loading_text": ["Loading app data from {_server_url}"],
   "actions": {
-    "GUI.gui_online": [
+    "GUI.online": [
       {
         "ui_push": "app_loading_modal"
       }
