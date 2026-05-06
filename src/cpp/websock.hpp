@@ -83,7 +83,7 @@ private:
 
 public:
     NDWebSockClient(NDProxy<DB>& svr, NDContext<JSON, DB>& c)
-        :ctx(c), server(svr), uri(svr.get_server_url()) {
+        :uri(svr.get_server_url()), ctx(c), server(svr)  {
 #ifdef __EMSCRIPTEN__
         ws_attrs.url = uri.c_str();
         ws_handle = emscripten_websocket_new(&ws_attrs);
