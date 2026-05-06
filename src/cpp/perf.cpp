@@ -5,7 +5,6 @@
 #endif
 
 #include "nd_types.hpp"
-#include "static_strings.hpp"
 
 #ifdef USE_PIX
 uint32_t render_color = PIX_COLOR(255, 0, 125);
