@@ -421,7 +421,7 @@ protected:
         int layout_length = JSize(layout);
         for (int inx = 0; inx < layout_length; inx++) {
             const JSON& w(layout[inx]);
-            const JSON& cspec(extract_cspec<JSON>(w));
+            const JSON cspec(extract_cspec<JSON>(w));
             // The only NDWidget ctor invocation...
             EntityInx winx; // invalid on init
             std::string widget_id_s{ extract_string(w, Static::widget_id_cs) };
@@ -429,7 +429,7 @@ protected:
             auto wptr = std::make_shared<NDWidget>(extract_render_name(w), winx);
             wvec->push_back(wptr);
             orthogonalize_cspec(cspec, data, wvec->back());
-            const JSON& children = extract_children(w);
+            const JSON children = extract_children(w);
             int child_count = JSize(children);
             if (child_count > 0) {
                 on_layout(data, children, &(wptr->children));
