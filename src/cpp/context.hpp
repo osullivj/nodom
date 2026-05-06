@@ -293,6 +293,9 @@ public:
             // action_dispatch(Static::websock_cs, CriticalToString(show_stopper));
             action_dispatch(ninx_Websock, einx_WebSockConnectionFailed);
             break;
+        case Clear:
+        case EndCritical:
+            break;  // TODO
         }
     }
 
@@ -587,7 +590,7 @@ protected:
     
     // void dispatch_render(const JSON& w) {
     void dispatch_render(WidgetPtr w) {
-        const static char* method = "NDContext::dispatch_render: ";
+        // const static char* method = "NDContext::dispatch_render: ";
         // w["rname"] resolve & invoke
         switch (w->rname) {
         case RenderMethod::Noop:
@@ -685,10 +688,8 @@ protected:
         strncpy(dest, s2, space);
     }
 
-    // void action_dispatch(const std::string& action_id, const std::string& nd_event) {
     void action_dispatch(EntityInx ninx, EventInx einx) {
-
-        const static char* method = "NDContext::action_dispatch: ";
+        // const static char* method = "NDContext::action_dispatch: ";
 
         std::list<InFlight> new_in_flight_list;
         ActionKey akey{ ninx, einx };
@@ -767,7 +768,7 @@ protected:
 
 
     void db_dispatch(const NDAction& action_defn) {
-        const static char* method = "NDContext::db_dispatch: ";
+        // const static char* method = "NDContext::db_dispatch: ";
 
         auto db_request = JNewObject();
         JSet(db_request, Static::nd_type_cs, DBEventTypeToString(action_defn.db_action));
@@ -807,6 +808,10 @@ protected:
             // we're using init_layout/data, so render last crit error
             if (show_stopper != Clear) {
                 switch (show_stopper) {
+                case Clear:
+                case EndCritical:
+                    // TODO
+                    break;
                 case WebSockConnectionFailed:
                     if (critical_messages[WebSockConnectionFailed].empty()) {
                         compound_string(string_buffer, STR_BUF_LEN,
@@ -815,7 +820,7 @@ protected:
                         critical_messages[WebSockConnectionFailed] = std::string(string_buffer);
                     }
                     for (int i = WebSockConnectionFailed; i < EndCritical; ++i) {
-                        ImGui::Text(critical_messages[WebSockConnectionFailed].c_str());
+                        ImGui::TextUnformatted(critical_messages[WebSockConnectionFailed].c_str());
                     }
                 }
             }
@@ -824,7 +829,7 @@ protected:
     }
 
     void render_input_int(WidgetPtr w) {
-        const static char* method = "NDContext::render_input_int: ";
+        // const static char* method = "NDContext::render_input_int: ";
 
         int step = 1;
         cspec_int(cs_step, w->cspec_int, &step);
@@ -909,7 +914,7 @@ protected:
     }
 
     void render_footer(WidgetPtr w) {
-        static const char* method = "NDContext::render_footer: ";
+        // static const char* method = "NDContext::render_footer: ";
 
         // TODO: understand ems mem anlytics and restore in footer
         cspec_bool(cs_show_footer_db, w->cspec_bool, &footer_show_db);
@@ -924,7 +929,6 @@ protected:
             // Push colour styling for the DB button
             ImGui::PushStyleColor(ImGuiCol_Button, (ImU32)db_status_color);
             if (ImGui::Button("DB")) {
-                // action_dispatch(Static::i_am_footer_db_button_cs, Static::click_cs);
                 action_dispatch(ninx_FooterDBButton, einx_Click);
             }
             ImGui::PopStyleColor(1);
@@ -989,7 +993,7 @@ protected:
     }
 
     void render_date_picker(WidgetPtr w) {
-        const static char* method = "NDContext::render_date_picker: ";
+        // const static char* method = "NDContext::render_date_picker: ";
 
         // don't bother rendering if not visible
         ImGuiWindow* window = ImGui::GetCurrentWindow();
@@ -1124,7 +1128,7 @@ protected:
                                 // NB ImGui::Button doesn't operate directly
                                 // on int_ptr data, unlike Combo and InputInt,
                                 // so we set explicitly here.
-                                int_ptr[Day] = day; // v = EncodeTimePoint(day, month, year);
+                                int_ptr[Day] = day;
                                 dp_vars.new_date[Day] = day;
                                 ImGui::CloseCurrentPopup();
                             }
@@ -1149,7 +1153,7 @@ protected:
         const static char* method = "NDContext::render_text: ";
 
         const char* rtext = cspec_string(cs_text, w->cspec_str, method);
-        ImGui::Text(rtext);
+        ImGui::TextUnformatted(rtext);
     }
 
     void render_button(WidgetPtr w) {
@@ -1413,7 +1417,7 @@ protected:
 
     bool push_font(WidgetPtr w, CacheSpecifier cs_font_name, 
                                         CacheSpecifier cs_font_size) {
-        const static char* method = "NDContext::push_font: ";
+        // const static char* method = "NDContext::push_font: ";
 
         // get size if specified, otherwise default to 0
         int font_size_base = 0;
