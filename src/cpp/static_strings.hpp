@@ -177,7 +177,7 @@ struct Static {
 	inline static const char* mid_button_cs{ "##MidButton_" };
 	inline static const char* date_table_cs{ "##DateTable_" };
 
-	inline static const std::array<char*, 12> months_array_cs{
+	inline static const std::array<const char*, 12> months_array_cs{
 		"January",
 		"February",
 		"March",
