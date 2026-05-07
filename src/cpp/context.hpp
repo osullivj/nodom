@@ -169,6 +169,7 @@ public:
     {
         // init status is not connected
         db_status_color = red;
+        // cp lambdas into LocalFont statics
         LocalFont::push_func = [&](WidgetPtr w, CacheSpecifier nm, CacheSpecifier sz) {push_font(w, nm, sz); };
         LocalFont::pop_func = [&]() {pop_font(); };
     }
