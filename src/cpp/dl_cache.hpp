@@ -928,11 +928,10 @@ public:
         report_cache_floats();
         report_address_map();
         report_actions();
-        report_errors();
         std::cout << std::endl;
     }
 
-    void report_errors() {
+    void report_cache_errors() {
         std::cout << "== layout errors" << std::endl;
         for (const auto& error : layout_errors) {
             std::cout << error << std::endl;

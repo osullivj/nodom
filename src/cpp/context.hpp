@@ -238,8 +238,10 @@ public:
         // init the fast path vars from the settings established in im_render.hpp:im_start()
         // ImGuiStyle& style = ImGui::GetStyle();
 
+        data_lay_cache.report_cache_state();
+
         if (data_lay_cache.error_count() > 0) {
-            data_lay_cache.report_errors();
+            data_lay_cache.report_cache_errors();
         }
         else {
             // init the render stack
