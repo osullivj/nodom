@@ -173,6 +173,7 @@
     <ClCompile Include="..\..\imgui\imgui_tables.cpp" />
     <ClCompile Include="..\..\imgui\imgui_widgets.cpp" />
     <ClCompile Include="main_bb_duck.cpp" />
+    <ClCompile Include="nd_gui_utils.cpp" />
     <ClCompile Include="nd_utils.cpp" />
     <ClCompile Include="perf.cpp" />
   </ItemGroup>
