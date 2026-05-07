@@ -13,6 +13,7 @@
 #include "im_render.hpp"
 #include "db_cache.hpp"
 #include "websock.hpp"
+#include "emscripten.h"
 #include "emscripten_mainloop_stub.h"
 
 // NoDOM: this main.cpp is intended to stay as close as possible
@@ -31,6 +32,10 @@ void im_loop_body(void* c) {
     }
 }
 
+EM_JS(const char*, utf8_to_ascii, (const char* utf8), {
+    return UTF8ToString(utf8);
+});
+
 int main(int argc, char* argv[]) {
     const static char* method = "main: ";
 
@@ -38,13 +43,13 @@ int main(int argc, char* argv[]) {
         std::cout << method << "argv[" << i << "]=" << argv[i] << std::endl;
     }
 
-    std::string init_data(argc > 2 ? argv[1] : nullptr);
-    std::string init_layout(argc > 2 ? argv[2] : nullptr);
+    // TODO: fix "invalid UTF-8 leading byte 0x000000fe encountered when deserializing a UTF-8 string in wasm memory to a JS string!"
+    // std::string init_data(argc > 2 ? utf8_to_ascii(argv[1]) : Static::init_data_cs);
+    // std::string init_layout(argc > 2 ? utf8_to_ascii(argv[2]) : Static::init_layout_cs);
 
     NDProxy<DuckDB_t> server;
-    NDContext_t ctx(server,
-        init_data.empty() ? nullptr : init_data.c_str(),
-        init_layout.empty() ? nullptr : init_layout.c_str());
+    // NDContext_t ctx(server, init_data_cs, init_layout_cs);
+    NDContext_t ctx(server, Static::init_data_cs, Static::init_layout_cs);
     NDWebSockClient<ems_val_t, DuckDB_t> ws_client(server, ctx);
 
     ctx.register_msg_pump([&ws_client]() {ws_client.pump_messages();});
