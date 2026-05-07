@@ -230,7 +230,7 @@ protected:
             if (prefix_comma) NDLogger::cout() << ", ";
             NDLogger::cout() << "sql_cname(" << action.sql_cname << "/" << interned.sql_cname << ")";
         }
-        NDLogger::cout() << "]" << std::endl;
+        NDLogger::cout() << "]";
         NDLogger::cout().flush();
     }
 
@@ -892,8 +892,8 @@ public:
         for (auto cit = address_map.cbegin(); cit != address_map.cend(); ++cit) {
             std::cout << std::setfill('0') << std::setw(3) << std::hex << inx++ << ":";
             std::cout << cit->first << ":" << cit->second << std::endl;
-            std::cout << std::dec << std::endl;
         }
+        std::cout << std::dec << std::endl;
     }
 
     void report_actions() {
@@ -917,8 +917,8 @@ public:
                 << "):EventInx(" << key.event_inx() << "):";
             for (int act_inx = 0; act_inx < action_vec.size(); act_inx++) {
                 print_parsed_action(action_vec[act_inx], action_intern_vec[act_inx]);
+                std::cout << std::endl;
             }
-            std::cout << std::endl;
         }
     }
 
@@ -928,16 +928,17 @@ public:
         report_cache_floats();
         report_address_map();
         report_actions();
+        report_errors();
         std::cout << std::endl;
     }
 
     void report_errors() {
         std::cout << "== layout errors" << std::endl;
-        for (auto error : layout_errors) {
+        for (const auto& error : layout_errors) {
             std::cout << error << std::endl;
         }
         std::cout << "== action errors" << std::endl;
-        for (auto error : action_errors) {
+        for (const auto& error : action_errors) {
             std::cout << error << std::endl;
         }
     }
