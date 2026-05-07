@@ -45,18 +45,7 @@ int DuckTypeToSize(WasmDuckType dt) {
 }
 
 
-const char* StyleColorToString(StyleColor col) {
-    switch (col) {
-    case Dark:
-        return Static::dark_cs;
-    case Light:
-        return Static::light_cs;
-    case Classic:
-        return Static::classic_cs;
-    default:
-        return 0;
-    }
-}
+
 
 
 const char* CriticalToString(Critical crit) {
@@ -71,19 +60,4 @@ const char* CriticalToString(Critical crit) {
     return 0;
 }
 
-
-// NDContext helper: SetStyleColoring
-void SetStyleColoring(int col) {
-    switch (col) {
-    case Dark:
-        ImGui::StyleColorsDark();
-        break;
-    case Light:
-        ImGui::StyleColorsLight();
-        break;
-    case Classic:
-        ImGui::StyleColorsClassic();
-        break;
-    }
-}
 
