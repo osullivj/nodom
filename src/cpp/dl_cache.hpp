@@ -784,79 +784,115 @@ private:
     };
 
 public:
+    void report_sanity_check() {
+        std::cout << "== report_sanity_check" << std::endl;
+        std::cout << "sizeof(int):" << sizeof(int) << std::endl;
+        std::cout << "sizeof(float):" << sizeof(float) << std::endl;
+        std::cout << "sizeof(double):" << sizeof(double) << std::endl;
+        std::cout << "sizeof(bool):" << sizeof(bool) << std::endl;
+        std::cout << "sizeof(uint32_t):" << sizeof(uint32_t) << std::endl;
+        std::cout << "sizeof(uint64_t):" << sizeof(uint64_t) << std::endl;
+        std::cout << "sizeof(size_t):" << sizeof(size_t) << std::endl;
+        std::cout << "sizeof(char*):" << sizeof(char*) << std::endl;
+        std::cout << std::endl;
+    }
+
     int report_cache_strings() {
         size_t fp_len = fp_char_ptrs.size();
         size_t cs_len = cache_strings.size();
-        int backed{ 0 };
+        // sizeof(char8)==8 on x64, 4 on wasm
+        // 4 bytes is 8 hex digits, 8 bytes is 16
+        constexpr size_t cs_sz = 2 * sizeof(char*);
         std::cout << "== report_cache_strings ptrs:"
             << std::dec << fp_len << ", cached:" << std::dec << cs_len << std::endl;
+        std::cout << "inx:val:cptr:fptr" << std::endl;
         for (int inx = 0; inx < cs_len; inx++) {
-            std::cout << std::setfill('0') << std::setw(2) << std::hex << inx << ":";
-            std::cout << cache_strings[inx] << ":";
             const char* cache_ptr = cache_strings[inx].c_str();
-            std::cout << "0x" << std::setfill('0') << std::setw(8) << std::hex << (int)cache_ptr << ":";
             const char* fast_ptr = fp_char_ptrs[inx];
-            std::cout << "0x" << std::setfill('0') << std::setw(8) << std::hex << (int)fast_ptr;
-            if (cache_ptr == fast_ptr) {
-                std::cout << ":BACKED";
-                backed++;
+            size_t cp_val = (size_t)cache_ptr;
+            size_t fp_val = (size_t)fast_ptr;
+
+            std::cout << std::hex << std::setfill('0');
+            std::cout << std::setw(3) << inx << ":" << cache_strings[inx] << ":";
+            std::cout << "0x" << std::setw(cs_sz) << cp_val << ":";
+            if (cp_val != fp_val) {
+                std::cout << "0x" << std::setw(cs_sz) << fp_val << std::endl;
             }
-            std::cout << std::endl;
+            else {
+                std::cout << "==" << std::string(cs_sz, '=') << std::endl;
+            }
         }
-        return backed;
+        std::cout << std::endl;
+        return cs_len;
     }
 
     int report_cache_ints() {
         size_t fp_len = fp_int_ptrs.size();
         size_t cs_len = cache_ints.size();
-        int backed{ 0 };
+        // sizeof(char8)==8 on x64, 4 on wasm
+        // 4 bytes is 8 hex digits, 8 bytes is 16
+        constexpr size_t cs_sz = 2 * sizeof(char*);
         std::cout << "== report_cache_ints ptrs:"
             << std::dec << fp_len << ", cached:" << std::dec << cs_len << std::endl;
+        std::cout << "inx:val:cptr:fptr" << std::endl;
         for (int inx = 0; inx < cs_len; inx++) {
-            std::cout << std::setfill('0') << std::setw(2) << std::hex << inx << ":";
-            std::cout << cache_ints[inx] << ":";
             int* cache_ptr = &(cache_ints[inx]);
-            std::cout << "0x" << std::setfill('0') << std::setw(8) << std::hex << (int)cache_ptr << ":";
             int* fast_ptr = fp_int_ptrs[inx];
-            std::cout << "0x" << std::setfill('0') << std::setw(8) << std::hex << (int)fast_ptr;
-            if (cache_ptr == fast_ptr) {
-                std::cout << ":BACKED";
-                backed++;
+            size_t cp_val = (size_t)cache_ptr;
+            size_t fp_val = (size_t)fast_ptr;
+
+            std::cout << std::hex << std::setfill('0');
+            std::cout << std::setw(3) << inx << ":" << cache_ints[inx] << ":";
+            std::cout << cp_val << ":";
+            if (cp_val != fp_val) {
+                std::cout << fp_val << std::endl;
             }
-            std::cout << std::endl;
+            else {
+                std::cout << "====" << std::endl;
+            }
         }
-        return backed;
+        std::cout << std::endl;
+        return cs_len;
     }
 
     int report_cache_floats() {
         size_t fp_len = fp_float_ptrs.size();
         size_t cs_len = cache_floats.size();
-        int backed{ 0 };
+        // sizeof(char8)==8 on x64, 4 on wasm
+        // 4 bytes is 8 hex digits, 8 bytes is 16
+        constexpr size_t cs_sz = 2 * sizeof(char*);
         std::cout << "== report_cache_floats ptrs:"
             << std::dec << fp_len << ", cached:" << std::dec << cs_len << std::endl;
+        std::cout << "inx:val:cptr:fptr" << std::endl;
         for (int inx = 0; inx < cs_len; inx++) {
-            std::cout << std::setfill('0') << std::setw(2) << std::hex << inx << ":";
-            std::cout << cache_floats[inx] << ":";
             float* cache_ptr = &(cache_floats[inx]);
-            std::cout << "0x" << std::setfill('0') << std::setw(8) << std::hex << (int)cache_ptr << ":";
             float* fast_ptr = fp_float_ptrs[inx];
-            std::cout << "0x" << std::setfill('0') << std::setw(8) << std::hex << (int)fast_ptr;
-            if (cache_ptr == fast_ptr) {
-                std::cout << ":BACKED";
-                backed++;
+            size_t cp_val = (size_t)cache_ptr;
+            size_t fp_val = (size_t)fast_ptr;
+
+            std::cout << std::hex << std::setfill('0');
+            std::cout << std::setw(3) << inx << ":" << cache_floats[inx] << ":";
+            std::cout << cp_val << ":";
+            if (cp_val != fp_val) {
+                std::cout << fp_val << std::endl;
             }
-            std::cout << std::endl;
+            else {
+                std::cout << "====" << std::endl;
+            }
         }
-        return backed;
+        std::cout << std::endl;
+        return cs_len;
     }
 
     void report_address_map() {
         size_t len = address_map.size();
         int inx{ 0 };
         std::cout << "== report_address_map len:" << std::dec << len << std::endl;
+        std::cout << "inx:addr:AddrInx{0x0104,inx}" << std::endl;
         for (auto cit = address_map.cbegin(); cit != address_map.cend(); ++cit) {
-            std::cout << std::setfill('0') << std::setw(2) << std::hex << inx++ << ":";
+            std::cout << std::setfill('0') << std::setw(3) << std::hex << inx++ << ":";
             std::cout << cit->first << ":" << cit->second << std::endl;
+            std::cout << std::dec << std::endl;
         }
     }
 
@@ -864,6 +900,8 @@ public:
         int key_inx{ 0 };
         size_t actions_len = action_map.size();
         std::cout << "== report_action_map len:" << std::dec << actions_len << std::endl;
+        std::cout << "inx:ActnKey:EntityInx{0x0304,inx}:EventInx{0x0404,inx}:str(action)" << std::endl;
+
         for (auto cit = action_map.cbegin(); cit != action_map.cend(); ++cit) {
             const ActionKey& key{ cit->first };
             const ActionVec& action_vec{ cit->second };
@@ -874,12 +912,13 @@ public:
             // all show as nullptr populated anyway...
             ActionInternVec& action_intern_vec{ action_interned_map[key] };
             action_intern_vec.resize(action_vec.size());
-            std::cout << std::setfill('0') << std::setw(2) << std::hex << key_inx++ << ":";
+            std::cout << std::setfill('0') << std::setw(3) << std::hex << key_inx++ << ":";
             std::cout << key << ":EntityInx(" << key.entity_inx()
-                << "), EventInx(" << key.event_inx() << ")" << std::endl;
+                << "):EventInx(" << key.event_inx() << "):";
             for (int act_inx = 0; act_inx < action_vec.size(); act_inx++) {
                 print_parsed_action(action_vec[act_inx], action_intern_vec[act_inx]);
             }
+            std::cout << std::endl;
         }
     }
 
