@@ -37,9 +37,12 @@ struct DataCacheFixture {
 
     // reset these at the top of your test method
     // for the dtor asserts
-    int backed_str_count{ 0 };
-    int backed_int_count{ 0 };
-    int backed_float_count{ 0 };
+    int str_count{ 0 };
+    int int_count{ 0 };
+    int float_count{ 0 };
+    int extern_str_count{ 0 };
+    int extern_int_count{ 0 };
+    int extern_float_count{ 0 };
 
     DataCacheFixture()
         :nd_home(getenv("ND_HOME"))
@@ -51,12 +54,13 @@ struct DataCacheFixture {
     }
 
     void assert_cache_state() {
-        int bsc = dc.report_cache_strings();
-        BOOST_TEST(backed_str_count == bsc);
-        int bic = dc.report_cache_ints();
-        BOOST_TEST(backed_int_count == bic);
-        int bfc = dc.report_cache_floats();
-        BOOST_TEST(backed_float_count == bfc);
+        int sc = dc.report_cache_strings(extern_str_count);
+        BOOST_TEST(str_count == sc);
+
+        int ic = dc.report_cache_ints(extern_int_count);
+        BOOST_TEST(int_count == ic);
+        int fc = dc.report_cache_floats(extern_float_count);
+        BOOST_TEST(float_count == fc);
         dc.report_address_map();
         dc.report_actions();
         std::cout << std::endl;
@@ -69,7 +73,8 @@ BOOST_FIXTURE_TEST_CASE(AddAddr, DataCacheFixture)
 {
     std::string addr_str{ "integer_address" };
     AddrInx addr_inx = dc.add_address(std::string{"integer_address"});
-    backed_str_count = 2;
+
+    str_count = 2;  // addr_str & i_am_noop
 
     BOOST_TEST(AddrInx::item_type == CIT::Address);
     BOOST_TEST(AddrInx::data_type == CDT::cdStr);
@@ -82,8 +87,9 @@ BOOST_FIXTURE_TEST_CASE(AddInt, DataCacheFixture)
 {
     std::string addr_str{ "style_coloring" };
     AddrInx addr_inx = dc.add_address(addr_str);
-    backed_str_count = 2;
+    str_count = 2;
     IntInx int_inx = dc.extern_int(&style_coloring);
+    extern_int_count = int_count = 1;
     BOOST_TEST(IntInx::item_type == CIT::Value);
     BOOST_TEST(IntInx::data_type == CDT::cdInt);
     BOOST_TEST(int_inx.magic_index == uint32_t(0x02010000));
@@ -95,7 +101,7 @@ BOOST_FIXTURE_TEST_CASE(AddBool, DataCacheFixture)
 {
     std::string addr_str{ "show_footer_db" };
     AddrInx addr_inx = dc.add_address(addr_str);
-    backed_str_count = 2;
+    str_count = 2;
     BoolInx bool_inx = dc.extern_bool(&show_footer_db);   // not backed
     BOOST_TEST(IntInx::item_type == CIT::Value);
     BOOST_TEST(IntInx::data_type == CDT::cdInt);
@@ -108,8 +114,9 @@ BOOST_FIXTURE_TEST_CASE(AddBool, DataCacheFixture)
 BOOST_FIXTURE_TEST_CASE(AddFloat, DataCacheFixture)
 {
     AddrInx addr_inx = dc.add_address(std::string{ "font_scale_main" });
-    backed_str_count = 2;
+    str_count = 2;  // also i_am_noop
     FloatInx float_inx = dc.extern_float(&font_scale_main);    // not backed
+    extern_float_count = float_count = 1;
     BOOST_TEST(FloatInx::item_type == CIT::Value);
     BOOST_TEST(FloatInx::data_type == CDT::cdFloat);
     BOOST_TEST(float_inx.magic_index == uint32_t(0x02020000));
@@ -124,7 +131,7 @@ BOOST_FIXTURE_TEST_CASE(AddString, DataCacheFixture)
     // DataCacheFixture::server_url is a standin for Proxy::server_url
     // _server_url is the special cache ref that's not in data
     StrInx str_inx = dc.get_string_index<CIT::Value>(server_url.c_str());
-    backed_str_count = 3;
+    str_count = 3;
     BOOST_TEST(StrInx::item_type == CIT::Value);
     BOOST_TEST(StrInx::data_type == CDT::cdStr);
     BOOST_TEST(str_inx.magic_index == uint32_t(0x02040002));
@@ -153,7 +160,7 @@ BOOST_FIXTURE_TEST_CASE(InitData, DataCacheFixture)
     auto layout = JParse<nlohmann::json>(Static::empty_list_cs);
 #endif
     // 3 addresses in AddServer test data
-    backed_str_count = 6;
+    str_count = 6;
     dc.on_json(data, layout, [&]() {dc.on_init(); });
     BOOST_TEST(dc.addr_map_size() == 1);
     BOOST_TEST(dc.action_map_size() == 2);
@@ -173,8 +180,7 @@ BOOST_FIXTURE_TEST_CASE(InitLayout, DataCacheFixture)
     std::string layout_json = load_json(layout_json_path.c_str());
     auto layout = JParse<nlohmann::json>(layout_json);
 #endif
-    backed_str_count = 9;
-    backed_int_count = 0;
+    str_count = 9;
     dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.widget_vec_size() == 2);
     BOOST_TEST(dc.pushables_size() == 1);
@@ -192,7 +198,7 @@ BOOST_FIXTURE_TEST_CASE(AddServerData, DataCacheFixture)
     auto layout = JParse<nlohmann::json>(Static::empty_list_cs);
 #endif
     // 3 addresses in AddServer test data
-    backed_str_count = 3;
+    str_count = 3;
     dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.addr_map_size() == 3);
     BOOST_TEST(dc.action_map_size() == 0);
@@ -212,8 +218,8 @@ BOOST_FIXTURE_TEST_CASE(AddServerLayout, DataCacheFixture)
     std::string layout_json = load_json(layout_json_path.c_str());
     auto layout = JParse<nlohmann::json>(layout_json);
 #endif
-    backed_str_count = 4;   // Layout:[Home::title], Data:[op1,op2,op1_plus_op2]
-    backed_int_count = 5;   // Layout:["step":1, "step":2], Data:[op1,op2,op1_plus_op2]
+    str_count = 4;   // Layout:[Home::title], Data:[op1,op2,op1_plus_op2]
+    int_count = 5;   // Layout:["step":1, "step":2], Data:[op1,op2,op1_plus_op2]
     dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.widget_vec_size() == 1);
     BOOST_TEST(dc.pushables_size() == 0);
@@ -231,7 +237,7 @@ BOOST_FIXTURE_TEST_CASE(ExfServerData, DataCacheFixture)
     auto layout = JParse<nlohmann::json>(Static::empty_list_cs);
 
 #endif
-    backed_str_count = 22;
+    str_count = 22;
     dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.addr_map_size() == 10);
     BOOST_TEST(dc.action_map_size() == 4);
@@ -252,8 +258,8 @@ BOOST_FIXTURE_TEST_CASE(ExfServerLayout, DataCacheFixture)
     std::string layout_json = load_json(layout_json_path.c_str());
     auto layout = JParse<nlohmann::json>(layout_json);
 #endif
-    backed_str_count = 42;
-    backed_int_count = 15;
+    str_count = 42;
+    int_count = 15;
     dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.widget_vec_size() == 3);
     BOOST_TEST(dc.pushables_size() == 2);
@@ -269,8 +275,7 @@ BOOST_FIXTURE_TEST_CASE(InitDataAndLayout, DataCacheFixture)
     auto data = JParse<nlohmann::json>(Static::init_data_cs);
     auto layout = JParse<nlohmann::json>(Static::init_layout_cs);
 #endif
-    backed_str_count = 9;
-    backed_int_count = 0;
+    str_count = 9;
     dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.widget_vec_size() == 2);
     BOOST_TEST(dc.pushables_size() == 1);
