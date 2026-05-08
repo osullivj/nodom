@@ -105,7 +105,10 @@ void JAsStringVec(const nlohmann::json& obj, const char* key, StringVec& vec) {
 
 template <>
 int JSize(const nlohmann::json& obj) {
-	return (int)obj.size();
+	if (obj.is_array()) {
+		return (int)obj.size();
+	}
+	return -1;
 }
 
 template <typename V>
@@ -169,7 +172,10 @@ void JAsStringVec(const emscripten::val& obj, const char* key, StringVec& vec) {
 
 template <>
 int JSize(const emscripten::val& obj) {
-	return obj["length"].as<int>();
+	if (obj.hasOwnProperty("length")) {
+		return obj["length"].as<int>();
+	}
+	return -1;
 }
 
 template <typename V>
