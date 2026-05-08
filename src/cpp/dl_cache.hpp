@@ -419,6 +419,10 @@ protected:
         // NB layout as a whole is a list of widgets.
         // And so is children, hence the recursion...
         int layout_length = JSize(layout);
+        if (layout_length == -1) {
+            layout_errors.push_back(std::string("BAD_DATA_REF(layout) not an array"));
+            return;
+        }
         for (int inx = 0; inx < layout_length; inx++) {
             const JSON& w(layout[inx]);
             const JSON cspec(extract_cspec<JSON>(w));
@@ -829,9 +833,6 @@ public:
     int report_cache_ints() {
         size_t fp_len = fp_int_ptrs.size();
         size_t cs_len = cache_ints.size();
-        // sizeof(char8)==8 on x64, 4 on wasm
-        // 4 bytes is 8 hex digits, 8 bytes is 16
-        constexpr size_t cs_sz = 2 * sizeof(char*);
         std::cout << "== report_cache_ints ptrs:"
             << std::dec << fp_len << ", cached:" << std::dec << cs_len << std::endl;
         std::cout << "inx:val:cptr:fptr" << std::endl;
@@ -858,9 +859,6 @@ public:
     int report_cache_floats() {
         size_t fp_len = fp_float_ptrs.size();
         size_t cs_len = cache_floats.size();
-        // sizeof(char8)==8 on x64, 4 on wasm
-        // 4 bytes is 8 hex digits, 8 bytes is 16
-        constexpr size_t cs_sz = 2 * sizeof(char*);
         std::cout << "== report_cache_floats ptrs:"
             << std::dec << fp_len << ", cached:" << std::dec << cs_len << std::endl;
         std::cout << "inx:val:cptr:fptr" << std::endl;
