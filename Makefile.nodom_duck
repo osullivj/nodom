@@ -7,17 +7,17 @@ EXE = $(BLD_DIR)/nodom_duck.html
 IMGUI_DIR = imgui
 ND_SRC_DIR = src/cpp
 ND_WEB_DIR = src/web
-ND_DP_DIR = ImGuiDatePicker
 ND_FMT_DIR = fmt
 SOURCES = $(ND_SRC_DIR)/main_ems_duck.cpp
 SOURCES += $(ND_SRC_DIR)/perf.cpp
 SOURCES += $(ND_SRC_DIR)/nd_utils.cpp
+SOURCES += $(ND_SRC_DIR)/nd_gui_utils.cpp
 SOURCES += $(ND_FMT_DIR)/src/format.cc
 SOURCES += $(IMGUI_DIR)/imgui.cpp $(IMGUI_DIR)/imgui_demo.cpp $(IMGUI_DIR)/imgui_draw.cpp $(IMGUI_DIR)/imgui_tables.cpp $(IMGUI_DIR)/imgui_widgets.cpp
 SOURCES += $(IMGUI_DIR)/backends/imgui_impl_glfw.cpp $(IMGUI_DIR)/backends/imgui_impl_opengl3.cpp
 OBJS = $(addsuffix .o, $(addprefix bld/,$(basename $(notdir $(SOURCES)))))
 # UNAME_S := $(shell uname -s)
-CPPFLAGS = -std=c++17 -I $(IMGUI_DIR)/examples/libs/emscripten -I $(ND_DP_DIR) -I $(ND_FMT_DIR)/include
+CPPFLAGS = -std=c++17 -I $(IMGUI_DIR)/examples/libs/emscripten -I $(ND_FMT_DIR)/include
 LDFLAGS =
 EMS =
 
@@ -85,9 +85,6 @@ $(BLD_DIR)/%.o:$(IMGUI_DIR)/backends/%.cpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
 
 $(BLD_DIR)/%.o:$(ND_SRC_DIR)/%.cpp
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
-
-$(BLD_DIR)/%.o:$(ND_DP_DIR)/%.cpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
 
 $(BLD_DIR)/%.o:$(ND_FMT_DIR)/src/%.cc
