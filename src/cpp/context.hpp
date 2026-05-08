@@ -293,7 +293,6 @@ public:
         show_stopper = error_code;
         switch (error_code) {
         case WebSockConnectionFailed:
-            // action_dispatch(Static::websock_cs, CriticalToString(show_stopper));
             action_dispatch(ninx_Websock, einx_WebSockConnectionFailed);
             break;
         case Clear:
