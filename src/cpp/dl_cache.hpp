@@ -81,8 +81,11 @@ protected:
     }
 
     void update_int(uint32_t inx, int val) {
+        // NB cached int may have been interned by get_int_index(),
+        // or it may be an extern_int. Both cases should work here.
         if (inx >= fp_int_ptrs.size())
             throw std::runtime_error("NoDOM BAD_ADDR:update_int");
+        *(fp_int_ptrs[inx]) = val;
         cache_ints[inx] = val;
     }
 
@@ -96,6 +99,7 @@ protected:
     void update_bool(uint32_t inx, bool val) {
         if (inx >= fp_bool_ptrs.size())
             throw std::runtime_error("NoDOM BAD_ADDR:update_bool");
+        *(fp_bool_ptrs[inx]) = val ? 1 : 0;
         cache_bools[inx] = val ? 1 : 0;
     }
 
@@ -801,7 +805,7 @@ public:
         std::cout << std::endl;
     }
 
-    int report_cache_strings() {
+    int report_cache_strings(int& externals) {
         size_t fp_len = fp_char_ptrs.size();
         size_t cs_len = cache_strings.size();
         // sizeof(char8)==8 on x64, 4 on wasm
@@ -810,6 +814,7 @@ public:
         std::cout << "== report_cache_strings ptrs:"
             << std::dec << fp_len << ", cached:" << std::dec << cs_len << std::endl;
         std::cout << "inx:val:cptr:fptr" << std::endl;
+        externals = 0;
         for (int inx = 0; inx < cs_len; inx++) {
             const char* cache_ptr = cache_strings[inx].c_str();
             const char* fast_ptr = fp_char_ptrs[inx];
@@ -821,21 +826,24 @@ public:
             std::cout << "0x" << std::setw(cs_sz) << cp_val << ":";
             if (cp_val != fp_val) {
                 std::cout << "0x" << std::setw(cs_sz) << fp_val << std::endl;
+                externals++;
             }
             else {
                 std::cout << "==" << std::string(cs_sz, '=') << std::endl;
             }
         }
+        std::cout << "count:" << cs_len << ", externals:" << externals << std::endl;
         std::cout << std::endl;
-        return cs_len;
+        return (int)cs_len;
     }
 
-    int report_cache_ints() {
+    int report_cache_ints(int& externals) {
         size_t fp_len = fp_int_ptrs.size();
         size_t cs_len = cache_ints.size();
         std::cout << "== report_cache_ints ptrs:"
             << std::dec << fp_len << ", cached:" << std::dec << cs_len << std::endl;
         std::cout << "inx:val:cptr:fptr" << std::endl;
+        externals = 0;
         for (int inx = 0; inx < cs_len; inx++) {
             int* cache_ptr = &(cache_ints[inx]);
             int* fast_ptr = fp_int_ptrs[inx];
@@ -847,21 +855,24 @@ public:
             std::cout << cp_val << ":";
             if (cp_val != fp_val) {
                 std::cout << fp_val << std::endl;
+                externals++;
             }
             else {
                 std::cout << "====" << std::endl;
             }
         }
+        std::cout << "count:" << cs_len << ", externals:" << externals << std::endl;
         std::cout << std::endl;
-        return cs_len;
+        return (int)cs_len;
     }
 
-    int report_cache_floats() {
+    int report_cache_floats(int& externals) {
         size_t fp_len = fp_float_ptrs.size();
         size_t cs_len = cache_floats.size();
         std::cout << "== report_cache_floats ptrs:"
             << std::dec << fp_len << ", cached:" << std::dec << cs_len << std::endl;
         std::cout << "inx:val:cptr:fptr" << std::endl;
+        externals = 0;
         for (int inx = 0; inx < cs_len; inx++) {
             float* cache_ptr = &(cache_floats[inx]);
             float* fast_ptr = fp_float_ptrs[inx];
@@ -873,13 +884,15 @@ public:
             std::cout << cp_val << ":";
             if (cp_val != fp_val) {
                 std::cout << fp_val << std::endl;
+                externals++;
             }
             else {
                 std::cout << "====" << std::endl;
             }
         }
+        std::cout << "count:" << cs_len << ", externals:" << externals << std::endl;
         std::cout << std::endl;
-        return cs_len;
+        return (int)cs_len;
     }
 
     void report_address_map() {
@@ -921,9 +934,10 @@ public:
     }
 
     void report_cache_state() {
-        report_cache_strings();
-        report_cache_ints();
-        report_cache_floats();
+        int esc, eic, efc;
+        report_cache_strings(esc);
+        report_cache_ints(eic);
+        report_cache_floats(efc);
         report_address_map();
         report_actions();
         std::cout << std::endl;
