@@ -153,8 +153,6 @@ struct Static {
 	inline static const char* duck_db_cs{ "DuckDB" };
 
 	// Fake QIDs
-	// inline static const char* gui_online_cs{ "gui_online" };	// GUI.gui_online
-	// inline static const char* db_online_cs{ "db_online" };		// DuckInstance.db_online
 	inline static const char* cache_loaded_cs{ "cache_loaded" };// GUI.cache_loaded
 
 	// Critical strings
@@ -236,7 +234,7 @@ struct Static {
 		R"( { )"
 		R"(   "loading_text":["Loading app data from {_server_url}"], )"
 		R"(   "actions":{ )"
-		R"(     "GUI.online":[{"ui_push":"app_loading_modal"}], )"
+		R"(     "GUI.Online":[{"ui_push":"app_loading_modal"}], )"
 		R"(     "WebSock.websock_connection_failed":[{"ui_pop":"LoadingModal"}] )"
 		R"(   } )"
 		R"( } )"
@@ -272,6 +270,4 @@ struct Static {
 	"q50", "q75",   // DUCKDB_TYPE_VARCHAR, DUCKDB_TYPE_VARCHAR,
 	"cnt", "null"   // DUCKDB_TYPE_BIGINT, DUCKDB_TYPE_DECIMAL
 	};
-
-
 };
