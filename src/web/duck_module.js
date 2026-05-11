@@ -95,7 +95,7 @@ if (typeof window.__nodom__ == "undefined") {
 // polling of __nodom__ on each render...
 // 2025-11-26: we've dropped TypeScript, but still want to minimize
 // dependence on browser JS msg infra
-window.postMessage({ nd_type: "DuckInstance" });
+window.postMessage({ nd_type: "Online", quote_id: "DuckDB" });
 
 // JSON serialization monkey poatch for BigInt supplied in DuckDB results
 BigInt.prototype.toJSON = function () {
@@ -414,8 +414,8 @@ self.onmessage = async (event) => {
     case "BatchResponse":
       // we do not process our own results!
       break;
-    case "DuckInstance":
-      on_db_result({ nd_type: "DuckInstance", query_id: "DBOnline" });
+    case "Online":
+      on_db_result({ nd_type: "Online", query_id: "DuckDB" });
       break;
     default:
       console.error(
