@@ -502,43 +502,37 @@ public:
 
         // Here add_string acts as find_string
         EntityInx ninx{data_lay_cache.template get_string_index<EntityID>(qid, CST::QueryID)};
-        EventInx einx{ data_lay_cache.template get_string_index<Event>(nd_type, CST::DBEvent) };
+        EventInx einx_db{ data_lay_cache.template get_string_index<Event>(nd_type, CST::DBEvent) };
+        EventInx einx_ss{ data_lay_cache.template get_string_index<Event>(nd_type, CST::SubSysEvent) };
 
-        // if (nd_type == Static::command_cs) {
-        if (einx == einx_Command) {
+        if (einx_db == einx_Command) {
             db_status_color = amber;
         }
-        // else if (nd_type == Static::query_cs) {
-        else if (einx == einx_Query) {
+        else if (einx_db == einx_Query) {
             db_status_color = amber;
         }
-        // else if (nd_type == Static::command_result_cs) {
-        else if (einx == einx_CommandResult) {
+        else if (einx_db == einx_CommandResult) {
             db_status_color = green;
-            action_dispatch(ninx, einx); // qid, nd_type);
+            action_dispatch(ninx, einx_db); // qid, nd_type);
         }
-        // else if (nd_type == Static::query_result_cs) {
-        else if (einx == einx_QueryResult) {
+        else if (einx_db == einx_QueryResult) {
             db_status_color = green;
             // Typically, a QueryResult is followed by dispatch
             // of a BatchRequest. 
-            action_dispatch(ninx, einx); // qid, nd_type);
+            action_dispatch(ninx, einx_db); // qid, nd_type);
         }
-        // else if (nd_type == Static::batch_response_cs) {
-        else if (einx == einx_BatchResponse) {
+        else if (einx_db == einx_BatchResponse) {
             db_status_color = green;
-            action_dispatch(ninx, einx); // qid, nd_type);
+            action_dispatch(ninx, einx_db); // qid, nd_type);
         }
-        // else if (nd_type == Static::duck_instance_cs) {
-        else if (einx == einx_Online) {
+        else if (einx_ss == einx_Online) {
             // TODO: q processing order means this doesn't happen so early in cpp
             // main.ts:on_duck_event invokes check_duck_module.
             // However, we don't need all the check_duck_module JS module stuff,
             // so we can just flip status button color here
             db_status_color = amber;
-            // trigger any DuckInstance action
-            // action_dispatch(Static::db_online_cs, Static::duck_instance_cs);
-            action_dispatch(ninx_DuckDB, einx); // qid, nd_type);
+            // signal DuckDB online
+            action_dispatch(ninx_DuckDB, einx_Online);
         }
         else {
             NDLogger::cerr() << method << JPrettyPrint(db_msg) << std::endl;
