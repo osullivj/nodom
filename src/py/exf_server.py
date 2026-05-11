@@ -33,7 +33,7 @@ SCAN_BUTTON_ID = "i_am_scan_button"
 SUMMARY_BUTTON_TEXT = "Summary"
 SUMMARY_BUTTON_ID = "i_am_summary_button"
 SUMMARY_MODAL_ID = "i_am_depth_summary_modal"
-DB_ONLINE = "DBOnline"
+DB_ID = "DuckDB"
 DB_BUTTON_ID = "i_am_footer_db_button"
 EXF_LAYOUT = [
     dict(
@@ -276,7 +276,7 @@ EXF_DATA = dict(
                 ui_push=SUMMARY_MODAL_ID
             )
         ],
-        f"{DB_ONLINE}.DuckInstance": SUMMARY_SEQUENCE,
+        f"{DB_ID}.Online": SUMMARY_SEQUENCE,
     },
 )
 
