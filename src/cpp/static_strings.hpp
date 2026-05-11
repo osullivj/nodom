@@ -153,10 +153,10 @@ struct Static {
 	inline static const char* duck_db_cs{ "DuckDB" };
 
 	// Fake QIDs
-	inline static const char* cache_loaded_cs{ "cache_loaded" };// GUI.cache_loaded
+	inline static const char* cache_loaded_cs{ "CacheLoaded" };// GUI.CacheLoaded
 
 	// Critical strings
-	inline static const char* websock_connection_failed_cs{ "websock_connection_failed" };	// WebSock.connection_failed
+	inline static const char* websock_connection_failed_cs{ "WebsockConnectionFailed" };	// WebSock.connection_failed
 	inline static const char* clear_cs{ "clear" };	// WebSock.clear
 
 	// Misc
