@@ -640,6 +640,7 @@ public:
 private:
     // statics that define DataLayCache data and layout geometry
     inline static std::array<const char*, EndRenderMethod> render_names{
+        Static::rm_noop_cs,
         Static::rm_home_cs,
         Static::rm_input_int_cs,
         Static::rm_combo_cs,
