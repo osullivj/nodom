@@ -7,6 +7,7 @@
 struct Static {
 	// const string use by NDContext for JSON data and layout
 	// Render method names
+	inline static const char* rm_noop_cs{ "Noop" };
 	inline static const char* rm_home_cs{ "Home" };		// Home
 	inline static const char* rm_input_int_cs{ "InputInt" };	// Native
 	inline static const char* rm_combo_cs{ "Combo" };
