@@ -138,6 +138,8 @@ using ActionInternMap = std::map<ActionKey, ActionInternVec>;
 using ActionErrorMap = std::map<ActionKey, ActionErrorVec>;
 
 RenderMethod RenderMethodFromString(const std::string& method) {
+    if (method == Static::rm_noop_cs)
+        return RenderMethod::Noop;
     // Home
     if (method == Static::rm_home_cs)
         return RenderMethod::Home;

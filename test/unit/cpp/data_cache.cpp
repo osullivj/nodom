@@ -283,3 +283,14 @@ BOOST_FIXTURE_TEST_CASE(InitDataAndLayout, DataCacheFixture)
     assert_cache_state();
 }
 
+BOOST_FIXTURE_TEST_CASE(EnumRoundTrips, DataCacheFixture)
+{
+    for (int rm1 = RenderMethod::Noop; rm1 != RenderMethod::EndRenderMethod; rm1++) {
+        const char* rms = dc.render_name(static_cast<RenderMethod>(rm1));
+        RenderMethod rm2{ RenderMethodFromString(rms) };
+        BOOST_TEST(rm1 == rm2);
+    }
+}
+
+
+
