@@ -22,8 +22,9 @@ IMGUI_DIR = imgui
 ND_SRC_DIR = src/cpp
 ND_WEB_DIR = src/web
 ND_TST_DIR = test/unit/cpp
-ND_DP_DIR = ImGuiDatePicker
+ND_FMT_DIR = fmt
 SOURCES = $(ND_TST_DIR)/duck_materialize.cpp
+SOURCES += $(ND_SRC_DIR)/nd_utils.cpp
 OBJS = $(addsuffix .o, $(addprefix bld/,$(basename $(notdir $(SOURCES)))))
 # UNAME_S := $(shell uname -s)
 CPPFLAGS = -I $(IMGUI_DIR)/examples/libs/emscripten -I $(ND_SRC_DIR)
@@ -99,7 +100,7 @@ $(BLD_DIR)/%.o:$(ND_SRC_DIR)/%.cpp
 $(BLD_DIR)/%.o:$(ND_TST_DIR)/%.cpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
 
-$(BLD_DIR)/%.o:$(ND_DP_DIR)/%.cpp
+$(BLD_DIR)/%.o:$(ND_FMT_DIR)/src/%.cc
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
 
 all: $(EXE)

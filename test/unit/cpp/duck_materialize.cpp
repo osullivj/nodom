@@ -17,7 +17,7 @@ void printf_comma(int i, int col_count) {
 }
 
 void sprintf_value(char* cbuf, uint32_t* chunk_ptr, int bptr, int32_t tipe, int row_index) {
-    DuckType dt{ tipe };
+    WasmDuckType dt{ tipe };
     uint32_t* ui32data = &(chunk_ptr[bptr]);
     int32_t* i32data = nullptr;
     int64_t* i64data = nullptr;
@@ -33,36 +33,36 @@ void sprintf_value(char* cbuf, uint32_t* chunk_ptr, int bptr, int32_t tipe, int 
     static uint32_t preamble_length{ 0 };
     static uint32_t date_length{ 19 };
     static const char*    decimal_fmt{ nullptr };
-    static std::map<DuckType, int32_t>  timestamp_scale_map{
-        {Timestamp_s, 1},
-        {Timestamp_ms, 1e3},
-        {Timestamp_us, 1e6},
-        {Timestamp_ns, 1e9}
+    static std::map<WasmDuckType, int32_t>  timestamp_scale_map{
+        {wdtTimestamp_s, 1},
+        {wdtTimestamp_ms, 1e3},
+        {wdtTimestamp_us, 1e6},
+        {wdtTimestamp_ns, 1e9}
     };
-    static std::map<DuckType, const char*> timestamp_dec_fmt_map{
-        {Timestamp_s, nullptr},
-        {Timestamp_ms, "%03.3f"},
-        {Timestamp_us, "%06.6f"},
-        {Timestamp_ns, "%09.9f"}
+    static std::map<WasmDuckType, const char*> timestamp_dec_fmt_map{
+        {wdtTimestamp_s, nullptr},
+        {wdtTimestamp_ms, "%03.3f"},
+        {wdtTimestamp_us, "%06.6f"},
+        {wdtTimestamp_ns, "%09.9f"}
     };
 
     switch (dt) {
-    case DuckType::Int:     // stride 4
+    case WasmDuckType::wdtInt:     // stride 4
         i32data = reinterpret_cast<int32_t*>(ui32data);
         sprintf(cbuf, "[%d]=%d", row_index, *i32data);
         break;
-    case DuckType::Float:   // stride 8
+    case WasmDuckType::wdtFloat:   // stride 8
         dbldata = reinterpret_cast<double*>(ui32data);
         sprintf(cbuf, "[%d]=%f", row_index, *dbldata);
         break;
-    case DuckType::Utf8:    // null term trunc to 8 bytes
+    case WasmDuckType::wdtUtf8:    // null term trunc to 8 bytes
         sprintf(cbuf, "[%d]=%s", row_index, (char*)ui32data);
         break;
     // but value is Unix seconds/millis/micros/nanos since epoch
-    case DuckType::Timestamp_ns:
-    case DuckType::Timestamp_us:
-    case DuckType::Timestamp_ms:
-    case DuckType::Timestamp_s:
+    case WasmDuckType::wdtTimestamp_ns:
+    case WasmDuckType::wdtTimestamp_us:
+    case WasmDuckType::wdtTimestamp_ms:
+    case WasmDuckType::wdtTimestamp_s:
         scale = timestamp_scale_map[dt];
         decimal_fmt = timestamp_dec_fmt_map[dt];
         dbldata = reinterpret_cast<double*>(ui32data);
@@ -83,7 +83,7 @@ void sprintf_value(char* cbuf, uint32_t* chunk_ptr, int bptr, int32_t tipe, int 
             sprintf(cbuf + strlen(cbuf), decimal_fmt, ts_fraction);
         }
         break;
-    case DuckType::Timestamp:
+    case WasmDuckType::wdtTimestamp:
         sprintf(cbuf, "[%d]=%s", row_index, "TSu");
         break;
     default:
@@ -133,8 +133,8 @@ extern "C" {
         // next col_count words are the types
         printf("%s: types:", method);
         for (int i = 0; i < col_count; i++) {
-            DuckType tipe{ static_cast<int32_t>(chunk_ptr[bptr++]) };
-            const char* dt = DuckTypeToString(tipe);
+            WasmDuckType tipe{ static_cast<int32_t>(chunk_ptr[bptr++]) };
+            const char* dt = WasmDuckTypeToString(tipe);
             printf("%d/%s", tipe, dt);
             printf_comma(i, col_count);
         }
