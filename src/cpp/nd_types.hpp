@@ -62,6 +62,8 @@ enum WasmDuckType : int32_t {
 
 const char* WasmDuckTypeToString(WasmDuckType dt);
 int WasmDuckTypeToSize(WasmDuckType dt);
+void printf_comma(int i, int col_count);
+void sprintf_value(char* cbuf, uint32_t* chunk_ptr, int bptr, int32_t tipe, int row_index);
 
 enum PixReportType : int32_t {
     RenderFPS = 2,
