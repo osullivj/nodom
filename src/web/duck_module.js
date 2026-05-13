@@ -171,7 +171,7 @@ function get_value(vec, inx, tipe) {
 
 function batch_materializer(qid, batch) {
   // First, extract metadata from batch...
-  let row_count = batch.numRows;
+  let row_count = batch.data.length;
   let types = batch.schema.fields.map((d) => d.type.typeId);
   let type_objs = batch.schema.fields.map((d) => d.type);
   let type_units = batch.schema.fields.map((d) => d.type.unit);
@@ -224,7 +224,9 @@ function batch_materializer(qid, batch) {
   );
   // Now write the first block; metadata done, number of cols, then row count
   let bptr = 0;
-  heap32[bptr++] = batch.done;
+  let done = false;
+  if (row_count < 2048) done = true;
+  heap32[bptr++] = done;
   heap32[bptr++] = types.length;
   heap32[bptr++] = row_count;
   // Now column types, addresses and names
@@ -345,7 +347,6 @@ function batch_materializer(qid, batch) {
       row_count +
       "\n",
   );
-  if (batch.done) return 0;
   return buffer_offset;
 }
 
