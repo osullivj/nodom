@@ -5,7 +5,7 @@
 // Two WASM utils for DuckDB-WASM client code in C++
 // Not the same as DuckDB-WASM/Arrow JS client code,
 // or DuckDB C API client code as seen in breadboard.
-const char* DuckTypeToString(WasmDuckType dt) {
+const char* WasmDuckTypeToString(WasmDuckType dt) {
     switch (dt) {
     case WasmDuckType::wdtInt:
         return "Int";
