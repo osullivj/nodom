@@ -86,7 +86,7 @@ summarize select * from depth;</textarea
                 execute_query("Query", "Q1", query_text_area.value);
             }
             function on_scan_button() {
-                execute_query("ParquetScan", "Q0", scan_text_area.value);
+                execute_query("Command", "Q0", scan_text_area.value);
             }
             function on_batch_button() {
                 execute_query("BatchRequest", "Q1", "");
