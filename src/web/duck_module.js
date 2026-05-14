@@ -393,6 +393,9 @@ self.onmessage = async (event) => {
         );
         batch_gen = global_query_map.get(nd_db_request.query_id);
         let batch_next = await batch_gen.next();
+        if (batch_next.done) {
+          global_query_map.delete(nd_db_request.query_id);
+        }
         let batch_result = {
           nd_type: "BatchResponse",
           query_id: nd_db_request.query_id,
@@ -406,9 +409,6 @@ self.onmessage = async (event) => {
             "\n",
         );
         on_db_result(batch_result);
-        if (batch_next.done) {
-          global_query_map.delete(nd_db_request.query_id);
-        }
       } else {
         on_db_result({
           nd_type: "BatchResponse",
