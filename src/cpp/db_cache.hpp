@@ -27,6 +27,12 @@
 
 #endif  // __EMSCRIPTEN__
 
+// Timestamp handling utils
+using TPMilli = std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds>;
+using TPMicro = std::chrono::time_point<std::chrono::system_clock, std::chrono::microseconds>;
+using TPNano = std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>;
+using TPSecs = std::chrono::time_point<std::chrono::system_clock, std::chrono::seconds>;
+
 template <typename JSON>
 class EmptyDBCache {
 public:
@@ -114,7 +120,6 @@ static constexpr int MAX_COLUMNS = 256;
 
 using ResultHandle = std::uint64_t; // == &duckdb_result
 using Bobbin = std::deque<duckdb_data_chunk>;
-
 
 
 class DuckDBCache : public BreadBoardDBCache {
@@ -385,10 +390,6 @@ public:
         return true;
     }
 
-    using TPMilli = std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds>;
-    using TPMicro = std::chrono::time_point<std::chrono::system_clock, std::chrono::microseconds>;
-    using TPNano = std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>;
-    using TPSecs = std::chrono::time_point<std::chrono::system_clock, std::chrono::seconds>;
 
 
     const char* get_datum(std::uint64_t h, std::uint64_t colm_index, std::uint64_t row_index) {
@@ -534,6 +535,7 @@ private:
     ChunkMap    chunk_map;
 protected:
     char string_buffer[STR_BUF_LEN];
+    fmt::format_to_n_result<char*> fmt_result;
     std::queue<emscripten::val>          db_queries;
     std::queue<emscripten::val>          db_results;
 public:
@@ -661,6 +663,8 @@ public:
         static uint32_t ts_secs_i{ 0 };
         static double   ts_fraction{ 0.0 };
         static uint32_t scale{ 1 };
+        static int64_t  ticks{ 0 };
+        static size_t   dlen{ 0 };
         static const char* decimal_fmt{ nullptr };
         static std::map<WasmDuckType, int32_t>  timestamp_scale_map{
             {wdtTimestamp_s, 1},
@@ -691,12 +695,11 @@ public:
         // sanity check column type
         int32_t col_type = *chunk_ptr++;
 
-        if (col_type != tipes[colm_index]) {
-            fprintf(stderr, "%s: col type mismatch: base_chunk:%d, col:%d, col_addr_off:%d, mtype:%d, stype:%d\n", 
+        if (col_type != tipes[colm_index] && tipes[colm_index] != wdtTimestamp) {
+            fprintf(stderr, "%s: COL_TYPE_MISMATCH: base_chunk:%d, col:%d, col_addr_off:%d, wasm_type:%d, schema_type:%d\n", 
                 method, (int)base_chunk_ptr, (int)colm_index, (int)colm_addr_offset, col_type, tipes[colm_index]);
             error_count++;
-            if (error_count == 5)
-                exit(1);
+            return 0;
         }
         // stride 1 for 32bit data and 2 for 64bit inc str
         WasmDuckType dt{ col_type };
@@ -714,6 +717,31 @@ public:
             dbldata = reinterpret_cast<double*>(chunk_ptr);
             sprintf(string_buffer, "%f", dbldata[row_index]);
             return 0;
+        /*
+        case WasmDuckType::wdtTimestamp_ns:
+            dbldata = reinterpret_cast<double*>(chunk_ptr);
+            dubble = dbldata[row_index];
+            tm_time_t = static_cast<time_t>(dubble);
+            fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F %T}", TPNano{ std::chrono::nanoseconds{ tm_time_t } });
+            return buffer + fmt_result.size;
+        case WasmDuckType::wdtTimestamp_us:
+            dbldata = reinterpret_cast<double*>(chunk_ptr);
+            dubble = dbldata[row_index];
+            tm_time_t = static_cast<time_t>(dubble);
+            fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F %T}", TPMicro{ std::chrono::microseconds{ tm_time_t } });
+            return buffer + fmt_result.size;
+        case WasmDuckType::wdtTimestamp_ms:
+            dbldata = reinterpret_cast<double*>(chunk_ptr);
+            dubble = dbldata[row_index];
+            tm_time_t = static_cast<time_t>(dubble);
+            fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F %T}", TPMilli{ std::chrono::milliseconds{ tm_time_t } });
+            return buffer + fmt_result.size;
+        case WasmDuckType::wdtTimestamp_s:
+            dbldata = reinterpret_cast<double*>(chunk_ptr);
+            dubble = dbldata[row_index];
+            tm_time_t = static_cast<time_t>(dubble);
+            fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F %T}", TPSecs{ std::chrono::seconds{ tm_time_t } });
+            return buffer + fmt_result.size; */
         case WasmDuckType::wdtTimestamp_ns:
         case WasmDuckType::wdtTimestamp_us:
         case WasmDuckType::wdtTimestamp_ms:
@@ -729,10 +757,10 @@ public:
             ts_fraction = ts_secs_f - ts_secs_i;
             tm_time_t = static_cast<time_t>(ts_secs_i);
             gmtime_r(&tm_time_t, &tm_data);
-            strftime(string_buffer, STR_BUF_LEN, "%Y-%m-%d %I:%M:%S", &tm_data);
+            dlen = strftime(string_buffer, STR_BUF_LEN, "%Y-%m-%d %I:%M:%S", &tm_data);
             // date_length:2026-01-21 10:57:33 is 19 chars
-            if (decimal_fmt) {
-                sprintf(string_buffer + strlen(string_buffer), decimal_fmt, ts_fraction);
+            if (decimal_fmt != nullptr && dlen > 0) {
+                sprintf(string_buffer + dlen, decimal_fmt, ts_fraction);
             }
             return 0;
         case WasmDuckType::wdtUtf8:    // null term trunc to 8 bytes
