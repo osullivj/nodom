@@ -355,15 +355,27 @@ protected:
             auto amit = address_map.find(addr_or_qid);
             EntityInx query_inx = get_query_id(addr_or_qid);
 
-            // cindex|cname data_refs must have an address_map entry
-            if ((ref_name == Static::cname_cs || ref_name == Static::cindex_cs)
-                            && amit == address_map.end()) {
-                bad_data_refs.push_back(ref_name);
-                std::stringstream ss{ "BAD_DATA_REF(" };
-                ss << ref_name << ") not address mapped in cspec:";
-                ss << cspec;
-                layout_errors.push_back(ss.str());
-                continue;
+            // cindex|cname data_refs must have an address_map entry.
+            // query_id data_refs do not have an address_map entry,
+            //      but must have a valid EntityInx, which should have
+            //      been created by on_data() when it parses ActionKeys
+            if (amit == address_map.end()) {
+                if (ref_name == Static::cname_cs || ref_name == Static::cindex_cs) {
+                    bad_data_refs.push_back(ref_name);
+                    std::stringstream ss;
+                    ss << "BAD_DATA_REF(" << ref_name << "/" << addr_or_qid << ") not address mapped in cspec:";
+                    ss << cspec;
+                    layout_errors.push_back(ss.str());
+                    continue;
+                }
+                if (ref_name == Static::query_id_cs && !query_inx.is_valid()) {
+                    bad_data_refs.push_back(ref_name);
+                    std::stringstream ss;
+                    ss << "BAD_DATA_REF(" << ref_name << "/" << addr_or_qid << ") not used by any data.actions ActionKey occurs in cspec:";
+                    ss << cspec;
+                    layout_errors.push_back(ss.str());
+                    continue;
+                }
             }
             DataRef data_ref{ ref_type, query_inx.is_valid() ? query_inx() : amit->second()};
             StringVec svec;
