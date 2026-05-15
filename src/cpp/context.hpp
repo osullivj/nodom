@@ -239,8 +239,8 @@ public:
         // ImGuiStyle& style = ImGui::GetStyle();
 
         data_lay_cache.report_cache_state();
-
-        if (data_lay_cache.error_count() > 0) {
+        int dlc_error_count = data_lay_cache.error_count();
+        if (dlc_error_count > 0) {
             data_lay_cache.report_cache_errors();
         }
         else {
