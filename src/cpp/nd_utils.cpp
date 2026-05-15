@@ -71,6 +71,8 @@ void sprintf_value(char* cbuf, uint32_t* chunk_ptr, int bptr, int32_t tipe, int 
     int32_t* i32data = nullptr;
     int64_t* i64data = nullptr;
     double* dbldata = nullptr;
+    size_t  dlen{ 0 };
+    size_t  cbuf_size{ sizeof(cbuf) };
 
     static tm       tm_data{ 0 };
     static time_t   tm_time_t{ 0 };
@@ -123,14 +125,14 @@ void sprintf_value(char* cbuf, uint32_t* chunk_ptr, int bptr, int32_t tipe, int 
         ts_fraction = ts_secs_f - ts_secs_i;
         tm_time_t = static_cast<time_t>(ts_secs_i);
         gmtime_r(&tm_time_t, &tm_data);
-        // fprintf(stdout, "%s: ts_secs_f(%f) ts_secs_i(%d) ts_frac(%f)", DuckTypeToString(dt), ts_secs_f, ts_secs_i, ts_fraction);
         sprintf(cbuf, "[%d]=", row_index);
         preamble_length = strlen(cbuf);
-        strftime(cbuf + preamble_length, sizeof(cbuf) - preamble_length, "%Y-%m-%d %I:%M:%S", &tm_data);
+        dlen = strftime(cbuf + preamble_length, cbuf_size - preamble_length, "%Y-%m-%d %I:%M:%S", &tm_data);
         // date_length:2026-01-21 10:57:33 is 19 chars
-        if (decimal_fmt) {
+        if (decimal_fmt != nullptr && dlen > 0) {
             sprintf(cbuf + strlen(cbuf), decimal_fmt, ts_fraction);
         }
+        fprintf(stdout, "%s: ts_secs_f(%f) ts_secs_i(%d) ts_frac(%f) dlen(%d) plen(%d) cbuf_sz(%d)", WasmDuckTypeToString(dt), ts_secs_f, ts_secs_i, ts_fraction, dlen, preamble_length, cbuf_size);
         break;
     case WasmDuckType::wdtTimestamp:
         sprintf(cbuf, "[%d]=%s", row_index, "TSu");
