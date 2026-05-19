@@ -8,8 +8,7 @@
 #include "nd_types.hpp"
 #include "static_strings.hpp"
 #include "json_ops.hpp"
-#include "fmt/base.h"
-#include "fmt/chrono.h"
+
 
 #ifndef __EMSCRIPTEN__
 
@@ -27,11 +26,6 @@
 
 #endif  // __EMSCRIPTEN__
 
-// Timestamp handling utils
-using TPMilli = std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds>;
-using TPMicro = std::chrono::time_point<std::chrono::system_clock, std::chrono::microseconds>;
-using TPNano = std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>;
-using TPSecs = std::chrono::time_point<std::chrono::system_clock, std::chrono::seconds>;
 
 template <typename JSON>
 class EmptyDBCache {
@@ -656,17 +650,8 @@ public:
 
     const char* get_datum(std::uint64_t handle, std::uint64_t colm_index, std::uint64_t row_index) {
         const static char* method = "DuckDBWebCache::get_datum: ";
-        static double   dubble{ 0.0 };
-        static tm       tm_data{ 0 };
-        static time_t   tm_time_t{ 0 };
-        static double   ts_secs_f{ 0.0 };
-        static uint32_t ts_secs_i{ 0 };
-        static double   ts_fraction{ 0.0 };
-        static uint32_t scale{ 1 };
         static int64_t  ticks{ 0 };
-        static size_t   dlen{ 0 };
-        static const char* decimal_fmt{ nullptr };
-        static std::map<WasmDuckType, int32_t>  timestamp_scale_map{
+        static std::map<WasmDuckType, int64_t>  timestamp_scale_map{
             {wdtTimestamp_s, 1},
             {wdtTimestamp_ms, 1e3},
             {wdtTimestamp_us, 1e6},
@@ -699,70 +684,37 @@ public:
             fprintf(stderr, "%s: COL_TYPE_MISMATCH: base_chunk:%d, col:%d, col_addr_off:%d, wasm_type:%d, schema_type:%d\n", 
                 method, (int)base_chunk_ptr, (int)colm_index, (int)colm_addr_offset, col_type, tipes[colm_index]);
             error_count++;
-            return 0;
         }
         // stride 1 for 32bit data and 2 for 64bit inc str
         WasmDuckType dt{ col_type };
-        int32_t* i32data = nullptr;
-        double* dbldata = nullptr;
+        int32_t* i32data = reinterpret_cast<int32_t*>(chunk_ptr);
+        int64_t* i64data = reinterpret_cast<int64_t*>(chunk_ptr);
+        double* dbldata = reinterpret_cast<double*>(chunk_ptr);
         // In most cases we'll copy into string_buffer, or
         // use sprintf to format into buffer. 
         buffer = string_buffer;
         switch (dt) {
         case WasmDuckType::wdtInt:
-            i32data = reinterpret_cast<int32_t*>(chunk_ptr);
             sprintf(string_buffer, "%d", i32data[row_index]);
             return 0;
         case WasmDuckType::wdtFloat:
-            dbldata = reinterpret_cast<double*>(chunk_ptr);
             sprintf(string_buffer, "%f", dbldata[row_index]);
             return 0;
-        /*
         case WasmDuckType::wdtTimestamp_ns:
-            dbldata = reinterpret_cast<double*>(chunk_ptr);
-            dubble = dbldata[row_index];
-            tm_time_t = static_cast<time_t>(dubble);
-            fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F %T}", TPNano{ std::chrono::nanoseconds{ tm_time_t } });
-            return buffer + fmt_result.size;
+            fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F %T}", TPNano{ std::chrono::nanoseconds{ i64data[row_index] } });
+            return string_buffer + fmt_result.size;
         case WasmDuckType::wdtTimestamp_us:
-            dbldata = reinterpret_cast<double*>(chunk_ptr);
-            dubble = dbldata[row_index];
-            tm_time_t = static_cast<time_t>(dubble);
-            fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F %T}", TPMicro{ std::chrono::microseconds{ tm_time_t } });
-            return buffer + fmt_result.size;
+            ticks = i64data[row_index];
+            fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F %T}", TPMicro{ std::chrono::microseconds{ ticks } });
+            return string_buffer + fmt_result.size;
         case WasmDuckType::wdtTimestamp_ms:
-            dbldata = reinterpret_cast<double*>(chunk_ptr);
-            dubble = dbldata[row_index];
-            tm_time_t = static_cast<time_t>(dubble);
-            fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F %T}", TPMilli{ std::chrono::milliseconds{ tm_time_t } });
-            return buffer + fmt_result.size;
+            ticks = i64data[row_index];
+            fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F %T}", TPMilli{ std::chrono::milliseconds{ ticks } });
+            return string_buffer + fmt_result.size;
         case WasmDuckType::wdtTimestamp_s:
-            dbldata = reinterpret_cast<double*>(chunk_ptr);
-            dubble = dbldata[row_index];
-            tm_time_t = static_cast<time_t>(dubble);
-            fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F %T}", TPSecs{ std::chrono::seconds{ tm_time_t } });
-            return buffer + fmt_result.size; */
-        case WasmDuckType::wdtTimestamp_ns:
-        case WasmDuckType::wdtTimestamp_us:
-        case WasmDuckType::wdtTimestamp_ms:
-        case WasmDuckType::wdtTimestamp_s:
-            scale = timestamp_scale_map[dt];
-            decimal_fmt = timestamp_dec_fmt_map[dt];
-            dbldata = reinterpret_cast<double*>(chunk_ptr);
-            dubble = dbldata[row_index];
-            // cast dubble to 64 bit signed int before dividing
-            // by 1e[1,3,6,9]
-            ts_secs_i = static_cast<uint64_t>(dubble) / scale;
-            ts_secs_f = dubble / static_cast<double>(scale);
-            ts_fraction = ts_secs_f - ts_secs_i;
-            tm_time_t = static_cast<time_t>(ts_secs_i);
-            gmtime_r(&tm_time_t, &tm_data);
-            dlen = strftime(string_buffer, STR_BUF_LEN, "%Y-%m-%d %I:%M:%S", &tm_data);
-            // date_length:2026-01-21 10:57:33 is 19 chars
-            if (decimal_fmt != nullptr && dlen > 0) {
-                sprintf(string_buffer + dlen, decimal_fmt, ts_fraction);
-            }
-            return 0;
+            ticks = i64data[row_index];
+            fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F %T}", TPSecs{ std::chrono::seconds{ ticks } });
+            return string_buffer + fmt_result.size;
         case WasmDuckType::wdtUtf8:    // null term trunc to 8 bytes
             dbldata = reinterpret_cast<double*>(chunk_ptr);
             sprintf(string_buffer, "%s", (char*)&(dbldata[row_index]));
