@@ -1,7 +1,8 @@
 #include <time.h>
 #include "nd_types.hpp"
 #include "static_strings.hpp"
-#include "imgui.h"
+#include "fmt/base.h"
+#include "fmt/chrono.h"
 
 const char* CriticalToString(Critical crit) {
     switch (crit) {
@@ -68,9 +69,9 @@ void printf_comma(int i, int col_count) {
 void sprintf_value(char* cbuf, uint32_t* chunk_ptr, int bptr, int32_t tipe, int row_index) {
     WasmDuckType dt{ tipe };
     uint32_t* ui32data = &(chunk_ptr[bptr]);
-    int32_t* i32data = nullptr;
-    int64_t* i64data = nullptr;
-    double* dbldata = nullptr;
+    int32_t* i32data = reinterpret_cast<int32_t*>(ui32data);
+    int64_t* i64data = reinterpret_cast<int64_t*>(ui32data);
+    double* dbldata = reinterpret_cast<double*>(ui32data);
     size_t  dlen{ 0 };
     size_t  cbuf_size{ sizeof(cbuf) };
 
@@ -78,13 +79,19 @@ void sprintf_value(char* cbuf, uint32_t* chunk_ptr, int bptr, int32_t tipe, int 
     static time_t   tm_time_t{ 0 };
     static double   dubble{ 0.0 };
     static double   ts_secs_f{ 0.0 };
-    static uint32_t ts_secs_i{ 0 };
+    static int64_t  ts_secs_i{ 0 };
+    static double   ts_ticks_f{ 0.0 };
+    static int64_t  ts_ticks_i{ 0 };
     static double   ts_fraction{ 0.0 };
-    static uint32_t scale{ 1 };
+    static int64_t scale{ 1 };
     static uint32_t preamble_length{ 0 };
     static uint32_t date_length{ 19 };
     static const char* decimal_fmt{ nullptr };
-    static std::map<WasmDuckType, int32_t>  timestamp_scale_map{
+    fmt::format_to_n_result<char*> fmt_result;
+    static constexpr int dbuf_size{ 32 };
+    static char dbuf[dbuf_size];
+
+    static std::map<WasmDuckType, int64_t>  timestamp_scale_map{
         {wdtTimestamp_s, 1},
         {wdtTimestamp_ms, 1e3},
         {wdtTimestamp_us, 1e6},
@@ -109,20 +116,22 @@ void sprintf_value(char* cbuf, uint32_t* chunk_ptr, int bptr, int32_t tipe, int 
     case WasmDuckType::wdtUtf8:    // null term trunc to 8 bytes
         sprintf(cbuf, "[%d]=%s", row_index, (char*)ui32data);
         break;
-        // but value is Unix seconds/millis/micros/nanos since epoch
+    /*
     case WasmDuckType::wdtTimestamp_ns:
     case WasmDuckType::wdtTimestamp_us:
     case WasmDuckType::wdtTimestamp_ms:
     case WasmDuckType::wdtTimestamp_s:
         scale = timestamp_scale_map[dt];
         decimal_fmt = timestamp_dec_fmt_map[dt];
-        dbldata = reinterpret_cast<double*>(ui32data);
-        dubble = *dbldata;
+        // dbldata = reinterpret_cast<double*>(ui32data);
+        // dubble = *dbldata;
+        i64data = reinterpret_cast<int64_t*>(ui32data);
         // cast dubble to 64 bit signed int before dividing
         // by 1e[1,3,6,9]
-        ts_secs_i = static_cast<uint64_t>(dubble) / scale;
-        ts_secs_f = dubble / static_cast<double>(scale);
-        ts_fraction = ts_secs_f - ts_secs_i;
+        ts_ticks_i = *i64data;
+        ts_secs_i = ts_ticks_i / scale;
+        ts_secs_f = static_cast<double>(ts_ticks_i) / static_cast<double>(scale);
+        ts_fraction = ts_secs_f - static_cast<double>(ts_secs_i);
         tm_time_t = static_cast<time_t>(ts_secs_i);
         gmtime_r(&tm_time_t, &tm_data);
         sprintf(cbuf, "[%d]=", row_index);
@@ -133,6 +142,26 @@ void sprintf_value(char* cbuf, uint32_t* chunk_ptr, int bptr, int32_t tipe, int 
             sprintf(cbuf + strlen(cbuf), decimal_fmt, ts_fraction);
         }
         fprintf(stdout, "%s: ts_secs_f(%f) ts_secs_i(%d) ts_frac(%f) dlen(%d) plen(%d) cbuf_sz(%d)", WasmDuckTypeToString(dt), ts_secs_f, ts_secs_i, ts_fraction, dlen, preamble_length, cbuf_size);
+        break; */
+    case WasmDuckType::wdtTimestamp_ns:
+        fmt_result = fmt::format_to_n(dbuf, dbuf_size, "{:%F %T}", TPNano{ std::chrono::nanoseconds{ *i64data } });
+        dbuf[fmt_result.size] = 0;
+        sprintf(cbuf, "[%d]=%s", row_index, dbuf);
+        break;
+    case WasmDuckType::wdtTimestamp_us:
+        fmt_result = fmt::format_to_n(dbuf, dbuf_size, "{:%F %T}", TPMicro{ std::chrono::microseconds{ *i64data } });
+        dbuf[fmt_result.size] = 0;
+        sprintf(cbuf, "[%d]=%s", row_index, dbuf);
+        break;
+    case WasmDuckType::wdtTimestamp_ms:
+        fmt_result = fmt::format_to_n(dbuf, dbuf_size, "{:%F %T}", TPMilli{ std::chrono::milliseconds{ *i64data } });
+        dbuf[fmt_result.size] = 0;
+        sprintf(cbuf, "[%d]=%s", row_index, dbuf);
+        break;
+    case WasmDuckType::wdtTimestamp_s:
+        fmt_result = fmt::format_to_n(dbuf, dbuf_size, "{:%F %T}", TPSecs{ std::chrono::seconds{ *i64data } });
+        dbuf[fmt_result.size] = 0;
+        sprintf(cbuf, "[%d]=%s", row_index, dbuf);
         break;
     case WasmDuckType::wdtTimestamp:
         sprintf(cbuf, "[%d]=%s", row_index, "TSu");
