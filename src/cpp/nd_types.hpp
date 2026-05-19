@@ -10,6 +10,8 @@
 #include <cassert>
 #include <ios>
 #include <iomanip>
+#include "fmt/base.h"
+#include "fmt/chrono.h"
 
 using StringVec = std::vector<std::string>;
 using IntVec = std::vector<int>;
@@ -27,6 +29,12 @@ bool ptr_in_vec(const std::vector<T>& vec, const T* ptr) {
 
 // typedefs and using defns for NoDOM universal types
 // universal types: not specific to JSON, DB etc
+
+// Timestamp handling utils
+using TPMilli = std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds>;
+using TPMicro = std::chrono::time_point<std::chrono::system_clock, std::chrono::microseconds>;
+using TPNano = std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>;
+using TPSecs = std::chrono::time_point<std::chrono::system_clock, std::chrono::seconds>;
 
 class Facade;
 using FacadeMap = std::map<std::string, Facade*>;
