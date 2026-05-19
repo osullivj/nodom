@@ -702,19 +702,20 @@ public:
             return 0;
         case WasmDuckType::wdtTimestamp_ns:
             fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F %T}", TPNano{ std::chrono::nanoseconds{ i64data[row_index] } });
-            return string_buffer + fmt_result.size;
+            string_buffer[fmt_result.size] = 0;
+            return 0;
         case WasmDuckType::wdtTimestamp_us:
-            ticks = i64data[row_index];
-            fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F %T}", TPMicro{ std::chrono::microseconds{ ticks } });
-            return string_buffer + fmt_result.size;
+            fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F %T}", TPMicro{ std::chrono::microseconds{ i64data[row_index] } });
+            string_buffer[fmt_result.size] = 0;
+            return 0;
         case WasmDuckType::wdtTimestamp_ms:
-            ticks = i64data[row_index];
-            fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F %T}", TPMilli{ std::chrono::milliseconds{ ticks } });
-            return string_buffer + fmt_result.size;
+            fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F %T}", TPMilli{ std::chrono::milliseconds{ i64data[row_index] } });
+            string_buffer[fmt_result.size] = 0;
+            return 0;
         case WasmDuckType::wdtTimestamp_s:
-            ticks = i64data[row_index];
-            fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F %T}", TPSecs{ std::chrono::seconds{ ticks } });
-            return string_buffer + fmt_result.size;
+            fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F %T}", TPSecs{ std::chrono::seconds{ i64data[row_index] } });
+            string_buffer[fmt_result.size] = 0;
+            return 0;
         case WasmDuckType::wdtUtf8:    // null term trunc to 8 bytes
             dbldata = reinterpret_cast<double*>(chunk_ptr);
             sprintf(string_buffer, "%s", (char*)&(dbldata[row_index]));
