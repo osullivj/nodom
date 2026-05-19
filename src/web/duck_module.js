@@ -153,7 +153,7 @@ function get_duck_type_size(tipe) {
     case Type.Float: // 3: // ArrowType.Float:
     case Type.Utf8: // 5: // ArrowType.Utf8:
     case Type.Date: // 8: // ArrowType.Date:
-    case Type.Timestamp: // 10: // Timestamp: Exact timestamp encoded with int64 since UNIX epoch (Default unit millisecond)
+    case Type.Timestamp: // 10: // Timestamp: arrow API returns JS num
       return 8; // 8 bytes wide
     case Type.Int: // 2: // ArrowType.Int: Signed or unsigned 8, 16, 32, or 64-bit little-endian integer
       return 4; // 4 bytes wide
@@ -217,7 +217,12 @@ function batch_materializer(qid, batch) {
     buffer_offset,
     buffer_size / 2,
   );
-  let heap32 = new Uint32Array(
+  let bi_heap64 = new BigInt64Array(
+    Module.HEAPU64.buffer,
+    buffer_offset,
+    buffer_size / 2,
+  );
+  let ui_heap32 = new Uint32Array(
     Module.HEAPU32.buffer,
     buffer_offset,
     buffer_size,
@@ -226,25 +231,25 @@ function batch_materializer(qid, batch) {
   let bptr = 0;
   let done = false;
   if (row_count < 2048) done = true;
-  heap32[bptr++] = done;
-  heap32[bptr++] = types.length;
-  heap32[bptr++] = row_count;
+  ui_heap32[bptr++] = done;
+  ui_heap32[bptr++] = types.length;
+  ui_heap32[bptr++] = row_count;
   // Now column types, addresses and names
   types.forEach((tipe) => {
-    heap32[bptr++] = tipe;
+    ui_heap32[bptr++] = tipe;
   });
   // Memoize the start of the col addresses as 0 until we
   // can calc caddrs below...
   let caddr = bptr;
   types.forEach((tipe) => {
-    heap32[bptr++] = 0;
+    ui_heap32[bptr++] = 0;
   });
   names.forEach((name) => {
     for (var i = 0; i < name.length; i++) {
-      heap32[bptr++] = name.charCodeAt(i);
+      ui_heap32[bptr++] = name.charCodeAt(i);
     }
     // null terminator for string
-    heap32[bptr++] = 0;
+    ui_heap32[bptr++] = 0;
   });
   // Now write a block for each column, starting on 8 byte boundary
   // Now write the columns into the wasm chunk...
@@ -269,27 +274,27 @@ function batch_materializer(qid, batch) {
         sz,
     );
     // record the addr of the column
-    heap32[caddr + ic] = bptr;
+    ui_heap32[caddr + ic] = bptr;
     // tipe(32) and count(32) as sanity checks at head of col
     if (tipe == Type.Timestamp) {
       switch (unit) {
-        case 1: // see the unit enum; diff from typeId
-          heap32[bptr++] = Type.TimestampSecond;
+        case 0: // see the unit enum; diff from typeId
+          ui_heap32[bptr++] = Type.TimestampSecond;
+          break;
+        case 1:
+          ui_heap32[bptr++] = Type.TimestampMillisecond;
           break;
         case 2:
-          heap32[bptr++] = Type.TimestampMillisecond;
+          ui_heap32[bptr++] = Type.TimestampMicrosecond;
           break;
         case 3:
-          heap32[bptr++] = Type.TimestampMicrosecond;
-          break;
-        case 4:
-          heap32[bptr++] = Type.TimestampNanosecond;
+          ui_heap32[bptr++] = Type.TimestampNanosecond;
           break;
       }
     } else {
-      heap32[bptr++] = tipe;
+      ui_heap32[bptr++] = tipe;
     }
-    heap32[bptr++] = sz;
+    ui_heap32[bptr++] = sz;
     // Use heap32 or heap64 depending on column size
     if (tipe == Type.Utf8) {
       // varchar: variable length. We'll take 8 or less bytes,
@@ -310,7 +315,7 @@ function batch_materializer(qid, batch) {
     } else if (sz == 4) {
       // continue with heap32
       for (var ir = 0; ir < row_count; ir++) {
-        heap32[bptr + ir] = vec.get(ir);
+        ui_heap32[bptr + ir] = vec.get(ir);
       }
       bptr += row_count;
     } else if (sz == 8) {
@@ -325,8 +330,10 @@ function batch_materializer(qid, batch) {
         switch (tipe) {
           case Type.Float:
           case Type.Date:
-          case Type.Timestamp:
             dbl_heap64[bptr64 + ir] = get_value(vec, ir, tipe);
+            break;
+          case Type.Timestamp:
+            bi_heap64[bptr64 + ir] = vec.data[0].values[ir];
             break;
         }
       }
