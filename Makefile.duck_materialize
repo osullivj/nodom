@@ -25,9 +25,10 @@ ND_TST_DIR = test/unit/cpp
 ND_FMT_DIR = fmt
 SOURCES = $(ND_TST_DIR)/duck_materialize.cpp
 SOURCES += $(ND_SRC_DIR)/nd_utils.cpp
+SOURCES += $(ND_FMT_DIR)/src/format.cc
 OBJS = $(addsuffix .o, $(addprefix bld/,$(basename $(notdir $(SOURCES)))))
 # UNAME_S := $(shell uname -s)
-CPPFLAGS = -I $(IMGUI_DIR)/examples/libs/emscripten -I $(ND_SRC_DIR)
+CPPFLAGS = -I $(IMGUI_DIR)/examples/libs/emscripten -I $(ND_SRC_DIR) -I $(ND_FMT_DIR)/include
 LDFLAGS =
 EMS =
 
