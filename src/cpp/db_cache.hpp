@@ -292,13 +292,17 @@ public:
                     }
                     else {
                         db_response[Static::error_cs] = 0;
-                        duckdb_data_chunk chunk = duckdb_fetch_chunk(result_iter->second);
                         ResultHandle handle = reinterpret_cast<std::uint64_t>(&(result_iter->second));
                         Bobbin& chunk_deck(bobbin_map[handle]);
-                        chunk_deck.push_back(chunk);
-                        pix_report(DBBatch, static_cast<float>(batch_count++));
-                        idx_t row_count = duckdb_data_chunk_get_size(chunk);
-                        std::cout << method << "BATCH_OK(" << qid << ") rc(" << row_count << ")" << std::endl;
+                        while (true) {
+                            duckdb_data_chunk chunk = duckdb_fetch_chunk(result_iter->second);
+                            if (!chunk)
+                                break;
+                            chunk_deck.push_back(chunk);
+                            pix_report(DBBatch, static_cast<float>(batch_count++));
+                            idx_t row_count = duckdb_data_chunk_get_size(chunk);
+                            std::cout << method << "BATCH_OK(" << qid << ") rc(" << row_count << ") chunks(" << chunk_deck.size() << ")" << std::endl;
+                        }
                     }
                 }
                 else {
