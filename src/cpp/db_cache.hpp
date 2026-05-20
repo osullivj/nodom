@@ -677,9 +677,14 @@ public:
         // set chunk_ptr to col addr. NB addr is written after
         // 64bit bump, so we don't need to recorrect.
         uint32_t* chunk_ptr = base_chunk_ptr + colm_addr_offset;
-        // sanity check column type
+        // sanity check column type and row count
         int32_t col_type = *chunk_ptr++;
+        int32_t row_count = *chunk_ptr++;
 
+        /* For debugging chunking mechanism; see logging in duck_module.js
+        fprintf(stdout, "%s: base_chunk:%d, col:%d, col_addr_off:%d, chunk_ptr:%d\n",
+            method, (int)base_chunk_ptr, (int)colm_index, (int)colm_addr_offset, (int)chunk_ptr);
+        */
         if (col_type != tipes[colm_index] && tipes[colm_index] != wdtTimestamp) {
             fprintf(stderr, "%s: COL_TYPE_MISMATCH: base_chunk:%d, col:%d, col_addr_off:%d, wasm_type:%d, schema_type:%d\n", 
                 method, (int)base_chunk_ptr, (int)colm_index, (int)colm_addr_offset, col_type, tipes[colm_index]);
