@@ -73,6 +73,7 @@ class HomeHandler(tornado.web.RequestHandler):
     def set_default_headers(self, *args, **kwargs):
         self.set_header("Content-Type", "text/html")
         self.set_header("Access-Control-Allow-Origin", f"*")
+        self.set_header("Permissions-Policy", f"local-fonts=*")
 
     def get(self, slug):
         self.render(slug, duck_db=self.application.service.is_duck_app)
