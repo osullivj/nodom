@@ -401,15 +401,13 @@ self.onmessage = async (event) => {
         batch_gen = global_query_map.get(nd_db_request.query_id);
         while (true) {
           let batch_next = await batch_gen.next();
-          let exit = false;
           if (batch_next.done) {
             global_query_map.delete(nd_db_request.query_id);
-            exit = true;
           }
           let batch_result = {
             nd_type: "BatchResponse",
             query_id: nd_db_request.query_id,
-            chunk: batch_next.value,
+            chunk: batch_next.done ? 0 : batch_next.value,
           };
           console.log(
             "duck_module: BatchResponse QID:" +
@@ -419,7 +417,7 @@ self.onmessage = async (event) => {
               "\n",
           );
           on_db_result(batch_result);
-          if (exit) break;
+          if (batch_next.done) break;
         }
       } else {
         on_db_result({
