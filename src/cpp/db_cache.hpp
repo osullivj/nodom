@@ -8,6 +8,7 @@
 #include "nd_types.hpp"
 #include "static_strings.hpp"
 #include "json_ops.hpp"
+#include "config.hpp"
 
 
 #ifndef __EMSCRIPTEN__
@@ -27,47 +28,28 @@
 #endif  // __EMSCRIPTEN__
 
 
-template <typename JSON>
-class EmptyDBCache {
-public:
-    char* buffer{ 0 };  // zero copy accessor
+// The "base" template interface
 
-    void get_config(JSON& cfg) { cfg = config; }
-    // Data access methods called by tables in NDContext. All DBCache
-    // impls must provide these, even EmptyDBCache...
-    std::uint64_t get_handle(const std::string& qid) { return 0; }
-    std::uint64_t get_row_count(std::uint64_t /* handle */) { return 0; }
-    bool get_meta_data(std::uint64_t handle, std::uint64_t& column_count, std::uint64_t& row_count) {return false;}
-    const char* get_datum(std::uint64_t handle, std::uint64_t colm_index, std::uint64_t row_index) { return "NULL"; }
-
-    // Query submission and response handling methods
-    void get_db_responses(std::queue<JSON>& responses) {
-        static const char* method = "EmptyDBCache::get_db_responses: ";
-        NDLogger::cout() << method << "NULL impl!" << std::endl;
-    }
-
-    void db_dispatch(JSON& db_request) {
-        const static char* method = "EmptyDBCache::db_dispatch: ";
-        NDLogger::cout() << method << "NULL impl!" << std::endl;
-    }
-
-    virtual ~EmptyDBCache() {}
-protected:
-#ifndef __EMSCRIPTEN__
-    JSON config = {};
-#else
-    JSON config = emscripten::val::object();
-#endif
-};
+// template <typename JSON> auto DBCache {
+// public:
+//    char* buffer{ 0 };  // zero copy accessor
+//
+//    RSHandle get_handle(const std::string& qid);
+//    uint32_t get_row_count(RSHandle handle);
+//    bool get_meta_data(RSHandle handle, std::uint32_t& column_count, std::uint32_t& row_count);
+//    const char* get_datum(RSHandle handle, std::uint32_t colm_index, std::uint32_t row_index);
+//    void get_db_responses(std::queue<JSON>& responses);
+//    void db_dispatch(JSON& db_request);
+//    void set_done(bool d);
 
 #ifndef __EMSCRIPTEN__
-// No DuckDB specifics in BreadBoardDBCache,
-// but we are using stuff we don't have on EMS.
-// For example, boost threads. Also note that since
-// this is BreadBoard we know we're on win32, so
-// can explicitly specialise EmptyDBCache with
-// nlohmann::json
-class BreadBoardDBCache : public EmptyDBCache<nlohmann::json> {
+
+static constexpr int MAX_COLUMNS = 256;
+
+using RSHandle = std::uint64_t; // == &duckdb_result
+using Bobbin = std::deque<duckdb_data_chunk>;
+
+class BBDuckDBCache {
 protected:
     char string_buffer[STR_BUF_LEN];
     char format_buffer[FMT_BUF_LEN];
@@ -79,11 +61,12 @@ protected:
     boost::thread                       db_thread;
     bool                                done{ false };
 public:
-    BreadBoardDBCache() {
+    char* buffer{ 0 };  // zero copy accessor
+
+    BBDuckDBCache() {
         memset(string_buffer, 0, STR_BUF_LEN);
         memset(format_buffer, 0, FMT_BUF_LEN);
     }
-    virtual ~BreadBoardDBCache() {}
 
     void get_db_responses(std::queue<nlohmann::json>& responses) {
         static const char* method = "DBCache::get_db_responses: ";
@@ -108,15 +91,8 @@ public:
         // lock is out of scope so released: signal duck thread to wake up
         query_cond.notify_one();
     }
-};
 
-static constexpr int MAX_COLUMNS = 256;
-
-using ResultHandle = std::uint64_t; // == &duckdb_result
-using Bobbin = std::deque<duckdb_data_chunk>;
-
-
-class DuckDBCache : public BreadBoardDBCache {
+    void set_done(bool d) { done = d; }
 private:
     duckdb_database                     duck_db;
     duckdb_connection                   duck_conn;
@@ -124,11 +100,10 @@ private:
     idx_t                               duck_chunk_size;
 
     std::unordered_map<std::string, duckdb_result>  result_map;
-    std::unordered_map<ResultHandle, Bobbin>        bobbin_map;
-
-    std::unordered_map<std::uint64_t, StringVec> col_names_map;
-    std::unordered_map<std::uint64_t, std::vector<duckdb_type>> type_map;
-    std::unordered_map<std::uint64_t, std::vector<duckdb_logical_type>> logical_type_map;
+    std::unordered_map<RSHandle, Bobbin>        bobbin_map;
+    std::unordered_map<RSHandle, StringVec>     col_names_map;
+    std::unordered_map<RSHandle, std::vector<duckdb_type>> type_map;
+    std::unordered_map<RSHandle, std::vector<duckdb_logical_type>> logical_type_map;
 
     int16_t* sidata = nullptr;
     int32_t* idata = nullptr;
@@ -163,13 +138,22 @@ public:
             // by NDProxy.ctor on the main thread. Does it have a db_config?
             // NB this code is BB  only, so we allow some nlohmann::json 
             // type leakage
+            NDConfig<nlohmann::json>& cfg{ NDConfig<nlohmann::json>::get_instance() };
+            StringStringMap cfg_map;
+            if (cfg.get_nested(Static::db_config_cs, cfg_map)) {
+                for (auto citer = cfg_map.cbegin(); citer != cfg_map.cend(); ++citer) {
+                    duckdb_set_config(duck_config, citer->first.c_str(), citer->second.c_str());
+                    std::cout << "DUCK_INIT: " << citer->first.c_str() << ":" << citer->second.c_str() << std::endl;
+                }
+            }
+            /*
             if (JContains(config, Static::db_config_cs)) {
                 StringStringMap cfg_map = config.at(Static::db_config_cs).get<StringStringMap>();
                 for (auto citer = cfg_map.cbegin(); citer != cfg_map.cend(); ++citer) {
                     duckdb_set_config(duck_config, citer->first.c_str(), citer->second.c_str());
                     std::cout << "DUCK_INIT: " << citer->first.c_str() << ":" << citer->second.c_str() << std::endl;
                 }
-            }
+            } */
         }
         if (duckdb_open_ext(NULL, &duck_db, duck_config, &duck_error) == DuckDBError) {
             std::cerr << "DUCK_INIT_FAIL duckdb_open " << duck_error << std::endl;
@@ -203,7 +187,6 @@ public:
                 {Static::query_id_cs, Static::duck_db_cs}
             };
             boost::unique_lock<boost::mutex> results_lock(result_mutex);
-            // send nd_type:DuckInstance
             db_results.push(db_instance);
             std::cout << method << "DB: " << db_instance << std::endl;
         }
@@ -292,7 +275,7 @@ public:
                     }
                     else {
                         db_response[Static::error_cs] = 0;
-                        ResultHandle handle = reinterpret_cast<std::uint64_t>(&(result_iter->second));
+                        RSHandle handle = reinterpret_cast<std::uint64_t>(&(result_iter->second));
                         Bobbin& chunk_deck(bobbin_map[handle]);
                         while (true) {
                             duckdb_data_chunk chunk = duckdb_fetch_chunk(result_iter->second);
@@ -320,29 +303,23 @@ public:
     }
 
     void start_db_thread() {
-        db_thread = boost::thread(&DuckDBCache::db_loop, this);
+        db_thread = boost::thread(&BBDuckDBCache::db_loop, this);
     }
 
     // GUI thread methods for accessing the data
-    std::uint64_t get_handle(const std::string& qid) {
+    RSHandle get_handle(const std::string& qid) {
         static const char* method = "DuckDBCache::get_handle: ";
         auto res_iter = result_map.find(qid);
         if (res_iter != result_map.end()) {
-            ResultHandle handle = reinterpret_cast<std::uint64_t>(&(res_iter->second));
+            RSHandle handle = reinterpret_cast<std::uint64_t>(&(res_iter->second));
             return handle;
         }
         return 0;
     }
 
-    std::uint64_t get_total_row_count(std::uint64_t h) {
-        duckdb_result* result_ptr = reinterpret_cast<duckdb_result*>(h);
-        return duckdb_row_count(result_ptr);
-    }
-
-    std::uint64_t get_bobbin_row_count(std::uint64_t h) {
-        ResultHandle handle = static_cast<ResultHandle>(h);
+    std::uint32_t get_row_count(RSHandle handle) {
         auto bob_iter = bobbin_map.find(handle);
-        std::uint64_t row_count = 0;
+        std::uint32_t row_count = 0;
         if (bob_iter == bobbin_map.end())
             return 0;
         Bobbin& bob = bobbin_map.at(handle);
@@ -360,19 +337,18 @@ public:
         return colm_names;
     }
 
-    bool get_meta_data(std::uint64_t h, std::uint64_t& column_count, std::uint64_t& row_count) {
+    bool get_meta_data(RSHandle h, std::uint32_t& column_count, std::uint32_t& row_count) {
         duckdb_result* result_ptr = reinterpret_cast<duckdb_result*>(h);
-        ResultHandle handle = static_cast<ResultHandle>(h);
 
         column_count = duckdb_column_count(result_ptr);
-        row_count = get_bobbin_row_count(h);
+        row_count = get_row_count(h);
 
         // duckdb_data_chunk chunk = reinterpret_cast<duckdb_data_chunk>(handle);
         // yes, these are slow and fire default ctor on 1st visit, which is why
         // we don't use .at()
-        std::vector<duckdb_type>& types(type_map[handle]);
-        std::vector<duckdb_logical_type>& logical_types(logical_type_map[handle]);
-        StringVec& col_names = col_names_map[handle];
+        std::vector<duckdb_type>& types(type_map[h]);
+        std::vector<duckdb_logical_type>& logical_types(logical_type_map[h]);
+        StringVec& col_names = col_names_map[h];
         if (types.empty()) {
             types.clear();
             logical_types.clear();
@@ -389,11 +365,8 @@ public:
     }
 
 
-
-    const char* get_datum(std::uint64_t h, std::uint64_t colm_index, std::uint64_t row_index) {
-        ResultHandle handle = static_cast<ResultHandle>(h);
-
-        auto bmit = bobbin_map.find(handle);
+    const char* get_datum(RSHandle h, std::uint32_t colm_index, std::uint32_t row_index) {
+        auto bmit = bobbin_map.find(h);
         if (bmit == bobbin_map.end())
             return nullptr;
         const Bobbin& bob{ bmit->second};
@@ -417,9 +390,9 @@ public:
         if (duckdb_validity_row_is_valid(validities, rel_index)) {
             // get type metadata for the colm vector and validities
             // NB we only do this work if the field is valid
-            const std::vector<duckdb_type>& types{ type_map.at(handle) };
+            const std::vector<duckdb_type>& types{ type_map.at(h) };
             duckdb_type colm_type(types[colm_index]);
-            const std::vector<duckdb_logical_type>& logical_types{ logical_type_map.at(handle) };
+            const std::vector<duckdb_logical_type>& logical_types{ logical_type_map.at(h) };
             duckdb_logical_type colm_type_l(logical_types[colm_index]);
 
             switch (colm_type) {
@@ -522,15 +495,17 @@ EM_JS(void, ems_db_dispatch, (emscripten::EM_VAL db_request_handle), {
     window.postMessage(db_request);
 });
 
-
-class DuckDBWebCache : public EmptyDBCache<emscripten::val> {
+using RSHandle = std::uint32_t;
+class WebDuckDBCache {
 public:
     char* buffer{ 0 };
 private:
-    std::unordered_map<std::uint64_t, StringVec> column_map;
-    std::unordered_map<std::uint64_t, std::vector<int>> type_map;
-    std::unordered_map<std::uint64_t, std::vector<std::uint32_t>> caddr_map;
-    ChunkMap    chunk_map;
+    std::unordered_map<RSHandle, StringVec> column_map;
+    std::unordered_map<RSHandle, std::vector<int>> type_map;
+    std::unordered_map<RSHandle, std::vector<std::uint32_t>> caddr_map;
+    WasmChunkMap    chunk_map;
+    uint32_t        duck_chunk_size{ 2048 };
+
 protected:
     char string_buffer[STR_BUF_LEN];
     fmt::format_to_n_result<char*> fmt_result;
@@ -557,8 +532,8 @@ public:
         static const char* method = "DuckDBWebCache::register_chunk: ";
         // Will ctor ChunkVec on first batch...
         std::cout << method << "QID(" << qid << ") sz(" << size << ") addr(" << addr << ")" << std::endl;
-        ChunkVec& chunk_vector = chunk_map[qid];
-        chunk_vector.emplace_back(Chunk(size, addr));
+        WasmChunkVec& chunk_vector = chunk_map[qid];
+        chunk_vector.emplace_back(WasmChunk(size, addr));
     }
 
     // standard DB methods implemented by every cache
@@ -575,51 +550,63 @@ public:
         ems_db_dispatch(db_request.as_handle());
     }
 
+    void set_done(bool ) { }
+
     // GUI thread methods for accessing the data
-    std::uint64_t get_handle(const std::string& qname) {
-        const static char* method = "DuckDBWebCache::get_handle: ";
+    RSHandle get_handle(const std::string& qname) {
+        // const static char* method = "DuckDBWebCache::get_handle: ";
         auto cv_iter = chunk_map.find(qname);
         if (cv_iter == chunk_map.end()) {
             // caller logs error
             return 0;
         }
-        ChunkVec& chunk_vector = chunk_map[qname];
-        if (chunk_vector.empty()) {
+        WasmChunkVec& chunk_vector = chunk_map[qname];
+        return reinterpret_cast<RSHandle>(&chunk_vector);
+        /* if (chunk_vector.empty()) {
             // corner case fail that needs logging
             fprintf(stderr, "%s: %s chunk_map empty!\n",
                 method, qname.c_str());
             return 0;
         }
-        Chunk& chunk(chunk_vector.back());
-        return chunk.addr;
+        WasmChunk& chunk(chunk_vector.back());
+        return chunk.addr; */
     }
 
-    std::uint64_t get_row_count(std::uint64_t handle) {
+    uint32_t get_row_count(RSHandle handle) {
         // First 3 32 bit words are done, ncols, nrows
-        uint32_t* chunk_ptr = reinterpret_cast<uint32_t*>(handle);
-        std::uint64_t row_count = *(chunk_ptr + 2);
+        uint32_t row_count{ 0 };
+        uint32_t* chunk_ptr = nullptr;
+        WasmChunkVec* wcv = reinterpret_cast<WasmChunkVec*>(handle);
+        if (wcv == nullptr)
+            return row_count;
+        for (auto scvit = wcv->begin(); scvit != wcv->end(); ++scvit) {
+            chunk_ptr = reinterpret_cast<uint32_t*>(scvit->addr);
+            row_count += *(chunk_ptr + 2);
+        }
         return row_count;
     }
 
-    StringVec& get_col_names(std::uint64_t handle) {
+    StringVec& get_col_names(RSHandle handle) {
         // First 3 32 bit words are done, ncols, nrows
         StringVec& colm_names = column_map[handle];
         return colm_names;
     }
 
-    IntVec& get_col_types(std::uint64_t handle) {
+    IntVec& get_col_types(RSHandle handle) {
         // First 3 32 bit words are done, ncols, nrows
         IntVec& colm_types = type_map[handle];
         return colm_types;
     }
 
-    bool get_meta_data(std::uint64_t handle, std::uint64_t& colm_count, std::uint64_t& row_count) {
+    bool get_meta_data(RSHandle handle, std::uint32_t& colm_count, std::uint32_t& row_count) {
+        WasmChunkVec* wcv = reinterpret_cast<WasmChunkVec*>(handle);
+        if (wcv == nullptr || wcv->empty())
+            return false;
+
         // First 3 32 bit words are done, ncols, nrows
-        uint32_t* chunk_ptr = reinterpret_cast<uint32_t*>(handle);
-        // TODO: fix done flag handling
-        bool done = static_cast<bool>(*chunk_ptr++);
-        colm_count = reinterpret_cast<uint32_t>(*chunk_ptr++);
-        row_count = reinterpret_cast<uint32_t>(*chunk_ptr++);
+        uint32_t* chunk_ptr = reinterpret_cast<uint32_t*>(wcv->front().addr);
+        colm_count = chunk_ptr[1];
+        row_count = get_row_count(handle);
         // Next we have types, one 32bit int per col
         // Have we already populated types and names?
         std::vector<int>& tipes = type_map[handle];
@@ -630,12 +617,15 @@ public:
                 tipes.push_back(tipe);
             }
             // Column addresses: one 32 bit word per col
+            /*
             auto& caddrs = caddr_map[handle];
             caddrs.clear();
             for (int i = 0; i < colm_count; i++) {
                 uint32_t col_offset = *chunk_ptr++;
                 caddrs.push_back(col_offset);
-            }
+            }*/
+            // wind past the colm addrs
+            chunk_ptr += 3 + (2 * colm_count);
             // After types we have column names
             StringVec& colm_names = column_map[handle];
             colm_names.clear();
@@ -652,9 +642,8 @@ public:
         return true;
     }
 
-    const char* get_datum(std::uint64_t handle, std::uint64_t colm_index, std::uint64_t row_index) {
+    const char* get_datum(RSHandle handle, std::uint32_t colm_index, std::uint32_t row_index) {
         const static char* method = "DuckDBWebCache::get_datum: ";
-        static int64_t  ticks{ 0 };
         static std::map<WasmDuckType, int64_t>  timestamp_scale_map{
             {wdtTimestamp_s, 1},
             {wdtTimestamp_ms, 1e3},
@@ -668,66 +657,79 @@ public:
             {wdtTimestamp_ns, "%09.9f"}
         };
         static int error_count{ 0};
+
+        WasmChunkVec* wcv = reinterpret_cast<WasmChunkVec*>(handle);
+        assert(wcv != nullptr);
+        assert(!wcv->empty());
+
         // type_map and column_map have been populated by an
         // earlier invocation of get_meta_data()
         auto& tipes = type_map[handle];
-        auto& colm_addrs = caddr_map[handle];
+        // auto& colm_addrs = caddr_map[handle];
+
+        uint32_t rel_index = row_index % duck_chunk_size;
+        uint32_t chunk_index = row_index / duck_chunk_size;
+        assert(chunk_index <= wcv->size());
+        WasmChunk& chunk{ (*wcv)[chunk_index] };
+        uint32_t* chunk_ptr = reinterpret_cast<uint32_t*>(chunk.addr);
         // First block in a chunk is metadata, so calc how far we
         // skip fwd to get to the col block addrs
-        uint32_t* base_chunk_ptr = reinterpret_cast<uint32_t*>(handle);
+        // uint32_t* base_chunk_ptr = reinterpret_cast<uint32_t*>(handle);
         // ffwd past done,ncols,nrows,types to the col addresses
+        uint32_t ncols = chunk_ptr[1];
         // and point to the colm_index col addr
-        uint32_t colm_addr_offset = colm_addrs[colm_index];
+        // uint32_t colm_addr_offset = colm_addrs[colm_index];
+        uint32_t colm_addr_offset = chunk_ptr[3+ncols+colm_index];
         // set chunk_ptr to col addr. NB addr is written after
         // 64bit bump, so we don't need to recorrect.
-        uint32_t* chunk_ptr = base_chunk_ptr + colm_addr_offset;
+        uint32_t* col_ptr = chunk_ptr + colm_addr_offset;
         // sanity check column type and row count
-        int32_t col_type = *chunk_ptr++;
-        int32_t row_count = *chunk_ptr++;
+        int32_t col_type = *col_ptr++;
+        int32_t row_count = *col_ptr++;
 
         /* For debugging chunking mechanism; see logging in duck_module.js
-        fprintf(stdout, "%s: base_chunk:%d, col:%d, col_addr_off:%d, chunk_ptr:%d\n",
-            method, (int)base_chunk_ptr, (int)colm_index, (int)colm_addr_offset, (int)chunk_ptr);
+        fprintf(stdout, "%s: chunk_ptr:%d, col:%d, col_addr_off:%d, col_ptr:%d\n",
+            method, (int)chunk_ptr, (int)colm_index, (int)colm_addr_offset, (int)col_ptr);
         */
         if (col_type != tipes[colm_index] && tipes[colm_index] != wdtTimestamp) {
-            fprintf(stderr, "%s: COL_TYPE_MISMATCH: base_chunk:%d, col:%d, col_addr_off:%d, wasm_type:%d, schema_type:%d\n", 
-                method, (int)base_chunk_ptr, (int)colm_index, (int)colm_addr_offset, col_type, tipes[colm_index]);
             error_count++;
+            fprintf(stderr, "%s: COL_TYPE_MISMATCH: base_chunk:%d, col:%d, col_addr_off:%d, wasm_type:%d, schema_type:%d, err_count:%d, row_count:%d\n", 
+                method, (int)chunk_ptr, (int)colm_index, (int)colm_addr_offset, col_type, tipes[colm_index], error_count, row_count);
         }
         // stride 1 for 32bit data and 2 for 64bit inc str
         WasmDuckType dt{ col_type };
-        int32_t* i32data = reinterpret_cast<int32_t*>(chunk_ptr);
-        int64_t* i64data = reinterpret_cast<int64_t*>(chunk_ptr);
-        double* dbldata = reinterpret_cast<double*>(chunk_ptr);
+        int32_t* i32data = reinterpret_cast<int32_t*>(col_ptr);
+        int64_t* i64data = reinterpret_cast<int64_t*>(col_ptr);
+        double* dbldata = reinterpret_cast<double*>(col_ptr);
         // In most cases we'll copy into string_buffer, or
         // use sprintf to format into buffer. 
         buffer = string_buffer;
         switch (dt) {
         case WasmDuckType::wdtInt:
-            sprintf(string_buffer, "%d", i32data[row_index]);
+            sprintf(string_buffer, "%d", i32data[rel_index]);
             return 0;
         case WasmDuckType::wdtFloat:
-            sprintf(string_buffer, "%f", dbldata[row_index]);
+            sprintf(string_buffer, "%f", dbldata[rel_index]);
             return 0;
         case WasmDuckType::wdtTimestamp_ns:
-            fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F %T}", TPNano{ std::chrono::nanoseconds{ i64data[row_index] } });
+            fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F %T}", TPNano{ std::chrono::nanoseconds{ i64data[rel_index] } });
             string_buffer[fmt_result.size] = 0;
             return 0;
         case WasmDuckType::wdtTimestamp_us:
-            fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F %T}", TPMicro{ std::chrono::microseconds{ i64data[row_index] } });
+            fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F %T}", TPMicro{ std::chrono::microseconds{ i64data[rel_index] } });
             string_buffer[fmt_result.size] = 0;
             return 0;
         case WasmDuckType::wdtTimestamp_ms:
-            fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F %T}", TPMilli{ std::chrono::milliseconds{ i64data[row_index] } });
+            fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F %T}", TPMilli{ std::chrono::milliseconds{ i64data[rel_index] } });
             string_buffer[fmt_result.size] = 0;
             return 0;
         case WasmDuckType::wdtTimestamp_s:
-            fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F %T}", TPSecs{ std::chrono::seconds{ i64data[row_index] } });
+            fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F %T}", TPSecs{ std::chrono::seconds{ i64data[rel_index] } });
             string_buffer[fmt_result.size] = 0;
             return 0;
         case WasmDuckType::wdtUtf8:    // null term trunc to 8 bytes
             dbldata = reinterpret_cast<double*>(chunk_ptr);
-            sprintf(string_buffer, "%s", (char*)&(dbldata[row_index]));
+            sprintf(string_buffer, "%s", (char*)&(dbldata[rel_index]));
             return 0;
         default:
             sprintf(string_buffer, "%s", "UNK");
@@ -742,21 +744,21 @@ class DBResultDispatcher {
 private:
     DBResultDispatcher() {};
     Dispatcher dispatcher_func = nullptr;
-    RegChunkFunc reg_chunk_func = nullptr;
+    RegWasmChunkFunc reg_chunk_func = nullptr;
 public:
     static DBResultDispatcher& get_instance() {
         static DBResultDispatcher instance;
         return instance;
     }
     void set_dispatcher(Dispatcher df) { dispatcher_func = df; }
-    void set_reg_chunk(RegChunkFunc cf) { reg_chunk_func = cf; }
+    void set_reg_chunk(RegWasmChunkFunc cf) { reg_chunk_func = cf; }
     void dispatch(emscripten::EM_VAL result_handle) {
         if (dispatcher_func != nullptr) dispatcher_func(result_handle);
         else fprintf(stderr, "NULL DBResultDispatcher func\n");
     }
     void register_chunk(const std::string& qid, int sz, int addr) {
         if (reg_chunk_func != nullptr) reg_chunk_func(qid, sz, addr);
-        else fprintf(stderr, "NULL RegChunkFunc func\n");       
+        else fprintf(stderr, "NULL RegWasmChunkFunc func\n");       
     }
 };
 
@@ -804,7 +806,7 @@ extern "C" {
         printf("%s: caddr:", method);
         for (int i = 0; i < col_count; i++) {
             uint32_t* col_addr = reinterpret_cast<uint32_t*>(chunk_ptr[bptr++]);
-            printf("%d/%d", i, col_addr);
+            printf("%d/%d", i, (uint32_t)col_addr);
             printf_comma(i, col_count);
         }
         // next col_count zero terminated ASCII strings
