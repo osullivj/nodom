@@ -30,6 +30,10 @@ int main(int argc, char* argv[]) {
 
     pix_init();
 
+    std::string config_s{ load_json(argv[1]) };
+    NDConfig<nlohmann::json>& cfg{ NDConfig<nlohmann::json>::get_instance() };
+    cfg.initialize(config_s);
+
     std::string init_data(argc > 3 ? load_json(argv[2]) : nullptr);
     std::string init_layout(argc > 3 ? load_json(argv[3]) : nullptr);
 
