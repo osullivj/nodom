@@ -25,20 +25,24 @@
 #pragma comment(lib, "legacy_stdio_definitions")
 #endif
 
+using json_t = nlohmann::json;
+using DuckDB_t = BBDuckDBCache;
+using NDContext_t = NDContext<json_t, DuckDB_t>;
+
 int main(int argc, char* argv[]) {
     const static char* method = "main: ";
 
     pix_init();
 
     std::string config_s{ load_json(argv[1]) };
-    NDConfig<nlohmann::json>& cfg{ NDConfig<nlohmann::json>::get_instance() };
+    NDConfig<json_t>& cfg{ NDConfig<json_t>::get_instance() };
     cfg.initialize(config_s);
 
     std::string init_data(argc > 3 ? load_json(argv[2]) : nullptr);
     std::string init_layout(argc > 3 ? load_json(argv[3]) : nullptr);
 
-    BBDuckDBCache server;
-    NDContext<nlohmann::json, BBDuckDBCache> ctx(server,
+    DuckDB_t server;
+    NDContext<json_t, DuckDB_t> ctx(server,
         init_data.empty() ? nullptr : init_data.c_str(), 
         init_layout.empty() ? nullptr : init_layout.c_str());
 
@@ -48,7 +52,7 @@ int main(int argc, char* argv[]) {
         // now launch websock client with a boost::asio
         // event loop on the main thread to dispatch
         // the timeout and on_message callbacks
-        NDWebSockClient<nlohmann::json, BBDuckDBCache> ws_client(server, ctx);
+        NDWebSockClient<json_t, DuckDB_t> ws_client(server, ctx);
         ws_client.run();
     }
     catch (websocketpp::exception const& ex) {
