@@ -165,13 +165,14 @@ GLFWwindow* im_start(NDContext<JSON, DB>& ctx)
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();   // IntIndices::StyleColoring init StyleColors::Dark
 
+    NDConfig<JSON>& cfg{NDConfig<JSON>::get_instance()};
     // setup scaling defaults explicitly
     float scale = 1.0;
-    float dpi = 1.0;
-    JSON config;
-    ctx.get_config(config);
-    if (JContains(config, "font_scale_dpi"))
-        dpi = JAsFloat(config, "font_scale_dpi");
+    float dpi = 1.0;        // TODO: restore font_scale_dpi config
+    std::string dpi_s;
+    if (cfg.get_value(Static::font_scale_dpi_cs, dpi_s)) {
+        dpi = std::stof(dpi_s);
+    }
     ImGuiStyle& style = ImGui::GetStyle();
     style.ScaleAllSizes(scale); // set _MainScale: all sizes apart from fonts
     style.FontScaleDpi = dpi;
@@ -196,13 +197,15 @@ GLFWwindow* im_start(NDContext<JSON, DB>& ctx)
     ImFont* font = io.Fonts->AddFontDefault();
     ctx.register_font("Default", font);
 #ifndef __EMSCRIPTEN__
-    JSON jfonts = config["fonts"];
-    for (auto fit = jfonts.begin(); fit != jfonts.end(); ++fit) {
-        // fonts is an untyped list of strings. so we get<std::str>()
-        // to coerce and avoid extra quotes
-        font = io.Fonts->AddFontFromFileTTF(fit.value().template get<std::string>().c_str());
-        IM_ASSERT(font != NULL);
-        ctx.register_font(fit.key(), font);
+    StringStringMap font_map;
+    if (cfg.get_nested(Static::fonts_cs, font_map)) {
+        for (auto fit = font_map.begin(); fit != font_map.end(); ++fit) {
+            // fonts is an untyped list of strings. so we get<std::str>()
+            // to coerce and avoid extra quotes
+            font = io.Fonts->AddFontFromFileTTF(fit->second.c_str());
+            IM_ASSERT(font != NULL);
+            ctx.register_font(fit->first.c_str(), font);
+        }
     }
 #else
     if (fc != nullptr) {
