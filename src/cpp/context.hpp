@@ -45,7 +45,7 @@ class NDContext {
 private:
 
     // ref to "server process"; just an abstraction of EMS vs win32
-    NDProxy<DB>& proxy;  // DB proxy decouples NDContext from DB detail
+    DB&                     proxy;  // DB proxy decouples NDContext from DB detail
     JSON                    layout; // layout and data are fetched by 
     JSON                    data;   // sync c++py calls not HTTP gets
     std::deque<WidgetPtr>   stack;  // render stack
@@ -67,6 +67,8 @@ private:
     JSON                real_layout;
     bool                data_loaded{ true };
     bool                layout_loaded{ true };
+
+    std::string         server_url;
 
     // manage down logging by tracking misconfiged queries that throw
     // BAD_HANDLE_FAIL, especially for browser console log
@@ -162,7 +164,7 @@ private:
         ~LocalFont() { pop_func(); }
     };
 public:
-    NDContext(NDProxy<DB>& s, const char* idata = nullptr, const char* ilayout = nullptr)
+    NDContext(DB& s, const char* idata = nullptr, const char* ilayout = nullptr)
         :proxy(s), init_data_s(idata), init_layout_s(ilayout), red{ 255, 51, 0 },
         green{ 102, 153, 0 },
         amber{ 255, 153, 0 }
@@ -172,6 +174,9 @@ public:
         // cp lambdas into LocalFont statics
         LocalFont::push_func = [&](WidgetPtr w, CacheSpecifier nm, CacheSpecifier sz) {push_font(w, nm, sz); };
         LocalFont::pop_func = [&]() {pop_font(); };
+
+        NDConfig<JSON>& cfg{ NDConfig<JSON>::get_instance() };
+        cfg.get_value(Static::server_url_cs, server_url);
     }
 
     void initialize() {
@@ -239,7 +244,7 @@ public:
         // ImGuiStyle& style = ImGui::GetStyle();
 
         data_lay_cache.report_cache_state();
-        int dlc_error_count = data_lay_cache.error_count();
+        size_t dlc_error_count = data_lay_cache.error_count();
         if (dlc_error_count > 0) {
             data_lay_cache.report_cache_errors();
         }
@@ -539,7 +544,7 @@ public:
         }
     }
 
-    void get_config(JSON& cfg) { proxy.get_config(cfg); }
+    // void get_config(JSON& cfg) { proxy.get_config(cfg); }
     void register_font(const std::string& name, ImFont* f) { font_map[name] = f; }
     void register_ws_sender(VSFunc send) { ws_send = send; }
     void register_msg_pump(VVFunc mpf) { msg_pump = mpf; }
@@ -811,8 +816,7 @@ protected:
                 case WebSockConnectionFailed:
                     if (critical_messages[WebSockConnectionFailed].empty()) {
                         compound_string(string_buffer, STR_BUF_LEN,
-                            Static::could_not_connect_cs,
-                            proxy.get_server_url().c_str(), Static::space_cs);
+                            Static::could_not_connect_cs, server_url.c_str(), Static::space_cs);
                         critical_messages[WebSockConnectionFailed] = std::string(string_buffer);
                     }
                     for (int i = WebSockConnectionFailed; i < EndCritical; ++i) {
@@ -1197,8 +1201,8 @@ protected:
             return;
         }
 
-        std::uint64_t colm_count = Static::SMRY_COLM_CNT;
-        int colm_index = 0;
+        std::uint32_t colm_count = Static::SMRY_COLM_CNT;
+        std::uint32_t colm_index = 0;
         if (ImGui::BeginPopupModal(title, nullptr, window_flags)) {
             LocalFont body_font(w, cs_body_font, cs_body_font_size);
             std::uint64_t result_handle = proxy.get_handle(query_id);
@@ -1212,9 +1216,9 @@ protected:
                     ImGui::TableSetupColumn(Static::duck_table_summary_colm_names[colm_index]);
                 }
                 ImGui::TableHeadersRow();
-                std::uint64_t row_count = proxy.get_row_count(result_handle);
+                std::uint32_t row_count = proxy.get_row_count(result_handle);
                 proxy.get_meta_data(result_handle, colm_count, row_count);
-                for (int row_index = 0; row_index < row_count; row_index++) {
+                for (uint32_t row_index = 0; row_index < row_count; row_index++) {
                     ImGui::TableNextRow();
                     for (colm_index = 0; colm_index < colm_count; colm_index++) {
                         ImGui::TableSetColumnIndex(colm_index);
@@ -1310,12 +1314,12 @@ protected:
 
         // TODO: recode proxy.get_meta_data() to lazy load 
         // and report geom
-        std::uint64_t colm_count = 0;
-        std::uint64_t row_count = 0;
-        int colm_index = 0;
+        std::uint32_t colm_count = 0;
+        std::uint32_t row_count = 0;
+        std::uint32_t colm_index = 0;
         {
             LocalFont body_font(w, cs_body_font, cs_body_font_size);
-            std::uint64_t result_handle = proxy.get_handle(query_id);
+            RSHandle result_handle = proxy.get_handle(query_id);
             if (!result_handle) {
                 auto [iter, inserted] = bad_handle_map.insert(std::make_pair(query_id, 1));
                 if (!inserted) iter->second++;
