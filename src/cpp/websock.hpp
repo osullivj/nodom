@@ -83,7 +83,9 @@ private:
 
 public:
     NDWebSockClient(DB& svr, NDContext<JSON, DB>& c)
-        :ctx(c), server(svr) {
+                                    :ctx(c), server(svr) {
+        NDConfig<JSON>& cfg{ NDConfig<JSON>::get_instance() };
+        cfg.get_value(Static::server_url_cs, uri);
 #ifdef __EMSCRIPTEN__
         ws_attrs.url = uri.c_str();
         ws_handle = emscripten_websocket_new(&ws_attrs);
@@ -105,9 +107,6 @@ public:
         client.set_fail_handler(bind(&NDWebSockClient::wspp_on_fail, this, &client, ::_1));
 #endif
         ctx.register_ws_sender(bind(&NDWebSockClient::send, this, std::placeholders::_1));
-
-        NDConfig<JSON>& cfg{ NDConfig<JSON>::get_instance() };
-        cfg.get_value(Static::server_url_cs, uri);
     }
 
     void pump_messages() {
