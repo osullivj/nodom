@@ -42,6 +42,14 @@ public:
         return false;
     }
 
+    bool get_value(const char* key, float& val) {
+        if (JContains(config, key)) {
+            val = JAsFloat(config, key);
+            return true;
+        }
+        return false;
+    }
+
     bool get_nested(const char* key, StringStringMap& ssmap) {
         if (JContains(config, key)) {
             StringVec svec;
