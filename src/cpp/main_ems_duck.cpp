@@ -21,7 +21,7 @@
 // the appropriate renderer for the Chrome codebase. JOS 2025-08-25
 
 using ems_val_t = emscripten::val;
-using DuckDB_t = DuckDBWebCache;
+using DuckDB_t = WebDuckDBCache;
 using NDContext_t = NDContext<ems_val_t, DuckDB_t>;
 
 void im_loop_body(void* c) {
