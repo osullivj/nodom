@@ -33,8 +33,8 @@ int main(int argc, char* argv[]) {
     std::string init_data(argc > 3 ? load_json(argv[2]) : nullptr);
     std::string init_layout(argc > 3 ? load_json(argv[3]) : nullptr);
 
-    NDProxy<DuckDBCache> server(argc, argv);
-    NDContext<nlohmann::json, DuckDBCache> ctx(server, 
+    BBDuckDBCache server;
+    NDContext<nlohmann::json, BBDuckDBCache> ctx(server,
         init_data.empty() ? nullptr : init_data.c_str(), 
         init_layout.empty() ? nullptr : init_layout.c_str());
 
@@ -44,7 +44,7 @@ int main(int argc, char* argv[]) {
         // now launch websock client with a boost::asio
         // event loop on the main thread to dispatch
         // the timeout and on_message callbacks
-        NDWebSockClient<nlohmann::json, DuckDBCache> ws_client(server, ctx);
+        NDWebSockClient<nlohmann::json, BBDuckDBCache> ws_client(server, ctx);
         ws_client.run();
     }
     catch (websocketpp::exception const& ex) {
