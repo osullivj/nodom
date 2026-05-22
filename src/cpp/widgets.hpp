@@ -19,8 +19,8 @@ bool Spinner(const char* label, SpinnerLocals& sp_vars) {
     sp_vars.id = window->GetID(label);
 
     sp_vars.position = window->DC.CursorPos;
-    sp_vars.size.x = sp_vars.radius * 2.0;
-    sp_vars.size.y = (sp_vars.radius + style.FramePadding.y) * 2.0;
+    sp_vars.size.x = (float)sp_vars.radius * 2.0;
+    sp_vars.size.y = (float)(sp_vars.radius + style.FramePadding.y) * 2.0;
     sp_vars.bounding_box.Min = sp_vars.position;
     sp_vars.bounding_box.Max.x = sp_vars.position.x + sp_vars.size.x;
     sp_vars.bounding_box.Max.y = sp_vars.position.y + sp_vars.size.y;
