@@ -68,6 +68,178 @@ public:
         memset(format_buffer, 0, FMT_BUF_LEN);
     }
 
+    // GUI thread methods for accessing the data
+    RSHandle get_handle(const std::string& qid) {
+        static const char* method = "DuckDBCache::get_handle: ";
+        auto res_iter = result_map.find(qid);
+        if (res_iter != result_map.end()) {
+            RSHandle handle = reinterpret_cast<std::uint64_t>(&(res_iter->second));
+            return handle;
+        }
+        return 0;
+    }
+
+    std::uint32_t get_row_count(RSHandle handle) {
+        auto bob_iter = bobbin_map.find(handle);
+        std::uint32_t row_count = 0;
+        if (bob_iter == bobbin_map.end())
+            return 0;
+        Bobbin& bob = bobbin_map.at(handle);
+        auto chunk_iter = bob.begin();
+        while (chunk_iter != bob.end()) {
+            row_count += duckdb_data_chunk_get_size(*chunk_iter);
+            chunk_iter++;
+        }
+        return row_count;
+    }
+
+    StringVec& get_col_names(std::uint64_t handle) {
+        // First 3 32 bit words are done, ncols, nrows
+        StringVec& colm_names = col_names_map[handle];
+        return colm_names;
+    }
+
+    bool get_meta_data(RSHandle h, std::uint32_t& column_count, std::uint32_t& row_count) {
+        duckdb_result* result_ptr = reinterpret_cast<duckdb_result*>(h);
+
+        column_count = duckdb_column_count(result_ptr);
+        row_count = get_row_count(h);
+
+        // duckdb_data_chunk chunk = reinterpret_cast<duckdb_data_chunk>(handle);
+        // yes, these are slow and fire default ctor on 1st visit, which is why
+        // we don't use .at()
+        std::vector<duckdb_type>& types(type_map[h]);
+        std::vector<duckdb_logical_type>& logical_types(logical_type_map[h]);
+        StringVec& col_names = col_names_map[h];
+        if (types.empty()) {
+            types.clear();
+            logical_types.clear();
+            col_names.clear();
+            duckdb_logical_type type_l{};
+            for (std::uint64_t index = 0; index < column_count; ++index) {
+                type_l = duckdb_column_logical_type(result_ptr, index);
+                logical_types.push_back(type_l);
+                types.push_back(duckdb_get_type_id(type_l));
+                col_names.push_back(duckdb_column_name(result_ptr, index));
+            }
+        }
+        return true;
+    }
+
+    const char* get_datum(RSHandle h, std::uint32_t colm_index, std::uint32_t row_index) {
+        auto bmit = bobbin_map.find(h);
+        if (bmit == bobbin_map.end())
+            return nullptr;
+        const Bobbin& bob{ bmit->second };
+        duckdb_data_chunk chunk;
+
+        uint64_t rel_index = row_index % duck_chunk_size;
+        uint64_t chunk_index = row_index / duck_chunk_size;
+        auto bob_iter = bob.cbegin();
+        while (chunk_index > 0) {
+            --chunk_index;
+            ++bob_iter;
+        }
+        chunk = *bob_iter;
+        duckdb_vector colm = duckdb_data_chunk_get_vector(chunk, colm_index);
+        uint64_t* validities = duckdb_vector_get_validity(colm);
+        // In most cases we'll copy into string_buffer, or
+        // use sprintf to format into buffer. But for long
+        // strings we may want to hand back Duck's start
+        // and end char*
+        buffer = string_buffer;
+        if (duckdb_validity_row_is_valid(validities, rel_index)) {
+            // get type metadata for the colm vector and validities
+            // NB we only do this work if the field is valid
+            const std::vector<duckdb_type>& types{ type_map.at(h) };
+            duckdb_type colm_type(types[colm_index]);
+            const std::vector<duckdb_logical_type>& logical_types{ logical_type_map.at(h) };
+            duckdb_logical_type colm_type_l(logical_types[colm_index]);
+
+            switch (colm_type) {
+            case DUCKDB_TYPE_VARCHAR:
+                vcdata = (duckdb_string_t*)duckdb_vector_get_data(colm);
+                if (duckdb_string_is_inlined(vcdata[rel_index])) {
+                    // if inlined is 12 chars, there will be no zero terminator
+                    memcpy(string_buffer, vcdata[rel_index].value.inlined.inlined, vcdata[rel_index].value.inlined.length);
+                    string_buffer[vcdata[rel_index].value.inlined.length] = 0;
+                }
+                else {
+                    // NB ptr arithmetic using length to calc the end
+                    // ptr as these strings may be packed without 0 terminators
+                    buffer = vcdata[rel_index].value.pointer.ptr;
+                    return vcdata[rel_index].value.pointer.ptr + vcdata[rel_index].value.pointer.length;
+                }
+                break;
+            case DUCKDB_TYPE_BIGINT:
+                bidata = (int64_t*)duckdb_vector_get_data(colm);
+                sprintf(string_buffer, "%I64d", bidata[rel_index]);
+                break;
+            case DUCKDB_TYPE_INTEGER:
+                idata = (int32_t*)duckdb_vector_get_data(colm);
+                fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{}", idata[rel_index]);
+                return buffer + fmt_result.size;
+            case DUCKDB_TYPE_DOUBLE:
+                dbldata = (double_t*)duckdb_vector_get_data(colm);
+                fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{}", dbldata[rel_index]);
+                return buffer + fmt_result.size;
+                // 4 duckdb_timestamp[_??] types, all holding
+                // a single int64_t named differently
+            case DUCKDB_TYPE_TIMESTAMP_S:
+                ts_secs = (duckdb_timestamp_s*)duckdb_vector_get_data(colm);
+                fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F %T}", TPSecs{ std::chrono::seconds{ ts_secs->seconds } });
+                return buffer + fmt_result.size;
+            case DUCKDB_TYPE_TIMESTAMP_MS:
+                ts_milli = (duckdb_timestamp_ms*)duckdb_vector_get_data(colm);
+                fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F %T}", TPMilli{ std::chrono::milliseconds{ts_milli->millis} });
+                return buffer + fmt_result.size;
+            case DUCKDB_TYPE_TIMESTAMP:
+                ts_micro = (duckdb_timestamp*)duckdb_vector_get_data(colm);
+                fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F %T}", TPMicro{ std::chrono::microseconds{ ts_micro->micros } });
+                return buffer + fmt_result.size;
+            case DUCKDB_TYPE_TIMESTAMP_NS:
+                ts_nano = (duckdb_timestamp_ns*)duckdb_vector_get_data(colm);
+                fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F %T}", TPNano{ std::chrono::microseconds{ ts_nano->nanos } });
+                return buffer + fmt_result.size;
+            case DUCKDB_TYPE_DECIMAL:
+                decimal_width = duckdb_decimal_width(colm_type_l);
+                decimal_scale = duckdb_decimal_scale(colm_type_l);
+                decimal_type = duckdb_decimal_internal_type(colm_type_l);
+                decimal_divisor = pow(10, decimal_scale);
+
+                switch (decimal_type) {
+                case DUCKDB_TYPE_SMALLINT:  // int16_t
+                    sidata = (int16_t*)duckdb_vector_get_data(colm);
+                    decimal_value = (double)sidata[rel_index] / decimal_divisor;
+                    break;
+                case DUCKDB_TYPE_INTEGER:   // int32_t
+                    idata = (int32_t*)duckdb_vector_get_data(colm);
+                    decimal_value = (double)idata[rel_index] / decimal_divisor;
+                    break;
+                case DUCKDB_TYPE_BIGINT:    // int64_t
+                    bidata = (int64_t*)duckdb_vector_get_data(colm);
+                    decimal_value = (double)bidata[rel_index] / decimal_divisor;
+                    break;
+                case DUCKDB_TYPE_HUGEINT:   // duckdb_hugeint: 128
+                    hidata = (duckdb_hugeint*)duckdb_vector_get_data(colm);
+                    decimal_value = duckdb_hugeint_to_double(hidata[rel_index]) / decimal_divisor;
+                    break;
+                }
+                // decimal scale 2 means we want "%.2f"
+                // NB %% is the "escape sequence" for %
+                // in a printf format, not \%.
+                sprintf(format_buffer, "%%.%df", decimal_scale);
+                sprintf(string_buffer, format_buffer, decimal_value);
+                break;
+            }
+        }
+        else {
+            buffer = (char*)Static::null_cs;
+        }
+        return nullptr;
+    }
+
+
     void get_db_responses(std::queue<nlohmann::json>& responses) {
         static const char* method = "DBCache::get_db_responses: ";
         boost::unique_lock<boost::mutex> from_lock(result_mutex);
@@ -298,177 +470,7 @@ public:
         db_thread = boost::thread(&BBDuckDBCache::db_loop, this);
     }
 
-    // GUI thread methods for accessing the data
-    RSHandle get_handle(const std::string& qid) {
-        static const char* method = "DuckDBCache::get_handle: ";
-        auto res_iter = result_map.find(qid);
-        if (res_iter != result_map.end()) {
-            RSHandle handle = reinterpret_cast<std::uint64_t>(&(res_iter->second));
-            return handle;
-        }
-        return 0;
-    }
 
-    std::uint32_t get_row_count(RSHandle handle) {
-        auto bob_iter = bobbin_map.find(handle);
-        std::uint32_t row_count = 0;
-        if (bob_iter == bobbin_map.end())
-            return 0;
-        Bobbin& bob = bobbin_map.at(handle);
-        auto chunk_iter = bob.begin();
-        while (chunk_iter != bob.end()) {
-            row_count += duckdb_data_chunk_get_size(*chunk_iter);
-            chunk_iter++;
-        }
-        return row_count;
-    }
-
-    StringVec& get_col_names(std::uint64_t handle) {
-        // First 3 32 bit words are done, ncols, nrows
-        StringVec& colm_names = col_names_map[handle];
-        return colm_names;
-    }
-
-    bool get_meta_data(RSHandle h, std::uint32_t& column_count, std::uint32_t& row_count) {
-        duckdb_result* result_ptr = reinterpret_cast<duckdb_result*>(h);
-
-        column_count = duckdb_column_count(result_ptr);
-        row_count = get_row_count(h);
-
-        // duckdb_data_chunk chunk = reinterpret_cast<duckdb_data_chunk>(handle);
-        // yes, these are slow and fire default ctor on 1st visit, which is why
-        // we don't use .at()
-        std::vector<duckdb_type>& types(type_map[h]);
-        std::vector<duckdb_logical_type>& logical_types(logical_type_map[h]);
-        StringVec& col_names = col_names_map[h];
-        if (types.empty()) {
-            types.clear();
-            logical_types.clear();
-            col_names.clear();
-            duckdb_logical_type type_l{};
-            for (std::uint64_t index = 0; index < column_count; ++index) {
-                type_l = duckdb_column_logical_type(result_ptr, index);
-                logical_types.push_back(type_l);
-                types.push_back(duckdb_get_type_id(type_l));
-                col_names.push_back(duckdb_column_name(result_ptr, index));
-            }
-        }
-        return true;
-    }
-
-
-    const char* get_datum(RSHandle h, std::uint32_t colm_index, std::uint32_t row_index) {
-        auto bmit = bobbin_map.find(h);
-        if (bmit == bobbin_map.end())
-            return nullptr;
-        const Bobbin& bob{ bmit->second};
-        duckdb_data_chunk chunk;
-
-        uint64_t rel_index = row_index % duck_chunk_size;
-        uint64_t chunk_index = row_index / duck_chunk_size;
-        auto bob_iter = bob.cbegin();
-        while (chunk_index > 0) {
-            --chunk_index;
-            ++bob_iter;
-        }
-        chunk = *bob_iter;
-        duckdb_vector colm = duckdb_data_chunk_get_vector(chunk, colm_index);
-        uint64_t* validities = duckdb_vector_get_validity(colm);
-        // In most cases we'll copy into string_buffer, or
-        // use sprintf to format into buffer. But for long
-        // strings we may want to hand back Duck's start
-        // and end char*
-        buffer = string_buffer;
-        if (duckdb_validity_row_is_valid(validities, rel_index)) {
-            // get type metadata for the colm vector and validities
-            // NB we only do this work if the field is valid
-            const std::vector<duckdb_type>& types{ type_map.at(h) };
-            duckdb_type colm_type(types[colm_index]);
-            const std::vector<duckdb_logical_type>& logical_types{ logical_type_map.at(h) };
-            duckdb_logical_type colm_type_l(logical_types[colm_index]);
-
-            switch (colm_type) {
-            case DUCKDB_TYPE_VARCHAR:
-                vcdata = (duckdb_string_t*)duckdb_vector_get_data(colm);
-                if (duckdb_string_is_inlined(vcdata[rel_index])) {
-                    // if inlined is 12 chars, there will be no zero terminator
-                    memcpy(string_buffer, vcdata[rel_index].value.inlined.inlined, vcdata[rel_index].value.inlined.length);
-                    string_buffer[vcdata[rel_index].value.inlined.length] = 0;
-                }
-                else {
-                    // NB ptr arithmetic using length to calc the end
-                    // ptr as these strings may be packed without 0 terminators
-                    buffer = vcdata[rel_index].value.pointer.ptr;
-                    return vcdata[rel_index].value.pointer.ptr + vcdata[rel_index].value.pointer.length;
-                }
-                break;
-            case DUCKDB_TYPE_BIGINT:
-                bidata = (int64_t*)duckdb_vector_get_data(colm);
-                sprintf(string_buffer, "%I64d", bidata[rel_index]);
-                break;
-            case DUCKDB_TYPE_INTEGER:
-                idata = (int32_t*)duckdb_vector_get_data(colm);
-                fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{}", idata[rel_index]);
-                return buffer + fmt_result.size;
-            case DUCKDB_TYPE_DOUBLE:
-                dbldata = (double_t*)duckdb_vector_get_data(colm);
-                fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{}", dbldata[rel_index]);
-                return buffer + fmt_result.size;
-            // 4 duckdb_timestamp[_??] types, all holding
-            // a single int64_t named differently
-            case DUCKDB_TYPE_TIMESTAMP_S:
-                ts_secs = (duckdb_timestamp_s*)duckdb_vector_get_data(colm);
-                fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F %T}", TPSecs{ std::chrono::seconds{ ts_secs->seconds } });
-                return buffer + fmt_result.size;
-            case DUCKDB_TYPE_TIMESTAMP_MS:  
-                ts_milli = (duckdb_timestamp_ms*)duckdb_vector_get_data(colm);
-                fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F %T}", TPMilli{ std::chrono::milliseconds{ts_milli->millis} });
-                return buffer + fmt_result.size;
-            case DUCKDB_TYPE_TIMESTAMP:     
-                ts_micro = (duckdb_timestamp*)duckdb_vector_get_data(colm);
-                fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F %T}", TPMicro{ std::chrono::microseconds{ ts_micro->micros } });
-                return buffer + fmt_result.size;
-            case DUCKDB_TYPE_TIMESTAMP_NS:  
-                ts_nano = (duckdb_timestamp_ns*)duckdb_vector_get_data(colm);
-                fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F %T}", TPNano{ std::chrono::microseconds{ ts_nano->nanos } });
-                return buffer + fmt_result.size;
-            case DUCKDB_TYPE_DECIMAL:
-                decimal_width = duckdb_decimal_width(colm_type_l);
-                decimal_scale = duckdb_decimal_scale(colm_type_l);
-                decimal_type = duckdb_decimal_internal_type(colm_type_l);
-                decimal_divisor = pow(10, decimal_scale);
-
-                switch (decimal_type) {
-                case DUCKDB_TYPE_SMALLINT:  // int16_t
-                    sidata = (int16_t*)duckdb_vector_get_data(colm);
-                    decimal_value = (double)sidata[rel_index] / decimal_divisor;
-                    break;
-                case DUCKDB_TYPE_INTEGER:   // int32_t
-                    idata = (int32_t*)duckdb_vector_get_data(colm);
-                    decimal_value = (double)idata[rel_index] / decimal_divisor;
-                    break;
-                case DUCKDB_TYPE_BIGINT:    // int64_t
-                    bidata = (int64_t*)duckdb_vector_get_data(colm);
-                    decimal_value = (double)bidata[rel_index] / decimal_divisor;
-                    break;
-                case DUCKDB_TYPE_HUGEINT:   // duckdb_hugeint: 128
-                    hidata = (duckdb_hugeint*)duckdb_vector_get_data(colm);
-                    decimal_value = duckdb_hugeint_to_double(hidata[rel_index]) / decimal_divisor;
-                    break;
-                }
-                // decimal scale 2 means we want "%.2f"
-                // NB %% is the "escape sequence" for %
-                // in a printf format, not \%.
-                sprintf(format_buffer, "%%.%df", decimal_scale);
-                sprintf(string_buffer, format_buffer, decimal_value);
-                break;
-            }
-        }
-        else {
-            buffer = (char*)Static::null_cs;
-        }
-        return nullptr;
-    }
 };
 
 #else   // __EMSCRIPTEN__
@@ -489,8 +491,6 @@ EM_JS(void, ems_db_dispatch, (emscripten::EM_VAL db_request_handle), {
 
 using RSHandle = std::uint32_t;
 class WebDuckDBCache {
-public:
-    char* buffer{ 0 };
 private:
     std::unordered_map<RSHandle, StringVec> column_map;
     std::unordered_map<RSHandle, std::vector<int>> type_map;
@@ -504,45 +504,7 @@ protected:
     std::queue<emscripten::val>          db_queries;
     std::queue<emscripten::val>          db_results;
 public:
-    // Duck specific methods
-    // check_duck_module: has nodom.html finished
-    // loading duck_module.js yet? Call from im_loop_body
-    bool check_duck_module() {
-        // NB this is based on imgui-jswt main.ts:check_duck_module
-        // Q: has duck_module.js created window.__nodom__ ?
-        emscripten::val window_global = emscripten::val::global("window");
-        return JContains(window_global, Static::__nodom__cs);
-    }
-
-    // register with DBResultDispatcher at startup time
-    void add_db_response(emscripten::EM_VAL result_handle) {
-        emscripten::val result = emscripten::val::take_ownership(result_handle);
-        db_results.push(result);
-    }
-
-    void register_chunk(const char* qid, int size, int addr) {
-        static const char* method = "DuckDBWebCache::register_chunk: ";
-        // Will ctor ChunkVec on first batch...
-        std::cout << method << "QID(" << qid << ") sz(" << size << ") addr(" << addr << ")" << std::endl;
-        WasmChunkVec& chunk_vector = chunk_map[qid];
-        chunk_vector.emplace_back(WasmChunk(size, addr));
-    }
-
-    // standard DB methods implemented by every cache
-    void get_db_responses(std::queue<emscripten::val>& responses) {
-        static const char* method = "DuckDBWebCache::get_db_responses: ";
-        db_results.swap(responses);
-        if (!responses.empty()) {
-            std::cout << method << responses.size() << " responses" << std::endl;
-        }
-    }
-
-    void db_dispatch(emscripten::val& db_request) {
-        // const static char* method = "DuckDBWebCache::db_dispatch: ";
-        ems_db_dispatch(db_request.as_handle());
-    }
-
-    void set_done(bool ) { }
+    char* buffer{ 0 };
 
     // GUI thread methods for accessing the data
     RSHandle get_handle(const std::string& qname) {
@@ -554,14 +516,6 @@ public:
         }
         WasmChunkVec& chunk_vector = chunk_map[qname];
         return reinterpret_cast<RSHandle>(&chunk_vector);
-        /* if (chunk_vector.empty()) {
-            // corner case fail that needs logging
-            fprintf(stderr, "%s: %s chunk_map empty!\n",
-                method, qname.c_str());
-            return 0;
-        }
-        WasmChunk& chunk(chunk_vector.back());
-        return chunk.addr; */
     }
 
     uint32_t get_row_count(RSHandle handle) {
@@ -605,7 +559,7 @@ public:
         if (tipes.empty()) {
             tipes.clear();
             for (int i = 0; i < colm_count; i++) {
-                WasmDuckType tipe{ static_cast<int32_t>(chunk_ptr[3+i])};
+                WasmDuckType tipe{ static_cast<int32_t>(chunk_ptr[3 + i]) };
                 tipes.push_back(tipe);
             }
 
@@ -641,7 +595,7 @@ public:
             {wdtTimestamp_us, "%06.6f"},
             {wdtTimestamp_ns, "%09.9f"}
         };
-        static int error_count{ 0};
+        static int error_count{ 0 };
 
         WasmChunkVec* wcv = reinterpret_cast<WasmChunkVec*>(handle);
         assert(wcv != nullptr);
@@ -664,7 +618,7 @@ public:
         uint32_t ncols = chunk_ptr[1];
         // and point to the colm_index col addr
         // uint32_t colm_addr_offset = colm_addrs[colm_index];
-        uint32_t colm_addr_offset = chunk_ptr[3+ncols+colm_index];
+        uint32_t colm_addr_offset = chunk_ptr[3 + ncols + colm_index];
         // set chunk_ptr to col addr. NB addr is written after
         // 64bit bump, so we don't need to recorrect.
         uint32_t* col_ptr = chunk_ptr + colm_addr_offset;
@@ -678,7 +632,7 @@ public:
         */
         if (col_type != tipes[colm_index] && tipes[colm_index] != wdtTimestamp) {
             error_count++;
-            fprintf(stderr, "%s: COL_TYPE_MISMATCH: base_chunk:%d, col:%d, col_addr_off:%d, wasm_type:%d, schema_type:%d, err_count:%d, col_sz:%d\n", 
+            fprintf(stderr, "%s: COL_TYPE_MISMATCH: base_chunk:%d, col:%d, col_addr_off:%d, wasm_type:%d, schema_type:%d, err_count:%d, col_sz:%d\n",
                 method, (int)chunk_ptr, (int)colm_index, (int)colm_addr_offset, col_type, tipes[colm_index], error_count, col_size);
         }
         // stride 1 for 32bit data and 2 for 64bit inc str
@@ -722,6 +676,50 @@ public:
         }
         return 0;
     }
+
+    // standard DB methods implemented by every cache
+    void get_db_responses(std::queue<emscripten::val>& responses) {
+        static const char* method = "DuckDBWebCache::get_db_responses: ";
+        db_results.swap(responses);
+        if (!responses.empty()) {
+            std::cout << method << responses.size() << " responses" << std::endl;
+        }
+    }
+
+    void db_dispatch(emscripten::val& db_request) {
+        // const static char* method = "DuckDBWebCache::db_dispatch: ";
+        ems_db_dispatch(db_request.as_handle());
+    }
+
+    void set_done(bool) { }
+
+    // Duck specific methods
+    // check_duck_module: has nodom.html finished
+    // loading duck_module.js yet? Call from im_loop_body
+    bool check_duck_module() {
+        // NB this is based on imgui-jswt main.ts:check_duck_module
+        // Q: has duck_module.js created window.__nodom__ ?
+        emscripten::val window_global = emscripten::val::global("window");
+        return JContains(window_global, Static::__nodom__cs);
+    }
+
+    // register with DBResultDispatcher at startup time
+    void add_db_response(emscripten::EM_VAL result_handle) {
+        emscripten::val result = emscripten::val::take_ownership(result_handle);
+        db_results.push(result);
+    }
+
+    void register_chunk(const char* qid, int size, int addr) {
+        static const char* method = "DuckDBWebCache::register_chunk: ";
+        // Will ctor ChunkVec on first batch...
+        std::cout << method << "QID(" << qid << ") sz(" << size << ") addr(" << addr << ")" << std::endl;
+        WasmChunkVec& chunk_vector = chunk_map[qid];
+        chunk_vector.emplace_back(WasmChunk(size, addr));
+    }
+
+
+
+
 };
 
 using Dispatcher = std::function<void(emscripten::EM_VAL result_handle)>;
