@@ -167,6 +167,8 @@ struct Static {
 	inline static const char* period_cs{ "." };
 	inline static const char* colon_cs{ ":" };
 	inline static const char* db_config_cs{ "db_config" };
+	inline static const char* fonts_cs{ "fonts" };
+
 	// DatePicker
 	inline static const char* double_hash_cs{ "##" };
 	inline static const char* month_combo_cs{ "##MonthCombo_" };
@@ -220,10 +222,12 @@ struct Static {
 	// fast path cache variables
 	inline static const char underscore_c{ '_' };
 	inline static const char period_c{ '.' };
+	inline static const char* font_scale_dpi_cs{ "font_scale_dpi" };
 	inline static const char* _font_scale_dpi_cs{ "_font_scale_dpi" };
 	inline static const char* _font_scale_main_cs{ "_font_scale_main" };
-	inline static const char* _style_coloring{ "_style_coloring" };
-	inline static const char* _server_url{ "_server_url"};
+	inline static const char* _style_coloring_cs{ "_style_coloring" };
+	inline static const char* server_url_cs{ "server_url" };
+	inline static const char* _server_url_cs{ "_server_url"};
 
 	// _style_coloring values
 	inline static const char* dark_cs{ "Dark" };
@@ -261,7 +265,7 @@ struct Static {
 	// error messages
 	inline static const char* could_not_connect_cs{ "Could not connect to" };
 
-	inline constexpr static int SMRY_COLM_CNT = 12;
+	inline constexpr static uint32_t SMRY_COLM_CNT = 12;
 
 	inline static const char* duck_table_summary_colm_names[SMRY_COLM_CNT] = {
 	"name", "type", // DUCKDB_TYPE_VARCHAR, DUCKDB_TYPE_VARCHAR, 
