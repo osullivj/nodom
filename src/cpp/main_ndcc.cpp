@@ -26,9 +26,10 @@ int main(int argc, char* argv[]) {
         data_lay_cache.on_json(data, layout, [&]() {data_lay_cache.on_init(); });
 
         data_lay_cache.report_sanity_check();
-        int bsc = data_lay_cache.report_cache_strings();
-        int bic = data_lay_cache.report_cache_ints();
-        int bfc = data_lay_cache.report_cache_floats();
+        int esc, eic, efc;
+        int bsc = data_lay_cache.report_cache_strings(esc);
+        int bic = data_lay_cache.report_cache_ints(eic);
+        int bfc = data_lay_cache.report_cache_floats(efc);
         data_lay_cache.report_address_map();
         data_lay_cache.report_actions();
     }
