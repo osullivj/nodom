@@ -251,6 +251,7 @@ struct Static {
 		R"( ] )" 
 	};
 	inline static const char* empty_list_cs{ "[]" };
+	inline static const char* empty_obj_cs{ "{}" };
 
 	// CacheDataType
 	inline static const char* cdt_int_cs{ "cdInt" };
