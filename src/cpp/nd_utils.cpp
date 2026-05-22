@@ -129,8 +129,7 @@ void sprintf_value(char* cbuf, uint32_t* chunk_ptr, int bptr, int32_t tipe, int 
         sprintf(cbuf, "[%d]=%s", row_index, "unk");
         break;
     }
-    printf(cbuf);
-    printf("\n");
+    printf("%s\n", cbuf);
 }
 
 #endif
