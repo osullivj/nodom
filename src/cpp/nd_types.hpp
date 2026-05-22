@@ -43,14 +43,14 @@ using VSFunc = std::function<void(const std::string&)>;
 using VVFunc = std::function<void()>;
 
 // DuckDBWebCache chunk helpers
-using RegChunkFunc = std::function<void(const std::string&, int, int)>;
-struct Chunk {
-    Chunk(int sz, int address) :size(sz), addr(address) {}
-    int size;
-    int addr;
+using RegWasmChunkFunc = std::function<void(const std::string&, int, int)>;
+struct WasmChunk {
+    WasmChunk(uint32_t sz, uint32_t address) :size(sz), addr(address) {}
+    uint32_t    size;
+    uint32_t    addr;
 };
-using ChunkVec = std::vector<Chunk>;
-using ChunkMap = std::map<std::string, ChunkVec>;
+using WasmChunkVec = std::vector<WasmChunk>;
+using WasmChunkMap = std::map<std::string, WasmChunkVec>;
 
 // DuckDB helpers for DuckDB-WASM.
 // ND these enums are not the same as duckdb.h
