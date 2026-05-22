@@ -182,6 +182,7 @@
     <ClInclude Include="..\..\imgui\imgui.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
     </ClInclude>
+    <ClInclude Include="config.hpp" />
     <ClInclude Include="context.hpp" />
     <ClInclude Include="db_cache.hpp" />
     <ClInclude Include="dl_cache.hpp" />
@@ -193,7 +194,6 @@
     <ClInclude Include="logger.hpp" />
     <ClInclude Include="nd_types.hpp" />
     <ClInclude Include="nlohmann.hpp" />
-    <ClInclude Include="proxy.hpp" />
     <ClInclude Include="static_strings.hpp" />
     <ClInclude Include="ufuncs.hpp" />
     <ClInclude Include="websock.hpp" />
