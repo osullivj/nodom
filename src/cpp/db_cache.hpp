@@ -146,14 +146,6 @@ public:
                     std::cout << "DUCK_INIT: " << citer->first.c_str() << ":" << citer->second.c_str() << std::endl;
                 }
             }
-            /*
-            if (JContains(config, Static::db_config_cs)) {
-                StringStringMap cfg_map = config.at(Static::db_config_cs).get<StringStringMap>();
-                for (auto citer = cfg_map.cbegin(); citer != cfg_map.cend(); ++citer) {
-                    duckdb_set_config(duck_config, citer->first.c_str(), citer->second.c_str());
-                    std::cout << "DUCK_INIT: " << citer->first.c_str() << ":" << citer->second.c_str() << std::endl;
-                }
-            } */
         }
         if (duckdb_open_ext(NULL, &duck_db, duck_config, &duck_error) == DuckDBError) {
             std::cerr << "DUCK_INIT_FAIL duckdb_open " << duck_error << std::endl;
@@ -613,17 +605,10 @@ public:
         if (tipes.empty()) {
             tipes.clear();
             for (int i = 0; i < colm_count; i++) {
-                WasmDuckType tipe{ static_cast<int32_t>(*chunk_ptr++) };
+                WasmDuckType tipe{ static_cast<int32_t>(chunk_ptr[3+i])};
                 tipes.push_back(tipe);
             }
-            // Column addresses: one 32 bit word per col
-            /*
-            auto& caddrs = caddr_map[handle];
-            caddrs.clear();
-            for (int i = 0; i < colm_count; i++) {
-                uint32_t col_offset = *chunk_ptr++;
-                caddrs.push_back(col_offset);
-            }*/
+
             // wind past the colm addrs
             chunk_ptr += 3 + (2 * colm_count);
             // After types we have column names
@@ -685,7 +670,7 @@ public:
         uint32_t* col_ptr = chunk_ptr + colm_addr_offset;
         // sanity check column type and row count
         int32_t col_type = *col_ptr++;
-        int32_t row_count = *col_ptr++;
+        int32_t col_size = *col_ptr++;
 
         /* For debugging chunking mechanism; see logging in duck_module.js
         fprintf(stdout, "%s: chunk_ptr:%d, col:%d, col_addr_off:%d, col_ptr:%d\n",
@@ -693,8 +678,8 @@ public:
         */
         if (col_type != tipes[colm_index] && tipes[colm_index] != wdtTimestamp) {
             error_count++;
-            fprintf(stderr, "%s: COL_TYPE_MISMATCH: base_chunk:%d, col:%d, col_addr_off:%d, wasm_type:%d, schema_type:%d, err_count:%d, row_count:%d\n", 
-                method, (int)chunk_ptr, (int)colm_index, (int)colm_addr_offset, col_type, tipes[colm_index], error_count, row_count);
+            fprintf(stderr, "%s: COL_TYPE_MISMATCH: base_chunk:%d, col:%d, col_addr_off:%d, wasm_type:%d, schema_type:%d, err_count:%d, col_sz:%d\n", 
+                method, (int)chunk_ptr, (int)colm_index, (int)colm_addr_offset, col_type, tipes[colm_index], error_count, col_size);
         }
         // stride 1 for 32bit data and 2 for 64bit inc str
         WasmDuckType dt{ col_type };
