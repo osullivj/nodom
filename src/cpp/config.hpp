@@ -67,21 +67,21 @@ public:
 private:
     void init() {
         static const char* method = "Config::init: ";
-#ifndef __EMSCRIPTEN__
-        server_url = JAsString(config, "server_url");
-#else
+#ifdef __EMSCRIPTEN__
         // By the time this method fires in a browser
         // the web page will be fully loaded, so grabbing
         // a global JS obj here should be fine
         emscripten::val window_global = emscripten::val::global("window");
         emscripten::val location = window_global["location"];
         std::string host = location["host"].as<std::string>();
-        server_url = "wss://" + host + "/api/websock";
+        std::string url("wss://");
+        url += host;
+        url += "/api/websock";
+        config.set(Static::server_url_cs, url.c_str());
 #endif
-        NDLogger::cout() << method << server_url << std::endl;
+        NDLogger::cout() << method << config << std::endl;
     }
 
 private:
-    std::string     server_url;
     JSON            config;
 };
