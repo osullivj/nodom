@@ -20,9 +20,9 @@
 // to the imgui/examples/example_glfw_opengl3/main.cpp as that's 
 // the appropriate renderer for the Chrome codebase. JOS 2025-08-25
 
-using ems_val_t = emscripten::val;
+using json_t = emscripten::val;
 using DuckDB_t = WebDuckDBCache;
-using NDContext_t = NDContext<ems_val_t, DuckDB_t>;
+using NDContext_t = NDContext<json_t, DuckDB_t>;
 
 void im_loop_body(void* c) {
     auto ctx = reinterpret_cast<NDContext_t*>(c);
@@ -43,14 +43,19 @@ int main(int argc, char* argv[]) {
         std::cout << method << "argv[" << i << "]=" << argv[i] << std::endl;
     }
 
+    std::string init_data(argc > 2 ? argv[1] : Static::empty_cs);
+    std::string init_layout(argc > 2 ? argv[2] : Static::empty_cs);
+
+    NDConfig<json_t>& cfg{ NDConfig<json_t>::get_instance() };
+    cfg.initialize(Static::empty_obj_cs);
+
     // TODO: fix "invalid UTF-8 leading byte 0x000000fe encountered when deserializing a UTF-8 string in wasm memory to a JS string!"
     // std::string init_data(argc > 2 ? utf8_to_ascii(argv[1]) : Static::init_data_cs);
     // std::string init_layout(argc > 2 ? utf8_to_ascii(argv[2]) : Static::init_layout_cs);
 
-    NDProxy<DuckDB_t> server;
-    // NDContext_t ctx(server, init_data_cs, init_layout_cs);
+    DuckDB_t server;
     NDContext_t ctx(server, Static::init_data_cs, Static::init_layout_cs);
-    NDWebSockClient<ems_val_t, DuckDB_t> ws_client(server, ctx);
+    NDWebSockClient<json_t, DuckDB_t> ws_client(server, ctx);
 
     ctx.register_msg_pump([&ws_client]() {ws_client.pump_messages();});
     DBResultDispatcher& dbrd(DBResultDispatcher::get_instance());
