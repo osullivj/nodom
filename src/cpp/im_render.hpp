@@ -169,10 +169,7 @@ GLFWwindow* im_start(NDContext<JSON, DB>& ctx)
     // setup scaling defaults explicitly
     float scale = 1.0;
     float dpi = 1.0;        // TODO: restore font_scale_dpi config
-    std::string dpi_s;
-    if (cfg.get_value(Static::font_scale_dpi_cs, dpi_s)) {
-        dpi = std::stof(dpi_s);
-    }
+    cfg.get_value(Static::font_scale_dpi_cs, dpi);
     ImGuiStyle& style = ImGui::GetStyle();
     style.ScaleAllSizes(scale); // set _MainScale: all sizes apart from fonts
     style.FontScaleDpi = dpi;
