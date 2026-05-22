@@ -50,9 +50,9 @@ using RSHandle = std::uint64_t; // == &duckdb_result
 using Bobbin = std::deque<duckdb_data_chunk>;
 
 class BBDuckDBCache {
-protected:
-    char string_buffer[STR_BUF_LEN];
-    char format_buffer[FMT_BUF_LEN];
+private:
+    // work Qs for talking to NDContext, and thread
+    // gubbins to do the DB work off the GUI thread
     std::queue<nlohmann::json>          db_queries;
     std::queue<nlohmann::json>          db_results;
     boost::mutex                        query_mutex;
@@ -60,6 +60,41 @@ protected:
     boost::condition_variable           query_cond;
     boost::thread                       db_thread;
     bool                                done{ false };
+    // DuckDB connection state
+    duckdb_database                     duck_db;
+    duckdb_connection                   duck_conn;
+    duckdb_config                       duck_config;
+    idx_t                               duck_chunk_size;
+    // schema
+    std::unordered_map<RSHandle, StringVec>     col_names_map;
+    std::unordered_map<RSHandle, std::vector<duckdb_type>> type_map;
+    std::unordered_map<RSHandle, std::vector<duckdb_logical_type>> logical_type_map;
+    // data
+    std::unordered_map<std::string, duckdb_result>  result_map;
+    std::unordered_map<RSHandle, Bobbin>        bobbin_map;
+    // working storage
+    int16_t* sidata = nullptr;
+    int32_t* idata = nullptr;
+    int64_t* bidata = nullptr;
+    duckdb_hugeint* hidata = nullptr;
+    double* dbldata = nullptr;
+    duckdb_string_t* vcdata = nullptr;
+    duckdb_type decimal_type;
+    uint8_t decimal_width = 0;
+    uint8_t decimal_scale = 0;
+    double  decimal_divisor = 1.0;
+    double  decimal_value = 0.0;
+    duckdb_timestamp_s* ts_secs = nullptr;
+    duckdb_timestamp_ms* ts_milli = nullptr;
+    duckdb_timestamp* ts_micro = nullptr;
+    duckdb_timestamp_ns* ts_nano = nullptr;
+    int scan_count{ 0 };
+    int query_count{ 0 };
+    int batch_count{ 0 };
+    fmt::format_to_n_result<char*> fmt_result;
+    char string_buffer[STR_BUF_LEN];
+    char format_buffer[FMT_BUF_LEN];
+
 public:
     char* buffer{ 0 };  // zero copy accessor
 
@@ -239,7 +274,6 @@ public:
         return nullptr;
     }
 
-
     void get_db_responses(std::queue<nlohmann::json>& responses) {
         static const char* method = "DBCache::get_db_responses: ";
         boost::unique_lock<boost::mutex> from_lock(result_mutex);
@@ -265,37 +299,7 @@ public:
     }
 
     void set_done(bool d) { done = d; }
-private:
-    duckdb_database                     duck_db;
-    duckdb_connection                   duck_conn;
-    duckdb_config                       duck_config;
-    idx_t                               duck_chunk_size;
 
-    std::unordered_map<std::string, duckdb_result>  result_map;
-    std::unordered_map<RSHandle, Bobbin>        bobbin_map;
-    std::unordered_map<RSHandle, StringVec>     col_names_map;
-    std::unordered_map<RSHandle, std::vector<duckdb_type>> type_map;
-    std::unordered_map<RSHandle, std::vector<duckdb_logical_type>> logical_type_map;
-
-    int16_t* sidata = nullptr;
-    int32_t* idata = nullptr;
-    int64_t* bidata = nullptr;
-    duckdb_hugeint* hidata = nullptr;
-    double* dbldata = nullptr;
-    duckdb_string_t* vcdata = nullptr;
-    duckdb_type decimal_type;
-    uint8_t decimal_width = 0;
-    uint8_t decimal_scale = 0;
-    double  decimal_divisor = 1.0;
-    double  decimal_value = 0.0;
-    duckdb_timestamp_s* ts_secs = nullptr;
-    duckdb_timestamp_ms* ts_milli = nullptr;
-    duckdb_timestamp* ts_micro = nullptr;
-    duckdb_timestamp_ns* ts_nano = nullptr;
-    int scan_count{ 0 };
-    int query_count{ 0 };
-    int batch_count{ 0 };
-    fmt::format_to_n_result<char*> fmt_result;
 public:
     // db_init, db_fnls, db_loop: these three methods exec 
     // on the DB thread
@@ -492,17 +496,18 @@ EM_JS(void, ems_db_dispatch, (emscripten::EM_VAL db_request_handle), {
 using RSHandle = std::uint32_t;
 class WebDuckDBCache {
 private:
+    // work Qs for talking to NDContext
+    std::queue<emscripten::val>         db_queries;
+    std::queue<emscripten::val>         db_results;
+    // schema
     std::unordered_map<RSHandle, StringVec> column_map;
     std::unordered_map<RSHandle, std::vector<int>> type_map;
-    std::unordered_map<RSHandle, std::vector<std::uint32_t>> caddr_map;
-    WasmChunkMap    chunk_map;
-    uint32_t        duck_chunk_size{ 2048 };
-
-protected:
-    char string_buffer[STR_BUF_LEN];
-    fmt::format_to_n_result<char*> fmt_result;
-    std::queue<emscripten::val>          db_queries;
-    std::queue<emscripten::val>          db_results;
+    // data
+    WasmChunkMap                        chunk_map;
+    uint32_t                            duck_chunk_size{ 2048 };
+    // working storage
+    char                                string_buffer[STR_BUF_LEN];
+    fmt::format_to_n_result<char*>      fmt_result;
 public:
     char* buffer{ 0 };
 
@@ -604,7 +609,6 @@ public:
         // type_map and column_map have been populated by an
         // earlier invocation of get_meta_data()
         auto& tipes = type_map[handle];
-        // auto& colm_addrs = caddr_map[handle];
 
         uint32_t rel_index = row_index % duck_chunk_size;
         uint32_t chunk_index = row_index / duck_chunk_size;
