@@ -671,8 +671,7 @@ public:
             string_buffer[fmt_result.size] = 0;
             return 0;
         case WasmDuckType::wdtUtf8:    // null term trunc to 8 bytes
-            dbldata = reinterpret_cast<double*>(chunk_ptr);
-            sprintf(string_buffer, "%s", (char*)&(dbldata[rel_index]));
+            sprintf(string_buffer, "%s", (char*)&(i64data[rel_index]));
             return 0;
         default:
             sprintf(string_buffer, "%s", "UNK");
