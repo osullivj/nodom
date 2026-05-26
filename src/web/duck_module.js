@@ -8,7 +8,6 @@
 
 // Some worker scope vars...
 let duck_db = null;
-let duck_conn = null;
 
 // This JS impl was in index.html: by doing it here we avoid having to pass the
 // DB handle across threads. NB this module must be pulled in to index.html
@@ -122,24 +121,39 @@ if (typeof Module !== "undefined") {
   };
 }
 
-async function exec_duck_db_query(db_request) {
+async function exec_duck_command(db_request) {
   if (!duck_db) {
     console.error("duck_module:DuckDB-Wasm not initialized");
     return;
   }
-  if (!duck_conn) {
-    console.log("duck_module:reconnecting...");
-    duck_conn = await duck_db.connect();
-  }
+  let duck_conn = await duck_db.connect();
   console.log(
-    "exec_duck_dq_query: QID(" +
+    "exec_duck_command: QID(" +
+      db_request.query_id +
+      ") SQL[" +
+      db_request.sql +
+      "]\n",
+  );
+  await duck_conn.send(db_request.sql);
+  duck_conn.close();
+  return;
+}
+
+async function exec_duck_query(db_request) {
+  if (!duck_db) {
+    console.error("duck_module:DuckDB-Wasm not initialized");
+    return;
+  }
+  let duck_conn = await duck_db.connect();
+  console.log(
+    "exec_duck_query: QID(" +
       db_request.query_id +
       ") SQL[" +
       db_request.sql +
       "]\n",
   );
   let duck_result = await duck_conn.send(db_request.sql);
-  return duck_result;
+  return [duck_conn, duck_result];
 }
 
 // DuckDB-WASM uses Apache Arrow JS as the result set API
@@ -357,10 +371,11 @@ function batch_materializer(qid, batch) {
   return buffer_offset;
 }
 
-async function* batch_generator(query_id, duck_result) {
+async function* batch_generator(query_id, duck_conn, duck_result) {
   for await (const batch of duck_result) {
     yield batch_materializer(query_id, batch);
   }
+  duck_conn.close();
 }
 
 let global_query_map = new Map();
@@ -373,7 +388,7 @@ self.onmessage = async (event) => {
     case "Command":
       // NB result set from "CREATE TABLE <tbl> as select * from parquet_scan([...])"
       // is None on success
-      await exec_duck_db_query(nd_db_request);
+      await exec_duck_command(nd_db_request);
       console.log("duck_module: Command done for " + nd_db_request.query_id);
       on_db_result({
         nd_type: "CommandResult",
@@ -381,11 +396,14 @@ self.onmessage = async (event) => {
       });
       break;
     case "Query":
-      duck_result = await exec_duck_db_query(nd_db_request);
+      let duck_conn_result_pair = await exec_duck_query(nd_db_request);
       console.log(
         "duck_module: QueryResult QID(" + nd_db_request.query_id + ")\n",
       );
-      batch_gen = batch_generator(nd_db_request.query_id, duck_result);
+      batch_gen = batch_generator(
+        nd_db_request.query_id,
+        ...duck_conn_result_pair,
+      );
       global_query_map.set(nd_db_request.query_id, batch_gen);
       let query_result = {
         nd_type: "QueryResult",
