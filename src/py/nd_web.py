@@ -119,9 +119,6 @@ class DuckJournalHandler(tornado.web.RequestHandler):
 class JSONHandler(APIHandlerBase):
     def get(self, slug):
         response_json = self.application.service.on_api_request(slug)
-        save_json_path = test_data_path(self.application.service.app_name, slug)
-        with open(save_json_path, "wt") as jsonf:
-            jsonf.write(response_json)
         self.write(response_json)
         self.finish()
 
