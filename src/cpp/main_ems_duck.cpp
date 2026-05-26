@@ -32,9 +32,6 @@ void im_loop_body(void* c) {
     }
 }
 
-EM_JS(const char*, utf8_to_ascii, (const char* utf8), {
-    return UTF8ToString(utf8);
-});
 
 int main(int argc, char* argv[]) {
     const static char* method = "main: ";
@@ -43,18 +40,14 @@ int main(int argc, char* argv[]) {
         std::cout << method << "argv[" << i << "]=" << argv[i] << std::endl;
     }
 
-    std::string init_data(argc > 2 ? argv[1] : Static::empty_cs);
-    std::string init_layout(argc > 2 ? argv[2] : Static::empty_cs);
+    std::string init_data(argc > 2 ? argv[1] : Static::init_data_cs);
+    std::string init_layout(argc > 2 ? argv[2] : Static::init_layout_cs);
 
     NDConfig<json_t>& cfg{ NDConfig<json_t>::get_instance() };
     cfg.initialize(Static::empty_obj_cs);
 
-    // TODO: fix "invalid UTF-8 leading byte 0x000000fe encountered when deserializing a UTF-8 string in wasm memory to a JS string!"
-    // std::string init_data(argc > 2 ? utf8_to_ascii(argv[1]) : Static::init_data_cs);
-    // std::string init_layout(argc > 2 ? utf8_to_ascii(argv[2]) : Static::init_layout_cs);
-
     DuckDB_t server;
-    NDContext_t ctx(server, Static::init_data_cs, Static::init_layout_cs);
+    NDContext_t ctx(server, init_data.c_str(), init_layout.c_str());
     NDWebSockClient<json_t, DuckDB_t> ws_client(server, ctx);
 
     ctx.register_msg_pump([&ws_client]() {ws_client.pump_messages();});
