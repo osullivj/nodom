@@ -26,7 +26,8 @@ logr = nd_utils.init_logging(NDAPP)
 SCAN_QID = "the_depth_scan"
 SELECT_QID = "the_depth_query"
 SUMMARY_QID = "the_depth_summary"
-UI_QID = "launch_ui"
+UI_QID = "the_launch_ui_command"
+DEPTH_STORAGE_QID = "the_depth_storage_command"
 ENABLE_LOGGING_QID = "the_enable_logging_command"
 SCAN_BUTTON_TEXT = "Scan"
 SCAN_BUTTON_ID = "i_am_scan_button"
@@ -147,8 +148,20 @@ EXF_LAYOUT = [
     ),
     # not a Home child? Must have an ID to be pushable
     dict(
+        widget_id="parquet_loading_modal",
+        rname="LoadingModal",
+        cspec=dict(
+            title="Loading parquet...",
+            title_font="Arial",
+            body_font="CourierNew",
+            cname="scan_urls",
+            spinner_radius=20,
+            spinner_thickness=4,
+        ),
+    ),
+    dict(
         widget_id=SUMMARY_MODAL_ID,
-        rname="DuckTableSummaryModal",
+        rname="DuckTableSummaryModal",  # "Noop"
         cspec=dict(
             title="Depth table",
             title_font="Arial",
@@ -162,21 +175,9 @@ EXF_LAYOUT = [
             | WindowFlags.HORIZONTAL_SCROLLBAR,
         ),
     ),
-    dict(
-        widget_id="parquet_loading_modal",
-        rname="LoadingModal",
-        cspec=dict(
-            title="Loading parquet...",
-            title_font="Arial",
-            body_font="CourierNew",
-            cname="scan_urls",
-            spinner_radius=20,
-            spinner_thickness=4,
-        ),
-    ),
 ]
 
-SCAN_SQL = "BEGIN; DROP TABLE IF EXISTS depth; CREATE TABLE depth as select * from parquet_scan(%s); COMMIT;"
+SCAN_SQL = "BEGIN; DROP TABLE IF EXISTS depth; CREATE TABLE depth as select * from read_parquet(%s); COMMIT;"
 QUERY_SQL = "select * from depth where LastTradeSize!=0 and AskQty5!=0 and BidQty5!=0 order by SeqNo;"
 SUMMARY_SQL = "summarize select * from depth;"
 
@@ -196,7 +197,9 @@ LAUNCH_SUMMARY = dict(  # close scanning modal, send query request to DuckDB
     sql_cname="summary_sql",
 )
 
+# comment in ui_pop if LAUNCH_SUMMARY is commented out
 LAUNCH_SELECT = dict(  # send depth query request to DuckDB
+    # ui_pop="LoadingModal",
     db_action="Query",
     query_id=SELECT_QID,
     sql_cname="query_sql",
@@ -216,6 +219,12 @@ LAUNCH_UI = dict(
     db_action="Command",
     query_id=UI_QID,
     sql_cname="ui_sql",
+)
+
+DEPTH_STORAGE = dict(
+    db_action="Command",
+    query_id=DEPTH_STORAGE_QID,
+    sql_cname="depth_storage_sql",
 )
 
 ENABLE_LOGGING = dict(
@@ -262,13 +271,16 @@ EXF_DATA = dict(
     summary_sql=SUMMARY_SQL,
     ui_sql="CALL start_ui();",
     # change to level='debug' for more DuckDB logging
-    enable_logging_sql="INSTALL parquet; CALL enable_logging(level='info', storage='stdout');",
+    enable_logging_sql="INSTALL parquet; CALL enable_logging(level='debug', storage='stdout');",
+    depth_storage_sql="PRAGMA storage_info('depth');",
+    memory_limit_sql="SELECT current_setting('memory_limit');",
     actions={
         f"{DB_BUTTON_ID}.Click": [LAUNCH_UI],
         # match on scan button click
         f"{SCAN_BUTTON_ID}.Click": SUMMARY_SEQUENCE,
         # match on completion (CommandResult) of scan (SCAN_QID)
         # summary of depth table
+        # comment out SCAN_QID Action if not SCAN_QID query_id
         f"{SCAN_QID}.CommandResult": SELECT_SEQUENCE,
         f"{SUMMARY_BUTTON_ID}.Click": [
             dict(
