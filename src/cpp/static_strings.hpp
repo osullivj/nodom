@@ -167,7 +167,9 @@ struct Static {
 	inline static const char* period_cs{ "." };
 	inline static const char* colon_cs{ ":" };
 	inline static const char* db_config_cs{ "db_config" };
+	inline static const char* app_key_cs{ "app_key" };
 	inline static const char* fonts_cs{ "fonts" };
+
 
 	// DatePicker
 	inline static const char* double_hash_cs{ "##" };
