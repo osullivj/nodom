@@ -1,5 +1,5 @@
 {
-  "loading_text": ["Loading app data from {_server_url}"],
+  "loading_text": ["Loading app data"],
   "actions": {
     "GUI.Online": [
       {
