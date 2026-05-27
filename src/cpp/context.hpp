@@ -165,12 +165,16 @@ private:
     };
 public:
     NDContext(DB& s, const char* idata = nullptr, const char* ilayout = nullptr)
-        :proxy(s), init_data_s(idata), init_layout_s(ilayout), red{ 255, 51, 0 },
+        :proxy(s),
+        init_data_s(idata?idata:Static::init_data_cs),
+        init_layout_s(ilayout?ilayout:Static::init_layout_cs),
+        red{ 255, 51, 0 },
         green{ 102, 153, 0 },
         amber{ 255, 153, 0 }
     {
         // init status is not connected
         db_status_color = red;
+
         // cp lambdas into LocalFont statics
         LocalFont::push_func = [&](WidgetPtr w, CacheSpecifier nm, CacheSpecifier sz) {push_font(w, nm, sz); };
         LocalFont::pop_func = [&]() {pop_font(); };
