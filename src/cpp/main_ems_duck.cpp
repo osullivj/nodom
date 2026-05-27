@@ -40,11 +40,12 @@ int main(int argc, char* argv[]) {
         std::cout << method << "argv[" << i << "]=" << argv[i] << std::endl;
     }
 
-    std::string init_data(argc > 2 ? argv[1] : Static::init_data_cs);
+    std::string init_data(argc > 1 ? argv[1] : Static::init_data_cs);
     std::string init_layout(argc > 2 ? argv[2] : Static::init_layout_cs);
+    std::string init_config(argc > 3 ? argv[3] : Static::empty_obj_cs);
 
     NDConfig<json_t>& cfg{ NDConfig<json_t>::get_instance() };
-    cfg.initialize(Static::empty_obj_cs);
+    cfg.initialize(init_config.c_str());
 
     DuckDB_t server;
     NDContext_t ctx(server, init_data.c_str(), init_layout.c_str());
