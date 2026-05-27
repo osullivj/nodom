@@ -290,6 +290,7 @@ EXF_DATA = dict(
         ],
         f"{DB_ID}.Online": SUMMARY_SEQUENCE,
     },
+    app_key="exf",
 )
 
 # nd_utils.file_list needs one more arg after this partial bind for the pattern we're matching
