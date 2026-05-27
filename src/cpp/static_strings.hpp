@@ -240,7 +240,7 @@ struct Static {
 		R"(   "loading_text":["Loading app data from {_server_url}"], )"
 		R"(   "actions":{ )"
 		R"(     "GUI.Online":[{"ui_push":"app_loading_modal"}], )"
-		R"(     "WebSock.websock_connection_failed":[{"ui_pop":"LoadingModal"}] )"
+		R"(     "WebSock.WebsockConnectionFailed":[{"ui_pop":"LoadingModal"}] )"
 		R"(   } )"
 		R"( } )"
 	};
@@ -265,6 +265,7 @@ struct Static {
 
 	// error messages
 	inline static const char* could_not_connect_cs{ "Could not connect to" };
+	inline static const char* breadboard_usage_cs{ "breadboard.exe <config_dir> <app_key>" };
 
 	inline constexpr static uint32_t SMRY_COLM_CNT = 12;
 
