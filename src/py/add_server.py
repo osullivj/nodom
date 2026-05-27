@@ -55,11 +55,7 @@ ADDITION_LAYOUT = [
 ]
 
 
-ADDITION_DATA = dict(
-    op1=2,
-    op2=3,
-    op1_plus_op2=5,
-)
+ADDITION_DATA = dict(op1=2, op2=3, op1_plus_op2=5, app_key="add")
 
 is_operand_change = lambda c: c.get("cache_key") in ["op1", "op2"]
 
