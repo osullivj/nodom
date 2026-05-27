@@ -1,3 +1,4 @@
+#include <filesystem>
 // imgui hdrs
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -32,14 +33,59 @@ using NDContext_t = NDContext<json_t, DuckDB_t>;
 int main(int argc, char* argv[]) {
     const static char* method = "main: ";
 
+    if (argc < 3) {
+        std::cout << Static::breadboard_usage_cs << std::endl;
+        exit(1);
+    }
     pix_init();
 
-    std::string config_s{ load_json(argv[1]) };
-    NDConfig<json_t>& cfg{ NDConfig<json_t>::get_instance() };
-    cfg.initialize(config_s);
+    // load config from localFS
+    std::string init_data;
+    std::string init_layout;
+    try {
+        std::string config_dir{ argv[1] };
+        std::string app_key{ argv[2] };
+        std::string config_file{ app_key };
+        config_file += "_config.json";
+        std::filesystem::path config_path(config_dir);
+        config_path /= config_file;
+        if (!std::filesystem::exists(config_path)) {
+            std::cout << "cannot open " << config_path.string() << std::endl;
+            exit(1);
+        }
+        std::cout << method << "loading " << config_path.string() << std::endl;
+        std::string config_s = load_json(config_path.string().c_str());
+        NDConfig<json_t>& cfg{ NDConfig<json_t>::get_instance() };
+        cfg.initialize(config_s);
 
-    std::string init_data(argc > 3 ? load_json(argv[2]) : nullptr);
-    std::string init_layout(argc > 3 ? load_json(argv[3]) : nullptr);
+        // load init data and layout from...
+        // <config_dir>/<app_key>_init_data.json
+        // <config_dir>/<app_key>_init_layout.json
+        // ...if they exist
+        std::filesystem::path init_data_path(config_dir);
+        std::string init_data_file(app_key);
+        init_data_file += "_init_data.json";
+        init_data_path /= init_data_file;
+        if (std::filesystem::exists(init_data_path)) {
+            std::cout << method << "loading " << init_data_path.string() << std::endl;
+            init_data = load_json(init_data_path.string().c_str());
+        }
+
+
+        std::filesystem::path init_layout_path(config_dir);
+        std::string init_layout_file(app_key);
+        init_layout_file += "_init_layout.json";
+        init_layout_path /= init_layout_file;
+        if (std::filesystem::exists(init_layout_path)) {
+            std::cout << method << "loading " << init_layout_path.string() << std::endl;
+            init_layout = load_json(init_layout_path.string().c_str());
+        }
+    }
+    catch (nlohmann::json::exception& ex) {
+        std::cout << ex.what() << std::endl;
+        std::cout << Static::breadboard_usage_cs << std::endl;
+        exit(1);
+    }
 
     DuckDB_t server;
     NDContext<json_t, DuckDB_t> ctx(server,
