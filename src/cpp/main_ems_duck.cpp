@@ -57,9 +57,10 @@ int main(int argc, char* argv[]) {
                                     {server.add_db_response(v); });
     dbrd.set_reg_chunk([&server](const std::string& qid, int sz, int addr)
                                     {server.register_chunk(qid.c_str(), sz, addr); });
-    IDBFontCache font_cache([&ctx](const std::string& n, ImFont* f)
-                                {ctx.register_font(n, f); },
-                                { "Arial.ttf", "CourierNew.ttf" });
+    IDBFileCache font_cache(
+        [](ImGuiIO& io, void* f, int sz)->ImFont* {return io.Fonts->AddFontFromMemoryTTF(f, sz); },
+        [&ctx](const std::string& n, void* f){ctx.register_font(n, (ImFont*)f); },
+        { "Arial.ttf", "CourierNew.ttf" });
 
     GLFWwindow* window = im_start(ctx, &font_cache);
     if (window == nullptr) {

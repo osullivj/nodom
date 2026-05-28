@@ -71,7 +71,6 @@ int main(int argc, char* argv[]) {
             init_data = load_json(init_data_path.string().c_str());
         }
 
-
         std::filesystem::path init_layout_path(config_dir);
         std::string init_layout_file(app_key);
         init_layout_file += "_init_layout.json";
