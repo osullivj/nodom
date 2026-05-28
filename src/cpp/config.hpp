@@ -24,8 +24,11 @@ public:
         return instance;
     }
 
-    void initialize(const std::string& json) {
+    void initialize(const std::string& json, const char* config_dir = nullptr) {
         config = JParse<JSON>(json);
+        if (config_dir != nullptr) {
+            JSet(config, Static::config_dir_cs, config_dir);
+        }
         init();
     }
 
