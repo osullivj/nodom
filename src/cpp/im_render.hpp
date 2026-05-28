@@ -166,26 +166,20 @@ GLFWwindow* im_start(NDContext<JSON, DB>& ctx)
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
+    io.IniFilename = nullptr;
 
     // load .ini layout specifics
     if (cfg.get_value(Static::app_key_cs, app_key)) {
         std::string ini_file_name{ app_key };
         ini_file_name += "_layout.ini";
 #ifdef __EMSCRIPTEN__
-        io.IniFilename = nullptr;
         StringVec sv{ ini_file_name };
-        IDBFileCache ini_cache([](ImGuiIO& io, void* f, int sz)->char* {ImGui::LoadIniSettingsFromMemory((const char*)f, sz), nullptr; },
-            [](const std::string&, void*) {},
-            sv);
+        IDBFileCache ini_cache([](ImGuiIO& io, void* f, int sz)->char*
+            {ImGui::LoadIniSettingsFromMemory((const char*)f, sz), nullptr; },
+            [](const std::string&, void*) {}, sv);
+        ini_cache.next();
 #else
-        std::string config_dir;
-        if (cfg.get_value(Static::config_dir_cs, config_dir)) {
-            std::filesystem::path ini_layout_path(config_dir);
-            ini_layout_path /= ini_file_name;
-            if (std::filesystem::exists(ini_layout_path)) {
-                ImGui::LoadIniSettingsFromDisk(ini_layout_path.string().c_str());
-            }
-        }
+        load_ini_from_file(ctx.get_ini_path());
 #endif
     }
     //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
