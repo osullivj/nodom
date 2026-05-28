@@ -16,84 +16,91 @@ void on_async_exists_error(void* m);
 void on_async_exists(void* c, int exists);
 // Only used in ems as a font data memo passed to
 // ems IDBStore callbacks, and as a mem cache too.
-using FontRegistrar = std::function<void(const std::string& name, ImFont* font)>;
-using StringVec = std::vector<std::string>;
-struct IDBFontCache {
-    IDBFontCache(FontRegistrar fr, const StringVec& fonts) :registrar(fr), font_list(fonts) { }
-    ~IDBFontCache() { std::for_each(font_mem_vec.begin(), font_mem_vec.end(), [](auto ptr) {free(ptr); }); }
-    void next() {
-        if (font_list.empty()) return;
-        font_file_name = font_list.back();
-        font_list.pop_back();
-        emscripten_idb_async_exists("NoDOM", font_file_name.c_str(),
-            this, on_async_exists, on_async_exists_error);
+using FileLoadFunc = std::function<void*(ImGuiIO& io, void* data, int sz)>;
+using FileDeployFunc = std::function<void(const std::string& name, void* data)>;
 
+using StringVec = std::vector<std::string>;
+
+struct IDBFileCache {
+    IDBFileCache(FileLoadFunc lf, FileDeployFunc df, const StringVec& files) 
+        :load_func(lf), deploy_func(df), file_list(files) { }
+    ~IDBFileCache() { std::for_each(file_mem_vec.begin(), file_mem_vec.end(), [](auto ptr) {free(ptr); }); }
+    void next() {
+        if (file_list.empty())
+            return;
+        file_name = file_list.back();
+        file_list.pop_back();
+        emscripten_idb_async_exists("NoDOM", file_name.c_str(), this,
+                                on_async_exists, on_async_exists_error);
     }
-    FontRegistrar registrar;
-    StringVec font_list;
-    std::string font_file_name;
-    std::vector<void*> font_mem_vec;
+    FileLoadFunc        load_func;
+    FileDeployFunc      deploy_func;
+    StringVec           file_list;
+    std::string         file_name;
+    std::vector<void*>  file_mem_vec;
 };
+
 // Callbacks for emscripten_idb_async_exists and 
 // emscripten_idb_async_load. NB no \n in log
 // lines as the impl below is only ever in play
 // in the browser. 
 
 // em_arg_callback_func: typedef void (*em_arg_callback_func)(void*);
-void on_async_exists_error(void* m) {
+void on_async_exists_error(void* fc) {
     const char* method = "on_async_exists_error: ";
-    auto fm = reinterpret_cast<IDBFontCache*>(m);
+    IDBFileCache* file_cache = reinterpret_cast<IDBFileCache*>(fc);
+    assert(file_cache != nullptr);
     // NoDOM IndexedDB check fails in emscripten_idb_async_exists
-    fprintf(stdout, "%sIDB_EXIST_FAIL(%s)", method, fm->font_file_name.c_str());
+    fprintf(stdout, "%sIDB_EXIST_FAIL(%s)", method, file_cache->file_name.c_str());
 }
 
 // em_arg_callback_func: typedef void (*em_arg_callback_func)(void*);
-void on_load_error(void* m) {
+void on_load_error(void* fc) {
     const char* method = "on_load_error: ";
-    auto fm = reinterpret_cast<IDBFontCache*>(m);
+    IDBFileCache* file_cache = reinterpret_cast<IDBFileCache*>(fc);
+    assert(file_cache != nullptr);
     // NoDOM IndexedDB doesn't exist
-    fprintf(stdout, "%sIDB_LOAD_FAIL(%s)", method, fm->font_file_name.c_str());
+    fprintf(stdout, "%sIDB_LOAD_FAIL(%s)", method, file_cache->file_name.c_str());
 }
 
 // em_idb_onload_func: typedef void (*em_idb_onload_func)(void*, void*, int);
-void on_load(void* m, void* buf, int sz) {
+void on_load(void* fc, void* buf, int sz) {
     const char* method = "on_load: ";
-    auto fm = reinterpret_cast<IDBFontCache*>(m);
-    // copy the font memory as ImGui assumes it won't
+    IDBFileCache* file_cache = reinterpret_cast<IDBFileCache*>(fc);
+    assert(file_cache != nullptr);
+
+    // copy the file memory as ImGui assumes it won't
     // get freed from underneath...
     if (sz < 100) {
         fprintf(stdout, "%ssz=%d", method, sz);
         return;
     }
+    void* file_memory = malloc(sz);
+    std::memcpy(file_memory, buf, sz);
 
-    void* font_memory = malloc(sz);
-    std::memcpy(font_memory, buf, sz);
     ImGuiIO& io = ImGui::GetIO(); (void)io;
-    ImFont* font = io.Fonts->AddFontFromMemoryTTF(font_memory, sz);
-    if (font == nullptr) {
-        fprintf(stdout, "%sADD_FONT_FAIL", method);
-        free(font_memory);
-        return;
-    }
+    void* data = file_cache->load_func(io, file_memory, sz);
+
     // discard the .ttf suffix for NDContext registration
-    auto fflen = fm->font_file_name.size();
-    fm->font_file_name.erase(fflen - 4, fflen);
-    fm->registrar(fm->font_file_name, font);
-    fm->font_mem_vec.push_back(font_memory);
-    printf("%sFONT_LOADED(%s)\n", method, fm->font_file_name.c_str());
+    auto fflen = file_cache->file_name.size();
+    file_cache->file_name.erase(fflen - 4, fflen);
+    file_cache->deploy_func(file_cache->file_name, data);
+    file_cache->file_mem_vec.push_back(file_memory);
+    printf("%sFILE_LOADED(%s)\n", method, file_cache->file_name.c_str());
     // kick off the next load, if there is one...
-    fm->next();
+    file_cache->next();
 }
 
 // em_idb_exists_func: typedef void (*em_idb_exists_func)(void*, int);
-void on_async_exists(void* c, int exists) {
+void on_async_exists(void* fc, int exists) {
     const char* method = "on_async_exists: ";
-    auto fm = reinterpret_cast<IDBFontCache*>(c);
+    IDBFileCache* file_cache = reinterpret_cast<IDBFileCache*>(fc);
+    assert(file_cache != nullptr);
     if (exists != 0) {
-        emscripten_idb_async_load("NoDOM", fm->font_file_name.c_str(), c, on_load, on_load_error);
+        emscripten_idb_async_load("NoDOM", file_cache->file_name.c_str(), fc, on_load, on_load_error);
     }
     else {
-        fprintf(stdout, "%sIDB_ACCESS_FAIL(%s)\n", method, fm->font_file_name.c_str());
+        fprintf(stdout, "%sIDB_ACCESS_FAIL(%s)\n", method, file_cache->file_name.c_str());
     }
 }
 
@@ -152,6 +159,11 @@ GLFWwindow* im_start(NDContext<JSON, DB>& ctx)
     // later in start_render_cycle
     // glfwSwapInterval(1); // Enable vsync
 
+    NDConfig<JSON>& cfg{ NDConfig<JSON>::get_instance() };
+    std::string app_key;
+    if (cfg.get_value(Static::app_key_cs, app_key)) {
+
+    }
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -165,7 +177,6 @@ GLFWwindow* im_start(NDContext<JSON, DB>& ctx)
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();   // IntIndices::StyleColoring init StyleColors::Dark
 
-    NDConfig<JSON>& cfg{NDConfig<JSON>::get_instance()};
     // setup scaling defaults explicitly
     float scale = 1.0;
     float dpi = 1.0;        // TODO: restore font_scale_dpi config
@@ -197,8 +208,6 @@ GLFWwindow* im_start(NDContext<JSON, DB>& ctx)
     StringStringMap font_map;
     if (cfg.get_nested(Static::fonts_cs, font_map)) {
         for (auto fit = font_map.begin(); fit != font_map.end(); ++fit) {
-            // fonts is an untyped list of strings. so we get<std::str>()
-            // to coerce and avoid extra quotes
             font = io.Fonts->AddFontFromFileTTF(fit->second.c_str());
             IM_ASSERT(font != NULL);
             ctx.register_font(fit->first.c_str(), font);
@@ -206,7 +215,7 @@ GLFWwindow* im_start(NDContext<JSON, DB>& ctx)
     }
 #else
     if (fc != nullptr) {
-        auto font_cache = reinterpret_cast<IDBFontCache*>(fc);
+        auto font_cache = reinterpret_cast<IDBFileCache*>(fc);
         // Can we load fonts from IndexedDB?
         font_cache->next();
     }
