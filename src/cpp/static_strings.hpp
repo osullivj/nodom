@@ -169,6 +169,7 @@ struct Static {
 	inline static const char* db_config_cs{ "db_config" };
 	inline static const char* app_key_cs{ "app_key" };
 	inline static const char* fonts_cs{ "fonts" };
+	inline static const char* config_dir_cs{ "config_dir" };
 
 
 	// DatePicker
