@@ -60,7 +60,7 @@ int main(int argc, char* argv[]) {
     IDBFileCache font_cache(
         [](ImGuiIO& io, void* f, int sz)->ImFont* {return io.Fonts->AddFontFromMemoryTTF(f, sz); },
         [&ctx](const std::string& n, void* f){ctx.register_font(n, (ImFont*)f); },
-        { "Arial.ttf", "CourierNew.ttf" });
+        { "Arial.ttf", "CourierNew.ttf" }); // TODO: JSON config
 
     GLFWwindow* window = im_start(ctx, &font_cache);
     if (window == nullptr) {

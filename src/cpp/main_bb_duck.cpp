@@ -42,6 +42,7 @@ int main(int argc, char* argv[]) {
     // load config from localFS
     std::string init_data;
     std::string init_layout;
+    std::string ini_path;
     try {
         std::string config_dir{ argv[1] };
         std::string app_key{ argv[2] };
@@ -57,6 +58,12 @@ int main(int argc, char* argv[]) {
         std::string config_s = load_json(config_path.string().c_str());
         NDConfig<json_t>& cfg{ NDConfig<json_t>::get_instance() };
         cfg.initialize(config_s);
+
+        // specify the ini path
+        std::string ini_file{ app_key };
+        ini_file += "_layout.ini";
+        std::filesystem::path ini_path(config_dir);
+        ini_path /= ini_file;
 
         // load init data and layout from...
         // <config_dir>/<app_key>_init_data.json
@@ -79,6 +86,7 @@ int main(int argc, char* argv[]) {
             std::cout << method << "loading " << init_layout_path.string() << std::endl;
             init_layout = load_json(init_layout_path.string().c_str());
         }
+
     }
     catch (nlohmann::json::exception& ex) {
         std::cout << ex.what() << std::endl;
@@ -90,6 +98,7 @@ int main(int argc, char* argv[]) {
     NDContext<json_t, DuckDB_t> ctx(server,
         init_data.empty() ? nullptr : init_data.c_str(), 
         init_layout.empty() ? nullptr : init_layout.c_str());
+    ctx.set_ini_path(ini_path);
 
     try {
         // launch DB thread: see db_loop impls
