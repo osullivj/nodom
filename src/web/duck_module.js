@@ -460,3 +460,9 @@ self.onmessage = async (event) => {
       );
   }
 };
+
+self.onbeforeunload = (event) => {
+  console.log("onbeforeunload\n");
+  event.preventDefault();
+  // event.returnValue = true;
+};
