@@ -69,6 +69,7 @@ private:
     bool                layout_loaded{ true };
 
     std::string         server_url;
+    std::string         ini_path;
 
     // manage down logging by tracking misconfiged queries that throw
     // BAD_HANDLE_FAIL, especially for browser console log
@@ -295,6 +296,9 @@ public:
     // Helpers and accessors
     GLFWwindow* get_glfw_window() { return glfw_window; }
     void        set_glfw_window(GLFWwindow* w) { glfw_window = w; }
+
+    void        set_ini_path(const std::string& ipath) { ini_path = ipath; }
+    const char* get_ini_path() { return ini_path.empty() ? nullptr : ini_path.c_str(); }
 
     bool        cache_is_loaded() { return data_loaded && layout_loaded; }
 
@@ -548,7 +552,6 @@ public:
         }
     }
 
-    // void get_config(JSON& cfg) { proxy.get_config(cfg); }
     void register_font(const std::string& name, ImFont* f) { font_map[name] = f; }
     void register_ws_sender(VSFunc send) { ws_send = send; }
     void register_msg_pump(VVFunc mpf) { msg_pump = mpf; }
