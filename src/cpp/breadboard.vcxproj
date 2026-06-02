@@ -173,9 +173,9 @@
     <ClCompile Include="..\..\imgui\imgui_tables.cpp" />
     <ClCompile Include="..\..\imgui\imgui_widgets.cpp" />
     <ClCompile Include="main_bb_duck.cpp" />
-    <ClCompile Include="main_ems_duck.cpp">
+    <None Include="main_ems_duck.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </ClCompile>
+    </None>
     <ClCompile Include="nd_gui_utils.cpp" />
     <ClCompile Include="nd_utils.cpp" />
     <ClCompile Include="perf.cpp" />
@@ -185,6 +185,7 @@
     <ClInclude Include="..\..\imgui\imgui.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
     </ClInclude>
+    <ClInclude Include="..\..\imgui\imgui_internal.h" />
     <ClInclude Include="config.hpp" />
     <ClInclude Include="context.hpp" />
     <ClInclude Include="db_cache.hpp" />
