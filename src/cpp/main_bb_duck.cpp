@@ -44,8 +44,8 @@ int main(int argc, char* argv[]) {
     std::string init_layout;
     std::string ini_path;
     try {
-        std::string config_dir{ argv[1] };
-        std::string app_key{ argv[2] };
+        std::string app_key{ argv[1] };
+        std::string config_dir{ argv[2] };
         std::string config_file{ app_key };
         config_file += "_config.json";
         std::filesystem::path config_path(config_dir);
@@ -96,10 +96,9 @@ int main(int argc, char* argv[]) {
     }
 
     DuckDB_t server;
-    NDContext<json_t, DuckDB_t> ctx(server,
+    NDContext<json_t, DuckDB_t> ctx(server, ini_path,
             init_data.empty() ? nullptr : init_data.c_str(), 
             init_layout.empty() ? nullptr : init_layout.c_str());
-        ctx.set_ini_path(ini_path);
 
     try {
         // launch DB thread: see db_loop impls
