@@ -10,6 +10,5 @@
     "enable_logging": "true",
     "logging_level": "debug",
     "logging_storage": "stdout"
-  },
-  "app_key": "exf"
+  }
 }
