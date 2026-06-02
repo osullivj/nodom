@@ -268,7 +268,7 @@ struct Static {
 
 	// error messages
 	inline static const char* could_not_connect_cs{ "Could not connect to" };
-	inline static const char* breadboard_usage_cs{ "breadboard.exe <config_dir> <app_key>" };
+	inline static const char* breadboard_usage_cs{ "breadboard.exe <app_key> <cfg_dir>" };
 
 	inline constexpr static uint32_t SMRY_COLM_CNT = 12;
 
