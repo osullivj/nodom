@@ -160,28 +160,14 @@ GLFWwindow* im_start(NDContext<JSON, DB>& ctx)
     // glfwSwapInterval(1); // Enable vsync
 
     NDConfig<JSON>& cfg{ NDConfig<JSON>::get_instance() };
-    std::string app_key;
 
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
-    io.IniFilename = nullptr;
+    io.IniFilename = ctx.get_ini_path();
+    AddStyleSettingsHandler(ctx.get_style_coloring());
 
-    // load .ini layout specifics
-    if (cfg.get_value(Static::app_key_cs, app_key)) {
-        std::string ini_file_name{ app_key };
-        ini_file_name += "_layout.ini";
-#ifdef __EMSCRIPTEN__
-        StringVec sv{ ini_file_name };
-        IDBFileCache ini_cache([](ImGuiIO& io, void* f, int sz)->char*
-            {ImGui::LoadIniSettingsFromMemory((const char*)f, sz), nullptr; },
-            [](const std::string&, void*) {}, sv);
-        ini_cache.next();
-#else
-        load_ini_from_file(ctx.get_ini_path());
-#endif
-    }
     //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
     //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 
@@ -231,8 +217,6 @@ GLFWwindow* im_start(NDContext<JSON, DB>& ctx)
         font_cache->next();
     }
 #endif
-
-    // Our state
     return window;
 }
 
