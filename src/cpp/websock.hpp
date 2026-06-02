@@ -189,7 +189,6 @@ protected:
     void on_timeout(const boost::system::error_code& ) {
         // if im_render returns false someone has closed the app via GUI
         if (!im_render(ctx)) {
-            save_ini_to_file(ctx.get_ini_path());
             im_end(ctx.get_glfw_window());                 // imgui finalisation
             ctx.set_done(true);             // thread loop exit
             client.get_io_service().stop(); // asio finalisation
