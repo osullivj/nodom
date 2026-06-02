@@ -165,8 +165,8 @@ private:
         ~LocalFont() { pop_func(); }
     };
 public:
-    NDContext(DB& s, const char* idata = nullptr, const char* ilayout = nullptr)
-        :proxy(s),
+    NDContext(DB& s, const std::string& ipath, const char* idata = nullptr, const char* ilayout = nullptr)
+        :proxy(s), ini_path(ipath),
         init_data_s(idata?idata:Static::init_data_cs),
         init_layout_s(ilayout?ilayout:Static::init_layout_cs),
         red{ 255, 51, 0 },
@@ -297,8 +297,8 @@ public:
     GLFWwindow* get_glfw_window() { return glfw_window; }
     void        set_glfw_window(GLFWwindow* w) { glfw_window = w; }
 
-    void        set_ini_path(const std::string& ipath) { ini_path = ipath; }
     const char* get_ini_path() { return ini_path.empty() ? nullptr : ini_path.c_str(); }
+    int* get_style_coloring() { return &style_coloring; }
 
     bool        cache_is_loaded() { return data_loaded && layout_loaded; }
 
