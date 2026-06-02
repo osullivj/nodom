@@ -62,8 +62,9 @@ int main(int argc, char* argv[]) {
         // specify the ini path
         std::string ini_file{ app_key };
         ini_file += "_layout.ini";
-        std::filesystem::path ini_path(config_dir);
-        ini_path /= ini_file;
+        std::filesystem::path ini_path_fs(config_dir);
+        ini_path_fs /= ini_file;
+        ini_path = ini_path_fs.string();
 
         // load init data and layout from...
         // <config_dir>/<app_key>_init_data.json
@@ -96,9 +97,9 @@ int main(int argc, char* argv[]) {
 
     DuckDB_t server;
     NDContext<json_t, DuckDB_t> ctx(server,
-        init_data.empty() ? nullptr : init_data.c_str(), 
-        init_layout.empty() ? nullptr : init_layout.c_str());
-    ctx.set_ini_path(ini_path);
+            init_data.empty() ? nullptr : init_data.c_str(), 
+            init_layout.empty() ? nullptr : init_layout.c_str());
+        ctx.set_ini_path(ini_path);
 
     try {
         // launch DB thread: see db_loop impls
