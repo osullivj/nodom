@@ -1,14 +1,13 @@
 #pragma once
-#include <iostream>
 #ifndef __EMSCRIPTEN__
 #include "nlohmann.hpp"
+#else
+#include <emscripten/val.h>
+#endif
 #include <filesystem>
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#else
-#include <emscripten/val.h>
-#endif
 #include "nd_types.hpp"
 #include "dl_types.hpp"
 // non specialised func decls: no impl
@@ -65,12 +64,12 @@ void JKeys(const JSON& obj, StringVec& vec);
 // nlohmann::json JSON cache ops only run in breadboard,
 // so we can use exception handling...
 template <>
-nlohmann::json JParse(const std::string& json_string) {
+inline nlohmann::json JParse(const std::string& json_string) {
 	return nlohmann::json::parse(json_string);
 }
 
 template <>
-bool JContains(const nlohmann::json& obj, const char* json_string) {
+inline bool JContains(const nlohmann::json& obj, const char* json_string) {
 	return obj.contains(json_string);
 }
 
@@ -80,7 +79,7 @@ std::string JAsString(const nlohmann::json& obj, K key) {
 }
 
 template <>
-float JAsFloat(const nlohmann::json& obj, const char* key) {
+inline float JAsFloat(const nlohmann::json& obj, const char* key) {
 	return obj[key].template get<float>();
 }
 
@@ -89,22 +88,22 @@ int JAsInt(const nlohmann::json& obj, K key) {
 	return obj[key].template get<int>();
 }
 
-int JAsInt(const nlohmann::json& obj) {
+inline int JAsInt(const nlohmann::json& obj) {
 	return obj.template get<int>();
 }
 
 template <>
-bool JAsBool(const nlohmann::json& obj, const char* key) {
+inline bool JAsBool(const nlohmann::json& obj, const char* key) {
 	return obj[key].template get<bool>();
 }
 
 template <>
-void JAsStringVec(const nlohmann::json& obj, const char* key, StringVec& vec) {
+inline void JAsStringVec(const nlohmann::json& obj, const char* key, StringVec& vec) {
 	vec = obj[key];
 }
 
 template <>
-int JSize(const nlohmann::json& obj) {
+inline int JSize(const nlohmann::json& obj) {
 	if (obj.is_array()) {
 		return (int)obj.size();
 	}
@@ -121,23 +120,23 @@ nlohmann::json JArray(const std::vector<V>& values) {
 	return nlohmann::json(values);
 }
 
-nlohmann::json JNewObject() { return nlohmann::json::object(); }
+inline nlohmann::json JNewObject() { return nlohmann::json::object(); }
 
 template <>
-std::string JPrettyPrint(const nlohmann::json& cache_object) {
+inline std::string JPrettyPrint(const nlohmann::json& cache_object) {
 	std::string pp = cache_object.dump(2);
 	return pp;
 }
 
 template <>
-void JKeys(const nlohmann::json& obj, StringVec& vec) {
+inline void JKeys(const nlohmann::json& obj, StringVec& vec) {
 	for (auto& cit = obj.cbegin(); cit != obj.cend(); ++cit)
 		vec.push_back(cit.key());
 }
 
 #else
 
-bool JContains(const emscripten::val& obj, const char* json_string) {
+inline bool JContains(const emscripten::val& obj, const char* json_string) {
 	return obj.hasOwnProperty(json_string);
 }
 
@@ -147,7 +146,7 @@ std::string JAsString(const emscripten::val& obj, K key) {
 }
 
 template <>
-float JAsFloat(const emscripten::val& obj, const char* key) {
+inline float JAsFloat(const emscripten::val& obj, const char* key) {
 	return obj[key].as<float>();
 }
 
@@ -156,22 +155,22 @@ int JAsInt(const emscripten::val& obj, K key) {
 	return obj[key].template as<int>();
 }
 
-int JAsInt(const emscripten::val& obj) {
+inline int JAsInt(const emscripten::val& obj) {
 	return obj.template as<int>();
 }
 
 template <>
-bool JAsBool(const emscripten::val& obj, const char* key) {
+inline bool JAsBool(const emscripten::val& obj, const char* key) {
 	return obj[key].template as<bool>();
 }
 
 template <>
-void JAsStringVec(const emscripten::val& obj, const char* key, StringVec& vec) {
+inline void JAsStringVec(const emscripten::val& obj, const char* key, StringVec& vec) {
 	vec = emscripten::vecFromJSArray<std::string>(obj[key]);
 }
 
 template <>
-int JSize(const emscripten::val& obj) {
+inline int JSize(const emscripten::val& obj) {
 	if (obj.hasOwnProperty("length")) {
 		return obj["length"].as<int>();
 	}
@@ -189,7 +188,7 @@ emscripten::val JArray(const std::vector<V>& values) {
 }
 
 template <>
-emscripten::val JParse(const std::string& json_string) {
+inline emscripten::val JParse(const std::string& json_string) {
 	emscripten::val json_global = emscripten::val::global("JSON");
 	emscripten::val rv = json_global.call<emscripten::val>("parse", json_string);
 	return rv;
@@ -197,17 +196,17 @@ emscripten::val JParse(const std::string& json_string) {
 
 // no params to drive template type deduction, so we use a 
 // lambda to invoke the static object() method
-emscripten::val JNewObject() { return emscripten::val::object(); }
+inline emscripten::val JNewObject() { return emscripten::val::object(); }
 
 template <>
-std::string JPrettyPrint(const emscripten::val& v) {
+inline std::string JPrettyPrint(const emscripten::val& v) {
 	emscripten::val json_global = emscripten::val::global("JSON");
 	emscripten::val json = json_global.call<emscripten::val>("stringify", v, emscripten::val::null(), 2);
 	return json.as<std::string>();
 }
 
 template <>
-void JKeys(const emscripten::val& obj, StringVec& vec) {
+inline void JKeys(const emscripten::val& obj, StringVec& vec) {
 	emscripten::val obj_global = emscripten::val::global("Object");
 	emscripten::val keys = obj_global.call<emscripten::val>("keys", obj);
 	vec = emscripten::vecFromJSArray<std::string>(keys);
@@ -215,7 +214,7 @@ void JKeys(const emscripten::val& obj, StringVec& vec) {
 
 // no format stream operator for ems::val. nlohmann::json provides
 // operator<<, ems::val does not.
-std::ostream& operator<<(std::ostream& os, const emscripten::val& v)
+inline std::ostream& operator<<(std::ostream& os, const emscripten::val& v)
 {
 	emscripten::val json_global = emscripten::val::global("JSON");
 	emscripten::val json = json_global.call<emscripten::val>("stringify", v);
@@ -264,7 +263,7 @@ const JSON extract_children(const JSON& w) {
 #endif
 }
 
-std::string load_json(const char* path) {
+inline std::string load_json(const char* path) {
 	std::string rv;
 	if (!std::filesystem::exists(path)) {
 		return rv;
