@@ -127,4 +127,28 @@ void on_async_store(void* fw) {
     fprintf(stdout, "%sIDB_STORE_OK(%s)", method, file_writer->file_name.c_str());
 }
 
+// Reimplement imgui's ImFile[Open|Close|GetSize|Read] API
+ImFileHandle ImFileOpen(const char* filename, const char* mode) {
+    // fopen(filename, mode);
+}
+
+// We should in theory be using fseeko()/ftello() with off_t and _fseeki64()/_ftelli64() with __int64, waiting for the PR that does that in a very portable pre-C++11 zero-warnings way.
+bool ImFileClose(ImFileHandle f) {
+    return fclose(f) == 0;
+}
+
+ImU64 ImFileGetSize(ImFileHandle f) {
+    long off = 0, sz = 0;
+    return ((off = ftell(f)) != -1 && !fseek(f, 0, SEEK_END) && (sz = ftell(f)) != -1 && !fseek(f, off, SEEK_SET)) ? (ImU64)sz : (ImU64)-1;
+}
+
+ImU64 ImFileRead(void* data, ImU64 sz, ImU64 count, ImFileHandle f) {
+    // fread(data, (size_t)sz, (size_t)count, f); 
+}
+
+ImU64 ImFileWrite(const void* data, ImU64 sz, ImU64 count, ImFileHandle f) { 
+    // fwrite(data, (size_t)sz, (size_t)count, f); 
+}
+
+
 #endif
