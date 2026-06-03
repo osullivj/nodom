@@ -40,15 +40,20 @@ int main(int argc, char* argv[]) {
         std::cout << method << "argv[" << i << "]=" << argv[i] << std::endl;
     }
 
-    std::string init_data(argc > 1 ? argv[1] : Static::init_data_cs);
-    std::string init_layout(argc > 2 ? argv[2] : Static::init_layout_cs);
-    std::string init_config(argc > 3 ? argv[3] : Static::empty_obj_cs);
+    std::string app_key(argc > 1 ? argv[1] : Static::empty_cs);
+    std::string init_data(argc > 2 ? argv[2] : Static::init_data_cs);
+    std::string init_layout(argc > 3 ? argv[3] : Static::init_layout_cs);
+    std::string init_config(argc > 4 ? argv[4] : Static::empty_obj_cs);
 
     NDConfig<json_t>& cfg{ NDConfig<json_t>::get_instance() };
     cfg.initialize(init_config.c_str());
 
     DuckDB_t server;
-    NDContext_t ctx(server, init_data.c_str(), init_layout.c_str());
+    // Static::empty_cs as 2nd parm causes NDContext::get_ini_path()
+    // to return a null ptr in im_start, so io.IniFilename is NULL
+    // preventing attempt to write to localFS, which is nulled out by
+    // IMGUI_DISABLE_FILE_FUNCTIONS
+    NDContext_t ctx(server, Static::empty_cs, init_data.c_str(), init_layout.c_str());
     NDWebSockClient<json_t, DuckDB_t> ws_client(server, ctx);
 
     ctx.register_msg_pump([&ws_client]() {ws_client.pump_messages();});
