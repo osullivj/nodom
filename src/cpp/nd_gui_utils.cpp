@@ -1,4 +1,5 @@
 #include "imgui.h"
+#include "ems_idb.hpp"
 #include "imgui_internal.h"
 #include "static_strings.hpp"
 #include "nd_types.hpp"
@@ -31,52 +32,27 @@ void SetStyleColoring(int col) {
     }
 }
 
-/*
-void save_ini_to_file(const char* fpath) {
-    if (fpath != nullptr) {
-        ImGui::SaveIniSettingsToDisk(fpath);
-    }
-}
 
-void load_ini_from_file(const char* fpath) {
-    if (fpath != nullptr) {
-        std::string file_path_s{ fpath };
-        std::filesystem::path file_path{ file_path_s };
-        if (std::filesystem::exists(file_path)) {
-            ImGui::LoadIniSettingsFromDisk(fpath);
-        }
-    }
-}
-
-
-void save_ini_to_memory() {
-
-}
-*/
-
-
-static void StyleSettingsHandler_ClearAll(ImGuiContext* ctx, ImGuiSettingsHandler*)
+static void StyleSettingsHandler_ClearAll(ImGuiContext* , ImGuiSettingsHandler*)
 {
-
 }
 
-// Apply to existing windows (if any)
-static void StyleSettingsHandler_ApplyAll(ImGuiContext* ctx, ImGuiSettingsHandler*)
+static void StyleSettingsHandler_ApplyAll(ImGuiContext* , ImGuiSettingsHandler*)
 {
     // noop: ReadLine has applied
-    // TODO: call SetStyleColor Light,Dark,Classic here...
 }
 
-static void* StyleSettingsHandler_ReadOpen(ImGuiContext* ctx, ImGuiSettingsHandler*, const char* name)
+static void* StyleSettingsHandler_ReadOpen(ImGuiContext* ctx, ImGuiSettingsHandler*, const char* )
 {
     ImGuiContext& g = *ctx;
     ImGuiStyle& style = g.Style;
 
-    // No Style ID or count to unpack from 2nd field, and no obj to alloc as Style obj is singleton
+    // No Style ID or count to unpack from 2nd field,
+    // and no obj to alloc as Style obj is singleton
     return &style;
 }
 
-static void StyleSettingsHandler_ReadLine(ImGuiContext* ctx, ImGuiSettingsHandler* handler, void* entry, const char* line)
+static void StyleSettingsHandler_ReadLine(ImGuiContext* ctx, ImGuiSettingsHandler* handler, void* , const char* line)
 {
     ImGuiContext& g = *ctx;
     ImGuiStyle& style = g.Style;
@@ -119,3 +95,45 @@ void AddStyleSettingsHandler(int* style_coloring_ptr)
     ini_handler.UserData = style_coloring_ptr;
     ImGui::AddSettingsHandler(&ini_handler);
 }
+
+/*
+#ifdef __EMSCRIPTEN__
+// TODO: rm when we've figured out how to Load and Save Ini from memory
+
+// provide our own implementation of imgui's ImFile[Open|Close|GetSize|Read] API
+// declared in imgui_internal.h, and used by ImGui::UpdateSettings(), as called
+// by ImGui::NewFrame(). When running ems wasm, as opposed to win32 Breadbaord,
+// we want the file writes redirected to the ems IndexedDB API.
+
+ImFileHandle ImFileOpen(const char* filename, const char* mode) {
+    // posix equiv: fopen(filename, mode);
+    return (ImFileHandle)(new IDBFileWriter(filename));
+}
+
+// We should in theory be using fseeko()/ftello() with off_t and _fseeki64()/_ftelli64() with __int64, waiting for the PR that does that in a very portable pre-C++11 zero-warnings way.
+bool ImFileClose(ImFileHandle f) {
+    // posix equiv: fclose(f);
+    IDBFileWriter* fw = reinterpret_cast<IDBFileWriter*>(f);
+    delete fw;
+    return true;
+}
+
+ImU64 ImFileGetSize(ImFileHandle f) {
+    return 0;
+}
+
+ImU64 ImFileRead(void* data, ImU64 sz, ImU64 count, ImFileHandle f) {
+    // fread(data, (size_t)sz, (size_t)count, f); 
+    return 0;
+}
+
+ImU64 ImFileWrite(const void* data, ImU64 sz, ImU64 count, ImFileHandle f) {
+    // posix equiv: fwrite(data, (size_t)sz, (size_t)count, f); 
+    IDBFileWriter* fw = reinterpret_cast<IDBFileWriter*>(f);
+    int data_len = sz * count;
+    fw->write((void*)data, data_len);
+    return data_len;
+}
+
+#endif
+*/
