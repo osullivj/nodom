@@ -43,8 +43,8 @@ int main(int argc, char* argv[]) {
     std::string init_data;
     std::string init_layout;
     std::string ini_path;
+    std::string app_key{ argv[1] };
     try {
-        std::string app_key{ argv[1] };
         std::string config_dir{ argv[2] };
         std::string config_file{ app_key };
         config_file += "_config.json";
@@ -96,7 +96,7 @@ int main(int argc, char* argv[]) {
     }
 
     DuckDB_t server;
-    NDContext<json_t, DuckDB_t> ctx(server, ini_path,
+    NDContext<json_t, DuckDB_t> ctx(server, app_key, ini_path,
             init_data.empty() ? nullptr : init_data.c_str(), 
             init_layout.empty() ? nullptr : init_layout.c_str());
 

@@ -49,11 +49,11 @@ int main(int argc, char* argv[]) {
     cfg.initialize(init_config.c_str());
 
     DuckDB_t server;
-    // Static::empty_cs as 2nd parm causes NDContext::get_ini_path()
+    // Static::empty_cs as 3rd parm causes NDContext::get_ini_path()
     // to return a null ptr in im_start, so io.IniFilename is NULL
     // preventing attempt to write to localFS, which is nulled out by
     // IMGUI_DISABLE_FILE_FUNCTIONS
-    NDContext_t ctx(server, Static::empty_cs, init_data.c_str(), init_layout.c_str());
+    NDContext_t ctx(server, app_key, Static::empty_cs, init_data.c_str(), init_layout.c_str());
     NDWebSockClient<json_t, DuckDB_t> ws_client(server, ctx);
 
     ctx.register_msg_pump([&ws_client]() {ws_client.pump_messages();});
