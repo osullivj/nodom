@@ -61,6 +61,8 @@ private:
     // and real_layout so we can so the parse and write to 
     // JSON data & layout in one shot. We do not want JSON
     // data & layout to be a mix of real and init.
+    std::string         app_key_s;
+    std::string         ini_path;
     std::string         init_data_s;
     std::string         init_layout_s;
     JSON                real_data;
@@ -69,7 +71,6 @@ private:
     bool                layout_loaded{ true };
 
     std::string         server_url;
-    std::string         ini_path;
 
     // manage down logging by tracking misconfiged queries that throw
     // BAD_HANDLE_FAIL, especially for browser console log
@@ -153,6 +154,9 @@ private:
     fmt::format_to_n_result<char*> fmt_result;
     DatePickerLocals    dp_vars;
     SpinnerLocals       sp_vars;
+#ifdef __EMSCRIPTEN__
+    IDBFileWriter       ini_writer;
+#endif
 
     struct LocalFont {
         inline static VVFunc pop_func{nullptr};
@@ -165,8 +169,8 @@ private:
         ~LocalFont() { pop_func(); }
     };
 public:
-    NDContext(DB& s, const std::string& ipath, const char* idata = nullptr, const char* ilayout = nullptr)
-        :proxy(s), ini_path(ipath),
+    NDContext(DB& s, const std::string& app_key, const std::string& ipath, const char* idata = nullptr, const char* ilayout = nullptr)
+        :proxy(s), app_key_s(app_key), ini_path(ipath),
         init_data_s(idata?idata:Static::init_data_cs),
         init_layout_s(ilayout?ilayout:Static::init_layout_cs),
         red{ 255, 51, 0 },
@@ -182,6 +186,9 @@ public:
 
         NDConfig<JSON>& cfg{ NDConfig<JSON>::get_instance() };
         cfg.get_value(Static::server_url_cs, server_url);
+#ifdef __EMSCRIPTEN__
+        ini_writer.file_name = app_key_s + "_layout.ini";
+#endif
     }
 
     void initialize() {
@@ -192,7 +199,7 @@ public:
         // 
         // glfwSwapInterval invokes _emscripten_set_main_loop_timing, which
         // throws if main the main loop hasn't been started by emscripten_set_main_loop[_arg]
-        // Not an issue for Breadboard, but it is a nodom break
+        // Not an issue for Breadboard, but it is an EMS break
         glfwSwapInterval(1);
 
         // websock download of data and layout won't have happened yet,
@@ -210,10 +217,11 @@ public:
         NDLogger::cout() << method << "init_data: " << JPrettyPrint(data) << std::endl;
         NDLogger::cout() << method << "init_layout: " << JPrettyPrint(layout) << std::endl;
 
-
         // fire post processing of init layout and data
         // NB this will be repeated when real layout and data arrive via websock
         data_lay_cache.on_json(data, layout, [&](){ on_dlc_init(); });
+
+        // TODO: ems specific code to LoadIniFromIDB
     }
 
     void on_dlc_init() {
@@ -387,10 +395,18 @@ public:
         }
         pix_report(RenderBadHandlePC, (float)bad_handle_sum);
 
-        if (render_count % 60 == 0) {   // every 60 renders eg ~1 sec
+        if (render_count % 120 == 0) {   // every 120 renders eg ~2 sec
             for (auto citer = bad_handle_map.cbegin(); citer != bad_handle_map.cend(); ++citer) {
                 NDLogger::cout() << method << citer->first << " BHC: " << citer->second << std::endl;
             }
+#ifdef __EMSCRIPTEN__
+            ImGuiContext& g = *GImGui;
+            ImGuiIO& io = ImGui::GetIO();
+            if (io.WantSaveIniSettings) {
+                ini_writer.write(g.SettingsIniData.c_str(), g.SettingsIniData.size());
+                io.WantSaveIniSettings = false;
+            }
+#endif
         }
     }
 
