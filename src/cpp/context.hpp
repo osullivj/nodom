@@ -5,13 +5,13 @@
 #include <functional>
 #include "imgui.h"
 #include "imgui_internal.h"
-#include "proxy.hpp"
 #include "locals.hpp"
 #include "ufuncs.hpp"
 #include "widgets.hpp"
 #include "db_cache.hpp"
 #include "dl_cache.hpp"
 #include "logger.hpp"
+#include "ems_idb.hpp"
 
 // NDContext: the NoDOM render engine, built on top of Dear ImGui and Emscripten.
 // NDContext is coded as portable C++ with two targets: Emscripten (ems) running in 
