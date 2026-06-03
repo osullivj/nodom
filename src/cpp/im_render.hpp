@@ -1,4 +1,5 @@
 #pragma once
+#include <functional>
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
@@ -8,103 +9,8 @@
 #endif
 #include <GLFW/glfw3.h> // Will drag system OpenGL headers
 #include "logger.hpp"
-#include <functional>
+#include "ems_idb.hpp"
 
-#ifdef __EMSCRIPTEN__
-// fwd decl funcs used by IDBFontCache::next()
-void on_async_exists_error(void* m);
-void on_async_exists(void* c, int exists);
-// Only used in ems as a font data memo passed to
-// ems IDBStore callbacks, and as a mem cache too.
-using FileLoadFunc = std::function<void*(ImGuiIO& io, void* data, int sz)>;
-using FileDeployFunc = std::function<void(const std::string& name, void* data)>;
-
-using StringVec = std::vector<std::string>;
-
-struct IDBFileCache {
-    IDBFileCache(FileLoadFunc lf, FileDeployFunc df, const StringVec& files) 
-        :load_func(lf), deploy_func(df), file_list(files) { }
-    ~IDBFileCache() { std::for_each(file_mem_vec.begin(), file_mem_vec.end(), [](auto ptr) {free(ptr); }); }
-    void next() {
-        if (file_list.empty())
-            return;
-        file_name = file_list.back();
-        file_list.pop_back();
-        emscripten_idb_async_exists("NoDOM", file_name.c_str(), this,
-                                on_async_exists, on_async_exists_error);
-    }
-    FileLoadFunc        load_func;
-    FileDeployFunc      deploy_func;
-    StringVec           file_list;
-    std::string         file_name;
-    std::vector<void*>  file_mem_vec;
-};
-
-// Callbacks for emscripten_idb_async_exists and 
-// emscripten_idb_async_load. NB no \n in log
-// lines as the impl below is only ever in play
-// in the browser. 
-
-// em_arg_callback_func: typedef void (*em_arg_callback_func)(void*);
-void on_async_exists_error(void* fc) {
-    const char* method = "on_async_exists_error: ";
-    IDBFileCache* file_cache = reinterpret_cast<IDBFileCache*>(fc);
-    assert(file_cache != nullptr);
-    // NoDOM IndexedDB check fails in emscripten_idb_async_exists
-    fprintf(stdout, "%sIDB_EXIST_FAIL(%s)", method, file_cache->file_name.c_str());
-}
-
-// em_arg_callback_func: typedef void (*em_arg_callback_func)(void*);
-void on_load_error(void* fc) {
-    const char* method = "on_load_error: ";
-    IDBFileCache* file_cache = reinterpret_cast<IDBFileCache*>(fc);
-    assert(file_cache != nullptr);
-    // NoDOM IndexedDB doesn't exist
-    fprintf(stdout, "%sIDB_LOAD_FAIL(%s)", method, file_cache->file_name.c_str());
-}
-
-// em_idb_onload_func: typedef void (*em_idb_onload_func)(void*, void*, int);
-void on_load(void* fc, void* buf, int sz) {
-    const char* method = "on_load: ";
-    IDBFileCache* file_cache = reinterpret_cast<IDBFileCache*>(fc);
-    assert(file_cache != nullptr);
-
-    // copy the file memory as ImGui assumes it won't
-    // get freed from underneath...
-    if (sz < 100) {
-        fprintf(stdout, "%ssz=%d", method, sz);
-        return;
-    }
-    void* file_memory = malloc(sz);
-    std::memcpy(file_memory, buf, sz);
-
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
-    void* data = file_cache->load_func(io, file_memory, sz);
-
-    // discard the .ttf suffix for NDContext registration
-    auto fflen = file_cache->file_name.size();
-    file_cache->file_name.erase(fflen - 4, fflen);
-    file_cache->deploy_func(file_cache->file_name, data);
-    file_cache->file_mem_vec.push_back(file_memory);
-    printf("%sFILE_LOADED(%s)\n", method, file_cache->file_name.c_str());
-    // kick off the next load, if there is one...
-    file_cache->next();
-}
-
-// em_idb_exists_func: typedef void (*em_idb_exists_func)(void*, int);
-void on_async_exists(void* fc, int exists) {
-    const char* method = "on_async_exists: ";
-    IDBFileCache* file_cache = reinterpret_cast<IDBFileCache*>(fc);
-    assert(file_cache != nullptr);
-    if (exists != 0) {
-        emscripten_idb_async_load("NoDOM", file_cache->file_name.c_str(), fc, on_load, on_load_error);
-    }
-    else {
-        fprintf(stdout, "%sIDB_ACCESS_FAIL(%s)\n", method, file_cache->file_name.c_str());
-    }
-}
-
-#endif
 
 inline void glfw_error_callback(int error, const char* description)
 {
