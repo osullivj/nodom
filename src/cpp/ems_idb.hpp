@@ -1,7 +1,6 @@
 #pragma once
 #include "nd_types.hpp"
 #include "static_strings.hpp"
-#include "json_ops.hpp"
 #include "config.hpp"
 
 #ifdef __EMSCRIPTEN__
@@ -39,7 +38,7 @@ struct IDBFileCache {
 };
 
 struct IDBFileWriter {
-    IDBFileWriter(const std::string& fname):file_name(fname) {}
+    IDBFileWriter(const char* fname):file_name(fname) {}
     void write(void* data, int data_len) {
         emscripten_idb_async_store(Static::nodom_cs, file_name.c_str(),
             data, data_len, this, on_async_store, on_async_store_error);
@@ -53,7 +52,7 @@ struct IDBFileWriter {
 // in the browser. 
 
 // em_arg_callback_func: typedef void (*em_arg_callback_func)(void*);
-void on_async_exists_error(void* fc) {
+inline void on_async_exists_error(void* fc) {
     const char* method = "on_async_exists_error: ";
     IDBFileCache* file_cache = reinterpret_cast<IDBFileCache*>(fc);
     assert(file_cache != nullptr);
@@ -62,7 +61,7 @@ void on_async_exists_error(void* fc) {
 }
 
 // em_arg_callback_func: typedef void (*em_arg_callback_func)(void*);
-void on_load_error(void* fc) {
+inline void on_load_error(void* fc) {
     const char* method = "on_load_error: ";
     IDBFileCache* file_cache = reinterpret_cast<IDBFileCache*>(fc);
     assert(file_cache != nullptr);
@@ -71,7 +70,7 @@ void on_load_error(void* fc) {
 }
 
 // em_idb_onload_func: typedef void (*em_idb_onload_func)(void*, void*, int);
-void on_load(void* fc, void* buf, int sz) {
+inline void on_load(void* fc, void* buf, int sz) {
     const char* method = "on_load: ";
     IDBFileCache* file_cache = reinterpret_cast<IDBFileCache*>(fc);
     assert(file_cache != nullptr);
@@ -99,7 +98,7 @@ void on_load(void* fc, void* buf, int sz) {
 }
 
 // em_idb_exists_func: typedef void (*em_idb_exists_func)(void*, int);
-void on_async_exists(void* fc, int exists) {
+inline void on_async_exists(void* fc, int exists) {
     const char* method = "on_async_exists: ";
     IDBFileCache* file_cache = reinterpret_cast<IDBFileCache*>(fc);
     assert(file_cache != nullptr);
@@ -111,7 +110,7 @@ void on_async_exists(void* fc, int exists) {
     }
 }
 
-void on_async_store_error(void* fw) {
+inline void on_async_store_error(void* fw) {
     const char* method = "on_async_store_error: ";
     IDBFileWriter* file_writer = reinterpret_cast<IDBFileWriter*>(fw);
     assert(file_writer != nullptr);
@@ -119,36 +118,12 @@ void on_async_store_error(void* fw) {
     fprintf(stdout, "%sIDB_STORE_FAIL(%s)", method, file_writer->file_name.c_str());
 }
 
-void on_async_store(void* fw) {
+inline void on_async_store(void* fw) {
     const char* method = "on_async_store: ";
     IDBFileWriter* file_writer = reinterpret_cast<IDBFileWriter*>(fw);
     assert(file_writer != nullptr);
     // NoDOM IndexedDB write fails in emscripten_idb_async_store
     fprintf(stdout, "%sIDB_STORE_OK(%s)", method, file_writer->file_name.c_str());
 }
-
-// Reimplement imgui's ImFile[Open|Close|GetSize|Read] API
-ImFileHandle ImFileOpen(const char* filename, const char* mode) {
-    // fopen(filename, mode);
-}
-
-// We should in theory be using fseeko()/ftello() with off_t and _fseeki64()/_ftelli64() with __int64, waiting for the PR that does that in a very portable pre-C++11 zero-warnings way.
-bool ImFileClose(ImFileHandle f) {
-    return fclose(f) == 0;
-}
-
-ImU64 ImFileGetSize(ImFileHandle f) {
-    long off = 0, sz = 0;
-    return ((off = ftell(f)) != -1 && !fseek(f, 0, SEEK_END) && (sz = ftell(f)) != -1 && !fseek(f, off, SEEK_SET)) ? (ImU64)sz : (ImU64)-1;
-}
-
-ImU64 ImFileRead(void* data, ImU64 sz, ImU64 count, ImFileHandle f) {
-    // fread(data, (size_t)sz, (size_t)count, f); 
-}
-
-ImU64 ImFileWrite(const void* data, ImU64 sz, ImU64 count, ImFileHandle f) { 
-    // fwrite(data, (size_t)sz, (size_t)count, f); 
-}
-
 
 #endif
