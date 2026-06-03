@@ -137,7 +137,7 @@ using ActionMap = std::map<ActionKey, ActionVec>;
 using ActionInternMap = std::map<ActionKey, ActionInternVec>;
 using ActionErrorMap = std::map<ActionKey, ActionErrorVec>;
 
-RenderMethod RenderMethodFromString(const std::string& method) {
+inline RenderMethod RenderMethodFromString(const std::string& method) {
     if (method == Static::rm_noop_cs)
         return RenderMethod::Noop;
     // Home
@@ -193,7 +193,7 @@ RenderMethod RenderMethodFromString(const std::string& method) {
     return EndRenderMethod;
 }
 
-DBEventType DBEventTypeFromString(const std::string& evt) {
+inline DBEventType DBEventTypeFromString(const std::string& evt) {
     if (evt == Static::command_cs)
         return dbCommand;
     if (evt == Static::command_result_cs)
@@ -209,7 +209,7 @@ DBEventType DBEventTypeFromString(const std::string& evt) {
     return EndDBEventTypes;
 }
 
-const char* DBEventTypeToString(DBEventType dbet) {
+inline const char* DBEventTypeToString(DBEventType dbet) {
     switch (dbet) {
     case dbCommand:
         return Static::command_cs;
