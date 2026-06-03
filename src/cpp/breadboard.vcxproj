@@ -191,6 +191,7 @@
     <ClInclude Include="db_cache.hpp" />
     <ClInclude Include="dl_cache.hpp" />
     <ClInclude Include="dl_types.hpp" />
+    <ClInclude Include="ems_idb.hpp" />
     <ClInclude Include="facade.hpp" />
     <ClInclude Include="im_render.hpp" />
     <ClInclude Include="json_ops.hpp" />
