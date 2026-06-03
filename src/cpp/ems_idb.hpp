@@ -38,10 +38,9 @@ struct IDBFileCache {
 };
 
 struct IDBFileWriter {
-    IDBFileWriter(const char* fname):file_name(fname) {}
-    void write(void* data, int data_len) {
+    void write(const char* data, int data_len) {
         emscripten_idb_async_store(Static::nodom_cs, file_name.c_str(),
-            data, data_len, this, on_async_store, on_async_store_error);
+            (void*)data, data_len, this, on_async_store, on_async_store_error);
     }
     std::string file_name;
 };
