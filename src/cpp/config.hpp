@@ -14,7 +14,6 @@
 #endif
 
 
-// NDProxy encapsulates the server side.
 template <typename JSON>
 class NDConfig {
 public:

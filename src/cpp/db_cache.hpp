@@ -311,7 +311,7 @@ public:
         }
         else {
             // The config object in our base class should been populated
-            // by NDProxy.ctor on the main thread. Does it have a db_config?
+            // on the main thread. Does it have a db_config?
             // NB this code is BB  only, so we allow some nlohmann::json 
             // type leakage
             NDConfig<nlohmann::json>& cfg{ NDConfig<nlohmann::json>::get_instance() };
