@@ -135,6 +135,7 @@ static constexpr int FMT_BUF_LEN{ 16 };
 // NDContext helpers
 void SetStyleColoring(int col);
 void AddStyleSettingsHandler(int* style_coloring_ptr);
+char* LoadIniFromMem(char* bytes, int sz);
 
 enum RenderMethod : uint32_t {
     Noop = 0,   // Null
