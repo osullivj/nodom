@@ -96,44 +96,8 @@ void AddStyleSettingsHandler(int* style_coloring_ptr)
     ImGui::AddSettingsHandler(&ini_handler);
 }
 
-/*
-#ifdef __EMSCRIPTEN__
-// TODO: rm when we've figured out how to Load and Save Ini from memory
-
-// provide our own implementation of imgui's ImFile[Open|Close|GetSize|Read] API
-// declared in imgui_internal.h, and used by ImGui::UpdateSettings(), as called
-// by ImGui::NewFrame(). When running ems wasm, as opposed to win32 Breadbaord,
-// we want the file writes redirected to the ems IndexedDB API.
-
-ImFileHandle ImFileOpen(const char* filename, const char* mode) {
-    // posix equiv: fopen(filename, mode);
-    return (ImFileHandle)(new IDBFileWriter(filename));
+char* LoadIniFromMem(char* bytes, int sz)
+{
+    ImGui::LoadIniSettingsFromMemory((const char*)bytes, sz);
+    return bytes;
 }
-
-// We should in theory be using fseeko()/ftello() with off_t and _fseeki64()/_ftelli64() with __int64, waiting for the PR that does that in a very portable pre-C++11 zero-warnings way.
-bool ImFileClose(ImFileHandle f) {
-    // posix equiv: fclose(f);
-    IDBFileWriter* fw = reinterpret_cast<IDBFileWriter*>(f);
-    delete fw;
-    return true;
-}
-
-ImU64 ImFileGetSize(ImFileHandle f) {
-    return 0;
-}
-
-ImU64 ImFileRead(void* data, ImU64 sz, ImU64 count, ImFileHandle f) {
-    // fread(data, (size_t)sz, (size_t)count, f); 
-    return 0;
-}
-
-ImU64 ImFileWrite(const void* data, ImU64 sz, ImU64 count, ImFileHandle f) {
-    // posix equiv: fwrite(data, (size_t)sz, (size_t)count, f); 
-    IDBFileWriter* fw = reinterpret_cast<IDBFileWriter*>(f);
-    int data_len = sz * count;
-    fw->write((void*)data, data_len);
-    return data_len;
-}
-
-#endif
-*/
