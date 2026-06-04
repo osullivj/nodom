@@ -49,7 +49,7 @@ public:
         return false;
     }
 
-    bool get_nested(const char* key, StringStringMap& ssmap) {
+    bool get_nested_str_map(const char* key, StringStringMap& ssmap) {
         if (JContains(config, key)) {
             StringVec svec;
             JSON& db_config{ config[key] };
@@ -58,6 +58,14 @@ public:
             for (auto it = svec.begin(); it != svec.end(); ++it) {
                 ssmap[*it] = JAsString(db_config, it->c_str());
             }
+            return true;
+        }
+        return false;
+    }
+
+    bool get_nested_str_list(const char* key, StringVec& svec) {
+        if (JContains(config, key)) {
+            JAsStringVec(config, key, svec);
             return true;
         }
         return false;
