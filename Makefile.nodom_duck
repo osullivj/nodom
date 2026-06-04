@@ -93,6 +93,7 @@ $(BLD_DIR)/%.o:$(ND_FMT_DIR)/src/%.cc
 all: $(EXE)
 	copy src\web\favicon.ico bld\favicon.ico
 	copy src\web\duck_module.js bld\duck_module.js
+	type bld\nodom_duck.html | sed s/app_key/exf/g > bld\exf.html
 	@echo Build complete for $(EXE)
 
 $(BLD_DIR):
