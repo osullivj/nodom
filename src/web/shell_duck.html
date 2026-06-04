@@ -67,11 +67,15 @@
                     ],
                 },
             };
+            const nd_config = {
+                fonts: ["CourierNew.ttf", "Arial.ttf"],
+            };
             var Module = {
                 arguments: [
                     "app_key",
                     JSON.stringify(init_data),
                     JSON.stringify(init_layout),
+                    JSON.stringify(nd_config),
                 ],
                 preRun: [],
                 postRun: [],
