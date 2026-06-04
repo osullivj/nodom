@@ -62,10 +62,12 @@ int main(int argc, char* argv[]) {
                                     {server.add_db_response(v); });
     dbrd.set_reg_chunk([&server](const std::string& qid, int sz, int addr)
                                     {server.register_chunk(qid.c_str(), sz, addr); });
+    StringVec font_list;
+    cfg.get_nested_str_list(Static::fonts_cs, font_list);
     IDBFileCache font_cache(
         [](ImGuiIO& io, void* f, int sz)->ImFont* {return io.Fonts->AddFontFromMemoryTTF(f, sz); },
         [&ctx](const std::string& n, void* f){ctx.register_font(n, (ImFont*)f); },
-        { "Arial.ttf", "CourierNew.ttf" }); // TODO: JSON config
+        font_list);
 
     GLFWwindow* window = im_start(ctx, &font_cache);
     if (window == nullptr) {
