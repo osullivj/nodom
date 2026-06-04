@@ -156,6 +156,8 @@ private:
     SpinnerLocals       sp_vars;
 #ifdef __EMSCRIPTEN__
     IDBFileWriter       ini_writer;
+    IDBFileCachePtr     ini_cache_ptr;
+    StringVec           ini_list;
 #endif
 
     struct LocalFont {
@@ -188,6 +190,14 @@ public:
         cfg.get_value(Static::server_url_cs, server_url);
 #ifdef __EMSCRIPTEN__
         ini_writer.file_name = app_key_s + "_layout.ini";
+        ini_list.push_back(ini_writer.file_name);
+        ini_cache_ptr.reset(new IDBFileCache(
+            [](ImGuiIO& io, void* f, int sz)->char* {
+                return LoadIniFromMem((char*)f, sz);
+            },
+            [](const std::string& n, void* f) {},
+            ini_list
+        ));
 #endif
     }
 
@@ -220,8 +230,6 @@ public:
         // fire post processing of init layout and data
         // NB this will be repeated when real layout and data arrive via websock
         data_lay_cache.on_json(data, layout, [&](){ on_dlc_init(); });
-
-        // TODO: ems specific code to LoadIniFromIDB
     }
 
     void on_dlc_init() {
@@ -253,9 +261,6 @@ public:
         einx_BatchRequest = data_lay_cache.template get_string_index<CIT::Event>(Static::batch_request_cs, CST::DBEvent);
         einx_BatchResponse = data_lay_cache.template get_string_index<CIT::Event>(Static::batch_response_cs, CST::DBEvent);
 
-        // init the fast path vars from the settings established in im_render.hpp:im_start()
-        // ImGuiStyle& style = ImGui::GetStyle();
-
         data_lay_cache.report_cache_state();
         size_t dlc_error_count = data_lay_cache.error_count();
         if (dlc_error_count > 0) {
@@ -265,6 +270,11 @@ public:
             // init the render stack
             stack.clear();
             stack.push_back(data_lay_cache.get_home());
+#ifdef __EMSCRIPTEN__
+            // Now we have the real layout, and not init layout,
+            // load persisted layout details...
+            ini_cache_ptr->next();
+#endif
         }
     }
 
