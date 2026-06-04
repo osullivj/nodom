@@ -403,6 +403,7 @@ public:
             ImGuiContext& g = *GImGui;
             ImGuiIO& io = ImGui::GetIO();
             if (io.WantSaveIniSettings) {
+                ImGui::SaveIniSettingsToMemory();
                 ini_writer.write(g.SettingsIniData.c_str(), g.SettingsIniData.size());
                 io.WantSaveIniSettings = false;
             }
