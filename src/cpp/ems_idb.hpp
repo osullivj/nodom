@@ -30,12 +30,14 @@ struct IDBFileCache {
         emscripten_idb_async_exists(Static::nodom_cs, file_name.c_str(), this,
             on_async_exists, on_async_exists_error);
     }
-    FileLoadFunc        load_func;
-    FileDeployFunc      deploy_func;
+    FileLoadFunc        load_func{ nullptr };
+    FileDeployFunc      deploy_func{ nullptr };
     StringVec           file_list;
     std::string         file_name;
     std::vector<void*>  file_mem_vec;
 };
+
+using IDBFileCachePtr = std::unique_ptr<IDBFileCache>;
 
 struct IDBFileWriter {
     void write(const char* data, int data_len) {
