@@ -3,6 +3,7 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+#include "implot.h"
 #include <stdio.h>
 #if defined(IMGUI_IMPL_OPENGL_ES2)
 #include <GLES2/gl2.h>
@@ -70,6 +71,7 @@ GLFWwindow* im_start(NDContext<JSON, DB>& ctx)
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
+    ImPlot::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     io.IniFilename = ctx.get_ini_path();
     AddStyleSettingsHandler(ctx.get_style_coloring());
@@ -109,7 +111,7 @@ GLFWwindow* im_start(NDContext<JSON, DB>& ctx)
     ctx.register_font("Default", font);
 #ifndef __EMSCRIPTEN__
     StringStringMap font_map;
-    if (cfg.get_nested(Static::fonts_cs, font_map)) {
+    if (cfg.get_nested_str_map(Static::fonts_cs, font_map)) {
         for (auto fit = font_map.begin(); fit != font_map.end(); ++fit) {
             font = io.Fonts->AddFontFromFileTTF(fit->second.c_str());
             IM_ASSERT(font != NULL);
@@ -173,6 +175,7 @@ inline void im_end(GLFWwindow* window)
     // Cleanup
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
+    ImPlot::DestroyContext();
     ImGui::DestroyContext();
 
     glfwDestroyWindow(window);
