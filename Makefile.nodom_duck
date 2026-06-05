@@ -5,6 +5,7 @@ DWP = emdwp
 BLD_DIR = bld
 EXE = $(BLD_DIR)/nodom_duck.html
 IMGUI_DIR = imgui
+IMPLOT_DIR = implot
 ND_SRC_DIR = src/cpp
 ND_WEB_DIR = src/web
 ND_FMT_DIR = fmt
@@ -15,9 +16,10 @@ SOURCES += $(ND_SRC_DIR)/nd_gui_utils.cpp
 SOURCES += $(ND_FMT_DIR)/src/format.cc
 SOURCES += $(IMGUI_DIR)/imgui.cpp $(IMGUI_DIR)/imgui_demo.cpp $(IMGUI_DIR)/imgui_draw.cpp $(IMGUI_DIR)/imgui_tables.cpp $(IMGUI_DIR)/imgui_widgets.cpp
 SOURCES += $(IMGUI_DIR)/backends/imgui_impl_glfw.cpp $(IMGUI_DIR)/backends/imgui_impl_opengl3.cpp
+SOURCES += $(IMPLOT_DIR)/implot.cpp $(IMPLOT_DIR)/implot_demo.cpp $(IMPLOT_DIR)/implot_items.cpp
 OBJS = $(addsuffix .o, $(addprefix bld/,$(basename $(notdir $(SOURCES)))))
 # UNAME_S := $(shell uname -s)
-CPPFLAGS = -std=c++17 -I $(IMGUI_DIR)/examples/libs/emscripten -I $(ND_FMT_DIR)/include
+CPPFLAGS = -std=c++17 -I $(IMGUI_DIR)/examples/libs/emscripten -I $(ND_FMT_DIR)/include -I $(IMPLOT_DIR)
 LDFLAGS =
 EMS =
 
@@ -84,16 +86,16 @@ $(BLD_DIR)/%.o:$(IMGUI_DIR)/%.cpp
 $(BLD_DIR)/%.o:$(IMGUI_DIR)/backends/%.cpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
 
+$(BLD_DIR)/%.o:$(IMPLOT_DIR)/%.cpp
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
+
 $(BLD_DIR)/%.o:$(ND_SRC_DIR)/%.cpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
 
 $(BLD_DIR)/%.o:$(ND_FMT_DIR)/src/%.cc
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
 
-all: $(EXE)
-	copy src\web\favicon.ico bld\favicon.ico
-	copy src\web\duck_module.js bld\duck_module.js
-	type bld\nodom_duck.html | sed s/app_key/exf/g > bld\exf.html
+all: $(EXE) web
 	@echo Build complete for $(EXE)
 
 $(BLD_DIR):
@@ -102,6 +104,11 @@ $(BLD_DIR):
 $(EXE): $(OBJS) $(BLD_DIR)
 	$(CXX) -o $@ $(OBJS) $(LDFLAGS)
 	$(DWP) -e $(BLD_DIR)\nodom_duck.wasm -o $(BLD_DIR)\nodom_duck.wasm.dwp
+
+web:
+	copy src\web\favicon.ico bld\favicon.ico
+	copy src\web\duck_module.js bld\duck_module.js
+	type bld\nodom_duck.html | sed s/app_key/exf/g > bld\exf.html
 
 clean:
 	del $(BLD_DIR)\*.o
