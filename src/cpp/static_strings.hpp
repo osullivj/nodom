@@ -28,6 +28,7 @@ struct Static {
 	inline static const char* rm_end_child_cs{ "EndChild" };
 	inline static const char* rm_begin_group_cs{ "BeginGroup" };
 	inline static const char* rm_end_group_cs{ "EndGroup" };
+	inline static const char* rm_window_cs{ "Window" };
 	inline static const char* rm_push_font_cs{ "PushFont" };	// Fonts
 	inline static const char* rm_pop_font_cs{ "PopFont" };
 
