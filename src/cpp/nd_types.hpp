@@ -161,6 +161,7 @@ enum RenderMethod : uint32_t {
     EndGroup,
     PushFont,   // Fonts
     PopFont,
+    Window,
     EndRenderMethod
 };
 
