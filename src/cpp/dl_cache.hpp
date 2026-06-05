@@ -674,7 +674,8 @@ private:
         Static::rm_begin_group_cs,
         Static::rm_end_group_cs,
         Static::rm_push_font_cs,
-        Static::rm_pop_font_cs
+        Static::rm_pop_font_cs,
+        Static::rm_window_cs
     };
 
     inline static std::array<const char*, EndDBEventTypes> db_event_types{
