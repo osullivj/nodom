@@ -190,6 +190,8 @@ inline RenderMethod RenderMethodFromString(const std::string& method) {
         return RenderMethod::PushFont;
     if (method == Static::rm_pop_font_cs)
         return RenderMethod::PopFont;
+    if (method == Static::rm_window_cs)
+        return RenderMethod::Window;
     return EndRenderMethod;
 }
 
