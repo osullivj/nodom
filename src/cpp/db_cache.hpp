@@ -316,7 +316,7 @@ public:
             // type leakage
             NDConfig<nlohmann::json>& cfg{ NDConfig<nlohmann::json>::get_instance() };
             StringStringMap cfg_map;
-            if (cfg.get_nested(Static::db_config_cs, cfg_map)) {
+            if (cfg.get_nested_str_map(Static::db_config_cs, cfg_map)) {
                 for (auto citer = cfg_map.cbegin(); citer != cfg_map.cend(); ++citer) {
                     duckdb_set_config(duck_config, citer->first.c_str(), citer->second.c_str());
                     std::cout << "DUCK_INIT: " << citer->first.c_str() << ":" << citer->second.c_str() << std::endl;
