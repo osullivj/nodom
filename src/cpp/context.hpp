@@ -5,6 +5,7 @@
 #include <functional>
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "implot.h"
 #include "locals.hpp"
 #include "ufuncs.hpp"
 #include "widgets.hpp"
@@ -974,7 +975,10 @@ protected:
         if (footer_show_demo) {
             ImGui::SameLine();
             ImGui::Checkbox("Demo", &show_demo);
-            if (show_demo)  ImGui::ShowDemoWindow();
+            if (show_demo) {
+                ImGui::ShowDemoWindow();
+                ImPlot::ShowDemoWindow();
+            }
         }
         if (footer_show_id_stack) {
             ImGui::SameLine();
