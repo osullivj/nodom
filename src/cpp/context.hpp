@@ -698,6 +698,9 @@ protected:
         case RenderMethod::PopFont:
             render_pop_font(w);
             break;
+        case RenderMethod::Window:
+            render_window(w);
+            break;
         default:
             // TODO: error
             break;
@@ -834,7 +837,7 @@ protected:
         const char* title = cspec_string(cs_title, w->cspec_str, method);
         LocalFont title_font(w, cs_title_font, cs_title_font_size);
 
-        ImGui::Begin(title); //  .c_str());
+        ImGui::Begin(title);
         if (cache_is_loaded()) {
             for (int inx = 0; inx < w->children.size(); inx++) {
                 dispatch_render(w->children[inx]);
@@ -1334,6 +1337,22 @@ protected:
                 }
             }
             ImGui::EndPopup();
+        }
+    }
+
+    void render_window(WidgetPtr w) {
+        const static char* method = "NDContext::render_window: ";
+        static int default_window_flags = ImGuiWindowFlags_AlwaysAutoResize;
+
+        const char* title = cspec_string(cs_title, w->cspec_str, method);
+        int window_flags = default_window_flags;
+        cspec_int(cs_window_flags, w->cspec_int, &window_flags);
+
+        if (ImGui::Begin(title, nullptr, window_flags)) {
+            for (int inx = 0; inx < w->children.size(); inx++) {
+                dispatch_render(w->children[inx]);
+            }
+            ImGui::End();
         }
     }
 
