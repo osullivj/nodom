@@ -1352,8 +1352,10 @@ protected:
             for (int inx = 0; inx < w->children.size(); inx++) {
                 dispatch_render(w->children[inx]);
             }
-            ImGui::End();
         }
+        // https://github.com/ocornut/imgui/issues/6683
+        // We always need a matching End() even if Begin() rets false
+        ImGui::End();
     }
 
     void render_table(WidgetPtr w) {
