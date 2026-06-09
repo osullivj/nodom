@@ -33,3 +33,9 @@ struct SpinnerLocals {
     float   a;
     ImVec2  centre;
 };
+
+struct ShadedPlotLocals {
+    ImPlotSpec  spec;
+    bool        show_fills{ true };
+    bool        show_lines{ true };
+};
