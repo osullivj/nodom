@@ -162,6 +162,7 @@ enum RenderMethod : uint32_t {
     PushFont,   // Fonts
     PopFont,
     Window,
+    ShadedPlot,
     EndRenderMethod
 };
 
@@ -428,6 +429,9 @@ enum CacheSpecifier : uint32_t {
     cs_combo_flags,
     cs_window_flags,
     cs_column_flags,
+    cs_show_lines,
+    cs_show_fills,
+    cs_plot_flags,
     cs_show_footer_db,
     cs_show_footer_fps,
     cs_show_footer_demo,
@@ -437,6 +441,8 @@ enum CacheSpecifier : uint32_t {
     cs_cname,                   // cname_cpsec_types
     cs_cindex,                  // cindex_cpsec_types
     cs_query_id,
+    cs_xname,
+    cs_yname,
     cs_end_cache_specs
 };
 
