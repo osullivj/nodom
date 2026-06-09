@@ -192,6 +192,8 @@ inline RenderMethod RenderMethodFromString(const std::string& method) {
         return RenderMethod::PopFont;
     if (method == Static::rm_window_cs)
         return RenderMethod::Window;
+    if (method == Static::rm_shaded_plot_cs)
+        return RenderMethod::ShadedPlot;
     return EndRenderMethod;
 }
 
