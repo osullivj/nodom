@@ -675,7 +675,8 @@ private:
         Static::rm_end_group_cs,
         Static::rm_push_font_cs,
         Static::rm_pop_font_cs,
-        Static::rm_window_cs
+        Static::rm_window_cs,
+        Static::rm_shaded_plot_cs
     };
 
     inline static std::array<const char*, EndDBEventTypes> db_event_types{
@@ -712,6 +713,9 @@ private:
         Static::combo_flags_cs,      // cs_combo_flags
         Static::window_flags_cs,      // cs_window_flags
         Static::column_flags_cs,      // cs_column_flags
+        Static::show_lines_cs,
+        Static::show_fills_cs,
+        Static::plot_flags_cs,
         Static::db_cs,     // cs_db,
         Static::fps_cs,     // cs_fps,
         Static::demo_cs,     // cs_demo,
@@ -748,6 +752,9 @@ private:
         cdInt,      // cs_combo_flags
         cdInt,      // cs_window_flags
         cdInt,      // cs_column_flags
+        cdBool,     // cs_show_lines
+        cdBool,     // cs_show_fills
+        cdInt,      // cs_plot_flags
         cdBool,     // cs_show_footer_db
         cdBool,     // cs_show_footer_fps
         cdBool,     // cs_show_footer_demo
@@ -757,14 +764,6 @@ private:
         cdAny,      // cs_cname
         cdAny,      // cs_cindex
         cdResultSet // cs_query_id
-    };
-
-    inline static std::map<RenderMethod, CacheDataType> cname_cspec_types{
-        {Combo, cdStrVec},
-        {InputInt, cdInt},
-        {Checkbox, cdBool},
-        {DatePicker, cdIntVec},
-        {LoadingModal, cdStrVec}
     };
 
     inline static  std::map<RenderMethod, CacheSpecVec> value_cspecs{
@@ -791,18 +790,29 @@ private:
                     cs_body_font, cs_body_font_size,
                     cs_spinner_thickness, cs_spinner_radius,
                     cs_window_flags}},
+        {Window, {cs_title, cs_title_font, cs_title_font_size,
+                    cs_window_flags}},
+        {ShadedPlot, {cs_title, cs_show_lines, cs_show_fills, cs_plot_flags}},
         {PushFont, {cs_font, cs_font_size}},
         {BeginChild, {cs_title}}
     };
 
     inline static std::map<RenderMethod, CacheSpecTypeMap> addr_cspecs{
         {InputInt, {{cs_cname, cdInt}}},
-        {Combo, {{cs_cindex, cdInt}, {cs_cname, cdStrVec}}},
+        {Combo, {
+            {cs_cindex, cdInt},
+            {cs_cname, cdStrVec}
+        }},
         {Checkbox, {{cs_cname, cdBool}}},
         {DatePicker, {{cs_cname, cdIntVec}}},
         {LoadingModal, {{cs_cname, cdStrVec}}},
         {DuckTableSummaryModal, {{cs_query_id, cdResultSet}}},
-        {Table, {{cs_query_id, cdResultSet}}}
+        {Table, {{cs_query_id, cdResultSet}}},
+        {ShadedPlot, {
+            {cs_query_id, cdResultSet},
+            {cs_xname, cdStr},
+            {cs_yname, cdStr}
+        }}
     };
 
 public:
