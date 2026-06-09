@@ -29,6 +29,7 @@ struct Static {
 	inline static const char* rm_begin_group_cs{ "BeginGroup" };
 	inline static const char* rm_end_group_cs{ "EndGroup" };
 	inline static const char* rm_window_cs{ "Window" };
+	inline static const char* rm_shaded_plot_cs{ "ShadedPlot" };
 	inline static const char* rm_push_font_cs{ "PushFont" };	// Fonts
 	inline static const char* rm_pop_font_cs{ "PopFont" };
 
@@ -68,12 +69,18 @@ struct Static {
 	inline static const char* id_stack_cs{ "id_stack" };
 	inline static const char* font_scale_cs{ "font_scale" };
 	inline static const char* style_cs{ "style" };
+	inline static const char* show_lines_cs{ "show_lines" }; 
+	inline static const char* show_fills_cs{ "show_fills" };
+	inline static const char* plot_flags_cs{ "plot_flags" };
+
 
 	inline static const char* lb_footer_style_cs{ "Style" };
 	inline static const char* cspec_cs{ "cspec" };
 	inline static const char* cname_cs{ "cname" };
 	inline static const char* qname_cs{ "qname" };
 	inline static const char* rname_cs{ "rname" };
+	inline static const char* xname_cs{ "xname" };
+	inline static const char* yname_cs{ "yname" };
 	inline static const char* cindex_cs{ "cindex" };
 
 	inline static const char* sql_cs{ "sql" };
