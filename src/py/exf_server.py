@@ -196,7 +196,20 @@ EXF_LAYOUT = [
             window_flags=WindowFlags.ALWAYS_AUTO_RESIZE
             | WindowFlags.HORIZONTAL_SCROLLBAR,
         ),
-        children=[],
+        children=[
+            dict(
+                widget_id=CHART_ID,
+                rname="ShadedPlot",
+                cspec=dict(
+                    title="depth",
+                    show_lines=True,
+                    show_fills=True,
+                    xname="xaxis",
+                    yname="yaxis",
+                    query_id=SELECT_QID,
+                ),
+            )
+        ],
     ),
 ]
 

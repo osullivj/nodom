@@ -387,7 +387,7 @@ protected:
             case EndDataTypes:
                 assert(false);
                 break;
-            case cdStr:
+
             case cdFloat:       // not required by any widget yet
                 assert(false);
                 break;
@@ -395,6 +395,9 @@ protected:
                 // no need to set data_ref.ref_inx as the result set
                 // is not in the data cache
                 assert(true);
+                break;
+            case cdStr: // spec:[xname|yname], sz:1. TODO: extend to strvec for multi Yval plots
+                data_ref.ref_inx = get_string_index<CIT::Value>(JAsString(data, addr_or_qid))();
                 break;
             case cdInt: // spec:cindex, sz:1
                 data_ref.ref_inx = get_int_index(JAsInt(data, addr_or_qid))();
@@ -724,7 +727,9 @@ private:
         Static::style_cs,        // cs_style
         Static::cname_cs,
         Static::cindex_cs,
-        Static::query_id_cs
+        Static::query_id_cs,
+        Static::xname_cs,
+        Static::yname_cs
     };
 
     inline static std::array<CacheDataType, cs_end_cache_specs> cspec_types{

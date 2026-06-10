@@ -138,6 +138,17 @@ public:
             return false;
 
         // now we know the handle is good...
+        int32_t col_inx = get_col_index(handle, col_name);
+        uint32_t chunk_sz{0};
+        Bobbin& bob = bobbin_map.at(handle);
+        auto chunk_iter = bob.begin();
+        duckdb_data_chunk chunk;
+        // get type metadata for the colm vector and validities
+        const std::vector<duckdb_type>& types{ type_map.at(handle) };
+        duckdb_type colm_type(types[col_inx]);
+        const std::vector<duckdb_logical_type>& logical_types{ logical_type_map.at(handle) };
+        duckdb_logical_type colm_type_l(logical_types[col_inx]);
+
         switch (colm_type) {
         case DUCKDB_TYPE_DOUBLE:
             min = 0.0;
@@ -148,16 +159,6 @@ public:
             max = 0;
             break;
         }
-        int32_t col_inx = get_col_index(handle, col_name);
-        uint32_t chunk_sz{0};
-        Bobbin& bob = bobbin_map.at(handle);
-        auto chunk_iter = bob.begin();
-        duckdb_data_chunk chunk;
-        // get type metadata for the colm vector and validities
-        const std::vector<duckdb_type>& types{ type_map.at(handle) };
-        duckdb_type colm_type(types[colm_index]);
-        const std::vector<duckdb_logical_type>& logical_types{ logical_type_map.at(handle) };
-        duckdb_logical_type colm_type_l(logical_types[colm_index]);
 
         while (chunk_iter != bob.end()) {
             chunk = *chunk_iter;
@@ -208,16 +209,22 @@ public:
         uint32_t    end_chunk_count{ 0 };
         int         xcol_inx{ -1 };
         int         ycol_inx{ -1 };
+        duckdb_type xcol_type{DUCKDB_TYPE_INVALID};
+        duckdb_type ycol_type{ DUCKDB_TYPE_INVALID };
         // set by next() and consumed by ImPlot::PlotLine()
         double*     xdata{ nullptr };
         double*     ydata{ nullptr };
+        int32_t*    idata{ nullptr };
         uint32_t    plot_count{ 0 };
     };
 
-    XYRange range;
 
     XYRange* init_xy_range(RSHandle h, const char* xcol_name, 
         const char* ycol_name, uint32_t offset, uint32_t count) {
+        static XYRange range;
+
+        // signal that static range needs [re]init
+        range.bob = nullptr;
         // TODO: hand back ptr to underlying data
         // if the underlying is int, we cp into double_int_buffer
         auto bob_iter = bobbin_map.find(h);
@@ -227,47 +234,77 @@ public:
         range.bob = &bob;
         range.offset = offset;
         range.row_count = count;
-        range.start_chunk = offset / CHUNK_SIZE;
-        range.end_chunk = range.start_chunk + 1 + (count / CHUNK_SIZE);
-        range.chunk_index = range.start_chunk;
+        range.start_chunk = range.offset / CHUNK_SIZE;
         range.start_chunk_offset = offset % CHUNK_SIZE;
-        range.end_chunk_count = count - range.start_chunk_offset - CHUNK_SIZE * (range.start_chunk - range.end_chunk - 1);
+        range.end_chunk = range.start_chunk + ((range.start_chunk_offset+range.row_count)/CHUNK_SIZE);
+        range.chunk_index = range.start_chunk;
+        range.end_chunk_count = (range.row_count + range.start_chunk_offset) - (CHUNK_SIZE * (range.end_chunk - range.start_chunk));
         range.xcol_inx = get_col_index(h, xcol_name);
         range.ycol_inx = get_col_index(h, ycol_name);
         const std::vector<duckdb_type>& types{ type_map.at(h) };
-        duckdb_type xcolm_type(types[range.xcol_inx]);
-        duckdb_type ycolm_type(types[range.ycol_inx]);
-        assert(xcolm_type == DUCKDB_TYPE_DOUBLE);
-        assert(ycolm_type == DUCKDB_TYPE_DOUBLE);
+        range.xcol_type = types[range.xcol_inx];
+        range.ycol_type = types[range.ycol_inx];
     }
 
-    XYRange* next_xy_range(XYRange* last) {
-        if (last == nullptr || last->bob == nullptr)
+    XYRange* next_xy_range(XYRange* range) {
+        static double_t dbl_buf[CHUNK_SIZE];
+
+        if (range == nullptr || range->bob == nullptr)
             return nullptr;
+
+        if (!(range->xcol_type == DUCKDB_TYPE_DOUBLE
+            || range->xcol_type == DUCKDB_TYPE_INTEGER)) {
+            return nullptr;
+        }
+        if (!(range->ycol_type == DUCKDB_TYPE_DOUBLE)) {
+            return nullptr;
+        }
 
         // was our last invocation for the last chunk?
-        if (last->chunk_index > last->end_chunk) {
+        // if so, cleardown
+        if (range->chunk_index > range->end_chunk) {
+            range->bob = nullptr;
             return nullptr;
         }
-        Bobbin& bob{ *last->bob };
-        duckdb_data_chunk chunk{ bob[last->chunk_index++] };
-        duckdb_vector xcolm = duckdb_data_chunk_get_vector(chunk, last->xcol_inx);
-        last->xdata = (double_t*)duckdb_vector_get_data(xcolm);
-        duckdb_vector ycolm = duckdb_data_chunk_get_vector(chunk, last->ycol_inx);
-        last->ydata = (double_t*)duckdb_vector_get_data(ycolm);
+        Bobbin& bob{ *range->bob };
+        duckdb_data_chunk chunk{ bob[range->chunk_index++] };
+        duckdb_vector xcolm = duckdb_data_chunk_get_vector(chunk, range->xcol_inx);
+        switch (range->xcol_type) {
+        case DUCKDB_TYPE_DOUBLE:
+            range->xdata = (double_t*)duckdb_vector_get_data(xcolm);
+            break;
+        case DUCKDB_TYPE_INTEGER:
+            range->idata = (int32_t*)duckdb_vector_get_data(xcolm);
+            range->xdata = dbl_buf;
+            break;
+        }
+        duckdb_vector ycolm = duckdb_data_chunk_get_vector(chunk, range->ycol_inx);
+        range->ydata = (double_t*)duckdb_vector_get_data(ycolm);
 
-        if (last->chunk_index == last->start_chunk) {
-            last->xdata += last->start_chunk_offset;
-            last->ydata += last->start_chunk_offset;
-            last->plot_count = CHUNK_SIZE - last->start_chunk_offset;
-            return last;
+        range->plot_count = (range->row_count + range->start_chunk_offset) - (CHUNK_SIZE * (range->end_chunk - range->start_chunk));
+
+        // TODO: fix assumption that DS is large and crosses chunks
+        if (range->chunk_index == range->start_chunk) {
+            switch (range->xcol_type) {
+            case DUCKDB_TYPE_DOUBLE:
+                range->xdata += range->start_chunk_offset;
+                break;
+            case DUCKDB_TYPE_INTEGER:
+                range->idata += range->start_chunk_offset;
+                for (int i = 0; i < range->plot_count; i++)
+                    dbl_buf[i] = static_cast<double>(range->idata[i]);
+                range->xdata = dbl_buf;
+                break;
+            }          
+            range->ydata += range->start_chunk_offset;
+            return range;
         }
-        if (last->chunk_index == last->end_chunk) {
-            last->plot_count = last->end_chunk_count;
-            return last;
+        if (range->chunk_index == range->end_chunk) {
+            range->plot_count = range->end_chunk_count;
+            return range;
         }
-        last->plot_count = CHUNK_SIZE;
-        return last;
+        range->plot_count = CHUNK_SIZE;
+        return range;
     }
 
     StringVec& get_col_names(RSHandle handle) {

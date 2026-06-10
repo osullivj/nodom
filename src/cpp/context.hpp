@@ -702,6 +702,10 @@ protected:
         case RenderMethod::Window:
             render_window(w);
             break;
+        case RenderMethod::ShadedPlot:
+            render_shaded_plot(w);
+            break;
+
         default:
             // TODO: error
             break;
@@ -1382,11 +1386,11 @@ protected:
         assert(x_data_ref != nullptr);
         assert(y_data_ref != nullptr);
 
-        StrInx xinx{ str_vec_data_ref->ref_inx };
+        StrInx xinx{ x_data_ref->ref_inx };
         const char* x_col_name = data_lay_cache.get_string_value(xinx);
 
         // TODO: extend for multiple y plots
-        StrInx yinx{ str_vec_data_ref->ref_inx };
+        StrInx yinx{ y_data_ref->ref_inx };
         const char* y_col_name = data_lay_cache.get_string_value(yinx);
 
         // get ranges from bulk cache
@@ -1396,24 +1400,28 @@ protected:
         sh_pl_vars.row_count = proxy.get_row_count(handle);
         sh_pl_vars.offset = 0;
 
-        XYRange* range{ 0 };
+        DB::XYRange* range{ 0 };
         if (ImPlot::BeginPlot(title)) {
-            ImPlot::SetupAxes(xlabel, ylabel);
+            ImPlot::SetupAxes(x_col_name, y_col_name);
             ImPlot::SetupAxesLimits(sh_pl_vars.xmin_dbl, sh_pl_vars.xmax_dbl,
                                         sh_pl_vars.ymin_dbl, sh_pl_vars.ymax_dbl);
             if (sh_pl_vars.show_fills) {
                 sh_pl_vars.spec.Flags = shaded_plot_flags;
                 sh_pl_vars.spec.FillAlpha = 0.25f;
-                range = proxy.init_xy_range(h, xlabel, ylabel, sh_pl_vars.offset, sh_pl_vars.row_count);
-                while ((range = proxy.next_xy_range(range)) != nullptr) {
-                    ImPlot::PlotShaded(title, range->xdata, range->ydata, range->plot_count, sh_pl_spec);
+                range = proxy.init_xy_range(handle, x_col_name, y_col_name, sh_pl_vars.offset, sh_pl_vars.row_count);
+                range = proxy.next_xy_range(range);
+                while (range != nullptr) {
+                    ImPlot::PlotShaded(title, range->xdata, range->ydata, range->plot_count, 0.0, sh_pl_vars.spec);
+                    range = proxy.next_xy_range(range);
                 }
             }
             // Lines on top of fills
             if (sh_pl_vars.show_lines) {
-                range = proxy.init_xy_range(h, xlabel, ylabel, sh_pl_vars.offset, sh_pl_vars.row_count);
-                while ((range = proxy.next_xy_range(range)) != nullptr) {
+                range = proxy.init_xy_range(handle, x_col_name, y_col_name, sh_pl_vars.offset, sh_pl_vars.row_count);
+                range = proxy.next_xy_range(range);
+                while (range != nullptr) {
                     ImPlot::PlotLine(title, range->xdata, range->ydata, range->plot_count);
+                    range = proxy.next_xy_range(range);
                 }
             }
         }
