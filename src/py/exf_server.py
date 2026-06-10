@@ -33,7 +33,11 @@ SCAN_BUTTON_TEXT = "Scan"
 SCAN_BUTTON_ID = "i_am_scan_button"
 SUMMARY_BUTTON_TEXT = "Summary"
 SUMMARY_BUTTON_ID = "i_am_summary_button"
+CHART_BUTTON_TEXT = "Chart"
+CHART_BUTTON_ID = "i_am_chart_button"
+CHART_ID = "i_am_plot"
 SUMMARY_MODAL_ID = "i_am_depth_summary_modal"
+CHART_WINDOW_ID = "i_am_chart_window"
 DB_ID = "DuckDB"
 DB_BUTTON_ID = "i_am_footer_db_button"
 EXF_LAYOUT = [
@@ -114,6 +118,14 @@ EXF_LAYOUT = [
                     text=SUMMARY_BUTTON_TEXT,
                 ),
             ),
+            dict(rname="SameLine"),
+            dict(
+                rname="Button",
+                widget_id=CHART_BUTTON_ID,
+                cspec=dict(
+                    text=CHART_BUTTON_TEXT,
+                ),
+            ),
             dict(
                 rname="Footer",
                 cspec=dict(
@@ -174,6 +186,17 @@ EXF_LAYOUT = [
             window_flags=WindowFlags.ALWAYS_AUTO_RESIZE
             | WindowFlags.HORIZONTAL_SCROLLBAR,
         ),
+    ),
+    dict(
+        widget_id=CHART_WINDOW_ID,
+        rname="Window",
+        cspec=dict(
+            title="Chart",
+            title_font="Arial",
+            window_flags=WindowFlags.ALWAYS_AUTO_RESIZE
+            | WindowFlags.HORIZONTAL_SCROLLBAR,
+        ),
+        children=[],
     ),
 ]
 
@@ -274,6 +297,8 @@ EXF_DATA = dict(
     enable_logging_sql="INSTALL parquet; CALL enable_logging(level='debug', storage='stdout');",
     depth_storage_sql="PRAGMA storage_info('depth');",
     memory_limit_sql="SELECT current_setting('memory_limit');",
+    xaxis="SeqNo",
+    yaxis="AskPrice1",
     actions={
         f"{DB_BUTTON_ID}.Click": [LAUNCH_UI],
         # match on scan button click
@@ -286,6 +311,12 @@ EXF_DATA = dict(
             dict(
                 # depth_summary_modal is self popping,
                 ui_push=SUMMARY_MODAL_ID
+            )
+        ],
+        f"{CHART_BUTTON_ID}.Click": [
+            dict(
+                # depth_summary_modal is self popping,
+                ui_push=CHART_WINDOW_ID
             )
         ],
         f"{DB_ID}.Online": SUMMARY_SEQUENCE,

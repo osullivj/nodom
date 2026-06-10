@@ -431,7 +431,7 @@ enum CacheSpecifier : uint32_t {
     cs_column_flags,
     cs_show_lines,
     cs_show_fills,
-    cs_plot_flags,
+    cs_shaded_plot_flags,
     cs_show_footer_db,
     cs_show_footer_fps,
     cs_show_footer_demo,

@@ -715,7 +715,7 @@ private:
         Static::column_flags_cs,      // cs_column_flags
         Static::show_lines_cs,
         Static::show_fills_cs,
-        Static::plot_flags_cs,
+        Static::shaded_plot_flags_cs,
         Static::db_cs,     // cs_db,
         Static::fps_cs,     // cs_fps,
         Static::demo_cs,     // cs_demo,
@@ -754,7 +754,7 @@ private:
         cdInt,      // cs_column_flags
         cdBool,     // cs_show_lines
         cdBool,     // cs_show_fills
-        cdInt,      // cs_plot_flags
+        cdInt,      // cs_shaded_plot_flags
         cdBool,     // cs_show_footer_db
         cdBool,     // cs_show_footer_fps
         cdBool,     // cs_show_footer_demo
@@ -792,7 +792,7 @@ private:
                     cs_window_flags}},
         {Window, {cs_title, cs_title_font, cs_title_font_size,
                     cs_window_flags}},
-        {ShadedPlot, {cs_title, cs_show_lines, cs_show_fills, cs_plot_flags}},
+        {ShadedPlot, {cs_title, cs_show_lines, cs_show_fills, cs_shaded_plot_flags}},
         {PushFont, {cs_font, cs_font_size}},
         {BeginChild, {cs_title}}
     };

@@ -45,6 +45,7 @@
 #ifndef __EMSCRIPTEN__
 
 static constexpr int MAX_COLUMNS = 256;
+static constexpr int CHUNK_SIZE = 2048;
 
 using RSHandle = std::uint64_t; // == &duckdb_result
 using Bobbin = std::deque<duckdb_data_chunk>;
@@ -84,16 +85,17 @@ private:
     uint8_t decimal_scale = 0;
     double  decimal_divisor = 1.0;
     double  decimal_value = 0.0;
-    duckdb_timestamp_s* ts_secs = nullptr;
-    duckdb_timestamp_ms* ts_milli = nullptr;
-    duckdb_timestamp* ts_micro = nullptr;
-    duckdb_timestamp_ns* ts_nano = nullptr;
-    int scan_count{ 0 };
-    int query_count{ 0 };
-    int batch_count{ 0 };
+    duckdb_timestamp_s*     ts_secs = nullptr;
+    duckdb_timestamp_ms*    ts_milli = nullptr;
+    duckdb_timestamp*       ts_micro = nullptr;
+    duckdb_timestamp_ns*    ts_nano = nullptr;
+    int     scan_count{ 0 };
+    int     query_count{ 0 };
+    int     batch_count{ 0 };
+    char    string_buffer[STR_BUF_LEN];
+    char    format_buffer[FMT_BUF_LEN];
+    double  double_int_buffer[CHUNK_SIZE];
     fmt::format_to_n_result<char*> fmt_result;
-    char string_buffer[STR_BUF_LEN];
-    char format_buffer[FMT_BUF_LEN];
 
 public:
     char* buffer{ 0 };  // zero copy accessor
@@ -128,10 +130,89 @@ public:
         return row_count;
     }
 
-    StringVec& get_col_names(std::uint64_t handle) {
-        // First 3 32 bit words are done, ncols, nrows
+    template <typename T>
+    bool get_min_max(RSHandle handle, const char* col_name, T& min, T& max) {
+        auto bob_iter = bobbin_map.find(handle);
+        std::uint32_t row_count = 0;
+        if (bob_iter == bobbin_map.end())
+            return false;
+
+        // now we know the handle is good...
+        switch (colm_type) {
+        case DUCKDB_TYPE_DOUBLE:
+            min = 0.0;
+            max = 0.0;
+            break;
+        case DUCKDB_TYPE_INTEGER:
+            min = 0;
+            max = 0;
+            break;
+        }
+        int32_t col_inx = get_col_index(handle, col_name);
+        uint32_t chunk_sz{0};
+        Bobbin& bob = bobbin_map.at(handle);
+        auto chunk_iter = bob.begin();
+        duckdb_data_chunk chunk;
+        // get type metadata for the colm vector and validities
+        const std::vector<duckdb_type>& types{ type_map.at(handle) };
+        duckdb_type colm_type(types[colm_index]);
+        const std::vector<duckdb_logical_type>& logical_types{ logical_type_map.at(handle) };
+        duckdb_logical_type colm_type_l(logical_types[colm_index]);
+
+        while (chunk_iter != bob.end()) {
+            chunk = *chunk_iter;
+            duckdb_vector colm = duckdb_data_chunk_get_vector(chunk, col_inx);
+            uint64_t* validities = duckdb_vector_get_validity(colm);
+            chunk_sz = duckdb_data_chunk_get_size(chunk);
+            switch (colm_type) {
+            case DUCKDB_TYPE_DOUBLE:
+                dbldata = (double_t*)duckdb_vector_get_data(colm);
+                break;
+            case DUCKDB_TYPE_INTEGER:
+                idata = (int32_t*)duckdb_vector_get_data(colm);
+                break;
+            }
+            for (int inx = 0; inx < chunk_sz; inx++) {
+                if (duckdb_validity_row_is_valid(validities, inx)) {
+                    switch (colm_type) {
+                    case DUCKDB_TYPE_DOUBLE:
+                        if (dbldata[inx] > max)
+                            max = dbldata[inx];
+                        if (dbldata[inx] < min)
+                            min = dbldata[inx];
+                        break;
+                    case DUCKDB_TYPE_INTEGER:
+                        if (idata[inx] > max)
+                            max = idata[inx];
+                        if (idata[inx] < min)
+                            min = idata[inx];
+                        break;
+                    }
+                }
+            }
+            chunk_iter++;
+        }
+        return true;
+    }
+
+    bool get_data(RSHandle h, const char* col_name, double*& data) {
+        // TODO: hand back ptr to underlying data
+        // if the underlying is int, we cp into double_int_buffer
+    }
+
+    StringVec& get_col_names(RSHandle handle) {
         StringVec& colm_names = col_names_map[handle];
         return colm_names;
+    }
+
+    std::int32_t get_col_index(RSHandle handle, const char* col_name) {
+        int32_t rv{ -1 };
+        StringVec& colm_names = col_names_map[handle];
+        auto iter = std::find(colm_names.begin(), colm_names.end(), col_name);
+        if (iter != colm_names.end()) {
+            rv = (int32_t)std::distance(colm_names.begin(), iter);
+        }
+        return rv;
     }
 
     bool get_meta_data(RSHandle h, std::uint32_t& column_count, std::uint32_t& row_count) {
@@ -504,7 +585,7 @@ private:
     std::unordered_map<RSHandle, std::vector<int>> type_map;
     // data
     WasmChunkMap                        chunk_map;
-    uint32_t                            duck_chunk_size{ 2048 };
+    uint32_t                            duck_chunk_size{ CHUNK_SIZE };
     // working storage
     char                                string_buffer[STR_BUF_LEN];
     fmt::format_to_n_result<char*>      fmt_result;

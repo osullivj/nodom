@@ -155,6 +155,7 @@ private:
     fmt::format_to_n_result<char*> fmt_result;
     DatePickerLocals    dp_vars;
     SpinnerLocals       sp_vars;
+    ShadedPlotLocals    sh_pl_vars;
 #ifdef __EMSCRIPTEN__
     IDBFileWriter       ini_writer;
     IDBFileCachePtr     ini_cache_ptr;
@@ -1314,20 +1315,19 @@ protected:
         ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, position);
         // Get the text list
         DataRef* str_vec_data_ref = cspec_data_ref(cs_cname, w->data_refs);
+        assert(str_vec_data_ref != nullptr);
+        assert(str_vec_data_ref->tipe == cdStrVec);
 
         if (ImGui::BeginPopupModal(title, nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
             {   // local scope for LocalFont so it pops before ImGui::EndPopup()
                 LocalFont body_font(w, cs_body_font, cs_body_font_size);
-                if (str_vec_data_ref != nullptr) {
-                    assert(str_vec_data_ref->tipe == cdStrVec);
-                    StrInx sinx{ str_vec_data_ref->ref_inx };
-                    for (uint32_t i = 0; i < str_vec_data_ref->size; i++) {
-                        const char* text = data_lay_cache.get_string_value(sinx);
-                        if (text) {
-                            ImGui::TextUnformatted(text);
-                        }
-                        sinx++;
+                StrInx sinx{ str_vec_data_ref->ref_inx };
+                for (uint32_t i = 0; i < str_vec_data_ref->size; i++) {
+                    const char* text = data_lay_cache.get_string_value(sinx);
+                    if (text) {
+                        ImGui::TextUnformatted(text);
                     }
+                    sinx++;
                 }
                 cspec_int(cs_spinner_radius, w->cspec_int, &sp_vars.radius);
                 cspec_int(cs_spinner_thickness, w->cspec_int, &sp_vars.thickness);
@@ -1344,6 +1344,7 @@ protected:
         const static char* method = "NDContext::render_window: ";
         static int default_window_flags = ImGuiWindowFlags_AlwaysAutoResize;
 
+        LocalFont title_font(w, cs_title_font, cs_title_font_size);
         const char* title = cspec_string(cs_title, w->cspec_str, method);
         int window_flags = default_window_flags;
         cspec_int(cs_window_flags, w->cspec_int, &window_flags);
@@ -1356,6 +1357,55 @@ protected:
         // https://github.com/ocornut/imgui/issues/6683
         // We always need a matching End() even if Begin() rets false
         ImGui::End();
+    }
+
+    void render_shaded_plot(WidgetPtr w) {
+        const static char* method = "NDContext::render_shaded_plot: ";
+        static ImPlotShadedFlags default_shaded_plot_flags{ 0 };
+
+        const char* title = cspec_string(cs_title, w->cspec_str, method);
+        int shaded_plot_flags = default_shaded_plot_flags;
+        // See enum ImPlotShadedFlags: there is only default
+        // enable cspec setting of shaded when there is a real choice
+        // cspec_int(cs_shaded_plot_flags, w->cspec_int, &shaded_plot_flags);
+
+        cspec_bool(cs_show_lines, w->cspec_bool, &sh_pl_vars.show_lines);
+        cspec_bool(cs_show_fills, w->cspec_bool, &sh_pl_vars.show_fills);
+
+        DataRef* result_set_data_ref = cspec_data_ref(cs_query_id, w->data_refs);
+        assert(result_set_data_ref != nullptr);
+        const char* query_id = data_lay_cache.get_string_value(result_set_data_ref->addr_inx);
+        RSHandle handle = proxy.get_handle(query_id);
+
+        DataRef* x_data_ref = cspec_data_ref(cs_xname, w->data_refs);
+        DataRef* y_data_ref = cspec_data_ref(cs_yname, w->data_refs);
+        assert(x_data_ref != nullptr);
+        assert(y_data_ref != nullptr);
+
+        StrInx xinx{ str_vec_data_ref->ref_inx };
+        const char* x_col_name = data_lay_cache.get_string_value(xinx);
+
+        // TODO: extend for multiple y plots
+        StrInx yinx{ str_vec_data_ref->ref_inx };
+        const char* y_col_name = data_lay_cache.get_string_value(yinx);
+
+        // get ranges from bulk cache
+        proxy.get_min_max(handle, x_col_name, sh_pl_vars.xmin_dbl, sh_pl_vars.xmax_dbl);
+        proxy.get_min_max(handle, y_col_name, sh_pl_vars.ymin_dbl, sh_pl_vars.ymax_dbl);
+
+        if (ImPlot::BeginPlot(title)) {
+            ImPlot::SetupAxes(xlabel, ylabel);
+            ImPlot::SetupAxesLimits(sh_pl_vars.xmin_dbl, sh_pl_vars.xmax_dbl,
+                                        sh_pl_vars.ymin_dbl, sh_pl_vars.ymax_dbl);
+            if (sh_pl_vars.show_fills) {
+                sh_pl_vars.spec.Flags = shaded_plot_flags;
+                sh_pl_vars.spec.FillAlpha = 0.25f;
+            }
+            // Lines on top of fills
+            if (sh_pl_vars.show_lines) {
+                // ImPlot::PlotLine(ylabel, )
+            }
+        }
     }
 
     void render_table(WidgetPtr w) {
