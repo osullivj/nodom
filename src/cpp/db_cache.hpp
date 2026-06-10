@@ -48,7 +48,7 @@ static constexpr int MAX_COLUMNS = 256;
 static constexpr int CHUNK_SIZE = 2048;
 
 using RSHandle = std::uint64_t; // == &duckdb_result
-using Bobbin = std::deque<duckdb_data_chunk>;
+using Bobbin = std::vector<duckdb_data_chunk>;
 
 class BBDuckDBCache {
 private:
@@ -195,9 +195,79 @@ public:
         return true;
     }
 
-    bool get_data(RSHandle h, const char* col_name, double*& data) {
+    struct XYRange {
+        // supplied on init
+        uint32_t    offset{ 0 };
+        uint32_t    row_count{ 0 };
+        // calced by init
+        Bobbin*     bob{ nullptr };
+        uint32_t    start_chunk{ 0 };
+        uint32_t    end_chunk{ 0 };
+        uint32_t    chunk_index{ 0 };
+        uint32_t    start_chunk_offset{ 0 };
+        uint32_t    end_chunk_count{ 0 };
+        int         xcol_inx{ -1 };
+        int         ycol_inx{ -1 };
+        // set by next() and consumed by ImPlot::PlotLine()
+        double*     xdata{ nullptr };
+        double*     ydata{ nullptr };
+        uint32_t    plot_count{ 0 };
+    };
+
+    XYRange range;
+
+    XYRange* init_xy_range(RSHandle h, const char* xcol_name, 
+        const char* ycol_name, uint32_t offset, uint32_t count) {
         // TODO: hand back ptr to underlying data
         // if the underlying is int, we cp into double_int_buffer
+        auto bob_iter = bobbin_map.find(h);
+        if (bob_iter == bobbin_map.end())
+            return nullptr;
+        Bobbin& bob = bobbin_map.at(h);
+        range.bob = &bob;
+        range.offset = offset;
+        range.row_count = count;
+        range.start_chunk = offset / CHUNK_SIZE;
+        range.end_chunk = range.start_chunk + 1 + (count / CHUNK_SIZE);
+        range.chunk_index = range.start_chunk;
+        range.start_chunk_offset = offset % CHUNK_SIZE;
+        range.end_chunk_count = count - range.start_chunk_offset - CHUNK_SIZE * (range.start_chunk - range.end_chunk - 1);
+        range.xcol_inx = get_col_index(h, xcol_name);
+        range.ycol_inx = get_col_index(h, ycol_name);
+        const std::vector<duckdb_type>& types{ type_map.at(h) };
+        duckdb_type xcolm_type(types[range.xcol_inx]);
+        duckdb_type ycolm_type(types[range.ycol_inx]);
+        assert(xcolm_type == DUCKDB_TYPE_DOUBLE);
+        assert(ycolm_type == DUCKDB_TYPE_DOUBLE);
+    }
+
+    XYRange* next_xy_range(XYRange* last) {
+        if (last == nullptr || last->bob == nullptr)
+            return nullptr;
+
+        // was our last invocation for the last chunk?
+        if (last->chunk_index > last->end_chunk) {
+            return nullptr;
+        }
+        Bobbin& bob{ *last->bob };
+        duckdb_data_chunk chunk{ bob[last->chunk_index++] };
+        duckdb_vector xcolm = duckdb_data_chunk_get_vector(chunk, last->xcol_inx);
+        last->xdata = (double_t*)duckdb_vector_get_data(xcolm);
+        duckdb_vector ycolm = duckdb_data_chunk_get_vector(chunk, last->ycol_inx);
+        last->ydata = (double_t*)duckdb_vector_get_data(ycolm);
+
+        if (last->chunk_index == last->start_chunk) {
+            last->xdata += last->start_chunk_offset;
+            last->ydata += last->start_chunk_offset;
+            last->plot_count = CHUNK_SIZE - last->start_chunk_offset;
+            return last;
+        }
+        if (last->chunk_index == last->end_chunk) {
+            last->plot_count = last->end_chunk_count;
+            return last;
+        }
+        last->plot_count = CHUNK_SIZE;
+        return last;
     }
 
     StringVec& get_col_names(RSHandle handle) {

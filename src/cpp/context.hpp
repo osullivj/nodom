@@ -1392,7 +1392,11 @@ protected:
         // get ranges from bulk cache
         proxy.get_min_max(handle, x_col_name, sh_pl_vars.xmin_dbl, sh_pl_vars.xmax_dbl);
         proxy.get_min_max(handle, y_col_name, sh_pl_vars.ymin_dbl, sh_pl_vars.ymax_dbl);
+        // TODO: connect row_count & offset to slider widgets
+        sh_pl_vars.row_count = proxy.get_row_count(handle);
+        sh_pl_vars.offset = 0;
 
+        XYRange* range{ 0 };
         if (ImPlot::BeginPlot(title)) {
             ImPlot::SetupAxes(xlabel, ylabel);
             ImPlot::SetupAxesLimits(sh_pl_vars.xmin_dbl, sh_pl_vars.xmax_dbl,
@@ -1400,10 +1404,17 @@ protected:
             if (sh_pl_vars.show_fills) {
                 sh_pl_vars.spec.Flags = shaded_plot_flags;
                 sh_pl_vars.spec.FillAlpha = 0.25f;
+                range = proxy.init_xy_range(h, xlabel, ylabel, sh_pl_vars.offset, sh_pl_vars.row_count);
+                while ((range = proxy.next_xy_range(range)) != nullptr) {
+                    ImPlot::PlotShaded(title, range->xdata, range->ydata, range->plot_count, sh_pl_spec);
+                }
             }
             // Lines on top of fills
             if (sh_pl_vars.show_lines) {
-                // ImPlot::PlotLine(ylabel, )
+                range = proxy.init_xy_range(h, xlabel, ylabel, sh_pl_vars.offset, sh_pl_vars.row_count);
+                while ((range = proxy.next_xy_range(range)) != nullptr) {
+                    ImPlot::PlotLine(title, range->xdata, range->ydata, range->plot_count);
+                }
             }
         }
     }
