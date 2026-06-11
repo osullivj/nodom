@@ -1346,7 +1346,7 @@ protected:
 
     void render_window(WidgetPtr w) {
         const static char* method = "NDContext::render_window: ";
-        static int default_window_flags = ImGuiWindowFlags_AlwaysAutoResize;
+        static int default_window_flags = ImGuiWindowFlags_None; //  AlwaysAutoResize;
 
         LocalFont title_font(w, cs_title_font, cs_title_font_size);
         const char* title = cspec_string(cs_title, w->cspec_str, method);
@@ -1402,7 +1402,7 @@ protected:
 
         DB::XYRange* range{ 0 };
         if (ImPlot::BeginPlot(title)) {
-            ImPlot::SetupAxes(x_col_name, y_col_name);
+            ImPlot::SetupAxes(x_col_name, y_col_name, ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_AutoFit);
             ImPlot::SetupAxesLimits(sh_pl_vars.xmin_dbl, sh_pl_vars.xmax_dbl,
                                         sh_pl_vars.ymin_dbl, sh_pl_vars.ymax_dbl);
             if (sh_pl_vars.show_fills) {
