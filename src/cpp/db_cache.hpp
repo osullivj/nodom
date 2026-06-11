@@ -203,10 +203,9 @@ public:
         // calced by init
         Bobbin*     bob{ nullptr };
         uint32_t    start_chunk{ 0 };
-        uint32_t    end_chunk{ 0 };
         uint32_t    chunk_index{ 0 };
-        uint32_t    start_chunk_offset{ 0 };
-        uint32_t    end_chunk_count{ 0 };
+        uint32_t    remaining{ 0 };
+        uint32_t    chunk_offset{ 0 };
         int         xcol_inx{ -1 };
         int         ycol_inx{ -1 };
         duckdb_type xcol_type{DUCKDB_TYPE_INVALID};
@@ -235,15 +234,16 @@ public:
         range.offset = offset;
         range.row_count = count;
         range.start_chunk = range.offset / CHUNK_SIZE;
-        range.start_chunk_offset = offset % CHUNK_SIZE;
-        range.end_chunk = range.start_chunk + ((range.start_chunk_offset+range.row_count)/CHUNK_SIZE);
+        range.chunk_offset = offset % CHUNK_SIZE;
         range.chunk_index = range.start_chunk;
-        range.end_chunk_count = (range.row_count + range.start_chunk_offset) - (CHUNK_SIZE * (range.end_chunk - range.start_chunk));
+        range.remaining = count;
         range.xcol_inx = get_col_index(h, xcol_name);
         range.ycol_inx = get_col_index(h, ycol_name);
         const std::vector<duckdb_type>& types{ type_map.at(h) };
         range.xcol_type = types[range.xcol_inx];
         range.ycol_type = types[range.ycol_inx];
+
+        return &range;
     }
 
     XYRange* next_xy_range(XYRange* range) {
@@ -259,15 +259,25 @@ public:
         if (!(range->ycol_type == DUCKDB_TYPE_DOUBLE)) {
             return nullptr;
         }
-
         // was our last invocation for the last chunk?
         // if so, cleardown
-        if (range->chunk_index > range->end_chunk) {
+        if (range->remaining == 0) {
             range->bob = nullptr;
             return nullptr;
         }
         Bobbin& bob{ *range->bob };
-        duckdb_data_chunk chunk{ bob[range->chunk_index++] };
+        duckdb_data_chunk chunk{ bob[range->chunk_index] };
+        idx_t this_chunk_sz = duckdb_data_chunk_get_size(chunk);
+        uint32_t available = this_chunk_sz - range->chunk_offset;
+        if (available > range->remaining) {
+            range->plot_count = range->remaining;
+            range->remaining = 0;
+        }
+        else {
+            range->plot_count = available;
+            range->remaining -= available;
+        }
+
         duckdb_vector xcolm = duckdb_data_chunk_get_vector(chunk, range->xcol_inx);
         switch (range->xcol_type) {
         case DUCKDB_TYPE_DOUBLE:
@@ -281,29 +291,24 @@ public:
         duckdb_vector ycolm = duckdb_data_chunk_get_vector(chunk, range->ycol_inx);
         range->ydata = (double_t*)duckdb_vector_get_data(ycolm);
 
-        range->plot_count = (range->row_count + range->start_chunk_offset) - (CHUNK_SIZE * (range->end_chunk - range->start_chunk));
-
-        // TODO: fix assumption that DS is large and crosses chunks
-        if (range->chunk_index == range->start_chunk) {
-            switch (range->xcol_type) {
+        switch (range->xcol_type) {
             case DUCKDB_TYPE_DOUBLE:
-                range->xdata += range->start_chunk_offset;
+                range->xdata += range->chunk_offset;
                 break;
             case DUCKDB_TYPE_INTEGER:
-                range->idata += range->start_chunk_offset;
+                range->idata += range->chunk_offset;
                 for (int i = 0; i < range->plot_count; i++)
                     dbl_buf[i] = static_cast<double>(range->idata[i]);
-                range->xdata = dbl_buf;
-                break;
-            }          
-            range->ydata += range->start_chunk_offset;
-            return range;
+            range->xdata = dbl_buf;
+            break;
+        }          
+        range->ydata += range->chunk_offset;
+        if (range->chunk_index == range->start_chunk) {
+            // Only apply offset to first chunk. 
+            // And it may have been zero anyway
+            range->chunk_offset = 0;    
         }
-        if (range->chunk_index == range->end_chunk) {
-            range->plot_count = range->end_chunk_count;
-            return range;
-        }
-        range->plot_count = CHUNK_SIZE;
+        range->chunk_index++;
         return range;
     }
 
