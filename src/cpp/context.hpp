@@ -1424,6 +1424,7 @@ protected:
                     range = proxy.next_xy_range(range);
                 }
             }
+            ImPlot::EndPlot();
         }
     }
 
