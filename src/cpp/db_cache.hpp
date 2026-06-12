@@ -782,10 +782,9 @@ public:
             break;
         }
 
-        uint32_t this_chunk_row_count{ 0 };
-        uint32_t col_offset{ 0 };
-
-        uint32_t* chunk_ptr{ nullptr };
+        uint32_t    this_chunk_row_count{ 0 };
+        uint32_t    col_offset{ 0 };
+        uint32_t*   chunk_ptr{ nullptr };
         uint32_t*   col_ptr{ nullptr };
         double*     dbldata{ nullptr };
         int32_t*    idata{ nullptr };
@@ -868,6 +867,53 @@ public:
             return nullptr;
         }
 
+        WasmChunkVec& bob{ *range->bob };
+        WasmChunk chunk{ bob[range->chunk_index] };
+        uint32_t* chunk_ptr = reinterpret_cast<uint32_t*>(chunk.addr);
+
+        uint32_t this_chunk_sz = chunk_ptr[2];
+        uint32_t available = this_chunk_sz - range->chunk_offset;
+        if (available > range->remaining) {
+            range->plot_count = range->remaining;
+            range->remaining = 0;
+        }
+        else {
+            range->plot_count = available;
+            range->remaining -= available;
+        }
+        uint32_t ncols = chunk_ptr[1];
+        uint32_t xcol_offset = chunk_ptr[3 + ncols + range->xcol_inx];
+        uint32_t ycol_offset = chunk_ptr[3 + ncols + range->ycol_inx];
+
+        range->ydata = reinterpret_cast<double_t*>(chunk_ptr + ycol_offset);
+        switch (range->xcol_type) {
+        case wdtFloat:
+            range->xdata = reinterpret_cast<double_t*>(chunk_ptr + xcol_offset);
+            break;
+        case wdtInt:
+            range->idata = reinterpret_cast<int32_t*>(chunk_ptr + xcol_offset);
+            range->xdata = dbl_buf;
+            break;
+        }
+
+        switch (range->xcol_type) {
+        case wdtFloat:
+            range->xdata += range->chunk_offset;
+            break;
+        case wdtInt:
+            range->idata += range->chunk_offset;
+            for (int i = 0; i < range->plot_count; i++)
+                dbl_buf[i] = static_cast<double>(range->idata[i]);
+            range->xdata = dbl_buf;
+            break;
+        }
+        range->ydata += range->chunk_offset;
+        if (range->chunk_index == range->start_chunk) {
+            // Only apply offset to first chunk. 
+            // And it may have been zero anyway
+            range->chunk_offset = 0;
+        }
+        range->chunk_index++;
         return range;
     }
 
