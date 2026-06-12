@@ -854,6 +854,20 @@ public:
         if (range == nullptr || range->bob == nullptr)
             return nullptr;
 
+        if (!(range->xcol_type == wdtInt
+            || range->xcol_type == wdtFloat)) {
+            return nullptr;
+        }
+        if (!(range->ycol_type == wdtFloat)) {
+            return nullptr;
+        }
+        // was our last invocation for the last chunk?
+        // if so, cleardown
+        if (range->remaining == 0) {
+            range->bob = nullptr;
+            return nullptr;
+        }
+
         return range;
     }
 
