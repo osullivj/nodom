@@ -30,7 +30,7 @@
 
 // The "base" template interface
 
-// template <typename JSON> auto DBCache {
+// template <typename JSON> auto BulkCache {
 // public:
 //    char* buffer{ 0 };  // zero copy accessor
 //
@@ -42,13 +42,64 @@
 //    void db_dispatch(JSON& db_request);
 //    void set_done(bool d);
 
+static constexpr int CHUNK_SIZE = 2048;
+
+// clang C++17 says "forward declaration of struct cannot have a nested name specifier"
+// so we cannot declare XYRange as a nested type in the two bulk cache impls below.
+#ifndef __EMSCRIPTEN__
+using Bobbin = std::vector<duckdb_data_chunk>;
+
+struct XYRange {
+    // supplied on init
+    uint32_t    offset{ 0 };
+    uint32_t    row_count{ 0 };
+    // calced by init
+    uint32_t    start_chunk{ 0 };
+    uint32_t    chunk_index{ 0 };
+    uint32_t    remaining{ 0 };
+    uint32_t    chunk_offset{ 0 };
+    int         xcol_inx{ -1 };
+    int         ycol_inx{ -1 };
+    // set by next() and consumed by ImPlot::PlotLine()
+    double*     xdata{ nullptr };
+    double*     ydata{ nullptr };
+    int32_t*    idata{ nullptr };
+    uint32_t    plot_count{ 0 };
+    // platform specific: calced by init
+    Bobbin* bob{ nullptr };
+    duckdb_type xcol_type{ DUCKDB_TYPE_INVALID };
+    duckdb_type ycol_type{ DUCKDB_TYPE_INVALID };
+};
+#else 
+struct XYRange {
+    // supplied on init
+    uint32_t    offset{ 0 };
+    uint32_t    row_count{ 0 };
+    // calced by init
+    uint32_t    start_chunk{ 0 };
+    uint32_t    chunk_index{ 0 };
+    uint32_t    remaining{ 0 };
+    uint32_t    chunk_offset{ 0 };
+    int         xcol_inx{ -1 };
+    int         ycol_inx{ -1 };
+    // set by next() and consumed by ImPlot::PlotLine()
+    double*     xdata{ nullptr };
+    double*     ydata{ nullptr };
+    int32_t*    idata{ nullptr };
+    uint32_t    plot_count{ 0 };
+    // platform specific: calced by init
+    WasmChunkVec* bob{ nullptr };
+    WasmDuckType xcol_type{ wdtNone };
+    WasmDuckType ycol_type{ wdtNone };
+};
+#endif
+
+
 #ifndef __EMSCRIPTEN__
 
 static constexpr int MAX_COLUMNS = 256;
-static constexpr int CHUNK_SIZE = 2048;
 
 using RSHandle = std::uint64_t; // == &duckdb_result
-using Bobbin = std::vector<duckdb_data_chunk>;
 
 class BBDuckDBCache {
 private:
@@ -195,28 +246,6 @@ public:
         }
         return true;
     }
-
-    struct XYRange {
-        // supplied on init
-        uint32_t    offset{ 0 };
-        uint32_t    row_count{ 0 };
-        // calced by init
-        Bobbin*     bob{ nullptr };
-        uint32_t    start_chunk{ 0 };
-        uint32_t    chunk_index{ 0 };
-        uint32_t    remaining{ 0 };
-        uint32_t    chunk_offset{ 0 };
-        int         xcol_inx{ -1 };
-        int         ycol_inx{ -1 };
-        duckdb_type xcol_type{DUCKDB_TYPE_INVALID};
-        duckdb_type ycol_type{ DUCKDB_TYPE_INVALID };
-        // set by next() and consumed by ImPlot::PlotLine()
-        double*     xdata{ nullptr };
-        double*     ydata{ nullptr };
-        int32_t*    idata{ nullptr };
-        uint32_t    plot_count{ 0 };
-    };
-
 
     XYRange* init_xy_range(RSHandle h, const char* xcol_name, 
         const char* ycol_name, uint32_t offset, uint32_t count) {
@@ -730,6 +759,26 @@ public:
         return row_count;
     }
 
+    template <typename T>
+    bool get_min_max(RSHandle handle, const char* col_name, T& min, T& max) {
+        return false;
+    }
+
+    XYRange* init_xy_range(RSHandle h, const char* xcol_name,
+        const char* ycol_name, uint32_t offset, uint32_t count) {
+        static XYRange range;
+        return &range;
+    }
+
+    XYRange* next_xy_range(XYRange* range) {
+        static double_t dbl_buf[CHUNK_SIZE];
+
+        if (range == nullptr || range->bob == nullptr)
+            return nullptr;
+
+        return range;
+    }
+
     StringVec& get_col_names(RSHandle handle) {
         // First 3 32 bit words are done, ncols, nrows
         StringVec& colm_names = column_map[handle];
@@ -912,10 +961,6 @@ public:
         WasmChunkVec& chunk_vector = chunk_map[qid];
         chunk_vector.emplace_back(WasmChunk(size, addr));
     }
-
-
-
-
 };
 
 using Dispatcher = std::function<void(emscripten::EM_VAL result_handle)>;

@@ -1400,7 +1400,7 @@ protected:
         sh_pl_vars.row_count = proxy.get_row_count(handle);
         sh_pl_vars.offset = 0;
 
-        DB::XYRange* range{ 0 };
+        XYRange* range{ 0 };
         if (ImPlot::BeginPlot(title)) {
             ImPlot::SetupAxes(x_col_name, y_col_name, ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_AutoFit);
             ImPlot::SetupAxesLimits(sh_pl_vars.xmin_dbl, sh_pl_vars.xmax_dbl,

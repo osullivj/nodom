@@ -58,6 +58,7 @@ using WasmChunkMap = std::map<std::string, WasmChunkVec>;
 // https://github.com/apache/arrow-js/blob/main/src/enum.ts
 // ...so do not make size explicit like C/C++ types.
 enum WasmDuckType : int32_t {
+    wdtNone = 0,
     wdtInt = 2,
     wdtFloat = 3,
     wdtUtf8 = 5,
