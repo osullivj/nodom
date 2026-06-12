@@ -193,8 +193,7 @@ EXF_LAYOUT = [
         cspec=dict(
             title="Chart",
             title_font="Arial",
-            window_flags=WindowFlags.ALWAYS_AUTO_RESIZE
-            | WindowFlags.HORIZONTAL_SCROLLBAR,
+            window_flags=0,
         ),
         children=[
             dict(
@@ -208,7 +207,7 @@ EXF_LAYOUT = [
                     yname="yaxis",
                     query_id=SELECT_QID,
                 ),
-            )
+            ),
         ],
     ),
 ]
