@@ -761,7 +761,66 @@ public:
 
     template <typename T>
     bool get_min_max(RSHandle handle, const char* col_name, T& min, T& max) {
-        return false;
+        WasmChunkVec* wcv = reinterpret_cast<WasmChunkVec*>(handle);
+        if (wcv == nullptr)
+            return false;
+        // now we know the handle is good...
+        IntVec tipes = type_map[handle];
+        int32_t col_inx = get_col_index(handle, col_name);
+        uint32_t ncols = tipes.size();
+        int colm_type{ tipes[col_inx] };
+        // Next we have types, one 32bit int per col
+        // Have we already populated types and names?
+        switch (colm_type) {
+        case wdtFloat:
+            min = 0.0;
+            max = 0.0;
+            break;
+        case wdtInt:
+            min = 0;
+            max = 0;
+            break;
+        }
+
+        uint32_t this_chunk_sz{ 0 };
+        uint32_t this_chunk_row_count{ 0 };
+        uint32_t col_offset{ 0 };
+
+        uint32_t* chunk_ptr{ nullptr };
+        uint32_t*   col_ptr{ nullptr };
+        double*     dbldata{ nullptr };
+        int32_t*    idata{ nullptr };
+        for (auto scvit = wcv->begin(); scvit != wcv->end(); ++scvit) {
+            chunk_ptr = reinterpret_cast<uint32_t*>(scvit->addr);
+            this_chunk_row_count = chunk_ptr[2];
+            col_offset = chunk_ptr[3+ncols+col_inx];
+            col_ptr = chunk_ptr + col_offset;
+            switch (colm_type) {
+            case wdtFloat:
+                dbldata = (double*)col_ptr;
+                break;
+            case wdtInt:
+                idata = (int*)col_ptr;
+                break;
+            }
+            for (int inx = 0; inx < this_chunk_row_count; inx++) {
+                switch (colm_type) {
+                case wdtFloat:
+                    if (dbldata[inx] > max)
+                        max = dbldata[inx];
+                    if (dbldata[inx] < min)
+                        min = dbldata[inx];
+                    break;
+                case wdtInt:
+                    if (idata[inx] > max)
+                        max = idata[inx];
+                    if (idata[inx] < min)
+                        min = idata[inx];
+                    break;
+                }
+            }
+        }
+        return true;
     }
 
     XYRange* init_xy_range(RSHandle h, const char* xcol_name,
@@ -783,6 +842,16 @@ public:
         // First 3 32 bit words are done, ncols, nrows
         StringVec& colm_names = column_map[handle];
         return colm_names;
+    }
+
+    std::int32_t get_col_index(RSHandle handle, const char* col_name) {
+        int32_t rv{ -1 };
+        StringVec& colm_names = column_map[handle];
+        auto iter = std::find(colm_names.begin(), colm_names.end(), col_name);
+        if (iter != colm_names.end()) {
+            rv = (int32_t)std::distance(colm_names.begin(), iter);
+        }
+        return rv;
     }
 
     IntVec& get_col_types(RSHandle handle) {
