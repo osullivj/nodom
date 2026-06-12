@@ -782,7 +782,6 @@ public:
             break;
         }
 
-        uint32_t this_chunk_sz{ 0 };
         uint32_t this_chunk_row_count{ 0 };
         uint32_t col_offset{ 0 };
 
@@ -826,6 +825,26 @@ public:
     XYRange* init_xy_range(RSHandle h, const char* xcol_name,
         const char* ycol_name, uint32_t offset, uint32_t count) {
         static XYRange range;
+
+        WasmChunkVec* wcv = reinterpret_cast<WasmChunkVec*>(h);
+        if (wcv == nullptr)
+            return nullptr;
+
+        // signal that static range needs [re]init
+        range.bob = wcv;
+        range.offset = offset;
+        range.row_count = count;
+        range.start_chunk = range.offset / CHUNK_SIZE;
+        range.chunk_offset = offset % CHUNK_SIZE;
+        range.chunk_index = range.start_chunk;
+        range.remaining = count;
+        range.xcol_inx = get_col_index(h, xcol_name);
+        range.ycol_inx = get_col_index(h, ycol_name);
+
+        const std::vector<int>& types{ type_map.at(h) };
+        range.xcol_type = static_cast<WasmDuckType>(types[range.xcol_inx]);
+        range.ycol_type = static_cast<WasmDuckType>(types[range.ycol_inx]);
+
         return &range;
     }
 
