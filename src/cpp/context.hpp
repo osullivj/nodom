@@ -856,6 +856,16 @@ protected:
         const char* title = cspec_string(cs_title, w->cspec_str, method);
         LocalFont title_font(w, cs_title_font, cs_title_font_size);
 
+        DataRef* str_data_ref = cspec_data_ref(cs_menubar, w->data_refs);
+        if (str_data_ref != nullptr) {
+            // now we ptr chase through the DLC to build the menus from
+            // menuitems, and the menubar from the menus
+            StrInx sinx{ str_data_ref->ref_inx };
+            // const char* menubar_addr = data_lay_cache.get_string_value(sinx);
+
+            // TODO: impl menubar/menu/menuitem build out from DLC 
+        }
+
         ImGui::Begin(title);
         if (cache_is_loaded()) {
             for (int inx = 0; inx < w->children.size(); inx++) {

@@ -36,9 +36,6 @@ using TPMicro = std::chrono::time_point<std::chrono::system_clock, std::chrono::
 using TPNano = std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>;
 using TPSecs = std::chrono::time_point<std::chrono::system_clock, std::chrono::seconds>;
 
-class Facade;
-using FacadeMap = std::map<std::string, Facade*>;
-
 using VSFunc = std::function<void(const std::string&)>;
 using VVFunc = std::function<void()>;
 
@@ -433,6 +430,7 @@ enum CacheSpecifier : uint32_t {
     cs_show_lines,
     cs_show_fills,
     cs_shaded_plot_flags,
+    cs_menubar,
     cs_show_footer_db,
     cs_show_footer_fps,
     cs_show_footer_demo,

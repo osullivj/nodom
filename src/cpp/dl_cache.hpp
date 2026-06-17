@@ -316,7 +316,7 @@ protected:
                     widget->cspec_float[spec] = get_float_index(JAsFloat(cspec, value_name));
                     break;
                 case cdBool:
-                    widget->cspec_bool[spec] = get_bool_index(JAsBool(cspec, value_name)?1:0);
+                    widget->cspec_bool[spec] = get_bool_index(JAsBool(cspec, value_name) ? 1 : 0);
                     break;
                 case cdStr:
                     widget->cspec_str[spec] = get_string_index<Value>(JAsString(cspec, value_name));
@@ -338,8 +338,11 @@ protected:
             // if we did ref_type = cspec_types[spec] we'd get cdAny
             // for cname. Instead we get it from the CacheSpecTypeMap 
             CacheDataType ref_type{ ctmit->second };
-            std::string ref_name = cspec_names[spec];   // [cindex|cname|query_id]
+            std::string ref_name = cspec_names[spec];   // [cindex|cname|query_id|menubar]
             if (!JContains(cspec, ref_name.c_str())) {
+                // menubar is optional in the Home and Window cspec
+                if (spec == cs_menubar)
+                    continue;
                 bad_data_refs.push_back(ref_name);
                 std::stringstream ss{ "BAD_DATA_REF(" };
                 ss << ref_name << ") in cspec:";
@@ -377,12 +380,19 @@ protected:
                     continue;
                 }
             }
-            DataRef data_ref{ ref_type, query_inx.is_valid() ? query_inx() : amit->second()};
-            StringVec svec;
-            IntVec ivec;
-            JSON jvec{ JSON::array() };
+            CreateDataRef(ref_type, query_inx.is_valid() ? query_inx() : amit->second(), 
+                spec, data, addr_or_qid, widget);
+        }
+    }
 
-            switch (ref_type) {
+    void CreateDataRef(CDT ref_type, AddrInx inx, CacheSpecifier spec,
+            const JSON& data, const std::string& addr, WidgetPtr widget) {
+        DataRef data_ref{ ref_type, inx};
+        StringVec svec;
+        IntVec ivec;
+        JSON jvec{ JSON::array() };
+
+        switch (ref_type) {
             case cdAny:         // shouldn't be in addr_cspecs!
             case EndDataTypes:
                 assert(false);
@@ -397,16 +407,16 @@ protected:
                 assert(true);
                 break;
             case cdStr: // spec:[xname|yname], sz:1. TODO: extend to strvec for multi Yval plots
-                data_ref.ref_inx = get_string_index<CIT::Value>(JAsString(data, addr_or_qid))();
+                data_ref.ref_inx = get_string_index<CIT::Value>(JAsString(data, addr))();
                 break;
             case cdInt: // spec:cindex, sz:1
-                data_ref.ref_inx = get_int_index(JAsInt(data, addr_or_qid))();
+                data_ref.ref_inx = get_int_index(JAsInt(data, addr))();
                 break;
             case cdBool:
-                data_ref.ref_inx = get_bool_index(JAsInt(data, addr_or_qid))();
+                data_ref.ref_inx = get_bool_index(JAsInt(data, addr))();
                 break;
             case cdIntVec:
-                jvec = data[addr_or_qid];
+                jvec = data[addr];
                 data_ref.size = JSize(jvec);
                 if (data_ref.size > 0) {
                     // capture the "base" index; subsequent indices
@@ -417,7 +427,7 @@ protected:
                 }
                 break;
             case cdStrVec:
-                JAsStringVec(data, addr_or_qid.c_str(), svec);
+                JAsStringVec(data, addr.c_str(), svec);
                 data_ref.size = (uint32_t)svec.size();
                 if (data_ref.size > 0) {
                     auto it = svec.begin();
@@ -425,11 +435,13 @@ protected:
                     while (it != svec.end())
                         get_string_index<CIT::Value>(*it++);
                 }
+                if (spec == cs_menubar) {
+
+                }
                 break;
             }
-            widget->data_refs[spec] = data_ref;
-            data_ref_map[data_ref.addr_inx] = data_ref;
-        }
+        widget->data_refs[spec] = data_ref;
+        data_ref_map[data_ref.addr_inx] = data_ref;
     }
 
     void on_layout(const JSON& data, const JSON& layout, WidgetVec* wv = nullptr) {
@@ -719,6 +731,7 @@ private:
         Static::show_lines_cs,
         Static::show_fills_cs,
         Static::shaded_plot_flags_cs,
+        Static::menubar_cs,
         Static::db_cs,     // cs_db,
         Static::fps_cs,     // cs_fps,
         Static::demo_cs,     // cs_demo,
@@ -760,6 +773,7 @@ private:
         cdBool,     // cs_show_lines
         cdBool,     // cs_show_fills
         cdInt,      // cs_shaded_plot_flags
+        cdStr,      // cs_menubar
         cdBool,     // cs_show_footer_db
         cdBool,     // cs_show_footer_fps
         cdBool,     // cs_show_footer_demo
@@ -803,6 +817,7 @@ private:
     };
 
     inline static std::map<RenderMethod, CacheSpecTypeMap> addr_cspecs{
+        {Home, {{cs_menubar, cdStrVec}}},
         {InputInt, {{cs_cname, cdInt}}},
         {Combo, {
             {cs_cindex, cdInt},
@@ -817,7 +832,8 @@ private:
             {cs_query_id, cdResultSet},
             {cs_xname, cdStr},
             {cs_yname, cdStr}
-        }}
+        }},
+        {Window, {{cs_menubar, cdStrVec}}}
     };
 
 public:

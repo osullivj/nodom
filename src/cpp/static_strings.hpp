@@ -72,7 +72,7 @@ struct Static {
 	inline static const char* show_lines_cs{ "show_lines" }; 
 	inline static const char* show_fills_cs{ "show_fills" };
 	inline static const char* shaded_plot_flags_cs{ "shaded_plot_flags" };
-
+	inline static const char* menubar_cs{ "menubar" };
 
 	inline static const char* lb_footer_style_cs{ "Style" };
 	inline static const char* cspec_cs{ "cspec" };
