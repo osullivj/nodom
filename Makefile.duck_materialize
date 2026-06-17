@@ -1,34 +1,19 @@
-#
-# Makefile to use with GLFW+emscripten
-# See https://emscripten.org/docs/getting_started/downloads.html
-# for installation instructions.
-#
-# This Makefile assumes you have loaded emscripten's environment.
-# (On Windows, you may need to execute emsdk_env.bat or encmdprompt.bat ahead)
-#
-# Running `make -f Makefile.emscripten` will produce three files:
-#  - web/index.html
-#  - web/index.js
-#  - web/index.wasm
-#
-# All three are needed to run the demo.
-
+# Based on imgui's Makefile to use with GLFW+emscripten
 CC = emcc
 CXX = emcc
 DWP = emdwp
 BLD_DIR = bld
 EXE = $(BLD_DIR)/duck_materialize.html
-IMGUI_DIR = imgui
+IMGUI_DIR = lib/imgui
 ND_SRC_DIR = src/cpp
 ND_WEB_DIR = src/web
 ND_TST_DIR = test/unit/cpp
-ND_FMT_DIR = fmt
+ND_FMT_DIR = lib/fmt
 SOURCES = $(ND_TST_DIR)/duck_materialize.cpp
 SOURCES += $(ND_SRC_DIR)/nd_utils.cpp
-SOURCES += $(ND_FMT_DIR)/src/format.cc
 OBJS = $(addsuffix .o, $(addprefix bld/,$(basename $(notdir $(SOURCES)))))
 # UNAME_S := $(shell uname -s)
-CPPFLAGS = -I $(IMGUI_DIR)/examples/libs/emscripten -I $(ND_SRC_DIR) -I $(ND_FMT_DIR)/include
+CPPFLAGS = -I $(IMGUI_DIR)/examples/libs/emscripten -I $(ND_SRC_DIR)
 LDFLAGS =
 EMS =
 
@@ -44,7 +29,7 @@ EMS =
 # exceptions
 EMS += -s DISABLE_EXCEPTION_CATCHING=1
 # EMS += -s DISABLE_EXCEPTION_CATCHING=0
-# EMS +=  --use-port=contrib.glfw3 
+# EMS +=  --use-port=contrib.glfw3
 LDFLAGS += -sEXPORTED_FUNCTIONS=_on_db_result_cpp,_malloc,_get_chunk_cpp,_on_chunk_cpp -sEXPORTED_RUNTIME_METHODS=ccall,cwrap,HEAPU8,HEAPU16,HEAPU32,HEAPU64,stringToUTF8
 LDFLAGS += -s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s NO_EXIT_RUNTIME=0
 LDFLAGS += -s ASSERTIONS=1 -lembind  -lwebsocket.js -lidbstore.js
@@ -123,4 +108,3 @@ clean:
 	del $(BLD_DIR)\duck_materialize.js
 	del $(BLD_DIR)\duck_materialize.wasm
 	del $(BLD_DIR)\duck_materialize.wasm.dwp
-    

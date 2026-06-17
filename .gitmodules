@@ -1,15 +1,15 @@
 [submodule "imgui"]
-	path = imgui
+	path = lib/imgui
 	url = https://github.com/ocornut/imgui.git
 [submodule "websocketpp"]
-	path = websocketpp
+	path = lib/websocketpp
 	url = https://github.com/zaphoyd/websocketpp.git
 [submodule "fmt"]
-	path = fmt
+	path = lib/fmt
 	url = https://github.com/fmtlib/fmt.git
 [submodule "implot"]
-	path = implot
+	path = lib/implot
 	url = https://github.com/epezent/implot.git
 [submodule "imgui_club"]
-	path = imgui_club
+	path = lib/imgui_club
 	url = https://github.com/ocornut/imgui_club.git

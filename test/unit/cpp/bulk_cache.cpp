@@ -80,7 +80,7 @@ BOOST_FIXTURE_TEST_CASE(LargeXYRange, BulkCacheFixture)
     int32_t total_plot_count{ 0 };
     bulk.get_meta_data(h, col_count, row_count);
     BOOST_TEST(col_count == 32);
-    BulkCache_t::XYRange* range = bulk.init_xy_range(h, "SeqNo", "AskPrice1", 1340, 4000);
+    XYRange* range = bulk.init_xy_range(h, "SeqNo", "AskPrice1", 1340, 4000);
     range = bulk.next_xy_range(range);
     BOOST_TEST(range->plot_count == 708);
     total_plot_count += range->plot_count;
@@ -108,7 +108,7 @@ BOOST_FIXTURE_TEST_CASE(SmallXYRange, BulkCacheFixture)
     int32_t total_plot_count{ 0 };
     bulk.get_meta_data(h, col_count, row_count);
     BOOST_TEST(col_count == 32);
-    BulkCache_t::XYRange* range = bulk.init_xy_range(h, "SeqNo", "AskPrice1", 2780, 420);
+    XYRange* range = bulk.init_xy_range(h, "SeqNo", "AskPrice1", 2780, 420);
     range = bulk.next_xy_range(range);
     BOOST_TEST(range->plot_count == 420);
     total_plot_count += range->plot_count;

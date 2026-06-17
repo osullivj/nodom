@@ -104,7 +104,7 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>%ND_HOME%\fmt\include;%ND_HOME%\websocketpp;%ND_HOME%\imgui;%ND_HOME%\imgui\backends;%ND_HOME%\imgui\examples\libs\glfw\include;%ND_HOME%\imgui\examples\libs\emscripten;%ND_HOME%\implot;%ND_HOME%\venv\lib\site-packages\pyarrow\include;%ND_BOOST_HOME%;%ND_SSL_HOME%\x64\include;%ND_DUCK_HOME%;%ND_EMS_HOME%\upstream\emscripten\cache\sysroot\include\emscripten;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%ND_HOME%\lib\fmt\include;%ND_HOME%\lib\websocketpp;%ND_HOME%\lib\imgui;%ND_HOME%\lib\imgui\backends;%ND_HOME%\lib\imgui\examples\libs\glfw\include;%ND_HOME%\lib\imgui\examples\libs\emscripten;%ND_HOME%\lib\implot;%ND_HOME%\venv\lib\site-packages\pyarrow\include;%ND_BOOST_HOME%;%ND_SSL_HOME%\x64\include;%ND_DUCK_HOME%;%ND_EMS_HOME%\upstream\emscripten\cache\sysroot\include\emscripten;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <PreprocessorDefinitions>NOMINMAX;USE_PIX;NODOM_DUCK;_WIN32_WINNT=0x0601;BOOST_BIND_GLOBAL_PLACEHOLDERS;_CRT_SECURE_NO_WARNINGS;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalOptions>/bigobj /utf-8 /wd4127 /wd4172 /wd4302 /wd4311 %(AdditionalOptions)</AdditionalOptions>
@@ -112,7 +112,7 @@
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>%ND_HOME%\imgui\examples\libs\glfw\lib-vc2010-64;%ND_PY_HOME%\libs;%ND_BOOST_HOME%\stage\lib;%ND_HOME%\venv\lib\site-packages\pyarrow;%ND_DUCK_HOME%;(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>%ND_HOME%\lib\imgui\examples\libs\glfw\lib-vc2010-64;%ND_PY_HOME%\libs;%ND_BOOST_HOME%\stage\lib;%ND_HOME%\venv\lib\site-packages\pyarrow;%ND_DUCK_HOME%;(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>opengl32.lib;glfw3.lib;arrow_python.lib;arrow.lib;duckdb.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Console</SubSystem>
       <IgnoreSpecificDefaultLibraries>msvcrt.lib</IgnoreSpecificDefaultLibraries>
@@ -146,7 +146,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>%ND_HOME%\fmt\include;%ND_HOME%\websocketpp;%ND_HOME%\imgui;%ND_HOME%\imgui\backends;%ND_HOME%\imgui\examples\libs\glfw\include;%ND_HOME%\imgui\examples\libs\emscripten;%ND_HOME%\ImGuiDatePicker;%ND_HOME%\venv\lib\site-packages\pyarrow\include;%ND_BOOST_HOME%;%ND_SSL_HOME%\x64\include;%ND_DUCK_HOME%;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%ND_HOME%\lib\fmt\include;%ND_HOME%\lib\websocketpp;%ND_HOME%\lib\imgui;%ND_HOME%\lib\imgui\backends;%ND_HOME%\lib\imgui\examples\libs\glfw\include;%ND_HOME%\lib\imgui\examples\libs\emscripten;%ND_HOME%\venv\lib\site-packages\pyarrow\include;%ND_BOOST_HOME%;%ND_SSL_HOME%\x64\include;%ND_DUCK_HOME%;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <PreprocessorDefinitions>USE_PIX;NODOM_DUCK;_WIN32_WINNT=0x0601;BOOST_BIND_GLOBAL_PLACEHOLDERS;_CRT_SECURE_NO_WARNINGS;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -156,7 +156,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>%ND_HOME%\imgui\examples\libs\glfw\lib-vc2010-64;%ND_PY_HOME%\libs;%ND_BOOST_HOME%\stage\lib;%ND_HOME%\venv\lib\site-packages\pyarrow;%ND_DUCK_HOME%;(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>%ND_HOME%\lib\imgui\examples\libs\glfw\lib-vc2010-64;%ND_PY_HOME%\libs;%ND_BOOST_HOME%\stage\lib;%ND_HOME%\venv\lib\site-packages\pyarrow;%ND_DUCK_HOME%;(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>opengl32.lib;glfw3.lib;arrow_python.lib;arrow.lib;duckdb.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Console</SubSystem>
       <IgnoreSpecificDefaultLibraries>
@@ -164,17 +164,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\fmt\src\format.cc" />
-    <ClCompile Include="..\..\imgui\backends\imgui_impl_glfw.cpp" />
-    <ClCompile Include="..\..\imgui\backends\imgui_impl_opengl3.cpp" />
-    <ClCompile Include="..\..\imgui\imgui.cpp" />
-    <ClCompile Include="..\..\imgui\imgui_demo.cpp" />
-    <ClCompile Include="..\..\imgui\imgui_draw.cpp" />
-    <ClCompile Include="..\..\imgui\imgui_tables.cpp" />
-    <ClCompile Include="..\..\imgui\imgui_widgets.cpp" />
-    <ClCompile Include="..\..\implot\implot.cpp" />
-    <ClCompile Include="..\..\implot\implot_demo.cpp" />
-    <ClCompile Include="..\..\implot\implot_items.cpp" />
+    <ClCompile Include="..\..\lib\fmt\src\format.cc" />
+    <ClCompile Include="..\..\lib\imgui\backends\imgui_impl_glfw.cpp" />
+    <ClCompile Include="..\..\lib\imgui\backends\imgui_impl_opengl3.cpp" />
+    <ClCompile Include="..\..\lib\imgui\imgui_demo.cpp" />
+    <ClCompile Include="..\..\lib\imgui\imgui_draw.cpp" />
+    <ClCompile Include="..\..\lib\imgui\imgui_tables.cpp" />
+    <ClCompile Include="..\..\lib\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="..\..\lib\implot\implot.cpp" />
+    <ClCompile Include="..\..\lib\implot\implot_demo.cpp" />
+    <ClCompile Include="..\..\lib\implot\implot_items.cpp" />
+    <ClCompile Include="..\..\lib\imgui\imgui.cpp" />
     <ClCompile Include="main_bb_duck.cpp" />
     <None Include="main_ems_duck.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -184,14 +184,11 @@
     <ClCompile Include="perf.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\imgui\imconfig.h" />
-    <ClInclude Include="..\..\imgui\imgui.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\..\imgui\imgui_internal.h" />
-    <ClInclude Include="..\..\imgui_club\imgui_memory_editor\imgui_memory_editor.h" />
-    <ClInclude Include="..\..\implot\implot.h" />
-    <ClInclude Include="..\..\implot\implot_internal.h" />
+    <ClInclude Include="..\..\lib\imgui\imgui_internal.h" />
+    <ClInclude Include="..\..\lib\imgui_club\imgui_memory_editor\imgui_memory_editor.h" />
+    <ClInclude Include="..\..\lib\implot\implot.h" />
+    <ClInclude Include="..\..\lib\implot\implot_internal.h" />
+    <ClInclude Include="..\..\lib\imgui\imconfig.h" />
     <ClInclude Include="config.hpp" />
     <ClInclude Include="context.hpp" />
     <ClInclude Include="db_cache.hpp" />
