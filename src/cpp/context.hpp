@@ -87,6 +87,7 @@ private:
     // [1] https://github.com/osullivj/imgui-jswt
     std::deque<EntityInx>       pending_pushes;
     std::deque<RenderMethod>    pending_pops;
+    std::deque<PendingAction>   pending_actions;
     // In flight action sequences. Key is query_id, not query_id.event
     struct InFlight {
         InFlight() {}
@@ -330,7 +331,7 @@ public:
         show_stopper = error_code;
         switch (error_code) {
         case WebSockConnectionFailed:
-            action_dispatch(ninx_Websock, einx_WebSockConnectionFailed);
+            pending_actions.push_back({ ninx_Websock, einx_WebSockConnectionFailed });
             break;
         case Clear:
         case EndCritical:
@@ -401,6 +402,12 @@ public:
                 << ", font_pop_count: " << font_pop_count << std::endl;
         }
         render_count++;
+
+        if (!pending_actions.empty()) {
+            PendingAction pa{ pending_actions.front() };
+            pending_actions.pop_front();
+            action_dispatch(pa.entity_inx, pa.event_inx);
+        }
 
         pix_report(RenderPushPC, static_cast<float>(font_push_count));
         pix_report(RenderPopPC, static_cast<float>(font_pop_count));
@@ -486,6 +493,8 @@ public:
     void dispatch_events(std::queue<JSON>& events) {
         const static char* method = "NDContext::dispatch_events: ";
 
+        // NB we are invoked by pump_messages(), so not on the
+        // render hot path, and can invoke action_dispatch() directly
         while (!events.empty()) {
             const JSON& resp = events.front();
             NDLogger::cout() << method << JPrettyPrint(resp) << std::endl;
@@ -551,6 +560,9 @@ public:
         EventInx einx_db{ data_lay_cache.template get_string_index<Event>(nd_type, CST::DBEvent) };
         EventInx einx_ss{ data_lay_cache.template get_string_index<Event>(nd_type, CST::SubSysEvent) };
 
+        // Remember, here we're invoked by pump_messages(), not by
+        // ctx.Render(), so we're not on the hot path and can dispatch
+        // actions directly here.
         if (einx_db == einx_Command) {
             db_status_color = amber;
         }
@@ -974,7 +986,7 @@ protected:
             // Push colour styling for the DB button
             ImGui::PushStyleColor(ImGuiCol_Button, (ImU32)db_status_color);
             if (ImGui::Button("DB")) {
-                action_dispatch(ninx_FooterDBButton, einx_Click);
+                pending_actions.push_back({ ninx_FooterDBButton, einx_Click });
             }
             ImGui::PopStyleColor(1);
         }
@@ -1210,7 +1222,7 @@ protected:
         const char* button_text = cspec_string(cs_text, w->cspec_str, method);
 
         if (ImGui::Button(button_text)) {
-            action_dispatch(w->widget_inx, einx_Click);
+            pending_actions.push_back({ w->widget_inx, einx_Click });
         }
     }
 

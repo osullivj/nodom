@@ -130,6 +130,11 @@ struct NDActionErrors {
     StringVec error_vec;
 };
 
+struct PendingAction {
+    EntityInx   entity_inx{ OH_FECK };
+    EventInx    event_inx{ OH_FECK };
+};
+
 using ActionVec = std::vector<NDAction>;
 using ActionInternVec = std::vector<NDActionInterned>;
 using ActionErrorVec = std::vector<NDActionErrors>;
