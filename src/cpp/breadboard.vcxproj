@@ -189,6 +189,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="..\..\imgui\imgui_internal.h" />
+    <ClInclude Include="..\..\imgui_club\imgui_memory_editor\imgui_memory_editor.h" />
     <ClInclude Include="..\..\implot\implot.h" />
     <ClInclude Include="..\..\implot\implot_internal.h" />
     <ClInclude Include="config.hpp" />
