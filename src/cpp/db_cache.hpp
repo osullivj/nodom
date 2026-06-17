@@ -904,7 +904,6 @@ public:
             range->idata += range->chunk_offset;
             for (int i = 0; i < range->plot_count; i++)
                 dbl_buf[i] = static_cast<double>(range->idata[i]);
-            range->xdata = dbl_buf;
             break;
         }
         range->ydata += range->chunk_offset;
@@ -1085,16 +1084,6 @@ public:
     }
 
     void set_done(bool) { }
-
-    // Duck specific methods
-    // check_duck_module: has nodom.html finished
-    // loading duck_module.js yet? Call from im_loop_body
-    bool check_duck_module() {
-        // NB this is based on imgui-jswt main.ts:check_duck_module
-        // Q: has duck_module.js created window.__nodom__ ?
-        emscripten::val window_global = emscripten::val::global("window");
-        return JContains(window_global, Static::__nodom__cs);
-    }
 
     // register with DBResultDispatcher at startup time
     void add_db_response(emscripten::EM_VAL result_handle) {
