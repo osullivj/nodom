@@ -77,22 +77,26 @@ private:
     // BAD_HANDLE_FAIL, especially for browser console log
     std::map<std::string, uint32_t>   bad_handle_map;
 
-    // action_dispatch is called while rendering, and changes
-    // the size of the render stack. JS will let us do that in the root
-    // render() method. But in C++ we use an STL iterator in the root render
-    // method, and that segfaults. So in C++ we have pending pushes done
-    // outside the render stack walk. JOS 2025-01-31
+    // action_dispatch is called while rendering, and may change
+    // the size of the render stack. In the imgui-jswt fork [1] JS allowed
+    // us do that in the root render() method. But in C++ we use an STL
+    // iterator in the root render method, and that segfaults.
+    // So in C++ we have pending pushes done outside the render stack walk.
+    // TODO: remove action_dispatch() invocation from render_methods. Instead
+    // queue them up for execution by end_render_cycle().
+    // [1] https://github.com/osullivj/imgui-jswt
     std::deque<EntityInx>       pending_pushes;
     std::deque<RenderMethod>    pending_pops;
     // In flight action sequences. Key is query_id, not query_id.event
     struct InFlight {
         InFlight() {}
         InFlight(ActionVec* avec, int i, EventInx n, EntityInx qid)
-            :sequence(avec), inx(i), next(n), query_id(qid) {}
-        ActionVec* sequence;
+            :sequence(avec), inx(i), next(n), query_id(qid) { }
+
+        ActionVec*  sequence;
         int         inx{ 0 };
-        EventInx next;
-        EntityInx query_id;
+        EventInx    next;
+        EntityInx   query_id;
     };
     std::list<InFlight> in_flight_list;
 
@@ -568,9 +572,7 @@ public:
             action_dispatch(ninx, einx_db); // qid, nd_type);
         }
         else if (einx_ss == einx_Online) {
-            // TODO: q processing order means this doesn't happen so early in cpp
-            // main.ts:on_duck_event invokes check_duck_module.
-            // However, we don't need all the check_duck_module JS module stuff,
+            // DB is online
             // so we can just flip status button color here
             db_status_color = amber;
             // signal DuckDB online
@@ -1417,6 +1419,7 @@ protected:
             }
             // Lines on top of fills
             if (sh_pl_vars.show_lines) {
+                sh_pl_vars.spec.Flags = shaded_plot_flags;
                 range = proxy.init_xy_range(handle, x_col_name, y_col_name, sh_pl_vars.offset, sh_pl_vars.row_count);
                 range = proxy.next_xy_range(range);
                 while (range != nullptr) {
