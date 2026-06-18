@@ -350,7 +350,7 @@ protected:
                 layout_errors.push_back(ss.str());
                 continue;
             }
-            // cname|cindex: ref_name will be a data addr
+            // cname|cindex|menubar: ref_name will be a data addr
             // query_id: ref_name will be an EntityInx
             std::string addr_or_qid{ JAsString(cspec, ref_name) };
             // NB amit->second is AddrInx. Either amit->second
@@ -358,12 +358,14 @@ protected:
             auto amit = address_map.find(addr_or_qid);
             EntityInx query_inx = get_query_id(addr_or_qid);
 
-            // cindex|cname data_refs must have an address_map entry.
+            // cindex|cname|menubar data_refs must have an address_map entry.
             // query_id data_refs do not have an address_map entry,
             //      but must have a valid EntityInx, which should have
             //      been created by on_data() when it parses ActionKeys
             if (amit == address_map.end()) {
-                if (ref_name == Static::cname_cs || ref_name == Static::cindex_cs) {
+                if (ref_name == Static::cname_cs || 
+                    ref_name == Static::cindex_cs ||
+                    ref_name == Static::menubar_cs) {
                     bad_data_refs.push_back(ref_name);
                     std::stringstream ss;
                     ss << "BAD_DATA_REF(" << ref_name << "/" << addr_or_qid << ") not address mapped in cspec:";
@@ -380,7 +382,8 @@ protected:
                     continue;
                 }
             }
-            CreateDataRef(ref_type, query_inx.is_valid() ? query_inx() : amit->second(), 
+            CreateDataRef(ref_type, 
+                query_inx.is_valid() ? query_inx() : amit->second(), 
                 spec, data, addr_or_qid, widget);
         }
     }
@@ -432,14 +435,19 @@ protected:
                 if (data_ref.size > 0) {
                     auto it = svec.begin();
                     data_ref.ref_inx = get_string_index<CIT::Value>(*it++)();
-                    while (it != svec.end())
-                        get_string_index<CIT::Value>(*it++);
-                }
-                if (spec == cs_menubar) {
-
+                    while (it != svec.end()) {
+                        const std::string& val{ *it };
+                        StrInx sinx = get_string_index<CIT::Value>(val);
+                        if (spec == cs_menubar) {
+                            // Each of the values in the StrVec created here is
+                            // also an addr & Menu.name for a StrVec of Menuitems
+                            CreateDataRef(cdStrVec, sinx(), cs_end_cache_specs, data, val, widget);
+                        }
+                        it++;
+                    }
                 }
                 break;
-            }
+        }
         widget->data_refs[spec] = data_ref;
         data_ref_map[data_ref.addr_inx] = data_ref;
     }
