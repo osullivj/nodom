@@ -231,9 +231,9 @@ BOOST_FIXTURE_TEST_CASE(ExfServerData, DataCacheFixture)
     auto layout = JParse<nlohmann::json>(Static::empty_list_cs);
 
 #endif
-    str_count = 22;
+    str_count = 25;
     dc.on_json(data, layout, [&]() { dc.on_init(); });
-    BOOST_TEST(dc.addr_map_size() == 10);
+    BOOST_TEST(dc.addr_map_size() == 13);
     BOOST_TEST(dc.action_map_size() == 4);
     BOOST_TEST(dc.data_ref_map_size() == 3);
     assert_cache_state();
@@ -252,7 +252,7 @@ BOOST_FIXTURE_TEST_CASE(ExfServerLayout, DataCacheFixture)
     std::string layout_json = load_json(layout_json_path.c_str());
     auto layout = JParse<nlohmann::json>(layout_json);
 #endif
-    str_count = 42;
+    str_count = 48;
     int_count = 15;
     dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.widget_vec_size() == 3);

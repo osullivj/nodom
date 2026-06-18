@@ -18,6 +18,9 @@
   "summary_sql": "",
   "ui_sql": "",
   "enable_logging_sql": "",
+  "main_menu_bar": ["Queries", "Caches"],
+  "Queries": ["the_depth_query", "the_depth_summary"],
+  "Caches": ["Hot", "Cold", "Bulk"],
   "actions": {
     "i_am_the_summary_button.Click": [
       { "ui_push": "i_am_depth_summary_modal" }

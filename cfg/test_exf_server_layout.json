@@ -2,7 +2,8 @@
   {
     "rname": "Home",
     "cspec": {
-      "title": "Eurex Futures"
+      "title": "Eurex Futures",
+      "menubar": "main_menu_bar"
     },
     "children": [
       { "rname": "BeginChild", "cspec": { "title": "Left pane" } },
