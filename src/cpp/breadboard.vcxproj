@@ -184,6 +184,7 @@
     <ClCompile Include="perf.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\lib\imgui\imgui.h" />
     <ClInclude Include="..\..\lib\imgui\imgui_internal.h" />
     <ClInclude Include="..\..\lib\imgui_club\imgui_memory_editor\imgui_memory_editor.h" />
     <ClInclude Include="..\..\lib\implot\implot.h" />
