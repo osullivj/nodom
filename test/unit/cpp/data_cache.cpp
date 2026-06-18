@@ -154,9 +154,7 @@ BOOST_FIXTURE_TEST_CASE(InitData, DataCacheFixture)
 #ifdef __EMSCRIPTEN__
     auto data = JParse<emscripten::val>(add_server_data);
 #else
-    std::string data_json_path = test_json_dir + "bb_init_data.json";
-    std::string data_json = load_json(data_json_path.c_str());
-    auto data = JParse<nlohmann::json>(data_json);
+    auto data = JParse<nlohmann::json>(Static::init_data_cs);
     auto layout = JParse<nlohmann::json>(Static::empty_list_cs);
 #endif
     // 3 addresses in AddServer test data
@@ -173,12 +171,8 @@ BOOST_FIXTURE_TEST_CASE(InitLayout, DataCacheFixture)
     // TODO: load from ems FS
     auto layout = JParse<emscripten::val>(add_server_layout);
 #else
-    std::string data_json_path = test_json_dir + "bb_init_data.json";
-    std::string data_json = load_json(data_json_path.c_str());
-    auto data = JParse<nlohmann::json>(data_json);
-    std::string layout_json_path = test_json_dir + "bb_init_layout.json";
-    std::string layout_json = load_json(layout_json_path.c_str());
-    auto layout = JParse<nlohmann::json>(layout_json);
+    auto data = JParse<nlohmann::json>(Static::init_data_cs);
+    auto layout = JParse<nlohmann::json>(Static::init_layout_cs);
 #endif
     str_count = 9;
     dc.on_json(data, layout, [&]() { dc.on_init(); });
