@@ -143,8 +143,8 @@ protected:
                 std::string rname = JAsString(action_defn, Static::ui_pop_cs);
                 action.pop_ui = RenderMethodFromString(rname);
                 if (action.pop_ui == EndRenderMethod) {
-                    std::stringstream ss{ "BAD_RNAME(" };
-                    ss << rname << ")";
+                    std::stringstream ss;
+                    ss << "BAD_RNAME(" << rname << ")";
                     std::string error{ ss.str() };
                     errors.error_vec.push_back(error);
                     errors.inx = inx;
@@ -180,8 +180,8 @@ protected:
                     interned.sql_cname = (char*)get_addr_value(action.sql_cname);
                     auto amit = address_map.find(sql_cache_key);
                     if (amit == address_map.end()) {
-                        std::stringstream ss{ "CACHE_KEY_NOT_FOUND(" };
-                        ss << sql_cache_key << ")";
+                        std::stringstream ss;
+                        ss << "CACHE_KEY_NOT_FOUND(" << sql_cache_key << ")";
                         std::string error{ ss.str() };
                         errors.error_vec.push_back(error);
                         errors.inx = inx;
@@ -341,12 +341,11 @@ protected:
             std::string ref_name = cspec_names[spec];   // [cindex|cname|query_id|menubar]
             if (!JContains(cspec, ref_name.c_str())) {
                 // menubar is optional in the Home and Window cspec
-                if (spec == cs_menubar)
+                if (spec == cs_menu_bar)
                     continue;
                 bad_data_refs.push_back(ref_name);
-                std::stringstream ss{ "BAD_DATA_REF(" };
-                ss << ref_name << ") in cspec:";
-                ss << cspec;
+                std::stringstream ss;
+                ss << "BAD_DATA_REF(" << ref_name << ") in cspec:" << cspec;
                 layout_errors.push_back(ss.str());
                 continue;
             }
@@ -365,7 +364,7 @@ protected:
             if (amit == address_map.end()) {
                 if (ref_name == Static::cname_cs || 
                     ref_name == Static::cindex_cs ||
-                    ref_name == Static::menubar_cs) {
+                    ref_name == Static::menu_bar_cs) {
                     bad_data_refs.push_back(ref_name);
                     std::stringstream ss;
                     ss << "BAD_DATA_REF(" << ref_name << "/" << addr_or_qid << ") not address mapped in cspec:";
@@ -389,66 +388,71 @@ protected:
     }
 
     void CreateDataRef(CDT ref_type, AddrInx inx, CacheSpecifier spec,
-            const JSON& data, const std::string& addr, WidgetPtr widget) {
-        DataRef data_ref{ ref_type, inx};
+        const JSON& data, const std::string& addr, WidgetPtr widget) {
+        DataRef data_ref{ ref_type, inx };
         StringVec svec;
         IntVec ivec;
         JSON jvec{ JSON::array() };
 
         switch (ref_type) {
-            case cdAny:         // shouldn't be in addr_cspecs!
-            case EndDataTypes:
-                assert(false);
-                break;
+        case cdAny:         // shouldn't be in addr_cspecs!
+        case EndDataTypes:
+            assert(false);
+            break;
 
-            case cdFloat:       // not required by any widget yet
-                assert(false);
-                break;
-            case cdResultSet:
-                // no need to set data_ref.ref_inx as the result set
-                // is not in the data cache
-                assert(true);
-                break;
-            case cdStr: // spec:[xname|yname], sz:1. TODO: extend to strvec for multi Yval plots
-                data_ref.ref_inx = get_string_index<CIT::Value>(JAsString(data, addr))();
-                break;
-            case cdInt: // spec:cindex, sz:1
-                data_ref.ref_inx = get_int_index(JAsInt(data, addr))();
-                break;
-            case cdBool:
-                data_ref.ref_inx = get_bool_index(JAsInt(data, addr))();
-                break;
-            case cdIntVec:
-                jvec = data[addr];
-                data_ref.size = JSize(jvec);
-                if (data_ref.size > 0) {
-                    // capture the "base" index; subsequent indices
-                    // are implied by data_ref.size
-                    data_ref.ref_inx = get_int_index(JAsInt(jvec[0]))();
-                    for (uint32_t jinx = 1; jinx < data_ref.size; jinx++)
-                        get_int_index(JAsInt(jvec[jinx]));
-                }
-                break;
-            case cdStrVec:
-                JAsStringVec(data, addr.c_str(), svec);
-                data_ref.size = (uint32_t)svec.size();
-                if (data_ref.size > 0) {
-                    auto it = svec.begin();
-                    data_ref.ref_inx = get_string_index<CIT::Value>(*it++)();
-                    while (it != svec.end()) {
-                        const std::string& val{ *it };
-                        StrInx sinx = get_string_index<CIT::Value>(val);
-                        if (spec == cs_menubar) {
-                            // Each of the values in the StrVec created here is
-                            // also an addr & Menu.name for a StrVec of Menuitems
-                            CreateDataRef(cdStrVec, sinx(), cs_end_cache_specs, data, val, widget);
-                        }
-                        it++;
+        case cdFloat:       // not required by any widget yet
+            assert(false);
+            break;
+        case cdResultSet:
+            // no need to set data_ref.ref_inx as the result set
+            // is not in the data cache
+            assert(true);
+            break;
+        case cdStr: // spec:[xname|yname], sz:1. TODO: extend to strvec for multi Yval plots
+            data_ref.ref_inx = get_string_index<CIT::Value>(JAsString(data, addr))();
+            break;
+        case cdInt: // spec:cindex, sz:1
+            data_ref.ref_inx = get_int_index(JAsInt(data, addr))();
+            break;
+        case cdBool:
+            data_ref.ref_inx = get_bool_index(JAsInt(data, addr))();
+            break;
+        case cdIntVec:
+            jvec = data[addr];
+            data_ref.size = JSize(jvec);
+            if (data_ref.size > 0) {
+                // capture the "base" index; subsequent indices
+                // are implied by data_ref.size
+                data_ref.ref_inx = get_int_index(JAsInt(jvec[0]))();
+                for (uint32_t jinx = 1; jinx < data_ref.size; jinx++)
+                    get_int_index(JAsInt(jvec[jinx]));
+            }
+            break;
+        case cdStrVec:
+            JAsStringVec(data, addr.c_str(), svec);
+            data_ref.size = (uint32_t)svec.size();
+            if (data_ref.size > 0) {
+                auto it = svec.begin();
+                data_ref.ref_inx = get_string_index<CIT::Value>(*it)();
+                while (it != svec.end()) {
+                    const std::string& val{ *it };
+                    StrInx sinx = get_string_index<CIT::Value>(val);
+                    if (spec == cs_menu_bar) {
+                        // Each of the values in the StrVec created here is
+                        // also an addr & Menu.name for a StrVec of Menuitems
+                        CreateDataRef(cdStrVec, sinx(), cs_menu, data, val, widget);
                     }
+                    it++;
                 }
-                break;
+            }
+            break;
         }
-        widget->data_refs[spec] = data_ref;
+        if (spec == cs_menu) {
+            widget->menu_map[inx] = data_ref;
+        }
+        else {
+            widget->data_refs[spec] = data_ref;
+        }
         data_ref_map[data_ref.addr_inx] = data_ref;
     }
 
@@ -664,12 +668,14 @@ public:
         return binx;
     }
 
-    const char* render_name(RenderMethod rm) {
+    const char* get_render_name(RenderMethod rm) {
         return render_names[rm];
     }
 
-    const char* db_event(RenderMethod rm) {
-        return render_names[rm];
+    const char* get_cspec_name(CacheSpecifier cs) {
+        if (cs < CacheSpecifier::cs_end_cache_specs)
+            return cspec_names[cs];
+        return nullptr;
     }
 
 private:
@@ -739,7 +745,8 @@ private:
         Static::show_lines_cs,
         Static::show_fills_cs,
         Static::shaded_plot_flags_cs,
-        Static::menubar_cs,
+        Static::menu_bar_cs,
+        Static::menu_cs,
         Static::db_cs,     // cs_db,
         Static::fps_cs,     // cs_fps,
         Static::demo_cs,     // cs_demo,
@@ -781,7 +788,8 @@ private:
         cdBool,     // cs_show_lines
         cdBool,     // cs_show_fills
         cdInt,      // cs_shaded_plot_flags
-        cdStr,      // cs_menubar
+        cdStr,      // cs_menu_bar
+        cdStr,      // cs_menu
         cdBool,     // cs_show_footer_db
         cdBool,     // cs_show_footer_fps
         cdBool,     // cs_show_footer_demo
@@ -825,7 +833,9 @@ private:
     };
 
     inline static std::map<RenderMethod, CacheSpecTypeMap> addr_cspecs{
-        {Home, {{cs_menubar, cdStrVec}}},
+        {Home, {
+            {cs_menu_bar, cdStrVec}
+        }},
         {InputInt, {{cs_cname, cdInt}}},
         {Combo, {
             {cs_cindex, cdInt},
@@ -841,7 +851,10 @@ private:
             {cs_xname, cdStr},
             {cs_yname, cdStr}
         }},
-        {Window, {{cs_menubar, cdStrVec}}}
+        {Window, {
+            {cs_menu_bar, cdStrVec}
+        }}
+
     };
 
 public:

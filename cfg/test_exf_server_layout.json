@@ -69,23 +69,10 @@
         "rname": "Table",
         "cspec": {
           "title": "Depth grid",
-          "qname": "the_depth_query"
+          "query_id": "the_depth_query"
         }
       }
     ]
-  },
-  {
-    "widget_id": "i_am_depth_summary_modal",
-    "rname": "DuckTableSummaryModal",
-    "cspec": {
-      "title": "Depth table",
-      "title_font": "Arial",
-      "body_font": "CourierNew",
-      "body_font_size": 8,
-      "button_font": "CourierNew",
-      "button_font_size": 12,
-      "qname": "depth_summary"
-    }
   },
   {
     "widget_id": "i_am_parquet_loading_modal",

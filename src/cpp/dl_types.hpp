@@ -84,6 +84,8 @@ struct DataRef {
 };
 
 using DataRefMap = std::map<CacheSpecifier, DataRef>;
+using DataRefVec = std::vector<DataRef>;
+using MenuMap = std::map<AddrInx, DataRef>;
 
 struct NDWidget {
     NDWidget() = default;
@@ -99,6 +101,7 @@ struct NDWidget {
     FloatValMap     cspec_float;
     StrValMap       cspec_str;
     DataRefMap      data_refs;
+    MenuMap         menu_map;
     std::vector<std::shared_ptr<NDWidget>>  children;
 };
 using WidgetPtr = std::shared_ptr<NDWidget>;

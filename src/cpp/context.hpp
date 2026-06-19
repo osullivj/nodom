@@ -850,23 +850,41 @@ protected:
     // Render functions
     void render_noop(WidgetPtr) { }
 
+    void render_menu_bar(WidgetPtr w) {
+        // Each value in the menubar StrVec is a top level data key
+        // to a menu defn
+        DataRef* menu_bar_data_ref = cspec_data_ref(cs_menu_bar, w->data_refs);
+        if (menu_bar_data_ref != nullptr && ImGui::BeginMenuBar()) {
+            StrInx menu_name_inx{ menu_bar_data_ref->ref_inx };
+            for (uint32_t i = 0; i < menu_bar_data_ref->size; i++) {
+                const char* menu_name = data_lay_cache.get_string_value(menu_name_inx);
+                if (menu_name != nullptr && ImGui::BeginMenu(menu_name)) {
+                    auto drit = w->menu_map.find(menu_name_inx());
+                    assert(drit != w->menu_map.end());
+                    DataRef& menu_data_ref = drit->second;
+                    StrInx menu_item_inx{ menu_data_ref.ref_inx };
+                    for (uint32_t j = 0; i < menu_data_ref.size; j++) {
+                        const char* menu_item = data_lay_cache.get_string_value(menu_item_inx);
+                        assert(menu_item != nullptr);
+                        ImGui::MenuItem(menu_item);
+                    }
+                    ImGui::EndMenu();
+                }
+            }
+            ImGui::EndMenuBar();
+        }
+    }
+
     void render_home(WidgetPtr w) {
         const static char* method = "NDContext::render_home: ";
 
         const char* title = cspec_string(cs_title, w->cspec_str, method);
         LocalFont title_font(w, cs_title_font, cs_title_font_size);
 
-        DataRef* str_data_ref = cspec_data_ref(cs_menubar, w->data_refs);
-        if (str_data_ref != nullptr) {
-            // now we ptr chase through the DLC to build the menus from
-            // menuitems, and the menubar from the menus
-            StrInx sinx{ str_data_ref->ref_inx };
-            // const char* menubar_addr = data_lay_cache.get_string_value(sinx);
-
-            // TODO: impl menubar/menu/menuitem build out from DLC 
-        }
-
         ImGui::Begin(title);
+
+        render_menu_bar(w);
+
         if (cache_is_loaded()) {
             for (int inx = 0; inx < w->children.size(); inx++) {
                 dispatch_render(w->children[inx]);
@@ -1378,6 +1396,7 @@ protected:
         cspec_int(cs_window_flags, w->cspec_int, &window_flags);
 
         if (ImGui::Begin(title, nullptr, window_flags)) {
+            render_menu_bar(w);
             for (int inx = 0; inx < w->children.size(); inx++) {
                 dispatch_render(w->children[inx]);
             }
@@ -1565,7 +1584,7 @@ protected:
         }
         else {
             NDLogger::cerr() << method << "POP_FAIL mismatch rname("
-                << data_lay_cache.render_name(m) << ")" << std::endl;
+                << data_lay_cache.get_render_name(m) << ")" << std::endl;
         }
     }
 
