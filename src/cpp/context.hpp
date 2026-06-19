@@ -44,11 +44,9 @@ using CritArray = std::array<std::string, Critical::EndCritical>;
 template <typename JSON, typename DB>
 class NDContext {
 private:
-
-    // ref to "server process"; just an abstraction of EMS vs win32
-    DB&                     proxy;  // DB proxy decouples NDContext from DB detail
-    JSON                    layout; // layout and data are fetched by 
-    JSON                    data;   // sync c++py calls not HTTP gets
+    DB&                     bulk;   // DB bulk cache
+    JSON                    layout; // layout and data are fetched by websock
+    JSON                    data;
     std::deque<WidgetPtr>   stack;  // render stack
     DataLayCache<JSON>      data_lay_cache;
 
@@ -179,7 +177,7 @@ private:
     };
 public:
     NDContext(DB& s, const std::string& app_key, const std::string& ipath, const char* idata = nullptr, const char* ilayout = nullptr)
-        :proxy(s), app_key_s(app_key), ini_path(ipath),
+        :bulk(s), app_key_s(app_key), ini_path(ipath),
         init_data_s(idata?idata:Static::init_data_cs),
         init_layout_s(ilayout?ilayout:Static::init_layout_cs),
         red{ 255, 51, 0 },
@@ -534,8 +532,8 @@ public:
         }
     }
 
-    bool db_app() { return proxy.db_app(); }
-    void set_done(bool d) { proxy.set_done(d); }
+    bool db_app() { return bulk.db_app(); }
+    void set_done(bool d) { bulk.set_done(d); }
 
     void on_ws_open() {
         data_loaded = false;
@@ -844,7 +842,7 @@ protected:
             assert(sql != nullptr);
             JSet(db_request, Static::sql_cs, sql);
         }
-        proxy.db_dispatch(db_request);
+        bulk.db_dispatch(db_request);
     }
 
     // Render functions
@@ -857,14 +855,15 @@ protected:
         if (menu_bar_data_ref != nullptr && ImGui::BeginMenuBar()) {
             StrInx menu_name_inx{ menu_bar_data_ref->ref_inx };
             for (uint32_t i = 0; i < menu_bar_data_ref->size; i++) {
-                const char* menu_name = data_lay_cache.get_string_value(menu_name_inx);
+                const char* menu_name = data_lay_cache.get_string_value(menu_name_inx++);
                 if (menu_name != nullptr && ImGui::BeginMenu(menu_name)) {
-                    auto drit = w->menu_map.find(menu_name_inx());
+                    AddrInx addr_inx = data_lay_cache.get_addr_inx(menu_name);
+                    auto drit = w->menu_map.find(addr_inx);
                     assert(drit != w->menu_map.end());
                     DataRef& menu_data_ref = drit->second;
                     StrInx menu_item_inx{ menu_data_ref.ref_inx };
-                    for (uint32_t j = 0; i < menu_data_ref.size; j++) {
-                        const char* menu_item = data_lay_cache.get_string_value(menu_item_inx);
+                    for (uint32_t j = 0; j < menu_data_ref.size; j++) {
+                        const char* menu_item = data_lay_cache.get_string_value(menu_item_inx++);
                         assert(menu_item != nullptr);
                         ImGui::MenuItem(menu_item);
                     }
@@ -877,15 +876,17 @@ protected:
 
     void render_home(WidgetPtr w) {
         const static char* method = "NDContext::render_home: ";
+        static int default_home_flags = ImGuiWindowFlags_None; 
 
         const char* title = cspec_string(cs_title, w->cspec_str, method);
         LocalFont title_font(w, cs_title_font, cs_title_font_size);
+        int window_flags = default_home_flags;
+        cspec_int(cs_window_flags, w->cspec_int, &window_flags);
 
-        ImGui::Begin(title);
-
-        render_menu_bar(w);
+        ImGui::Begin(title, nullptr, window_flags);
 
         if (cache_is_loaded()) {
+            render_menu_bar(w);
             for (int inx = 0; inx < w->children.size(); inx++) {
                 dispatch_render(w->children[inx]);
             }
@@ -1293,7 +1294,7 @@ protected:
         std::uint32_t colm_index = 0;
         if (ImGui::BeginPopupModal(title, nullptr, window_flags)) {
             LocalFont body_font(w, cs_body_font, cs_body_font_size);
-            std::uint64_t result_handle = proxy.get_handle(query_id);
+            std::uint64_t result_handle = bulk.get_handle(query_id);
             if (!result_handle) {
                 auto [iter, inserted] = bad_handle_map.insert(std::make_pair(query_id, 1));
                 if (!inserted) iter->second++;
@@ -1304,18 +1305,18 @@ protected:
                     ImGui::TableSetupColumn(Static::duck_table_summary_colm_names[colm_index]);
                 }
                 ImGui::TableHeadersRow();
-                std::uint32_t row_count = proxy.get_row_count(result_handle);
-                proxy.get_meta_data(result_handle, colm_count, row_count);
+                std::uint32_t row_count = bulk.get_row_count(result_handle);
+                bulk.get_meta_data(result_handle, colm_count, row_count);
                 for (uint32_t row_index = 0; row_index < row_count; row_index++) {
                     ImGui::TableNextRow();
                     for (colm_index = 0; colm_index < colm_count; colm_index++) {
                         ImGui::TableSetColumnIndex(colm_index);
-                        const char* endchar = proxy.get_datum(result_handle, colm_index, row_index);
+                        const char* endchar = bulk.get_datum(result_handle, colm_index, row_index);
                         if (endchar) {
-                            ImGui::TextUnformatted(proxy.buffer, endchar);
+                            ImGui::TextUnformatted(bulk.buffer, endchar);
                         }
                         else {
-                            ImGui::TextUnformatted(proxy.buffer);
+                            ImGui::TextUnformatted(bulk.buffer);
                         }
                     }
                 }
@@ -1422,7 +1423,7 @@ protected:
         DataRef* result_set_data_ref = cspec_data_ref(cs_query_id, w->data_refs);
         assert(result_set_data_ref != nullptr);
         const char* query_id = data_lay_cache.get_string_value(result_set_data_ref->addr_inx);
-        RSHandle handle = proxy.get_handle(query_id);
+        RSHandle handle = bulk.get_handle(query_id);
 
         DataRef* x_data_ref = cspec_data_ref(cs_xname, w->data_refs);
         DataRef* y_data_ref = cspec_data_ref(cs_yname, w->data_refs);
@@ -1437,10 +1438,10 @@ protected:
         const char* y_col_name = data_lay_cache.get_string_value(yinx);
 
         // get ranges from bulk cache
-        proxy.get_min_max(handle, x_col_name, sh_pl_vars.xmin_dbl, sh_pl_vars.xmax_dbl);
-        proxy.get_min_max(handle, y_col_name, sh_pl_vars.ymin_dbl, sh_pl_vars.ymax_dbl);
+        bulk.get_min_max(handle, x_col_name, sh_pl_vars.xmin_dbl, sh_pl_vars.xmax_dbl);
+        bulk.get_min_max(handle, y_col_name, sh_pl_vars.ymin_dbl, sh_pl_vars.ymax_dbl);
         // TODO: connect row_count & offset to slider widgets
-        sh_pl_vars.row_count = proxy.get_row_count(handle);
+        sh_pl_vars.row_count = bulk.get_row_count(handle);
         sh_pl_vars.offset = 0;
 
         XYRange* range{ 0 };
@@ -1451,21 +1452,21 @@ protected:
             if (sh_pl_vars.show_fills) {
                 sh_pl_vars.spec.Flags = shaded_plot_flags;
                 sh_pl_vars.spec.FillAlpha = 0.25f;
-                range = proxy.init_xy_range(handle, x_col_name, y_col_name, sh_pl_vars.offset, sh_pl_vars.row_count);
-                range = proxy.next_xy_range(range);
+                range = bulk.init_xy_range(handle, x_col_name, y_col_name, sh_pl_vars.offset, sh_pl_vars.row_count);
+                range = bulk.next_xy_range(range);
                 while (range != nullptr) {
                     ImPlot::PlotShaded(title, range->xdata, range->ydata, range->plot_count, 0.0, sh_pl_vars.spec);
-                    range = proxy.next_xy_range(range);
+                    range = bulk.next_xy_range(range);
                 }
             }
             // Lines on top of fills
             if (sh_pl_vars.show_lines) {
                 sh_pl_vars.spec.Flags = shaded_plot_flags;
-                range = proxy.init_xy_range(handle, x_col_name, y_col_name, sh_pl_vars.offset, sh_pl_vars.row_count);
-                range = proxy.next_xy_range(range);
+                range = bulk.init_xy_range(handle, x_col_name, y_col_name, sh_pl_vars.offset, sh_pl_vars.row_count);
+                range = bulk.next_xy_range(range);
                 while (range != nullptr) {
                     ImPlot::PlotLine(title, range->xdata, range->ydata, range->plot_count);
-                    range = proxy.next_xy_range(range);
+                    range = bulk.next_xy_range(range);
                 }
             }
             ImPlot::EndPlot();
@@ -1485,24 +1486,24 @@ protected:
         assert(result_set_data_ref != nullptr);
         const char* query_id = data_lay_cache.get_string_value(result_set_data_ref->addr_inx);
 
-        // TODO: recode proxy.get_meta_data() to lazy load 
+        // TODO: recode bulk.get_meta_data() to lazy load 
         // and report geom
         std::uint32_t colm_count = 0;
         std::uint32_t row_count = 0;
         std::uint32_t colm_index = 0;
         {
             LocalFont body_font(w, cs_body_font, cs_body_font_size);
-            RSHandle result_handle = proxy.get_handle(query_id);
+            RSHandle result_handle = bulk.get_handle(query_id);
             if (!result_handle) {
                 auto [iter, inserted] = bad_handle_map.insert(std::make_pair(query_id, 1));
                 if (!inserted) iter->second++;
                 return;
             }
-            if (!proxy.get_meta_data(result_handle, colm_count, row_count)) {
+            if (!bulk.get_meta_data(result_handle, colm_count, row_count)) {
                 NDLogger::cout() << method << "GET_META_DATA_FAIL for QID: " << query_id << std::endl;
                 return;
             }
-            StringVec& colm_names = proxy.get_col_names(result_handle);
+            StringVec& colm_names = bulk.get_col_names(result_handle);
             if (ImGui::BeginTable(title, (int)colm_count, table_flags)) {
                 ImGui::TableSetupScrollFreeze(1, 1);
                 for (colm_index = 0; colm_index < colm_count; colm_index++) {
@@ -1516,12 +1517,12 @@ protected:
                         ImGui::TableNextRow();
                         for (colm_index = 0; colm_index < colm_count; colm_index++) {
                             if (ImGui::TableSetColumnIndex(colm_index)) {
-                                const char* endchar = proxy.get_datum(result_handle, colm_index, row_index);
+                                const char* endchar = bulk.get_datum(result_handle, colm_index, row_index);
                                 if (endchar) {
-                                    ImGui::TextUnformatted(proxy.buffer, endchar);
+                                    ImGui::TextUnformatted(bulk.buffer, endchar);
                                 }
                                 else {
-                                    ImGui::TextUnformatted(proxy.buffer);
+                                    ImGui::TextUnformatted(bulk.buffer);
                                 }
                             }
                         }

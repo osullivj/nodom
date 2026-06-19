@@ -64,6 +64,15 @@ public:
         return DataCacheIndex<itype, CDT::cdStr>(inx, stype);
     }
 
+
+    template <CIT itype>
+    auto contiguous_string_index(const std::string& s, CST stype = CST::None) {
+        cache_strings.push_back(s);
+        const char* ptr = cache_strings.back().c_str();
+        fp_char_ptrs.push_back(ptr);
+        return DataCacheIndex<itype, CDT::cdStr>((uint32_t)cache_strings.size() - 1, stype);
+    }
+
 protected:
     void update_string(uint32_t inx, const std::string& val) {
         if (inx >= cache_strings.size())
@@ -433,16 +442,21 @@ protected:
             data_ref.size = (uint32_t)svec.size();
             if (data_ref.size > 0) {
                 auto it = svec.begin();
-                data_ref.ref_inx = get_string_index<CIT::Value>(*it)();
                 while (it != svec.end()) {
-                    const std::string& val{ *it };
-                    StrInx sinx = get_string_index<CIT::Value>(val);
-                    if (spec == cs_menu_bar) {
-                        // Each of the values in the StrVec created here is
-                        // also an addr & Menu.name for a StrVec of Menuitems
-                        CreateDataRef(cdStrVec, sinx(), cs_menu, data, val, widget);
+                    data_ref.ref_inx = contiguous_string_index<CIT::Value>(*it++)();
+                }
+                if (spec == cs_menu_bar) {
+                    // iterate over svec again to use as keys for the menu StrVecs
+                    // can't do both loops at the same time if we want to preserve
+                    // contiguity!
+                    auto smit = svec.begin();
+                    while (smit != svec.end()) {
+                        auto amit = address_map.find(*smit);
+                        if (amit != address_map.end()) {
+                            CreateDataRef(cdStrVec, amit->second, cs_menu, data, *smit++, widget);
+                        }
                     }
-                    it++;
+
                 }
             }
             break;
@@ -802,7 +816,7 @@ private:
     };
 
     inline static  std::map<RenderMethod, CacheSpecVec> value_cspecs{
-        {Home, {cs_title, cs_title_font, cs_title_font_size}},
+        {Home, {cs_title, cs_title_font, cs_title_font_size, cs_window_flags}},
         {InputInt, {cs_label, cs_step, cs_step_fast, cs_flags}},
         {Combo, {cs_label, cs_step}},
         {Checkbox, {cs_label}},
