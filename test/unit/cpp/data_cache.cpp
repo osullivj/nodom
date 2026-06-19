@@ -10,6 +10,22 @@
 #pragma comment(lib, "legacy_stdio_definitions")
 #endif
 
+// hardwired init data and layout
+static const char* min_menu_bar_data_cs{
+    R"( { )"
+    R"(   "home_menu_bar":["Inc", "Dec"], )"
+    R"(   "Inc":["Inc1", "Inc2"], )"
+    R"(   "Dec":["Dec1", "Dec2"] )"
+    R"( } )"
+};
+
+static const char* min_menu_bar_layout_cs{
+    R"( [{ "rname": "Home", )"
+    R"(    "cspec":{"title":"NoDOM HW","menubar":"home_menu_bar"}, )"
+    R"(    "children":[] )"
+    R"( }] )"
+};
+
 template <typename JSON>
 struct TestDLC : public DataLayCache<JSON> {
     void on_init() {
@@ -239,6 +255,7 @@ BOOST_FIXTURE_TEST_CASE(ExfServerData, DataCacheFixture)
     assert_cache_state();
 }
 
+
 BOOST_FIXTURE_TEST_CASE(ExfServerLayout, DataCacheFixture)
 {
 #ifdef __EMSCRIPTEN__
@@ -252,11 +269,13 @@ BOOST_FIXTURE_TEST_CASE(ExfServerLayout, DataCacheFixture)
     std::string layout_json = load_json(layout_json_path.c_str());
     auto layout = JParse<nlohmann::json>(layout_json);
 #endif
-    str_count = 48;
-    int_count = 15;
+    str_count = 47;
+    int_count = 13;
     dc.on_json(data, layout, [&]() { dc.on_init(); });
-    BOOST_TEST(dc.widget_vec_size() == 3);
-    BOOST_TEST(dc.pushables_size() == 2);
+    BOOST_TEST(dc.widget_vec_size() == 2);
+    BOOST_TEST(dc.pushables_size() == 1);
+    dc.report_cache_errors();
+    BOOST_TEST(dc.error_count() == 0);
     assert_cache_state();
 }
 
@@ -277,14 +296,36 @@ BOOST_FIXTURE_TEST_CASE(InitDataAndLayout, DataCacheFixture)
     assert_cache_state();
 }
 
-BOOST_FIXTURE_TEST_CASE(EnumRoundTrips, DataCacheFixture)
+BOOST_FIXTURE_TEST_CASE(RenderMethodRoundTrips, DataCacheFixture)
 {
     for (int rm1 = RenderMethod::Noop; rm1 != RenderMethod::EndRenderMethod; rm1++) {
-        const char* rms = dc.render_name(static_cast<RenderMethod>(rm1));
+        const char* rms = dc.get_render_name(static_cast<RenderMethod>(rm1));
         RenderMethod rm2{ RenderMethodFromString(rms) };
         BOOST_TEST(rm1 == rm2);
     }
 }
 
+BOOST_FIXTURE_TEST_CASE(CacheSpecRoundTrips, DataCacheFixture)
+{
+    for (int cs1 = CacheSpecifier::cs_title; cs1 != CacheSpecifier::cs_end_cache_specs; cs1++) {
+        const char* csn = dc.get_cspec_name(CacheSpecifier(cs1));
+        BOOST_TEST(csn != nullptr);
+    }
+}
 
-
+BOOST_FIXTURE_TEST_CASE(MinMenuBarDataAndLayout, DataCacheFixture)
+{
+#ifdef __EMSCRIPTEN__
+    // TODO: load from ems FS
+    auto layout = JParse<emscripten::val>(add_server_layout);
+#else
+    auto data = JParse<nlohmann::json>(min_menu_bar_data_cs);
+    auto layout = JParse<nlohmann::json>(min_menu_bar_layout_cs);
+#endif
+    str_count = 8;
+    dc.on_json(data, layout, [&]() { dc.on_init(); });
+    BOOST_TEST(dc.widget_vec_size() == 1);
+    BOOST_TEST(dc.pushables_size() == 0);
+    BOOST_TEST(dc.error_count() == 0);
+    assert_cache_state();
+}
