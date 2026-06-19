@@ -45,7 +45,7 @@
         "sql_cname": "scan_sql"
       },
       {
-        "ui_pop": "i_am_parquet_loading_modal",
+        "ui_pop": "LoadingModal",
         "db_action": "Query",
         "query_id": "the_depth_summary",
         "sql_cname": "summary_sql"
