@@ -397,7 +397,8 @@ protected:
     }
 
     void CreateDataRef(CDT ref_type, AddrInx inx, CacheSpecifier spec,
-        const JSON& data, const std::string& addr, WidgetPtr widget) {
+            const JSON& data, const std::string& addr, WidgetPtr widget) {
+
         DataRef data_ref{ ref_type, inx };
         StringVec svec;
         IntVec ivec;
@@ -442,8 +443,10 @@ protected:
             data_ref.size = (uint32_t)svec.size();
             if (data_ref.size > 0) {
                 auto it = svec.begin();
+                // only record addr of 1st vec element
+                data_ref.ref_inx = contiguous_string_index<CIT::Value>(*it++)();
                 while (it != svec.end()) {
-                    data_ref.ref_inx = contiguous_string_index<CIT::Value>(*it++)();
+                    contiguous_string_index<CIT::Value>(*it++);
                 }
                 if (spec == cs_menu_bar) {
                     // iterate over svec again to use as keys for the menu StrVecs
@@ -462,7 +465,7 @@ protected:
             break;
         }
         if (spec == cs_menu) {
-            widget->menu_map[inx] = data_ref;
+            widget->menu_map[data_ref.addr_inx] = data_ref;
         }
         else {
             widget->data_refs[spec] = data_ref;
