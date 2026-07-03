@@ -57,6 +57,18 @@ ADDITION_LAYOUT = [
             dict(rname="PopFont"),
         ],
     ),
+    dict(
+        widget_id="menu_modal",
+        rname="LoadingModal",
+        cspec=dict(
+            title="Menu modal...",
+            title_font="Arial",
+            body_font="CourierNew",
+            cname="loading_message",
+            spinner_radius=20,
+            spinner_thickness=4,
+        ),
+    ),
 ]
 
 
@@ -65,15 +77,14 @@ ADDITION_DATA = dict(
     op2=3,
     op1_plus_op2=5,
     home_menu_bar=["Inc", "Dec"],
+    loading_message=["Inc1 clicked"],
     menus=dict(
         Inc=["Inc1", "Inc2"],
         Dec=["Dec1", "Dec2"],
     ),
     actions={
-        "Inc1.Menu": [dict()],
-        "Inc2.Menu": [dict()],
-        "Dec1.Menu": [dict()],
-        "Dec2.Menu": [dict()],
+        "Inc1.Menu": [dict(ui_push="menu_modal")],
+        "Inc2.Menu": [dict(ui_pop="LoadingModal")],
     },
 )
 
