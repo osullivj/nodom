@@ -108,6 +108,7 @@ private:
     EventInx    einx_Online;                    // CST::SubSysEvent
     EventInx    einx_CacheLoaded;               // CST::SubSysEvent
     EventInx    einx_Click;                     // CST::WidgetEvent
+    EventInx    einx_Menu;                      // CST::WidgetEvent
     EventInx    einx_Command;                   // CST::DBEvent
     EventInx    einx_CommandResult;             // CST::DBEvent
     EventInx    einx_Query;                     // CST::DBEvent
@@ -257,6 +258,7 @@ public:
 
         // Events: widget
         einx_Click = data_lay_cache.template get_string_index<CIT::Event>(Static::click_cs, CST::WidgetEvent);
+        einx_Menu = data_lay_cache.template get_string_index<CIT::Event>(Static::Menu_cs, CST::WidgetEvent);
 
         // Events: DB
         einx_Command = data_lay_cache.template get_string_index<CIT::Event>(Static::command_cs, CST::DBEvent);
@@ -852,25 +854,25 @@ protected:
         // to a menu defn
         DataRef* menu_bar_data_ref = cspec_data_ref(cs_menu_bar, w->data_refs);
         if (menu_bar_data_ref != nullptr && ImGui::BeginMenuBar()) {
-            StrInx mbinx{ menu_bar_data_ref->ref_inx };
+            StrInx mbar_inx{ menu_bar_data_ref->ref_inx };
             for (uint32_t i = 0; i < menu_bar_data_ref->size; i++) {
-                const char* menu_name = data_lay_cache.get_string_value(mbinx);
+                const char* menu_name = data_lay_cache.get_string_value(mbar_inx);
                 if (menu_name != nullptr && ImGui::BeginMenu(menu_name)) {
                     AddrInx menu_addr_inx = data_lay_cache.get_menu_addr_inx(menu_name);
                     DataRef* menu_data_ref = data_lay_cache.get_menu_data_ref(menu_addr_inx);
                     if (menu_data_ref != nullptr) {
-                        StrInx miinx{ menu_data_ref->ref_inx };
+                        StrInx mitem_inx{ menu_data_ref->ref_inx };
                         for (uint32_t j = 0; j < menu_data_ref->size; j++) {
                             // TODO: add enabled/disabled logic
-                            const char* menu_item = data_lay_cache.get_string_value(miinx);
+                            const char* menu_item = data_lay_cache.get_string_value(mitem_inx);
                             assert(menu_item != nullptr);
                             ImGui::MenuItem(menu_item);
-                            miinx++;
+                            mitem_inx++;
                         }
                     }
                     ImGui::EndMenu();
                 }
-                mbinx++;
+                mbar_inx++;
             }
             ImGui::EndMenuBar();
         }
