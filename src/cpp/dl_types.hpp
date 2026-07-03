@@ -73,14 +73,13 @@
 
 
 // WASM cache types that capture the data and layout
-// JSON, and apply constraints.
-
+// JSON, and applies constraints. Think of it as an
+// encapsulation to data denoted by data[key]
 struct DataRef {
     CDT tipe{ EndDataTypes };   // cdInt, cdFloat, cdBool, cdStr
-    AddrInx addr_inx;           // inx to key in data[key]
-    uint32_t ref_inx{OH_FECK};  // inx to data[key]
+    AddrInx addr_inx;           // cache inx to key string
+    uint32_t ref_inx{OH_FECK};  // cache inx to data[key]
     uint32_t size{ 1 };         // scalar or array
-    // TODO: add dirty flag?
 };
 
 using DataRefMap = std::map<CacheSpecifier, DataRef>;
@@ -101,7 +100,6 @@ struct NDWidget {
     FloatValMap     cspec_float;
     StrValMap       cspec_str;
     DataRefMap      data_refs;
-    MenuMap         menu_map;
     std::vector<std::shared_ptr<NDWidget>>  children;
 };
 using WidgetPtr = std::shared_ptr<NDWidget>;
