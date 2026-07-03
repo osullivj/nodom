@@ -78,6 +78,7 @@ struct DataCacheFixture {
         int fc = dc.report_cache_floats(extern_float_count);
         BOOST_TEST(float_count == fc);
         dc.report_address_map();
+        dc.report_data_refs();
         dc.report_actions();
         std::cout << std::endl;
     }
@@ -269,7 +270,7 @@ BOOST_FIXTURE_TEST_CASE(ExfServerLayout, DataCacheFixture)
     std::string layout_json = load_json(layout_json_path.c_str());
     auto layout = JParse<nlohmann::json>(layout_json);
 #endif
-    str_count = 47;
+    str_count = 46;
     int_count = 13;
     dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.widget_vec_size() == 2);
@@ -322,10 +323,11 @@ BOOST_FIXTURE_TEST_CASE(MinMenuBarDataAndLayout, DataCacheFixture)
     auto data = JParse<nlohmann::json>(min_menu_bar_data_cs);
     auto layout = JParse<nlohmann::json>(min_menu_bar_layout_cs);
 #endif
-    str_count = 8;
+    str_count = 6;
     dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.widget_vec_size() == 1);
     BOOST_TEST(dc.pushables_size() == 0);
     BOOST_TEST(dc.error_count() == 0);
+    BOOST_TEST(dc.data_ref_map_size() == 1);    // menubar
     assert_cache_state();
 }
