@@ -14,8 +14,10 @@
 static const char* min_menu_bar_data_cs{
     R"( { )"
     R"(   "home_menu_bar":["Inc", "Dec"], )"
-    R"(   "Inc":["Inc1", "Inc2"], )"
-    R"(   "Dec":["Dec1", "Dec2"] )"
+    R"(   "menus":{                 )"
+    R"(     "Inc":["Inc1", "Inc2"], )"
+    R"(     "Dec":["Dec1", "Dec2"]  )"
+    R"(   }  )"
     R"( } )"
 };
 
@@ -323,11 +325,12 @@ BOOST_FIXTURE_TEST_CASE(MinMenuBarDataAndLayout, DataCacheFixture)
     auto data = JParse<nlohmann::json>(min_menu_bar_data_cs);
     auto layout = JParse<nlohmann::json>(min_menu_bar_layout_cs);
 #endif
-    str_count = 6;
+    str_count = 10;
     dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.widget_vec_size() == 1);
     BOOST_TEST(dc.pushables_size() == 0);
     BOOST_TEST(dc.error_count() == 0);
     BOOST_TEST(dc.data_ref_map_size() == 1);    // menubar
+    BOOST_TEST(dc.menu_addr_map_size() == 6);    // 2 menu, 4 menu_item
     assert_cache_state();
 }
