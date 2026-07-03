@@ -858,15 +858,18 @@ protected:
             for (uint32_t i = 0; i < menu_bar_data_ref->size; i++) {
                 const char* menu_name = data_lay_cache.get_string_value(mbar_inx);
                 if (menu_name != nullptr && ImGui::BeginMenu(menu_name)) {
-                    AddrInx menu_addr_inx = data_lay_cache.get_menu_addr_inx(menu_name);
-                    DataRef* menu_data_ref = data_lay_cache.get_menu_data_ref(menu_addr_inx);
+                    EntityInx menu_id = data_lay_cache.get_menu_id(menu_name);
+                    DataRef* menu_data_ref = data_lay_cache.get_menu_data_ref(menu_id);
                     if (menu_data_ref != nullptr) {
                         StrInx mitem_inx{ menu_data_ref->ref_inx };
                         for (uint32_t j = 0; j < menu_data_ref->size; j++) {
                             // TODO: add enabled/disabled logic
                             const char* menu_item = data_lay_cache.get_string_value(mitem_inx);
                             assert(menu_item != nullptr);
-                            ImGui::MenuItem(menu_item);
+                            if (ImGui::MenuItem(menu_item)) {
+                                EntityInx menu_item_id = data_lay_cache.get_menu_id(menu_item);
+                                pending_actions.push_back({ menu_item_id, einx_Menu});
+                            }
                             mitem_inx++;
                         }
                     }
