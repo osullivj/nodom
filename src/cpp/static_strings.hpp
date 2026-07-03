@@ -74,7 +74,7 @@ struct Static {
 	inline static const char* shaded_plot_flags_cs{ "shaded_plot_flags" };
 	inline static const char* menu_bar_cs{ "menubar" };
 	inline static const char* menu_cs{ "menu" };
-
+	inline static const char* menu_item_cs{ "menuitem" };
 	inline static const char* lb_footer_style_cs{ "Style" };
 	inline static const char* cspec_cs{ "cspec" };
 	inline static const char* cname_cs{ "cname" };
@@ -135,6 +135,11 @@ struct Static {
 	// a unique query ID and a cache address for the SQL in sql_cname
 	inline static const char* action_cs{ "action" };
 	inline static const char* sql_cname_cs{ "sql_cname" };
+
+	// Menus: data.[menu_bars|menus|menu_items]
+	inline static const char* menus_cs{ "menus" };
+	inline static const char* menu_bars_cs{ "menu_bars" };
+	inline static const char* menu_items_cs{ "menu_items" };
 
 	// Events: message keys
 	inline static const char* nd_type_cs{ "nd_type" };
