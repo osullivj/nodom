@@ -65,8 +65,14 @@ ADDITION_DATA = dict(
     op2=3,
     op1_plus_op2=5,
     home_menu_bar=["Inc", "Dec"],
-    Inc=["Inc1", "Inc2"],
-    Dec=["Dec1", "Dec2"],
+    menus=dict(
+        Inc=["Inc1", "Inc2"],
+        Dec=["Dec1", "Dec2"],
+    ),
+    Inc1=True,
+    Inc2=False,
+    Dec1=True,
+    Dec2=False,
 )
 
 is_operand_change = lambda c: c.get("cache_key") in ["op1", "op2"]
