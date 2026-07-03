@@ -322,7 +322,20 @@ protected:
             for (auto mit = menu_name_vec.cbegin(); mit != menu_name_vec.cend(); ++mit) {
                 std::string menu_name{ *mit };
                 AddrInx menu_addr_inx = add_menu_address(menu_name);
-                menu_data_ref_map[menu_addr_inx] = CreateDataRef(cdStrVec, menu_addr_inx, jmenus, menu_name);
+                DataRef menu_data_ref{ CreateDataRef(cdStrVec, menu_addr_inx, jmenus, menu_name) };
+                menu_data_ref_map[menu_addr_inx] = menu_data_ref;
+
+                // add post proc for menus that creates menu_item
+                // entries in the menu_address_map
+                StrInx mitem_inx{ menu_data_ref.ref_inx };
+                for (int i = 0; i < menu_data_ref.size; i++) {
+                    const char* menu_item = get_string_value(mitem_inx);
+                    assert(menu_item != nullptr);
+                    // create a unique index for each menu_item that can be 
+                    // used as the Entity inx
+                    add_menu_address(menu_item);
+                    mitem_inx++;
+                }
             }
         }
     }
@@ -528,10 +541,12 @@ public:
     }
 
     size_t addr_map_size() { return address_map.size(); }
+    size_t menu_addr_map_size() { return menu_address_map.size(); }
     size_t widget_vec_size() { return widget_vec.size(); }
     size_t pushables_size() { return pushables.size(); }
     size_t action_map_size() { return action_map.size(); }
     size_t data_ref_map_size() { return data_ref_map.size(); }
+    size_t menu_data_ref_map_size() { return menu_data_ref_map.size(); }
     size_t error_count() { return action_errors.size() + layout_errors.size(); }
 
     void on_json(const JSON& data, const JSON& layout, VVFunc on_init) {
@@ -1015,6 +1030,18 @@ public:
         std::cout << std::dec << std::endl;
     }
 
+    void report_menu_address_map() {
+        size_t len = menu_address_map.size();
+        int inx{ 0 };
+        std::cout << "== report_menu_address_map len:" << std::dec << len << std::endl;
+        std::cout << "inx:addr:AddrInx{0x0104,inx}" << std::endl;
+        for (auto cit = menu_address_map.cbegin(); cit != menu_address_map.cend(); ++cit) {
+            std::cout << std::setfill('0') << std::setw(3) << std::hex << inx++ << ":";
+            std::cout << cit->first << ":" << cit->second << std::endl;
+        }
+        std::cout << std::dec << std::endl;
+    }
+
     void report_data_refs() {
         size_t len = data_ref_map.size();
         int inx{ 0 };
@@ -1023,6 +1050,22 @@ public:
         for (auto drmit = data_ref_map.cbegin(); drmit != data_ref_map.cend(); ++drmit) {
             std::cout << std::setfill('0') << std::setw(3) << std::hex << inx++ << ":";
             std::cout << drmit->first << ":" 
+                << drmit->second.tipe << ","
+                << drmit->second.addr_inx << ","
+                << drmit->second.ref_inx << ","
+                << drmit->second.size << std::endl;
+        }
+        std::cout << std::dec << std::endl;
+    }
+
+    void report_menu_data_refs() {
+        size_t len = menu_data_ref_map.size();
+        int inx{ 0 };
+        std::cout << "== report_menu_data_ref_map len:" << std::dec << len << std::endl;
+        std::cout << "inx:AddrInx:DataRef{tipe,addr,ref,sz}" << std::endl;
+        for (auto drmit = menu_data_ref_map.cbegin(); drmit != menu_data_ref_map.cend(); ++drmit) {
+            std::cout << std::setfill('0') << std::setw(3) << std::hex << inx++ << ":";
+            std::cout << drmit->first << ":"
                 << drmit->second.tipe << ","
                 << drmit->second.addr_inx << ","
                 << drmit->second.ref_inx << ","
@@ -1063,6 +1106,7 @@ public:
         report_cache_ints(eic);
         report_cache_floats(efc);
         report_address_map();
+        report_menu_address_map();
         report_data_refs();
         report_actions();
         std::cout << std::endl;
