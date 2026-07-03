@@ -18,6 +18,7 @@ using IntVec = std::vector<int>;
 using FloatVec = std::vector<float>;
 using StringStringMap = std::map<std::string, std::string>;
 using StringIntMap = std::map<std::string, int>;
+using StringSet = std::set<std::string>;
 
 template <typename T>
 bool ptr_in_vec(const std::vector<T>& vec, const T* ptr) {
@@ -175,11 +176,12 @@ inline bool render_is_valid(RenderMethod rm) {
 // This enable a max of 65535 (0xFFFF) DCIs
 // of any recognised data type.
 enum CacheItemType : uint32_t {
-    Address = 0x1000000,     // cname, sql_cname, cindex
-    Value = 0x2000000,       // Int,Float,Bool,Str,IntVec,StrVec
-    EntityID = 0x3000000,    // widget_id|query_id|susbsys_id
-    Event = 0x4000000,       // Click,Online,QueryResult,CommandResult
-    SubSystem = 0x5000000,   // [GUI|DuckDB].Online
+    Address = 0x1000000,    // cname, sql_cname, cindex
+    Value = 0x2000000,      // Int,Float,Bool,Str,IntVec,StrVec
+    EntityID = 0x3000000,   // widget_id|query_id|susbsys_id
+    Event = 0x4000000,      // Click,Online,QueryResult,CommandResult
+    SubSystem = 0x5000000,  // [GUI|DuckDB].Online
+    Menu = 0x6000000,       // MenuBar, Menu, MenuItem
     EndItemTypes = 0xF000000 
 };
 
@@ -191,6 +193,9 @@ enum CacheItemSubType : uint32_t {
     WidgetEvent = 0x400000, // Event:Click
     DBEvent = 0x500000,     // Event:[QueryResult|CommandResult]
     SubSysEvent = 0x600000,
+    MenuBarID = 0x700000,
+    MenuID = 0x800000,
+    MenuItemID = 0x900000,
     EndSubItemTypes = 0xF00000
 };
 
@@ -232,7 +237,6 @@ static constexpr int OH_FECK = 0x0FEC0000;
 template <CIT itype, CDT dtype>
 struct DataCacheIndex {
 
-
     static constexpr CIT item_type{ itype };
     static constexpr CDT data_type{ dtype };
 
@@ -264,6 +268,9 @@ struct DataCacheIndex {
             case WidgetID:  // Widget, Query and
             case QueryID:   // SubSystem IDs all fine
             case SubSysID:  // for EntityID
+            case MenuBarID:
+            case MenuID:
+            case MenuItemID:
                 break;
             default:
                 throw std::runtime_error("NoDOM BAD_ENTITY_ID");
@@ -357,7 +364,6 @@ using StrInx = DataCacheIndex<CIT::Value, CDT::cdStr>;
 using IntVecInx = DataCacheIndex<CIT::Value, CDT::cdIntVec>;  // mutable
 using StrVecInx = DataCacheIndex<CIT::Value, CDT::cdStrVec>;  // !mutable
 
-
 // Cache entry defn
 // AInx:VInx    eg  "op1":<int>
 // 
@@ -432,6 +438,7 @@ enum CacheSpecifier : uint32_t {
     cs_shaded_plot_flags,
     cs_menu_bar,
     cs_menu,
+    cs_menu_item,
     cs_show_footer_db,
     cs_show_footer_fps,
     cs_show_footer_demo,
