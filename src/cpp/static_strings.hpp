@@ -155,6 +155,7 @@ struct Static {
 	inline static const char* cache_response_cs{ "CacheResponse" };
 	inline static const char* cache_request_cs{ "CacheRequest" };
 	inline static const char* click_cs{ "Click" };
+	inline static const char* Menu_cs{ "Menu" };
 	inline static const char* online_cs{ "Online" };
 	inline static const char* data_change_cs{ "DataChange" };
 	inline static const char* data_change_confirmed_cs{ "DataChangeConfirmed" };
