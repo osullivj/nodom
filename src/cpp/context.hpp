@@ -553,7 +553,6 @@ public:
         std::string qid = JAsString(db_msg, Static::query_id_cs);
         NDLogger::cout() << method << nd_type << ", QID: " << qid << std::endl;
 
-        // Here add_string acts as find_string
         EntityInx ninx{data_lay_cache.template get_string_index<EntityID>(qid, CST::QueryID)};
         EventInx einx_db{ data_lay_cache.template get_string_index<Event>(nd_type, CST::DBEvent) };
         EventInx einx_ss{ data_lay_cache.template get_string_index<Event>(nd_type, CST::SubSysEvent) };
@@ -853,22 +852,25 @@ protected:
         // to a menu defn
         DataRef* menu_bar_data_ref = cspec_data_ref(cs_menu_bar, w->data_refs);
         if (menu_bar_data_ref != nullptr && ImGui::BeginMenuBar()) {
-            StrInx menu_name_inx{ menu_bar_data_ref->ref_inx };
+            StrInx mbinx{ menu_bar_data_ref->ref_inx };
             for (uint32_t i = 0; i < menu_bar_data_ref->size; i++) {
-                const char* menu_name = data_lay_cache.get_string_value(menu_name_inx++);
+                const char* menu_name = data_lay_cache.get_string_value(mbinx);
                 if (menu_name != nullptr && ImGui::BeginMenu(menu_name)) {
-                    AddrInx addr_inx = data_lay_cache.get_addr_inx(menu_name);
-                    auto drit = w->menu_map.find(addr_inx);
-                    assert(drit != w->menu_map.end());
-                    DataRef& menu_data_ref = drit->second;
-                    StrInx menu_item_inx{ menu_data_ref.ref_inx };
-                    for (uint32_t j = 0; j < menu_data_ref.size; j++) {
-                        const char* menu_item = data_lay_cache.get_string_value(menu_item_inx++);
-                        assert(menu_item != nullptr);
-                        ImGui::MenuItem(menu_item);
+                    AddrInx menu_addr_inx = data_lay_cache.get_menu_addr_inx(menu_name);
+                    DataRef* menu_data_ref = data_lay_cache.get_menu_data_ref(menu_addr_inx);
+                    if (menu_data_ref != nullptr) {
+                        StrInx miinx{ menu_data_ref->ref_inx };
+                        for (uint32_t j = 0; j < menu_data_ref->size; j++) {
+                            // TODO: add enabled/disabled logic
+                            const char* menu_item = data_lay_cache.get_string_value(miinx);
+                            assert(menu_item != nullptr);
+                            ImGui::MenuItem(menu_item);
+                            miinx++;
+                        }
                     }
                     ImGui::EndMenu();
                 }
+                mbinx++;
             }
             ImGui::EndMenuBar();
         }
