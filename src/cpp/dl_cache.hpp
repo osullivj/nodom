@@ -260,7 +260,6 @@ protected:
     void on_data(const JSON& data) {
         // const static char* method = "DataLayCache::on_data: ";
 
-        bool we_have_actions{ false };
         StringVec data_keys;
         StringSet special_keys_found;
         JKeys(data, data_keys);
@@ -541,7 +540,7 @@ public:
     }
 
     size_t addr_map_size() { return address_map.size(); }
-    size_t menu_addr_map_size() { return menu_address_map.size(); }
+    size_t menu_entity_map_size() { return menu_entity_map.size(); }
     size_t widget_vec_size() { return widget_vec.size(); }
     size_t pushables_size() { return pushables.size(); }
     size_t action_map_size() { return action_map.size(); }
