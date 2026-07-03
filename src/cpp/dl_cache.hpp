@@ -57,8 +57,8 @@ protected:
     // Top level menu_bar and individual menu_items are just data
     // But menus must have contiguous elements, just like menubars.
     // And we must be able to map from menu name to menu StrVec; hence menu_map
-    std::map<std::string, AddrInx>      menu_address_map;
-    std::map<AddrInx, DataRef>          menu_data_ref_map;
+    std::map<std::string, EntityInx>    menu_entity_map;
+    std::map<EntityInx, DataRef>        menu_data_ref_map;
 
 public:
     template <CIT itype>
@@ -321,9 +321,9 @@ protected:
             JKeys(jmenus, menu_name_vec);
             for (auto mit = menu_name_vec.cbegin(); mit != menu_name_vec.cend(); ++mit) {
                 std::string menu_name{ *mit };
-                AddrInx menu_addr_inx = add_menu_address(menu_name);
-                DataRef menu_data_ref{ CreateDataRef(cdStrVec, menu_addr_inx, jmenus, menu_name) };
-                menu_data_ref_map[menu_addr_inx] = menu_data_ref;
+                EntityInx menu_inx = add_menu_id(menu_name);
+                DataRef menu_data_ref{ CreateDataRef(cdStrVec, menu_inx(), jmenus, menu_name)};
+                menu_data_ref_map[menu_inx] = menu_data_ref;
 
                 // add post proc for menus that creates menu_item
                 // entries in the menu_address_map
@@ -333,7 +333,7 @@ protected:
                     assert(menu_item != nullptr);
                     // create a unique index for each menu_item that can be 
                     // used as the Entity inx
-                    add_menu_address(menu_item);
+                    add_menu_id(menu_item);
                     mitem_inx++;
                 }
             }
@@ -627,8 +627,8 @@ public:
         return nullptr;
     }
 
-    DataRef* get_menu_data_ref(AddrInx ainx) {
-        auto it = menu_data_ref_map.find(ainx);
+    DataRef* get_menu_data_ref(EntityInx einx) {
+        auto it = menu_data_ref_map.find(einx);
         if (it != menu_data_ref_map.end()) {
             return &it->second;
         }
@@ -660,9 +660,9 @@ public:
         return it == address_map.end() ? 0 : it->second;
     }
 
-    AddrInx get_menu_addr_inx(const std::string& addr) {
-        auto it = menu_address_map.find(addr);
-        return it == menu_address_map.end() ? 0 : it->second;
+    EntityInx get_menu_id(const std::string& menu) {
+        auto it = menu_entity_map.find(menu);
+        return it == menu_entity_map.end() ? 0 : it->second;
     }
 
     int* get_int_value(IntInx inx) {
@@ -679,10 +679,10 @@ public:
         return ainx;
     }
 
-    AddrInx add_menu_address(const std::string& addr) {
-        AddrInx ainx = get_string_index<CIT::Address>(addr);
-        menu_address_map[addr] = ainx;
-        return ainx;
+    EntityInx add_menu_id(const std::string& addr) {
+        EntityInx einx{ get_string_index<CIT::EntityID>(addr, CST::QueryID) };
+        menu_entity_map[addr] = einx;
+        return einx;
     }
 
     EntityInx add_widget_id(const std::string& wid) {
@@ -1030,12 +1030,12 @@ public:
         std::cout << std::dec << std::endl;
     }
 
-    void report_menu_address_map() {
-        size_t len = menu_address_map.size();
+    void report_menu_entity_map() {
+        size_t len = menu_entity_map.size();
         int inx{ 0 };
-        std::cout << "== report_menu_address_map len:" << std::dec << len << std::endl;
-        std::cout << "inx:addr:AddrInx{0x0104,inx}" << std::endl;
-        for (auto cit = menu_address_map.cbegin(); cit != menu_address_map.cend(); ++cit) {
+        std::cout << "== report_menu_entity_map len:" << std::dec << len << std::endl;
+        std::cout << "inx:addr:EntityInx{0x0304,inx}" << std::endl;
+        for (auto cit = menu_entity_map.cbegin(); cit != menu_entity_map.cend(); ++cit) {
             std::cout << std::setfill('0') << std::setw(3) << std::hex << inx++ << ":";
             std::cout << cit->first << ":" << cit->second << std::endl;
         }
@@ -1106,7 +1106,7 @@ public:
         report_cache_ints(eic);
         report_cache_floats(efc);
         report_address_map();
-        report_menu_address_map();
+        report_menu_entity_map();
         report_data_refs();
         report_actions();
         std::cout << std::endl;
