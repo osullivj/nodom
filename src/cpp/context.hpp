@@ -871,6 +871,7 @@ protected:
             auto func_request = JNewObject();
             JSet(func_request, Static::nd_type_cs, DBEventTypeToString(action_defn.db_action));
             JSet(func_request, Static::query_id_cs, raw_func_inx);
+            JSet(func_request, Static::data_cs, data);
             // async func must specify result addr & type
             // NB when FunctionResult arrives we'll look at result
             assert(action_defn.sql_cname.is_valid());
