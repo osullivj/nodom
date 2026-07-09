@@ -275,6 +275,7 @@ struct DataCacheIndex {
             case MenuBarID:
             case MenuID:
             case MenuItemID:
+            case JSFuncID:
                 break;
             default:
                 throw std::runtime_error("NoDOM BAD_ENTITY_ID");
