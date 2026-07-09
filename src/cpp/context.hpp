@@ -881,7 +881,7 @@ protected:
 #ifdef __EMSCRIPTEN__
             // no ret val as exec_js_action_sync invokes on_db_result,
             // so result obj will get picked up by dispatch_events
-            exec_js_action_sync(raw_func_inx, data);
+            exec_js_action_sync(raw_func_inx, data.as_handle());
 #endif
         }
 

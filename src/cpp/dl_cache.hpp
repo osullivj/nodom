@@ -785,15 +785,6 @@ public:
         }
     }
 
-    // TODO: md to NDContext
-    void invoke_function(EntityInx finx) {
-        uint32_t raw_inx = js_func_inx_map[finx];
-        const char* func_name = get_string_value(finx);
-        emscripten::val win_global_funcs = emscripten::val::global("window.__nodom__.functions");
-        win_global_funcs.call<emscripten::val>(func_name, raw_inx, data, changes);
-        return json.as<std::string>();
-    }
-
     EntityInx get_query_id(const std::string& qid) {
         auto qmit = query_map.find(qid);
         if (qmit != query_map.end())
