@@ -84,8 +84,8 @@ ADDITION_DATA = dict(
     ),
     functions=["FInc1", "FInc2", "FDec1", "FDec2"],
     actions={
-        "Inc1.Menu": [dict(db_action="FunctionSync", quote_id="FInc1")],
-        "Inc2.Menu": [dict(db_action="FunctionSync", quote_id="FInc2")],
+        "Inc1.Menu": [dict(db_action="FunctionSync", query_id="FInc1")],
+        "Inc2.Menu": [dict(db_action="FunctionSync", query_id="FInc2")],
     },
 )
 
