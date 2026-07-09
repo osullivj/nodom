@@ -331,6 +331,6 @@ BOOST_FIXTURE_TEST_CASE(MinMenuBarDataAndLayout, DataCacheFixture)
     BOOST_TEST(dc.pushables_size() == 0);
     BOOST_TEST(dc.error_count() == 0);
     BOOST_TEST(dc.data_ref_map_size() == 1);    // menubar
-    BOOST_TEST(dc.menu_addr_map_size() == 6);    // 2 menu, 4 menu_item
+    BOOST_TEST(dc.menu_entity_map_size() == 6);    // 2 menu, 4 menu_item
     assert_cache_state();
 }
