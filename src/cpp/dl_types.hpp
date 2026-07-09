@@ -116,6 +116,7 @@ struct NDAction {
     DBEventType db_action{ EndDBEventTypes }; // Query|Command|BatchRequest
     EntityInx query_id;
     AddrInx sql_cname;
+    CacheDataType ctype{ EndDataTypes };
 };
 
 struct NDActionInterned {
@@ -216,6 +217,12 @@ inline DBEventType DBEventTypeFromString(const std::string& evt) {
         return dbBatchRequest;
     if (evt == Static::batch_response_cs)
         return dbBatchResponse;
+    if (evt == Static::function_sync_cs)
+        return dbFunctionSync;
+    if (evt == Static::function_async_cs)
+        return dbFunctionAsync;
+    if (evt == Static::function_result_cs)
+        return dbFunctionResult;
     return EndDBEventTypes;
 }
 
@@ -233,6 +240,12 @@ inline const char* DBEventTypeToString(DBEventType dbet) {
         return Static::batch_request_cs;
     case dbBatchResponse:
         return Static::batch_response_cs;
+    case dbFunctionSync:
+        return Static::function_sync_cs;
+    case dbFunctionAsync:
+        return Static::function_async_cs;
+    case dbFunctionResult:
+        return Static::function_result_cs;
     case EndDBEventTypes:
         return nullptr;
     }
@@ -258,4 +271,22 @@ inline const char* CDTToString(CacheDataType cdt) {
     default:
         return nullptr;
     }
+}
+
+inline CacheDataType CDTFromString(const std::string& ctype) {
+    if (ctype == Static::cdt_int_cs)
+        return cdInt;
+    if (ctype == Static::cdt_float_cs)
+        return cdFloat;
+    if (ctype == Static::cdt_bool_cs)
+        return cdBool;
+    if (ctype == Static::cdt_str_cs)
+        return cdStr;
+    if (ctype == Static::cdt_int_vec_cs)
+        return cdIntVec;
+    if (ctype == Static::cdt_str_vec_cs)
+        return cdStrVec;
+    if (ctype == Static::cdt_any_cs)
+        return cdAny;
+    return EndDataTypes;
 }

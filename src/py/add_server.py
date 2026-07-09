@@ -82,9 +82,10 @@ ADDITION_DATA = dict(
         Inc=["Inc1", "Inc2"],
         Dec=["Dec1", "Dec2"],
     ),
+    functions=["FInc1", "FInc2", "FDec1", "FDec2"],
     actions={
-        "Inc1.Menu": [dict(ui_push="menu_modal")],
-        "Inc2.Menu": [dict(ui_pop="LoadingModal")],
+        "Inc1.Menu": [dict(db_action="FunctionSync", quote_id="FInc1")],
+        "Inc2.Menu": [dict(db_action="FunctionSync", quote_id="FInc2")],
     },
 )
 

@@ -131,15 +131,21 @@ struct Static {
 	// An action dict may have a db subdict
 	// specifying a DB action
 	inline static const char* db_action_cs{ "db_action" };
-	// DB subdict must supply an action (Command|Query|BatchRequest),
+	// DB subdict must supply an action (Command|Query|BatchRequest|FunctionSync|FunctionAsync),
 	// a unique query ID and a cache address for the SQL in sql_cname
 	inline static const char* action_cs{ "action" };
 	inline static const char* sql_cname_cs{ "sql_cname" };
+	// for Command|Query|BatchRequest sql_cname is a Str DataRef
+	// but for FunctionSync|FunctionAsync sql_cname could be any
+	// type of DataRef, so we check ctype 
+	inline static const char* ctype_cs{ "ctype" };
 
 	// Menus: data.[menu_bars|menus|menu_items]
 	inline static const char* menus_cs{ "menus" };
 	inline static const char* menu_bars_cs{ "menu_bars" };
 	inline static const char* menu_items_cs{ "menu_items" };
+	// data.functions: a list of JS func names
+	inline static const char* functions_cs{ "functions" };
 
 	// Events: message keys
 	inline static const char* nd_type_cs{ "nd_type" };
@@ -163,6 +169,10 @@ struct Static {
 	inline static const char* query_result_cs{ "QueryResult" };
 	inline static const char* command_cs{ "Command" };
 	inline static const char* command_result_cs{ "CommandResult" };
+	inline static const char* function_sync_cs{ "FunctionSync" };
+	inline static const char* function_async_cs{ "FunctionAsync" };
+	inline static const char* function_result_cs{ "FunctionResult" };
+
 
 	inline static const char* gui_cs{ "GUI" };
 	inline static const char* websock_cs{ "WebSock" };
@@ -184,7 +194,10 @@ struct Static {
 	inline static const char* db_config_cs{ "db_config" };
 	inline static const char* app_key_cs{ "app_key" };
 	inline static const char* fonts_cs{ "fonts" };
+	inline static const char* funcs_cs{ "funcs" };
 	inline static const char* config_dir_cs{ "config_dir" };
+	inline static const char* name_cs{ "name" };
+	inline static const char* length_cs{ "length" };
 
 
 	// DatePicker

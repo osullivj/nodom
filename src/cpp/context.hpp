@@ -30,6 +30,18 @@ static constexpr int act_ev_key_buf_len{ 256 };
 
 struct GLFWwindow;
 
+#ifdef __EMSCRIPTEN__
+
+EM_JS(void, exec_js_action_sync, (int raw_fn_inx, emscripten::EM_VAL data_handle), {
+    // use DLC::js_func_entity_map to get EntityInx for func, then raw_inx
+    var data_cache = Emval.toValue(data_handle);
+    var nodom = window["__nodom__"];
+    var func_array = nodom["functions"];
+    result_obj = func_array[raw_fn_inx](data_cache);
+    on_db_result(result_obj);
+});
+
+#endif
 
 // NDContext: stack based rendering
 // Utility funcs above if they're too specific to rendering
@@ -115,6 +127,9 @@ private:
     EventInx    einx_QueryResult;               // CST::DBEvent
     EventInx    einx_BatchRequest;              // CST::DBEvent
     EventInx    einx_BatchResponse;             // CST::DBEvent
+    EventInx    einx_FunctionSync;              // CST::SubSysEvent
+    EventInx    einx_FunctionAsync;             // CST::SubSysEvent
+    EventInx    einx_FunctionResult;            // CST::SubSysEvent
     EventInx    einx_Invalid;                   // !init->OH_FECK
 
     bool  footer_show_db{ false };
@@ -149,6 +164,7 @@ private:
     VVFunc msg_pump = nullptr;
     GLFWwindow* glfw_window = nullptr;
 
+    StringVec   js_func_names;
     // Buffer for action_event compound keys
     char act_ev_key_buf[act_ev_key_buf_len];
     // Buffers for err msg fmt, labels, dates...
@@ -194,6 +210,7 @@ public:
 
         NDConfig<JSON>& cfg{ NDConfig<JSON>::get_instance() };
         cfg.get_value(Static::server_url_cs, server_url);
+
 #ifdef __EMSCRIPTEN__
         ini_writer.file_name = app_key_s + "_layout.ini";
         ini_list.push_back(ini_writer.file_name);
@@ -267,6 +284,10 @@ public:
         einx_QueryResult = data_lay_cache.template get_string_index<CIT::Event>(Static::query_result_cs, CST::DBEvent);
         einx_BatchRequest = data_lay_cache.template get_string_index<CIT::Event>(Static::batch_request_cs, CST::DBEvent);
         einx_BatchResponse = data_lay_cache.template get_string_index<CIT::Event>(Static::batch_response_cs, CST::DBEvent);
+        // Function events, piggybacked on DB event sys
+        einx_FunctionSync = data_lay_cache.template get_string_index<CIT::Event>(Static::function_sync_cs, CST::SubSysEvent);
+        einx_FunctionAsync = data_lay_cache.template get_string_index<CIT::Event>(Static::function_async_cs, CST::SubSysEvent);
+        einx_FunctionResult = data_lay_cache.template get_string_index<CIT::Event>(Static::function_result_cs, CST::SubSysEvent);
 
         data_lay_cache.report_cache_state();
         size_t dlc_error_count = data_lay_cache.error_count();
@@ -285,7 +306,6 @@ public:
         }
     }
 
-    // EventInx next_db_event(EventInx einx) {
     DBEventType next_db_event(DBEventType dbet) {
         switch (dbet) {
         case dbCommand:
@@ -294,6 +314,9 @@ public:
             return dbQueryResult;
         case dbBatchRequest:
             return dbBatchResponse;
+        case dbFunctionAsync:
+            return dbFunctionResult;
+        case dbFunctionSync:    // synchronous, so no completion event
         default:
             return EndDBEventTypes;
         }
@@ -313,6 +336,12 @@ public:
             return einx_BatchRequest;
         case dbBatchResponse:
             return einx_BatchResponse;
+        case dbFunctionSync:
+            return einx_FunctionSync;
+        case dbFunctionAsync:
+            return einx_FunctionAsync;
+        case dbFunctionResult:
+            return einx_FunctionResult;
         default:
             return EndDBEventTypes;
         }
@@ -525,6 +554,11 @@ public:
             }
             else if (nd_type == Static::data_change_confirmed_cs) {
                 // TODO: add check that type has not mutated
+            }
+            else if (nd_type == Static::function_result_cs) {
+                // TODO: add code to handle FunctionResult
+                // FunctionAsync will have sql_cname and ctype
+                // set to create a data ref
             }
             // Duck or Parquet event...
             else {
@@ -810,8 +844,15 @@ protected:
             pending_pushes.push_back(action_defn.push_ui);
         }
         // Finally, do we have a DB op to handle?
+        // TODO: db_dispatch -> event_dispatch refactor
         if (db_event_is_valid(action_defn.db_action)) {
-            db_dispatch(action_defn);
+            if (action_defn.db_action == DBEventType::dbFunctionSync
+                || action_defn.db_action == DBEventType::dbFunctionAsync) {
+                func_dispatch(action_defn);
+            }
+            else {
+                db_dispatch(action_defn);
+            }
             // We've dispatched a DB op from a sequence, so there's a 
             // continuation if this is not the last action.
             if (++action_inx < seq_len) {
@@ -823,6 +864,28 @@ protected:
         }
     }
 
+    void func_dispatch(const NDAction& action_defn) {
+        int raw_func_inx = data_lay_cache.get_func_inx(action_defn.query_id);
+        // async slow path for funcs that await
+        if (action_defn.db_action == dbFunctionAsync) {
+            auto func_request = JNewObject();
+            JSet(func_request, Static::nd_type_cs, DBEventTypeToString(action_defn.db_action));
+            JSet(func_request, Static::query_id_cs, raw_func_inx);
+            // async func must specify result addr & type
+            // NB when FunctionResult arrives we'll look at result
+            assert(action_defn.sql_cname.is_valid());
+            // will invoke ems_db_dispatch to window.postMessage(func_request)
+            bulk.db_dispatch(func_request);
+        }
+        else {  // sync fast path
+#ifdef __EMSCRIPTEN__
+            // no ret val as exec_js_action_sync invokes on_db_result,
+            // so result obj will get picked up by dispatch_events
+            exec_js_action_sync(raw_func_inx, data);
+#endif
+        }
+
+    }
 
     void db_dispatch(const NDAction& action_defn) {
         // const static char* method = "NDContext::db_dispatch: ";

@@ -52,13 +52,20 @@ protected:
     EntityInx                           invalid_entity;
 
     // Two reserved keys in data: actions and menus
-    StringSet                           special_keys{Static::actions_cs, Static::menus_cs};
+    StringSet                           special_keys{
+                                            Static::actions_cs, 
+                                            Static::menus_cs,
+                                            Static::functions_cs
+    };
 
     // Top level menu_bar and individual menu_items are just data
     // But menus must have contiguous elements, just like menubars.
     // And we must be able to map from menu name to menu StrVec; hence menu_map
     std::map<std::string, EntityInx>    menu_entity_map;
     std::map<EntityInx, DataRef>        menu_data_ref_map;
+
+    std::map<std::string, EntityInx>    js_func_entity_map;
+    std::map<EntityInx, uint32_t>       js_func_inx_map;
 
 public:
     template <CIT itype>
@@ -188,31 +195,78 @@ protected:
                 std::string db_action = JAsString(action_defn, Static::db_action_cs);
                 action.db_action = DBEventTypeFromString(db_action);
                 interned.db_action = (char*)db_event_types[action.db_action];
-                std::string query_id = JAsString(action_defn, Static::query_id_cs);
-                action.query_id = add_query_id(query_id);
-                interned.query_id = (char*)get_string_value(action.query_id);
-
-                if (action.db_action == dbCommand || action.db_action == dbQuery) {
-                    std::string sql_cache_key = JAsString(action_defn, Static::sql_cname_cs);
-                    action.sql_cname = add_address(sql_cache_key);
-                    // check that the sql cname refers to a cache data entry
-                    interned.sql_cname = (char*)get_addr_value(action.sql_cname);
-                    auto amit = address_map.find(sql_cache_key);
-                    if (amit == address_map.end()) {
-                        std::stringstream ss;
-                        ss << "CACHE_KEY_NOT_FOUND(" << sql_cache_key << ")";
-                        std::string error{ ss.str() };
-                        errors.error_vec.push_back(error);
-                        errors.inx = inx;
-                        action_errors.push_back(error);
+                // FunctionSync|FunctionAsync
+                if (action.db_action == DBEventType::dbFunctionSync
+                        || action.db_action == DBEventType::dbFunctionAsync) {
+                    std::string func_id = JAsString(action_defn, Static::query_id_cs);
+                    action.query_id = get_func_id(func_id);
+                    interned.query_id = (char*)get_string_value(action.query_id);
+                    if (JContains(action_defn, Static::sql_cname_cs)) {
+                        std::string fn_result_key = JAsString(action_defn, Static::sql_cname_cs);
+                        // This add_address should just find the addr cached by data keys
+                        // parsing earlier...
+                        action.sql_cname = add_address(fn_result_key);
+                        // check that the sql cname refers to a cache data entry
+                        interned.sql_cname = (char*)get_addr_value(action.sql_cname);
+                        if (!JContains(action_defn, Static::ctype_cs)) {
+                            std::stringstream ss;
+                            ss << "CTYPE_NOT_FOUND(" << fn_result_key << ")";
+                            std::string error{ ss.str() };
+                            errors.error_vec.push_back(error);
+                            errors.inx = inx;
+                            action_errors.push_back(error);
+                        }
+                        else {
+                            std::string ctype = JAsString(action_defn, Static::ctype_cs);
+                            action.ctype = CDTFromString(ctype);
+                            if (action.ctype == EndDataTypes) {
+                                std::stringstream ss;
+                                ss << "BAD_CTYPE(" << ctype << ")";
+                                std::string error{ ss.str() };
+                                errors.error_vec.push_back(error);
+                                errors.inx = inx;
+                                action_errors.push_back(error);
+                            }
+                            else {
+                                DataRef data_ref = CreateDataRef(action.ctype, action.sql_cname,
+                                    data, fn_result_key);
+                                data_ref_map[data_ref.addr_inx] = data_ref;
+                            }
+                        }
                     }
-                    else {
-                        // create data_ref_map entry for the query/cmd SQL source
-                        DataRef data_ref{ cdStr, amit->second };
-                        data_ref.size = 1;
-                        std::string sql = JAsString(data, sql_cache_key);
-                        data_ref.ref_inx = get_string_index<CIT::Value>(sql)();
-                        data_ref_map[data_ref.addr_inx] = data_ref;
+
+                }
+                else {  // Command|Query|BatchRequest
+                    std::string query_id = JAsString(action_defn, Static::query_id_cs);
+                    action.query_id = add_query_id(query_id);
+                    interned.query_id = (char*)get_string_value(action.query_id);
+
+                    if (action.db_action == dbCommand || action.db_action == dbQuery) {
+                        std::string sql_cache_key = JAsString(action_defn, Static::sql_cname_cs);
+                        // This add_address should just find the addr cached by data keys
+                        // parsing earlier...
+                        action.sql_cname = add_address(sql_cache_key);
+                        // check that the sql cname refers to a cache data entry
+                        interned.sql_cname = (char*)get_addr_value(action.sql_cname);
+                        auto amit = address_map.find(sql_cache_key);
+                        if (amit == address_map.end()) {
+                            std::stringstream ss;
+                            ss << "CACHE_KEY_NOT_FOUND(" << sql_cache_key << ")";
+                            std::string error{ ss.str() };
+                            errors.error_vec.push_back(error);
+                            errors.inx = inx;
+                            action_errors.push_back(error);
+                        }
+                        else {
+                            // create data_ref_map entry for the query/cmd SQL source
+                            // NB we assume a cdStr. TODO: extend to support cdStrVec via
+                            // ctype
+                            DataRef data_ref{ cdStr, amit->second };
+                            data_ref.size = 1;
+                            std::string sql = JAsString(data, sql_cache_key);
+                            data_ref.ref_inx = get_string_index<CIT::Value>(sql)();
+                            data_ref_map[data_ref.addr_inx] = data_ref;
+                        }
                     }
                 }
             }
@@ -279,6 +333,38 @@ protected:
             // entry that matches the address_map entry.
         }
 
+        // Create funcIDs before actions are parsed
+        if (special_keys_found.find(Static::functions_cs) != special_keys_found.end()) {
+            StringVec func_names;
+            JAsStringVec(data, Static::functions_cs, func_names);
+            add_func_ids(func_names);
+        }
+        
+        // Create a StrVec DataRef for each menu. Each Str in the StrVec is a menu_item
+        if (special_keys_found.find(Static::menus_cs) != special_keys_found.end()) {
+            const JSON& jmenus(data[Static::menus_cs]);
+            StringVec menu_name_vec;
+            JKeys(jmenus, menu_name_vec);
+            for (auto mit = menu_name_vec.cbegin(); mit != menu_name_vec.cend(); ++mit) {
+                std::string menu_name{ *mit };
+                EntityInx menu_inx = add_menu_id(menu_name);
+                DataRef menu_data_ref{ CreateDataRef(cdStrVec, menu_inx(), jmenus, menu_name) };
+                menu_data_ref_map[menu_inx] = menu_data_ref;
+
+                // add post proc for menus that creates menu_item
+                // entries in the menu_address_map
+                StrInx mitem_inx{ menu_data_ref.ref_inx };
+                for (int i = 0; i < menu_data_ref.size; i++) {
+                    const char* menu_item = get_string_value(mitem_inx);
+                    assert(menu_item != nullptr);
+                    // create a unique index for each menu_item that can be 
+                    // used as the Entity inx
+                    add_menu_id(menu_item);
+                    mitem_inx++;
+                }
+            }
+        }
+
         if (special_keys_found.find(Static::actions_cs) != special_keys_found.end()) {
             const JSON& jactions(data[Static::actions_cs]);
             StringVec action_key_vec;
@@ -312,29 +398,6 @@ protected:
                 action_map[action_key] = nd_action_vec;
                 action_interned_map[action_key] = action_intern_vec;
                 action_error_map[action_key] = action_error_vec;
-            }
-        }
-        if (special_keys_found.find(Static::menus_cs) != special_keys_found.end()) {
-            const JSON& jmenus(data[Static::menus_cs]);
-            StringVec menu_name_vec;
-            JKeys(jmenus, menu_name_vec);
-            for (auto mit = menu_name_vec.cbegin(); mit != menu_name_vec.cend(); ++mit) {
-                std::string menu_name{ *mit };
-                EntityInx menu_inx = add_menu_id(menu_name);
-                DataRef menu_data_ref{ CreateDataRef(cdStrVec, menu_inx(), jmenus, menu_name)};
-                menu_data_ref_map[menu_inx] = menu_data_ref;
-
-                // add post proc for menus that creates menu_item
-                // entries in the menu_address_map
-                StrInx mitem_inx{ menu_data_ref.ref_inx };
-                for (int i = 0; i < menu_data_ref.size; i++) {
-                    const char* menu_item = get_string_value(mitem_inx);
-                    assert(menu_item != nullptr);
-                    // create a unique index for each menu_item that can be 
-                    // used as the Entity inx
-                    add_menu_id(menu_item);
-                    mitem_inx++;
-                }
             }
         }
     }
@@ -393,6 +456,7 @@ protected:
             }
             // cname|cindex|menubar: ref_name will be a data addr
             // query_id: ref_name will be an EntityInx
+            // NB query_id may now be a FuncID EntityInx
             std::string addr_or_qid{ JAsString(cspec, ref_name) };
             // NB amit->second is AddrInx. Either amit->second
             // will be good, or query_inx
@@ -659,6 +723,18 @@ public:
         return it == address_map.end() ? 0 : it->second;
     }
 
+    int get_func_inx(EntityInx finx) {
+        auto it = js_func_inx_map.find(finx);
+        if (it == js_func_inx_map.end())
+            return -1;
+        return it->second;
+    }
+
+    EntityInx get_func_id(const std::string& func_name) {
+        auto it = js_func_entity_map.find(func_name);
+        return it == js_func_entity_map.end() ? 0 : it->second;
+    }
+
     EntityInx get_menu_id(const std::string& menu) {
         auto it = menu_entity_map.find(menu);
         return it == menu_entity_map.end() ? 0 : it->second;
@@ -694,6 +770,28 @@ public:
         EntityInx inx{ get_string_index<CIT::EntityID>(qid, CST::QueryID) };
         query_map[qid] = inx;
         return inx;
+    }
+
+    void add_func_ids(const StringVec& func_list) {
+        if (func_list.size() == 0)
+            return;
+        int base_inx = -1;
+        for (auto it = func_list.cbegin(); it != func_list.cend(); ++it) {
+            EntityInx func_inx{ contiguous_string_index<CIT::EntityID>(*it, CST::JSFuncID) };
+            if (base_inx == -1)
+                base_inx = func_inx();
+            js_func_entity_map[*it++] = func_inx;
+            js_func_inx_map[func_inx] = func_inx() - base_inx;
+        }
+    }
+
+    // TODO: md to NDContext
+    void invoke_function(EntityInx finx) {
+        uint32_t raw_inx = js_func_inx_map[finx];
+        const char* func_name = get_string_value(finx);
+        emscripten::val win_global_funcs = emscripten::val::global("window.__nodom__.functions");
+        win_global_funcs.call<emscripten::val>(func_name, raw_inx, data, changes);
+        return json.as<std::string>();
     }
 
     EntityInx get_query_id(const std::string& qid) {

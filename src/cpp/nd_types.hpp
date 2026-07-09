@@ -196,6 +196,7 @@ enum CacheItemSubType : uint32_t {
     MenuBarID = 0x700000,
     MenuID = 0x800000,
     MenuItemID = 0x900000,
+    JSFuncID = 0xA00000,
     EndSubItemTypes = 0xF00000
 };
 
@@ -218,6 +219,9 @@ enum DBEventType : uint32_t {
     dbQueryResult,
     dbBatchRequest,
     dbBatchResponse,
+    dbFunctionSync,
+    dbFunctionAsync,
+    dbFunctionResult,
     EndDBEventTypes
 };
 
