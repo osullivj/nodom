@@ -17,5 +17,5 @@ function FInc2(data) {
 }
 
 window["__nodom__"] = {
-  functions: [FInc1, FInc2],
+  functions: [FInc1, FInc2]
 };
