@@ -780,7 +780,7 @@ public:
             EntityInx func_inx{ contiguous_string_index<CIT::EntityID>(*it, CST::JSFuncID) };
             if (base_inx == -1)
                 base_inx = func_inx();
-            js_func_entity_map[*it++] = func_inx;
+            js_func_entity_map[*it] = func_inx;
             js_func_inx_map[func_inx] = func_inx() - base_inx;
         }
     }
@@ -857,7 +857,9 @@ private:
         Static::query_cs,
         Static::query_result_cs,
         Static::batch_request_cs,
-        Static::batch_response_cs
+        Static::batch_response_cs,
+        Static::function_async_cs,
+        Static::function_result_cs
     };
 
     inline static std::array<const char*, cs_end_cache_specs> cspec_names{
@@ -1122,7 +1124,7 @@ public:
         size_t len = menu_entity_map.size();
         int inx{ 0 };
         std::cout << "== report_menu_entity_map len:" << std::dec << len << std::endl;
-        std::cout << "inx:addr:EntityInx{0x0304,inx}" << std::endl;
+        std::cout << "inx:addr:EntityInx{0x0324,inx}" << std::endl;
         for (auto cit = menu_entity_map.cbegin(); cit != menu_entity_map.cend(); ++cit) {
             std::cout << std::setfill('0') << std::setw(3) << std::hex << inx++ << ":";
             std::cout << cit->first << ":" << cit->second << std::endl;
@@ -1162,6 +1164,29 @@ public:
         std::cout << std::dec << std::endl;
     }
 
+    void report_func_maps() {
+        // std::map<std::string, EntityInx>    js_func_entity_map;
+        // std::map<EntityInx, uint32_t>       js_func_inx_map;
+
+        size_t len = js_func_entity_map.size();
+        int inx{ 0 };
+        std::cout << "== report_js_func_entity_map len:" << std::dec << len << std::endl;
+        std::cout << "inx:func:EntityInx{0x03a4,inx}" << std::endl;
+        for (auto cit = js_func_entity_map.cbegin(); cit != js_func_entity_map.cend(); ++cit) {
+            std::cout << std::setfill('0') << std::setw(3) << std::hex << inx++ << ":";
+            std::cout << cit->first << ":" << cit->second << std::endl;
+        }
+        std::cout << "== report_js_func_inx_map len:" << std::dec << len << std::endl;
+        std::cout << "inx:EntityInx{0x03a4,inx}:raw_inx" << std::endl;
+        inx = 0;
+        for (auto cit = js_func_inx_map.cbegin(); cit != js_func_inx_map.cend(); ++cit) {
+            std::cout << std::setfill('0') << std::setw(3) << std::hex << inx++ << ":";
+            std::cout << cit->first << ":" << cit->second << std::endl;
+        }
+
+        std::cout << std::dec << std::endl;
+    }
+
     void report_actions() {
         int key_inx{ 0 };
         size_t actions_len = action_map.size();
@@ -1196,6 +1221,7 @@ public:
         report_address_map();
         report_menu_entity_map();
         report_data_refs();
+        report_func_maps();
         report_actions();
         std::cout << std::endl;
     }
