@@ -82,7 +82,7 @@ ADDITION_DATA = dict(
         Inc=["Inc1", "Inc2"],
         Dec=["Dec1", "Dec2"],
     ),
-    functions=["FInc1", "FInc2", "FDec1", "FDec2"],
+    functions=["FInc1", "FInc2"],
     actions={
         "Inc1.Menu": [dict(db_action="FunctionSync", query_id="FInc1")],
         "Inc2.Menu": [dict(db_action="FunctionSync", query_id="FInc2")],
