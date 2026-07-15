@@ -91,8 +91,6 @@ private:
     // us do that in the root render() method. But in C++ we use an STL
     // iterator in the root render method, and that segfaults.
     // So in C++ we have pending pushes done outside the render stack walk.
-    // TODO: remove action_dispatch() invocation from render_methods. Instead
-    // queue them up for execution by end_render_cycle().
     // [1] https://github.com/osullivj/imgui-jswt
     std::deque<EntityInx>       pending_pushes;
     std::deque<RenderMethod>    pending_pops;
@@ -555,9 +553,19 @@ public:
                 // TODO: add check that type has not mutated
             }
             else if (nd_type == Static::function_result_cs) {
-                // TODO: add code to handle FunctionResult
-                // FunctionAsync will have sql_cname and ctype
-                // set to create a data ref
+                // see src/web/incdec.js, especially ret_val
+                int raw_fn_inx = JAsInt(resp, Static::query_id_cs);
+                const char* func_name{ data_lay_cache.get_func_name(raw_fn_inx) };
+                assert(func_name != nullptr);
+                if (JContains(resp, Static::error_cs)) {
+                    std::string errmsg{JAsString(resp, Static::error_cs)};
+                    NDLogger::cerr() << method << "FUNC_FAIL: " << func_name
+                        << ", error: " << errmsg << std::endl;
+                }
+                else {
+                    std::string addr = JAsString(resp, Static::cache_key_cs);
+                    data_lay_cache.on_data_change(addr, resp);
+                }
             }
             // Duck or Parquet event...
             else {
