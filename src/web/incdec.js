@@ -20,46 +20,55 @@ function FInc2(data) {
   return rv;
 }
 
-async function FDec1(request) {
-  var url = "https://localhost/api/fdec1/" + request.data["op1"];
+async function FDec1(nd_request) {
+  var url = "https://localhost/api/fdec1/" + nd_request.data["op1"];
   console.log("FDec1: awaiting " + url);
   var resp = await fetch(url);
-  console.log("FDec1: response " + resp);
   if (resp.ok) {
-    data["op1"] = await resp.json();
-    return {
+    let new_value = await resp.json();
+    nd_request.data["op1"] = new_value;
+    let ret_val = {
       nd_type: "FunctionResult",
-      query_id: nd_db_request.query_id,
+      query_id: nd_request.query_id,
       cache_key: "op1",
-      new_value: data["op1"],
+      new_value: new_value
     };
-    return {
-      nd_type: "FunctionResult",
-      query_id: nd_db_request.query_id,
-      error: "fetch"
-    };
+    console.log("FDec1: result " + ret_val);
+    return ret_val;
   }
+  let ret_val = {
+    nd_type: "FunctionResult",
+    query_id: nd_request.query_id,
+    error: "fetch"
+  };
+  console.log("FDec1: result " + ret_val);
+  return ret_val;
 }
 
-async function FDec2(request) {
-  var url = "https://localhost/api/fdec2/" + request.data["op1"];
+async function FDec2(nd_request) {
+  var url = "https://localhost/api/fdec2/" + nd_request.data["op1"];
   console.log("FDec2: awaiting " + url);
   var resp = await fetch(url);
   console.log("FDec2: response " + resp);
   if (resp.ok) {
-    data["op1"] = await resp.json();
-    return {
+    let new_value = await resp.json();
+    nd_request.data["op1"] = new_value;
+    let ret_val = {
       nd_type: "FunctionResult",
-      query_id: nd_db_request.query_id,
+      query_id: nd_request.query_id,
       cache_key: "op1",
-      new_value: data["op1"],
+      new_value: new_value
     };
-    return {
-      nd_type: "FunctionResult",
-      query_id: nd_db_request.query_id,
-      error: "fetch"
-    };
+    console.log("FDec2: result " + ret_val);
+    return ret_val;
   }
+  let ret_val = {
+    nd_type: "FunctionResult",
+    query_id: nd_request.query_id,
+    error: "fetch"
+  };
+  console.log("FDec2: result " + ret_val);
+  return ret_val;
 }
 
 Module["nodom_functions"] = [FInc1, FInc2, FDec1, FDec2];
