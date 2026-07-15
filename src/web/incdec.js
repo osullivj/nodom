@@ -33,15 +33,15 @@ async function FDec1(nd_request) {
       cache_key: "op1",
       new_value: new_value
     };
-    console.log("FDec1: result " + ret_val);
+    console.log("FDec1: result " + JSON.stringify(ret_val));
     return ret_val;
   }
   let ret_val = {
     nd_type: "FunctionResult",
     query_id: nd_request.query_id,
-    error: "fetch"
+    error: resp.statusText
   };
-  console.log("FDec1: result " + ret_val);
+  console.log("FDec1: result " + JSON.stringify(ret_val));
   return ret_val;
 }
 
@@ -49,7 +49,6 @@ async function FDec2(nd_request) {
   var url = "https://localhost/api/fdec2/" + nd_request.data["op1"];
   console.log("FDec2: awaiting " + url);
   var resp = await fetch(url);
-  console.log("FDec2: response " + resp);
   if (resp.ok) {
     let new_value = await resp.json();
     nd_request.data["op1"] = new_value;
@@ -59,15 +58,15 @@ async function FDec2(nd_request) {
       cache_key: "op1",
       new_value: new_value
     };
-    console.log("FDec2: result " + ret_val);
+    console.log("FDec2: result " + JSON.stringify(ret_val));
     return ret_val;
   }
   let ret_val = {
     nd_type: "FunctionResult",
     query_id: nd_request.query_id,
-    error: "fetch"
+    error: resp.statusText
   };
-  console.log("FDec2: result " + ret_val);
+  console.log("FDec2: result " + JSON.stringify(ret_val));
   return ret_val;
 }
 
