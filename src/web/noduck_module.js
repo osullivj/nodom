@@ -54,23 +54,15 @@ self.onmessage = async (event) => {
       on_db_result({ nd_type: "Online", query_id: "NoDuck" });
       break;
     case "FunctionAsync":
-      if (true) {
-        try {
-          fresult = await Module["nodom_functions"][nd_db_request.query_id](nd_db_request);
-          on_db_result(fresult);
-        }
-        catch (err) {
-          on_db_result({
-            nd_type: "FunctionResult",
-            query_id: nd_db_request.query_id,
-            error: err.message
-          });
-        }
-      } else {
+      try {
+        let fresult = await Module["nodom_functions"][nd_db_request.query_id](nd_db_request);
+        on_db_result(fresult);
+      }
+      catch (err) {
         on_db_result({
           nd_type: "FunctionResult",
           query_id: nd_db_request.query_id,
-          error: "nofuncs",
+          error: err.message
         });
       }
       break;
