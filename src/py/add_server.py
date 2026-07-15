@@ -82,10 +82,12 @@ ADDITION_DATA = dict(
         Inc=["Inc1", "Inc2"],
         Dec=["Dec1", "Dec2"],
     ),
-    functions=["FInc1", "FInc2"],
+    functions=["FInc1", "FInc2", "FDec1", "FDec2"],
     actions={
         "Inc1.Menu": [dict(db_action="FunctionSync", query_id="FInc1")],
         "Inc2.Menu": [dict(db_action="FunctionSync", query_id="FInc2")],
+        "Dec1.Menu": [dict(db_action="FunctionAsync", query_id="FDec1")],
+        "Dec2.Menu": [dict(db_action="FunctionAsync", query_id="FDec2")],
     },
 )
 
@@ -111,6 +113,16 @@ class AdditionService(nd_utils.Service):
             data_cache[ckey] = new_val
             return [change]
         return []
+
+    def on_api_request(self, req, jkey):
+        # nodom client url: https://localhost/api/fdec1/<N>
+        elements = req.path.split('/')
+        op = int(elements[-1])
+        if jkey == 'fdec1':
+            return str(op-1)
+        elif jkey == 'fdec2':
+            return str(op-2)
+        return str(op)
 
 
 # breadboard looks out for service at the module level
