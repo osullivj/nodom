@@ -53,12 +53,19 @@ self.onmessage = async (event) => {
     case "Online":
       on_db_result({ nd_type: "Online", query_id: "NoDuck" });
       break;
-    case "Function":
-      if (
-        typeof window !== "undefined" &&
-        typeof window.__nodom__ !== "undefined"
-      ) {
-        window.__nodom__.functions[nd_db_request.query_id](nd_db_request.data);
+    case "FunctionAsync":
+      if (true) {
+        try {
+          fresult = await Module["nodom_functions"][nd_db_request.query_id](nd_db_request);
+          on_db_result(fresult);
+        }
+        catch (err) {
+          on_db_result({
+            nd_type: "FunctionResult",
+            query_id: nd_db_request.query_id,
+            error: err.message
+          });
+        }
       } else {
         on_db_result({
           nd_type: "FunctionResult",
