@@ -1149,8 +1149,8 @@ public:
         for (auto drmit = data_ref_map.cbegin(); drmit != data_ref_map.cend(); ++drmit) {
             std::cout << std::setfill('0') << std::setw(3) << std::hex << inx++ << ":";
             std::cout << drmit->first << ":" 
-                << drmit->second.tipe << ","
-                << drmit->second.addr_inx << ","
+                << CDTToString(drmit->second.tipe) << ","
+                << get_addr_value(drmit->second.addr_inx) << ","
                 << drmit->second.ref_inx << ","
                 << drmit->second.size << std::endl;
         }
