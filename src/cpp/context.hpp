@@ -35,8 +35,7 @@ struct GLFWwindow;
 EM_JS(void, exec_js_action_sync, (int raw_fn_inx, emscripten::EM_VAL data_handle), {
     // use DLC::js_func_entity_map to get EntityInx for func, then raw_inx
     var data_cache = Emval.toValue(data_handle);
-    var nodom = window["__nodom__"];
-    var func_array = nodom["functions"];
+    var func_array = Module["nodom_functions"];
     result_obj = func_array[raw_fn_inx](data_cache);
     on_db_result(result_obj);
 });
@@ -872,9 +871,6 @@ protected:
             JSet(func_request, Static::nd_type_cs, DBEventTypeToString(action_defn.db_action));
             JSet(func_request, Static::query_id_cs, raw_func_inx);
             JSet(func_request, Static::data_cs, data);
-            // async func must specify result addr & type
-            // NB when FunctionResult arrives we'll look at result
-            assert(action_defn.sql_cname.is_valid());
             // will invoke ems_db_dispatch to window.postMessage(func_request)
             bulk.db_dispatch(func_request);
         }
