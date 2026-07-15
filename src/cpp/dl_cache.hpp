@@ -66,6 +66,7 @@ protected:
 
     std::map<std::string, EntityInx>    js_func_entity_map;
     std::map<EntityInx, uint32_t>       js_func_inx_map;
+    StringVec                           js_func_vec;
 
 public:
     template <CIT itype>
@@ -730,6 +731,13 @@ public:
         return it->second;
     }
 
+    const char* get_func_name(uint32_t raw_inx) {
+        if (raw_inx < js_func_vec.size()) {
+            return js_func_vec[raw_inx].c_str();
+        }
+        return nullptr;
+    }
+
     EntityInx get_func_id(const std::string& func_name) {
         auto it = js_func_entity_map.find(func_name);
         return it == js_func_entity_map.end() ? 0 : it->second;
@@ -782,6 +790,7 @@ public:
                 base_inx = func_inx();
             js_func_entity_map[*it] = func_inx;
             js_func_inx_map[func_inx] = func_inx() - base_inx;
+            js_func_vec.push_back(*it);
         }
     }
 
