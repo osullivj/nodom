@@ -94,7 +94,7 @@ class Service(object):
         # websock event notification
         pass
 
-    def on_api_request(self, json_key):
+    def on_api_request(self, request, json_key):
         # invoked by JSONHandler: used to get layout or data
         return json.dumps(self.cache.get(json_key))
 
