@@ -1,13 +1,81 @@
-[
-  {
-    "rname": "Home",
-    "cspec": {
-      "title": "Server side addition"
+ [
+    {
+      "children": [
+        {
+          "cspec": {
+            "font": "CourierNew"
+          },
+          "rname": "PushFont"
+        },
+        {
+          "cspec": {
+            "cname": "op1",
+            "step": 1
+          },
+          "rname": "InputInt"
+        },
+        {
+          "cspec": {
+            "cname": "op2",
+            "step": 2
+          },
+          "rname": "InputInt"
+        },
+        {
+          "cspec": {
+            "cname": "op1_plus_op2",
+            "flags": 512
+          },
+          "rname": "InputInt"
+        },
+        {
+          "cspec": {},
+          "rname": "Separator"
+        },
+        {
+          "rname": "PopFont"
+        },
+        {
+          "cspec": {
+            "font": "CourierNew",
+            "font_size": 8
+          },
+          "rname": "PushFont"
+        },
+        {
+          "cspec": {
+            "db": true,
+            "demo": true,
+            "font_scale": true,
+            "fps": true,
+            "id_stack": true,
+            "memory": true,
+            "style": true
+          },
+          "rname": "Footer"
+        },
+        {
+          "rname": "PopFont"
+        }
+      ],
+      "cspec": {
+        "menubar": "home_menu_bar",
+        "title": "Server side addition",
+        "title_font": "Arial",
+        "window_flags": 1024
+      },
+      "rname": "Home"
     },
-    "children": [
-      { "rname": "InputInt", "cspec": { "cname": "op1", "step": 1 } },
-      { "rname": "InputInt", "cspec": { "cname": "op2", "step": 2 } },
-      { "rname": "InputInt", "cspec": { "cname": "op1_plus_op2" } }
-    ]
-  }
-]
+    {
+      "cspec": {
+        "body_font": "CourierNew",
+        "cname": "loading_message",
+        "spinner_radius": 20,
+        "spinner_thickness": 4,
+        "title": "Menu modal...",
+        "title_font": "Arial"
+      },
+      "rname": "LoadingModal",
+      "widget_id": "menu_modal"
+    }
+  ]
