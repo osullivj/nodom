@@ -97,7 +97,7 @@ class StaticWASMFileHandler(tornado.web.StaticFileHandler):
 
 class StaticICOFileHandler(tornado.web.StaticFileHandler):
     def get_content_type(self):
-        return " image/vnd.microsoft.icon"
+        return "image/vnd.microsoft.icon"
 
 
 class APIHandlerBase(tornado.web.RequestHandler):
@@ -118,7 +118,7 @@ class DuckJournalHandler(tornado.web.RequestHandler):
 
 class JSONHandler(APIHandlerBase):
     def get(self, slug):
-        response_json = self.application.service.on_api_request(slug)
+        response_json = self.application.service.on_api_request(self.request, slug)
         self.write(response_json)
         self.finish()
 
