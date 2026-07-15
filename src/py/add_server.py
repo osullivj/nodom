@@ -84,10 +84,26 @@ ADDITION_DATA = dict(
     ),
     functions=["FInc1", "FInc2", "FDec1", "FDec2"],
     actions={
-        "Inc1.Menu": [dict(db_action="FunctionSync", query_id="FInc1")],
-        "Inc2.Menu": [dict(db_action="FunctionSync", query_id="FInc2")],
-        "Dec1.Menu": [dict(db_action="FunctionAsync", query_id="FDec1")],
-        "Dec2.Menu": [dict(db_action="FunctionAsync", query_id="FDec2")],
+        "Inc1.Menu": [dict(
+            db_action="FunctionSync",
+            query_id="FInc1",
+            sql_cname="op1",
+            ctype="cdInt")],
+        "Inc2.Menu": [dict(
+            db_action="FunctionSync",
+            query_id="FInc2",
+            sql_cname="op1",
+            ctype="cdInt")],
+        "Dec1.Menu": [dict(
+            db_action="FunctionAsync",
+            query_id="FDec1",
+            sql_cname="op1",
+            ctype="cdInt")],
+        "Dec2.Menu": [dict(
+            db_action="FunctionAsync",
+            query_id="FDec2",
+            sql_cname="op1",
+            ctype="cdInt")],
     },
 )
 
@@ -116,11 +132,13 @@ class AdditionService(nd_utils.Service):
 
     def on_api_request(self, req, jkey):
         # nodom client url: https://localhost/api/fdec1/<N>
-        elements = req.path.split('/')
-        op = int(elements[-1])
-        if jkey == 'fdec1':
+        elements = jkey.split('/')
+        slug = elements[0]
+        op = int(elements[1])
+        logr.info(f"on_api_request slug:{slug}, op:{op}")
+        if slug == 'fdec1':
             return str(op-1)
-        elif jkey == 'fdec2':
+        elif slug == 'fdec2':
             return str(op-2)
         return str(op)
 
