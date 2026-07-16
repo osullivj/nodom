@@ -112,6 +112,7 @@ private:
     EntityInx   ninx_Websock;
     EntityInx   ninx_DuckDB;
     EntityInx   ninx_FooterDBButton;
+    EntityInx   ninx_FooterDLCButton;
 
     EventInx    einx_WebSockConnectionFailed;   // CST::SubSysEvent
     EventInx    einx_Online;                    // CST::SubSysEvent
@@ -135,6 +136,7 @@ private:
     bool  footer_show_id_stack{ false };
     bool  footer_show_font_scale{ false };
     bool  footer_show_style{ false };
+    bool  footer_show_dlc{ false };
 
     int   style_coloring{ StyleColor::Dark };   // match im_start StyleColorsDark()
     bool  show_demo{ false };
@@ -263,6 +265,7 @@ public:
 
         // EntityIDs for predefined widgets like LoadingModal
         ninx_FooterDBButton = data_lay_cache.template get_string_index<CIT::EntityID>(Static::i_am_footer_db_button_cs, CST::WidgetID);
+        ninx_FooterDLCButton = data_lay_cache.template get_string_index<CIT::EntityID>(Static::i_am_footer_dlc_button_cs, CST::WidgetID);
 
         // Events: subsys
         einx_WebSockConnectionFailed = data_lay_cache.template get_string_index<CIT::Event>(
@@ -564,6 +567,8 @@ public:
                 }
                 else {
                     std::string addr = JAsString(resp, Static::cache_key_cs);
+                    NDLogger::cout() << method << "FuncName: " << func_name
+                        << ", addr: " << addr << std::endl;
                     data_lay_cache.on_data_change(addr, resp);
                 }
             }
@@ -788,6 +793,13 @@ protected:
 
     void action_dispatch(EntityInx ninx, EventInx einx) {
         // const static char* method = "NDContext::action_dispatch: ";
+
+        // hotwire the data_lay_cache logging here
+        // NB app supplied actions for { ninx_FooterDLCButton, einx_Click }
+        // will still work...
+        if (ninx == ninx_FooterDLCButton && einx == einx_Click) {
+            data_lay_cache.report_cache_state();
+        }
 
         std::list<InFlight> new_in_flight_list;
         ActionKey akey{ ninx, einx };
@@ -1084,6 +1096,7 @@ protected:
         cspec_bool(cs_show_footer_id_stack, w->cspec_bool, &footer_show_id_stack);
         cspec_bool(cs_show_footer_font_scale, w->cspec_bool, &footer_show_font_scale);
         cspec_bool(cs_show_footer_style, w->cspec_bool, &footer_show_style);
+        cspec_bool(cs_show_footer_dlc, w->cspec_bool, &footer_show_dlc);
 
         ImGui::BeginGroup();
         if (footer_show_db) {
@@ -1125,6 +1138,12 @@ protected:
             if (ImGui::ArrowButton("##right", ImGuiDir_Right)) { style.FontScaleMain += 0.25; }
             ImGui::SameLine();
             ImGui::Text("%.2f", style.FontScaleMain);
+        }
+        if (footer_show_dlc) {
+            ImGui::SameLine();
+            if (ImGui::Button("DLC")) {
+                pending_actions.push_back({ ninx_FooterDLCButton, einx_Click });
+            }
         }
         if (footer_show_style) {
             static const char* cs_combo_list[3] = { Static::dark_cs, Static::light_cs, Static::classic_cs };
