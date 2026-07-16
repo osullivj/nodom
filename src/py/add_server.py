@@ -52,6 +52,7 @@ ADDITION_LAYOUT = [
                     memory=True,
                     font_scale=True,
                     style=True,
+                    dlc=True,
                 ),
             ),
             dict(rname="PopFont"),
