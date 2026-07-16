@@ -69,6 +69,7 @@ struct Static {
 	inline static const char* id_stack_cs{ "id_stack" };
 	inline static const char* font_scale_cs{ "font_scale" };
 	inline static const char* style_cs{ "style" };
+	inline static const char* dlc_cs{ "dlc" };
 	inline static const char* show_lines_cs{ "show_lines" }; 
 	inline static const char* show_fills_cs{ "show_fills" };
 	inline static const char* shaded_plot_flags_cs{ "shaded_plot_flags" };
@@ -109,6 +110,7 @@ struct Static {
 	// compound widget IDs: we alreay use _id as a var name suffix eg widget_id
 	// and query_id, so we signal the IDness of these strings with i_am_ prefix
 	inline static const char* i_am_footer_db_button_cs{ "i_am_footer_db_button" };
+	inline static const char* i_am_footer_dlc_button_cs{ "i_am_footer_dlc_button" };
 	inline static const char* i_am_footer_style_combo_cs{ "i_am_footer_style_combo" };
 	inline static const char* i_am_loading_spinner_cs{ "i_am_loading_spinner" };
 	inline static const char* i_am_noop_cs{ "i_am_noop" };
