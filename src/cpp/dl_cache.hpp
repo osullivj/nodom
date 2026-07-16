@@ -916,6 +916,7 @@ private:
         Static::id_stack_cs,     // cs_id_stack,
         Static::font_scale_cs,    // cs_font_scale,
         Static::style_cs,        // cs_style
+        Static::dlc_cs,
         Static::cname_cs,
         Static::cindex_cs,
         Static::query_id_cs,
@@ -960,6 +961,7 @@ private:
         cdBool,     // cs_show_footer_id_stack
         cdBool,     // cs_show_footer_font_scale
         cdBool,     // cs_show_footer_style
+        cdBool,     // cs_show_footer_dlc
         cdAny,      // cs_cname
         cdAny,      // cs_cindex
         cdResultSet // cs_query_id
@@ -977,7 +979,7 @@ private:
                     cs_table_flags, cs_window_flags, cs_column_flags}},
         {Footer, {cs_show_footer_db, cs_show_footer_fps, cs_show_footer_demo, 
                     cs_show_footer_id_stack, cs_show_footer_font_scale, 
-                        cs_show_footer_style}},
+                        cs_show_footer_style, cs_show_footer_dlc}},
         {DatePicker, {cs_label, cs_year_month_font, cs_year_month_font_size,
                         cs_day_date_font, cs_day_date_font_size,
                         cs_table_flags, cs_combo_flags}},
