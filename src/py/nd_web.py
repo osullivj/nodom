@@ -154,6 +154,22 @@ class WebSockHandler(tornado.websocket.WebSocketHandler):
         self.application.on_ws_message(self, msg_dict)
 
 
+class InjectHandler(tornado.websocket.WebSocketHandler):
+    def check_origin(self, origin):
+        return True
+
+    def open(self):
+        logr.info(f"InjectHandler.open")
+
+    def on_close(self):
+        logr.info(f"InjectHandler.on_close")
+
+    def on_message(self, msg):
+        logr.info(f"InjectHandler.on_message: {msg}")
+        msg_dict = json.loads(msg)
+        self.application.on_inject(self, msg_dict)
+
+
 def NDHandlers(template_path):
     # template_path: ['bld'] or ['src', 'web']
     return [
@@ -187,6 +203,7 @@ def NDHandlers(template_path):
             r"/.well-known/appspecific/com.chrome.devtools.json",
             DevToolsWorkspaceHandler,
         ),
+        (r"/api/inject", InjectHandler),
         (r"/api/websock", WebSockHandler),
         (r"/api/(.*)", JSONHandler),
         (r"/ui/duckjournal/(.*)", DuckJournalHandler),
@@ -207,14 +224,17 @@ class NDApp(tornado.web.Application):
         settings = dict(template_path=self.nodom_path, debug=debug)
         tornado.web.Application.__init__(self, handlers, **settings)
         self.ws_handlers = service.get_ws_handlers()
+        self.open_app_socks = dict()
 
     def on_ws_open(self, websock):
         logr.info(f"NDApp.on_ws_open: {websock._uuid}")
+        self.open_app_socks[websock._uuid] = websock
         self.service.on_ws_open(websock)
 
     def on_ws_close(self, websock):
         logr.info(f"NDApp.on_ws_close: {websock._uuid}")
         self.service.on_ws_close(websock)
+        self.open_app_socks.pop(websock._uuid)
 
     def on_ws_message(self, websock, mdict):
         logr.info(f"NDApp.on_ws_message: {websock._uuid} {mdict}")
@@ -226,3 +246,8 @@ class NDApp(tornado.web.Application):
         assert isinstance(change_list, list)
         for change in change_list:
             websock.write_message(change)
+
+    def on_inject(self, websock, mdict):
+        for uuid, ws in self.open_app_socks.items():
+            logr.info(f"NDApp.on_inject: {mdict}->{uuid}")
+            ws.write_message(mdict)
