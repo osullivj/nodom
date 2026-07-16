@@ -233,6 +233,10 @@ using CIT = CacheItemType;
 using CST = CacheItemSubType;
 using CDT = CacheDataType;
 
+inline bool cache_data_type_is_valid(CDT cdt) {
+    return cdt != EndDataTypes;
+}
+
 // cache index range is 16 bits 0x0000->0xFFFF
 // eg 0->65535
 static constexpr int MAX_DCI = 0xFFFF;  // 65536
