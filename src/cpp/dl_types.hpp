@@ -74,7 +74,7 @@
 
 // WASM cache types that capture the data and layout
 // JSON, and applies constraints. Think of it as an
-// encapsulation to data denoted by data[key]
+// encapsulation of data denoted by data[key]
 struct DataRef {
     CDT tipe{ EndDataTypes };   // cdInt, cdFloat, cdBool, cdStr
     AddrInx addr_inx;           // cache inx to key string
@@ -125,6 +125,7 @@ struct NDActionInterned {
     char* db_action{ nullptr };
     char* query_id{ nullptr };
     char* sql_cname{ nullptr };
+    char* ctype{ nullptr };
 };
 
 struct NDActionErrors {
