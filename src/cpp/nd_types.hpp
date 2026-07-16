@@ -453,7 +453,8 @@ enum CacheSpecifier : uint32_t {
     cs_show_footer_demo,
     cs_show_footer_id_stack,
     cs_show_footer_font_scale,
-    cs_show_footer_style,       // end atomic_cspec_types
+    cs_show_footer_style,       
+    cs_show_footer_dlc,         // end atomic_cspec_types
     cs_cname,                   // cname_cpsec_types
     cs_cindex,                  // cindex_cpsec_types
     cs_query_id,
