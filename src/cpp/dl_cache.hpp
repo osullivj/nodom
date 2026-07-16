@@ -220,6 +220,7 @@ protected:
                         else {
                             std::string ctype = JAsString(action_defn, Static::ctype_cs);
                             action.ctype = CDTFromString(ctype);
+                            interned.ctype = (char*)CDTToString(action.ctype);
                             if (action.ctype == EndDataTypes) {
                                 std::stringstream ss;
                                 ss << "BAD_CTYPE(" << ctype << ")";
@@ -231,7 +232,10 @@ protected:
                             else {
                                 DataRef data_ref = CreateDataRef(action.ctype, action.sql_cname,
                                     data, fn_result_key);
-                                data_ref_map[data_ref.addr_inx] = data_ref;
+                                // we may see the same sql_cname/ctype in several actions...
+                                if (data_ref_map.find(data_ref.addr_inx) == data_ref_map.end()) {
+                                    data_ref_map[data_ref.addr_inx] = data_ref;
+                                }
                             }
                         }
                     }
@@ -307,6 +311,10 @@ protected:
         if (action.sql_cname.is_valid()) {
             if (prefix_comma) NDLogger::cout() << ", ";
             NDLogger::cout() << "sql_cname(" << action.sql_cname << "/" << interned.sql_cname << ")";
+        }
+        if (cache_data_type_is_valid(action.ctype)) {
+            if (prefix_comma) NDLogger::cout() << ", ";
+            NDLogger::cout() << "ctype(" << action.ctype << "/" << interned.ctype << ")";
         }
         NDLogger::cout() << "]";
         NDLogger::cout().flush();
@@ -1121,10 +1129,10 @@ public:
         size_t len = address_map.size();
         int inx{ 0 };
         std::cout << "== report_address_map len:" << std::dec << len << std::endl;
-        std::cout << "inx:addr:AddrInx{0x0104,inx}" << std::endl;
+        std::cout << "inx:addr:AddrInx{0x0104,inx}:AddrVal" << std::endl;
         for (auto cit = address_map.cbegin(); cit != address_map.cend(); ++cit) {
             std::cout << std::setfill('0') << std::setw(3) << std::hex << inx++ << ":";
-            std::cout << cit->first << ":" << cit->second << std::endl;
+            std::cout << cit->first << ":" << cit->second << ":" << get_addr_value(cit->second) << std::endl;
         }
         std::cout << std::dec << std::endl;
     }
@@ -1232,6 +1240,7 @@ public:
         report_data_refs();
         report_func_maps();
         report_actions();
+        report_cache_errors();
         std::cout << std::endl;
     }
 
