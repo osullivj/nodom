@@ -270,7 +270,7 @@ struct Static {
 	// hardwired init data and layout
 	inline static const char* init_data_cs{
 		R"( { )"
-		R"(   "loading_text":["Loading app data from {_server_url}"], )"
+		R"(   "loading_text":["Loading app data"], )"
 		R"(   "actions":{ )"
 		R"(     "GUI.Online":[{"ui_push":"app_loading_modal"}], )"
 		R"(     "WebSock.WebsockConnectionFailed":[{"ui_pop":"LoadingModal"}] )"
@@ -285,7 +285,15 @@ struct Static {
 	};
 	inline static const char* empty_list_cs{ "[]" };
 	inline static const char* empty_obj_cs{ "{}" };
-
+	inline static const char* function_result_obj_cs{ 
+		R"( { )"
+		R"(   "nd_type":"FunctionResult", )"
+		R"(   "query_id":"-1", )"
+		R"(   "cache_key":"", )"
+		R"(   "old_value":"", )"
+		R"(   "new_value":"" )"
+		R"( } )"
+	};
 	// CacheDataType
 	inline static const char* cdt_int_cs{ "cdInt" };
 	inline static const char* cdt_float_cs{ "cdFloat" };
