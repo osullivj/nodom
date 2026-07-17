@@ -60,6 +60,9 @@ int main(int argc, char* argv[]) {
     DBResultDispatcher& dbrd(DBResultDispatcher::get_instance());
     dbrd.set_dispatcher([&server](emscripten::EM_VAL v)
                                     {server.add_db_response(v); });
+    dbrd.set_async_dispatcher([&server](const emscripten::val& v)
+        {server.add_db_response(v); });
+
     dbrd.set_reg_chunk([&server](const std::string& qid, int sz, int addr)
                                     {server.register_chunk(qid.c_str(), sz, addr); });
     StringVec font_list;
