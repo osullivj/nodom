@@ -1085,6 +1085,10 @@ public:
         db_results.push(result);
     }
 
+    void add_db_response(const emscripten::val& result) {
+        db_results.push(result);
+    }
+
     void register_chunk(const char* qid, int size, int addr) {
         static const char* method = "DuckDBWebCache::register_chunk: ";
         // Will ctor ChunkVec on first batch...
@@ -1095,10 +1099,12 @@ public:
 };
 
 using Dispatcher = std::function<void(emscripten::EM_VAL result_handle)>;
+using AsyncDispatcher = std::function<void(const emscripten::val& result)>;
 class DBResultDispatcher {
 private:
     DBResultDispatcher() {};
     Dispatcher dispatcher_func = nullptr;
+    AsyncDispatcher async_dispatcher_func = nullptr;
     RegWasmChunkFunc reg_chunk_func = nullptr;
 public:
     static DBResultDispatcher& get_instance() {
@@ -1106,11 +1112,17 @@ public:
         return instance;
     }
     void set_dispatcher(Dispatcher df) { dispatcher_func = df; }
+    void set_async_dispatcher(AsyncDispatcher adf) { async_dispatcher_func = adf; }
     void set_reg_chunk(RegWasmChunkFunc cf) { reg_chunk_func = cf; }
     void dispatch(emscripten::EM_VAL result_handle) {
         if (dispatcher_func != nullptr) dispatcher_func(result_handle);
-        else fprintf(stderr, "NULL DBResultDispatcher func\n");
+        else fprintf(stderr, "NULL Dispatcher func\n");
     }
+    void async_dispatch(const emscripten::val& result) {
+        if (async_dispatcher_func != nullptr) async_dispatcher_func(result);
+        else fprintf(stderr, "NULL AsyncDispatcher func\n");
+    }
+
     void register_chunk(const std::string& qid, int sz, int addr) {
         if (reg_chunk_func != nullptr) reg_chunk_func(qid, sz, addr);
         else fprintf(stderr, "NULL RegWasmChunkFunc func\n");       
@@ -1121,6 +1133,13 @@ extern "C" {
     void on_db_result_cpp(emscripten::EM_VAL result_handle) {
         auto d = DBResultDispatcher::get_instance();
         d.dispatch(result_handle);
+    }
+
+    void on_async_done(const char* event) {
+        fprintf(stdout, "on_async_done: event(%s)\n", event);
+        auto d = DBResultDispatcher::get_instance();
+        emscripten::val jevent{ JParse<emscripten::val>(event)};
+        d.async_dispatch(jevent);
     }
 
     int get_chunk_cpp(const char* qid, int size) {
