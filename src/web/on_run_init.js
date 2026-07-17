@@ -22,5 +22,3 @@ Module["onRuntimeInitialized"] = function () {
     };
   }
 };
-
-Module["nodom_functions"] = [];
