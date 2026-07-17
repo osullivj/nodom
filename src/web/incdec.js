@@ -27,22 +27,26 @@ async function FDec1(nd_request) {
   if (resp.ok) {
     let new_value = await resp.json();
     nd_request.data["op1"] = new_value;
-    let ret_val = {
+    let rv = {
       nd_type: "FunctionResult",
       query_id: nd_request.query_id,
       cache_key: "op1",
       new_value: new_value
     };
-    console.log("FDec1: result " + JSON.stringify(ret_val));
-    return ret_val;
+    const srv = JSON.stringify(rv);
+    console.log("FDec1: result " + srv);
+    on_async_done(srv);
+    return;
   }
-  let ret_val = {
+  let rv = {
     nd_type: "FunctionResult",
     query_id: nd_request.query_id,
     error: resp.statusText
   };
-  console.log("FDec1: result " + JSON.stringify(ret_val));
-  return ret_val;
+  const srv = JSON.stringify(rv);
+  console.log("FDec1: result " + srv);
+  on_async_done(srv);
+  return;
 }
 
 async function FDec2(nd_request) {
@@ -52,22 +56,26 @@ async function FDec2(nd_request) {
   if (resp.ok) {
     let new_value = await resp.json();
     nd_request.data["op1"] = new_value;
-    let ret_val = {
+    let rv = {
       nd_type: "FunctionResult",
       query_id: nd_request.query_id,
       cache_key: "op1",
       new_value: new_value
     };
-    console.log("FDec2: result " + JSON.stringify(ret_val));
-    return ret_val;
+    const srv = JSON.stringify(rv);
+    console.log("FDec2: result " + srv);
+    on_async_done(srv);
+    return;
   }
-  let ret_val = {
+  let rv = {
     nd_type: "FunctionResult",
     query_id: nd_request.query_id,
     error: resp.statusText
   };
-  console.log("FDec2: result " + JSON.stringify(ret_val));
-  return ret_val;
+  const srv = JSON.stringify(rv);
+  console.log("FDec2: result " + srv);
+  on_async_done(srv);
+  return;
 }
 
 Module["nodom_functions"] = [FInc1, FInc2, FDec1, FDec2];
