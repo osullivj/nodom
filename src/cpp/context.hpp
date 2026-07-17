@@ -32,12 +32,15 @@ struct GLFWwindow;
 
 #ifdef __EMSCRIPTEN__
 
-EM_JS(void, exec_js_action_sync, (int raw_fn_inx, emscripten::EM_VAL data_handle), {
+EM_JS(void, exec_js_action_sync, (int raw_fn_inx, emscripten::EM_VAL data_handle,
+    emscripten::EM_VAL rv_handle), {
     // use DLC::js_func_entity_map to get EntityInx for func, then raw_inx
     var data_cache = Emval.toValue(data_handle);
+    var rv = Emval.toValue(rv_handle);
     var func_array = Module["nodom_functions"];
-    result_obj = func_array[raw_fn_inx](data_cache);
-    on_db_result(result_obj);
+    func_array[raw_fn_inx](data_cache, rv);
+    rv["query_id"] = raw_fn_inx;
+    on_db_result(rv);
 });
 
 #endif
@@ -58,6 +61,7 @@ private:
     DB&                     bulk;   // DB bulk cache
     JSON                    layout; // layout and data are fetched by websock
     JSON                    data;
+    JSON                    rv;     // return value
     std::deque<WidgetPtr>   stack;  // render stack
     DataLayCache<JSON>      data_lay_cache;
 
@@ -252,6 +256,9 @@ public:
         // fire post processing of init layout and data
         // NB this will be repeated when real layout and data arrive via websock
         data_lay_cache.on_json(data, layout, [&](){ on_dlc_init(); });
+
+        // init the ret val
+        rv = JParse<JSON>(Static::function_result_obj_cs);
     }
 
     void on_dlc_init() {
@@ -525,7 +532,7 @@ public:
         // NB we are invoked by pump_messages(), so not on the
         // render hot path, and can invoke action_dispatch() directly
         while (!events.empty()) {
-            const JSON& resp = events.front();
+            JSON resp = events.front();
             NDLogger::cout() << method << JPrettyPrint(resp) << std::endl;
             std::string nd_type(JAsString(resp, Static::nd_type_cs));
             // polymorphic as types are hidden inside change
@@ -569,7 +576,17 @@ public:
                     std::string addr = JAsString(resp, Static::cache_key_cs);
                     NDLogger::cout() << method << "FuncName: " << func_name
                         << ", addr: " << addr << std::endl;
+                    // propogate the change into DLC wasm
                     data_lay_cache.on_data_change(addr, resp);
+                    // propogate change to server side
+                    AddrInx ainx = data_lay_cache.get_addr_inx(addr);
+                    DataRef* changed = data_lay_cache.get_data_ref(ainx);
+                    if (JContains(resp, Static::old_value_cs) &&
+                            JContains(resp, Static::new_value_cs)) {
+                        JSON ov = resp[Static::old_value_cs];
+                        JSON nv = resp[Static::new_value_cs];
+                        notify_server(changed, ov, nv);
+                    }
                 }
             }
             // Duck or Parquet event...
@@ -898,7 +915,7 @@ protected:
 #ifdef __EMSCRIPTEN__
             // no ret val as exec_js_action_sync invokes on_db_result,
             // so result obj will get picked up by dispatch_events
-            exec_js_action_sync(raw_func_inx, data.as_handle());
+            exec_js_action_sync(raw_func_inx, data.as_handle(), rv.as_handle());
 #endif
         }
 
