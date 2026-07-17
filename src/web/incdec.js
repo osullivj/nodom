@@ -1,23 +1,23 @@
-function FInc1(data) {
+function FInc1(data, rv) {
+  var old_val = data["op1"];
   data["op1"] += 1;
-  var rv = {
-    nd_type: "DataChange",
+  rv = {
+    nd_type: "FunctionResult",
     cache_key: "op1",
     new_value: data["op1"],
+    old_value: old_val
   };
-  console.log("FInc1: " + JSON.stringify(rv));
-  return rv;
 }
 
-function FInc2(data) {
+function FInc2(data, rv) {
+  var old_val = data["op1"];
   data["op1"] += 2;
-  var rv = {
-    nd_type: "DataChange",
+  rv = {
+    nd_type: "FunctionResult",
     cache_key: "op1",
     new_value: data["op1"],
+    old_value: old_val
   };
-  console.log("FInc2: " + JSON.stringify(rv));
-  return rv;
 }
 
 async function FDec1(nd_request) {
@@ -26,12 +26,14 @@ async function FDec1(nd_request) {
   var resp = await fetch(url);
   if (resp.ok) {
     let new_value = await resp.json();
+    let old_value = nd_request.data["op1"];
     nd_request.data["op1"] = new_value;
     let rv = {
       nd_type: "FunctionResult",
       query_id: nd_request.query_id,
       cache_key: "op1",
-      new_value: new_value
+      new_value: new_value,
+      old_value: old_value
     };
     const srv = JSON.stringify(rv);
     console.log("FDec1: result " + srv);
@@ -55,12 +57,14 @@ async function FDec2(nd_request) {
   var resp = await fetch(url);
   if (resp.ok) {
     let new_value = await resp.json();
+    let old_value = nd_request.data["op1"];
     nd_request.data["op1"] = new_value;
     let rv = {
       nd_type: "FunctionResult",
       query_id: nd_request.query_id,
       cache_key: "op1",
-      new_value: new_value
+      new_value: new_value,
+      old_value: old_value
     };
     const srv = JSON.stringify(rv);
     console.log("FDec2: result " + srv);
