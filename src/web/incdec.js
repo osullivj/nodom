@@ -1,23 +1,17 @@
 function FInc1(data, rv) {
   var old_val = data["op1"];
   data["op1"] += 1;
-  rv = {
-    nd_type: "FunctionResult",
-    cache_key: "op1",
-    new_value: data["op1"],
-    old_value: old_val
-  };
+  rv.cache_key = "op1";
+  rv.new_value = data["op1"];
+  rv.old_value = old_val;
 }
 
 function FInc2(data, rv) {
   var old_val = data["op1"];
   data["op1"] += 2;
-  rv = {
-    nd_type: "FunctionResult",
-    cache_key: "op1",
-    new_value: data["op1"],
-    old_value: old_val
-  };
+  rv.cache_key = "op1";
+  rv.new_value = data["op1"];
+  rv.old_value = old_val;
 }
 
 async function FDec1(nd_request) {
