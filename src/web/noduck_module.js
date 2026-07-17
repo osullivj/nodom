@@ -17,7 +17,7 @@ const nd_null = "null";
 
 // var on_db_result to allow redefinition if emscripten Module is defined
 var on_db_result = function (result_object) {
-  console.log("on_db_result: " + JSON.stringify(result_object, null, 2));
+  console.log("on_db_result_js: " + JSON.stringify(result_object, null, 2));
 };
 
 self.onmessage = async (event) => {
@@ -55,15 +55,10 @@ self.onmessage = async (event) => {
       break;
     case "FunctionAsync":
       try {
-        let fresult = await Module["nodom_functions"][nd_db_request.query_id](nd_db_request);
-        on_db_result(fresult);
+        await Module["nodom_functions"][nd_db_request.query_id](nd_db_request);
       }
       catch (err) {
-        on_db_result({
-          nd_type: "FunctionResult",
-          query_id: nd_db_request.query_id,
-          error: err.message
-        });
+        console.error(err.message);
       }
       break;
     default:
