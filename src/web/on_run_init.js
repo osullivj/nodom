@@ -10,6 +10,16 @@ Module["onRuntimeInitialized"] = function () {
       let result_handle = Emval.toHandle(result_object);
       on_db_result_cpp(result_handle);
     };
+    on_async_done = function (srv) {
+      const psrv = Module.stringToNewUTF8(srv);
+      try {
+        Module._on_async_done(psrv);
+      }
+      finally {
+        Module._free(psrv);
+      }
+      return;
+    };
   }
 };
 
