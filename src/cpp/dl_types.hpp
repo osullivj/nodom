@@ -269,6 +269,8 @@ inline const char* CDTToString(CacheDataType cdt) {
         return Static::cdt_str_vec_cs;
     case cdAny:
         return Static::cdt_any_cs;
+    case cdResultSet:
+        return Static::cdt_result_set_cs;
     default:
         return nullptr;
     }
@@ -289,5 +291,7 @@ inline CacheDataType CDTFromString(const std::string& ctype) {
         return cdStrVec;
     if (ctype == Static::cdt_any_cs)
         return cdAny;
+    if (ctype == Static::cdt_result_set_cs)
+        return cdResultSet;
     return EndDataTypes;
 }
