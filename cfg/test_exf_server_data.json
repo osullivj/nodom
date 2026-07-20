@@ -13,7 +13,7 @@
   ],
   "selected_instrument": 0,
   "scan_sql": "",
-  "scan_urls": [],
+  "scan_urls": ["", "", "", "", "", "", "", "", "",  ""],
   "query_sql": "",
   "summary_sql": "",
   "ui_sql": "",
