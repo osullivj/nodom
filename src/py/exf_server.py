@@ -136,6 +136,7 @@ EXF_LAYOUT = [
                     memory=True,
                     font_scale=True,
                     style=True,
+                    dlc=True,
                 ),
             ),
             # The DepthGrid table shows one row of depth at a time with 5 bids and asks
