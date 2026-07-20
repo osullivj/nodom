@@ -26,16 +26,7 @@ int main(int argc, char* argv[]) {
         data_lay_cache.on_json(data, layout, [&]() {data_lay_cache.on_init(); });
 
         data_lay_cache.report_sanity_check();
-        int esc, eic, efc;
-        int bsc = data_lay_cache.report_cache_strings(esc);
-        int bic = data_lay_cache.report_cache_ints(eic);
-        int bfc = data_lay_cache.report_cache_floats(efc);
-        data_lay_cache.report_address_map();
-        data_lay_cache.report_menu_entity_map();
-        data_lay_cache.report_data_refs();
-        data_lay_cache.report_func_maps();
-        data_lay_cache.report_actions();
-        data_lay_cache.report_cache_errors();
+        data_lay_cache.report_cache_state();
     }
     catch (nlohmann::json::exception& ex) {
         std::cout << ex.what() << std::endl;
