@@ -103,18 +103,6 @@ var on_db_result = function (result_object) {
   console.log("on_db_result: " + JSON.stringify(result_object, null, 2));
 };
 
-if (typeof Module !== "undefined") {
-  let on_db_result_cpp = Module.cwrap("on_db_result_cpp", "void", ["object"]);
-  let get_chunk_cpp = Module.cwrap("get_chunk_cpp", "number", [
-    "string",
-    "number",
-  ]);
-  let on_chunk_cpp = Module.cwrap("on_chunk_cpp", "void", ["number"]);
-  on_db_result = function (result_object) {
-    let result_handle = Emval.toHandle(result_object);
-    on_db_result_cpp(result_handle);
-  };
-}
 
 async function exec_duck_command(db_request) {
   if (!duck_db) {
@@ -443,10 +431,19 @@ self.onmessage = async (event) => {
     case "QueryResult":
     case "CommandResult":
     case "BatchResponse":
+    case "FunctionResult":
       // we do not process our own results!
       break;
     case "Online":
       on_db_result({ nd_type: "Online", query_id: "DuckDB" });
+      break;
+    case "FunctionAsync":
+      try {
+        await Module["nodom_functions"][nd_db_request.query_id](nd_db_request);
+      }
+      catch (err) {
+        console.error(err.message);
+      }
       break;
     default:
       console.error(
