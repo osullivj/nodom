@@ -501,8 +501,19 @@ protected:
             DataRef data_ref = CreateDataRef(ref_type, 
                 query_inx.is_valid() ? query_inx() : amit->second(), 
                 data, addr_or_qid);
-            widget->data_refs[spec] = data_ref;
-            data_ref_map[data_ref.addr_inx] = data_ref;
+            // sanity check the DataRef
+            if (data_ref.size == 0 && 
+                (data_ref.tipe == cdStrVec || data_ref.tipe == cdIntVec)) {
+                bad_data_refs.push_back(ref_name);
+                std::stringstream ss;
+                ss << "PROTO_VEC_SIZE_0(" << ref_name << "/" << addr_or_qid << ") is empty";
+                layout_errors.push_back(ss.str());
+                continue;
+            }
+            else {
+                widget->data_refs[spec] = data_ref;
+                data_ref_map[data_ref.addr_inx] = data_ref;
+            }
         }
     }
 
@@ -964,7 +975,9 @@ private:
         cdBool,     // cs_show_footer_dlc
         cdAny,      // cs_cname
         cdAny,      // cs_cindex
-        cdResultSet // cs_query_id
+        cdResultSet,// cs_query_id
+        cdStr,      // cs_xname
+        cdStr       // cs_yname
     };
 
     inline static  std::map<RenderMethod, CacheSpecVec> value_cspecs{
@@ -1156,13 +1169,24 @@ public:
         int inx{ 0 };
         std::cout << "== report_data_ref_map len:" << std::dec << len << std::endl;
         std::cout << "inx:AddrInx:DataRef{tipe,addr,ref,sz}" << std::endl;
-        for (auto drmit = data_ref_map.cbegin(); drmit != data_ref_map.cend(); ++drmit) {
+        for (auto drmit = data_ref_map.begin(); drmit != data_ref_map.end(); ++drmit) {
             std::cout << std::setfill('0') << std::setw(3) << std::hex << inx++ << ":";
-            std::cout << drmit->first << ":" 
-                << CDTToString(drmit->second.tipe) << ","
-                << get_addr_value(drmit->second.addr_inx) << ","
-                << drmit->second.ref_inx << ","
-                << drmit->second.size << std::endl;
+            if (!drmit->first.is_valid()) {
+                std::cout << "INVALID:"
+                    << CDTToString(drmit->second.tipe) << ","
+                    << get_addr_value(drmit->second.addr_inx) << ","
+                    << drmit->second.ref_inx << ","
+                    << drmit->second.size << std::endl;
+            }
+            else {
+                AddrInx ainx{ drmit->first };
+                std::cout << ainx
+                    << ":"
+                    << CDTToString(drmit->second.tipe) << ","
+                    << get_addr_value(drmit->second.addr_inx) << ","
+                    << std::hex << drmit->second.ref_inx << ","
+                    << std::dec << drmit->second.size << std::endl;
+            }
         }
         std::cout << std::dec << std::endl;
     }
@@ -1234,6 +1258,7 @@ public:
 
     void report_cache_state() {
         int esc, eic, efc;
+        report_cache_errors();
         report_cache_strings(esc);
         report_cache_ints(eic);
         report_cache_floats(efc);
@@ -1242,7 +1267,6 @@ public:
         report_data_refs();
         report_func_maps();
         report_actions();
-        report_cache_errors();
         std::cout << std::endl;
     }
 
@@ -1251,6 +1275,8 @@ public:
         for (const auto& error : layout_errors) {
             std::cout << error << std::endl;
         }
+        // NB action_errors is a single container
+        // for all reported in action_map_errors
         std::cout << "== action errors" << std::endl;
         for (const auto& error : action_errors) {
             std::cout << error << std::endl;
