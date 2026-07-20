@@ -88,6 +88,34 @@ struct DataCacheFixture {
     ~DataCacheFixture() { }
 };
 
+BOOST_FIXTURE_TEST_CASE(RenderMethodRoundTrips, DataCacheFixture)
+{
+    for (int rm1 = RenderMethod::Noop; rm1 != RenderMethod::EndRenderMethod; rm1++) {
+        const char* rms = dc.get_render_name(static_cast<RenderMethod>(rm1));
+        RenderMethod rm2{ RenderMethodFromString(rms) };
+        BOOST_TEST(rm1 == rm2);
+    }
+}
+
+BOOST_FIXTURE_TEST_CASE(CacheSpecRoundTrips, DataCacheFixture)
+{
+    for (int cs1 = CacheSpecifier::cs_title; cs1 != CacheSpecifier::cs_end_cache_specs; cs1++) {
+        const char* csn = dc.get_cspec_name(CacheSpecifier(cs1));
+        BOOST_TEST(csn != nullptr);
+    }
+}
+
+BOOST_FIXTURE_TEST_CASE(DataTypeRoundTrips, DataCacheFixture)
+{
+    std::array<CacheDataType, 8> tipes{ cdInt, cdFloat, cdBool, cdStr, cdIntVec, cdStrVec, cdAny, cdResultSet };
+    for (int inx = 0; inx < 8; inx++) {
+        CacheDataType cd1 = tipes[inx];
+        const char* cdt = CDTToString(cd1);
+        CacheDataType cd2 = CDTFromString(cdt);
+        BOOST_TEST(cd1 == cd2);
+        BOOST_TEST(cdt != nullptr);
+    }
+}
 BOOST_FIXTURE_TEST_CASE(AddAddr, DataCacheFixture)
 {
     std::string addr_str{ "integer_address" };
@@ -273,7 +301,7 @@ BOOST_FIXTURE_TEST_CASE(ExfServerLayout, DataCacheFixture)
     std::string layout_json = load_json(layout_json_path.c_str());
     auto layout = JParse<nlohmann::json>(layout_json);
 #endif
-    str_count = 46;
+    str_count = 56;
     int_count = 13;
     dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.widget_vec_size() == 2);
@@ -300,22 +328,7 @@ BOOST_FIXTURE_TEST_CASE(InitDataAndLayout, DataCacheFixture)
     assert_cache_state();
 }
 
-BOOST_FIXTURE_TEST_CASE(RenderMethodRoundTrips, DataCacheFixture)
-{
-    for (int rm1 = RenderMethod::Noop; rm1 != RenderMethod::EndRenderMethod; rm1++) {
-        const char* rms = dc.get_render_name(static_cast<RenderMethod>(rm1));
-        RenderMethod rm2{ RenderMethodFromString(rms) };
-        BOOST_TEST(rm1 == rm2);
-    }
-}
 
-BOOST_FIXTURE_TEST_CASE(CacheSpecRoundTrips, DataCacheFixture)
-{
-    for (int cs1 = CacheSpecifier::cs_title; cs1 != CacheSpecifier::cs_end_cache_specs; cs1++) {
-        const char* csn = dc.get_cspec_name(CacheSpecifier(cs1));
-        BOOST_TEST(csn != nullptr);
-    }
-}
 
 BOOST_FIXTURE_TEST_CASE(MinMenuBarDataAndLayout, DataCacheFixture)
 {
