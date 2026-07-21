@@ -1549,8 +1549,9 @@ protected:
         const char* y_col_name = data_lay_cache.get_string_value(yinx);
 
         // get ranges from bulk cache
-        bulk.get_min_max(handle, x_col_name, sh_pl_vars.xmin_dbl, sh_pl_vars.xmax_dbl);
-        bulk.get_min_max(handle, y_col_name, sh_pl_vars.ymin_dbl, sh_pl_vars.ymax_dbl);
+        if (!bulk.get_min_max(handle, x_col_name, sh_pl_vars.xmin_dbl, sh_pl_vars.xmax_dbl) ||
+            !bulk.get_min_max(handle, y_col_name, sh_pl_vars.ymin_dbl, sh_pl_vars.ymax_dbl))
+            return;
         // TODO: connect row_count & offset to slider widgets
         sh_pl_vars.row_count = bulk.get_row_count(handle);
         sh_pl_vars.offset = 0;
