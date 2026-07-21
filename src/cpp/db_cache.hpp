@@ -181,8 +181,7 @@ public:
         return row_count;
     }
 
-    template <typename T>
-    bool get_min_max(RSHandle handle, const char* col_name, T& min, T& max) {
+    bool get_min_max(RSHandle handle, const char* col_name, double& min, double& max) {
         auto bob_iter = bobbin_map.find(handle);
         std::uint32_t row_count = 0;
         if (bob_iter == bobbin_map.end())
@@ -222,8 +221,8 @@ public:
                     max = dbldata[0];
                     break;
                 case DUCKDB_TYPE_INTEGER:
-                    min = idata[0];
-                    max = idata[0];
+                    min = static_cast<double>(idata[0]);
+                    max = static_cast<double>(idata[0]);
                     break;
                 }
                 min_max_initialized = true;
@@ -238,10 +237,10 @@ public:
                             min = dbldata[inx];
                         break;
                     case DUCKDB_TYPE_INTEGER:
-                        if (idata[inx] > max)
-                            max = idata[inx];
-                        if (idata[inx] < min)
-                            min = idata[inx];
+                        if (static_cast<double>(idata[inx]) > max)
+                            max = static_cast<double>(idata[inx]);
+                        if (static_cast<double>(idata[inx]) < min)
+                            min = static_cast<double>(idata[inx]);
                         break;
                     }
                 }
@@ -757,8 +756,8 @@ public:
         return row_count;
     }
 
-    template <typename T>
-    bool get_min_max(RSHandle handle, const char* col_name, T& min, T& max) {
+    // NB implot works in doubles, even when our underlying is int
+    bool get_min_max(RSHandle handle, const char* col_name, double& min, double& max) {
         WasmChunkVec* wcv = reinterpret_cast<WasmChunkVec*>(handle);
         if (wcv == nullptr)
             return false;
@@ -797,8 +796,8 @@ public:
                     max = dbldata[0];
                     break;
                 case wdtInt:
-                    min = idata[0];
-                    max = idata[0];
+                    min = static_cast<double>(idata[0]);
+                    max = static_cast<double>(idata[0]);
                     break;
                 }
                 min_max_initialized = true;
@@ -812,10 +811,10 @@ public:
                         min = dbldata[inx];
                     break;
                 case wdtInt:
-                    if (idata[inx] > max)
-                        max = idata[inx];
-                    if (idata[inx] < min)
-                        min = idata[inx];
+                    if (static_cast<double>(idata[inx]) > max)
+                        max = static_cast<double>(idata[inx]);
+                    if (static_cast<double>(idata[inx]) < min)
+                        min = static_cast<double>(idata[inx]);
                     break;
                 }
             }
