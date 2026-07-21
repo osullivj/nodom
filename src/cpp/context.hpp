@@ -1566,7 +1566,7 @@ protected:
                 range = bulk.init_xy_range(handle, x_col_name, y_col_name, sh_pl_vars.offset, sh_pl_vars.row_count);
                 range = bulk.next_xy_range(range);
                 while (range != nullptr) {
-                    ImPlot::PlotShaded(title, range->xdata, range->ydata, range->plot_count, 0.0, sh_pl_vars.spec);
+                    ImPlot::PlotShaded(title, range->xdata, range->ydata, range->plot_count, range->ydata[0], sh_pl_vars.spec);
                     range = bulk.next_xy_range(range);
                 }
             }
