@@ -98,12 +98,6 @@ BigInt.prototype.toJSON = function () {
 
 const nd_null = "null";
 
-// var on_db_result to allow redefinition if emscripten Module is defined
-var on_db_result = function (result_object) {
-  console.log("on_db_result: " + JSON.stringify(result_object, null, 2));
-};
-
-
 async function exec_duck_command(db_request) {
   if (!duck_db) {
     console.error("duck_module:DuckDB-Wasm not initialized");

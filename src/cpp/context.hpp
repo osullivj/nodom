@@ -1406,7 +1406,7 @@ protected:
         if (ImGui::BeginPopupModal(title, nullptr, window_flags)) {
             LocalFont body_font(w, cs_body_font, cs_body_font_size);
             std::uint64_t result_handle = bulk.get_handle(query_id);
-            if (!result_handle) {
+            if (result_handle == 0) {
                 auto [iter, inserted] = bad_handle_map.insert(std::make_pair(query_id, 1));
                 if (!inserted) iter->second++;
                 return;
@@ -1605,7 +1605,7 @@ protected:
         {
             LocalFont body_font(w, cs_body_font, cs_body_font_size);
             RSHandle result_handle = bulk.get_handle(query_id);
-            if (!result_handle) {
+            if (result_handle == 0) {
                 auto [iter, inserted] = bad_handle_map.insert(std::make_pair(query_id, 1));
                 if (!inserted) iter->second++;
                 return;
