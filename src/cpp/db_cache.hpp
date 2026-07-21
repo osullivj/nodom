@@ -200,17 +200,8 @@ public:
         const std::vector<duckdb_logical_type>& logical_types{ logical_type_map.at(handle) };
         duckdb_logical_type colm_type_l(logical_types[col_inx]);
 
-        switch (colm_type) {
-        case DUCKDB_TYPE_DOUBLE:
-            min = 0.0;
-            max = 0.0;
-            break;
-        case DUCKDB_TYPE_INTEGER:
-            min = 0;
-            max = 0;
-            break;
-        }
-
+        
+        bool min_max_initialized{ false };
         while (chunk_iter != bob.end()) {
             chunk = *chunk_iter;
             duckdb_vector colm = duckdb_data_chunk_get_vector(chunk, col_inx);
@@ -223,6 +214,19 @@ public:
             case DUCKDB_TYPE_INTEGER:
                 idata = (int32_t*)duckdb_vector_get_data(colm);
                 break;
+            }
+            if (!min_max_initialized) {
+                switch (colm_type) {
+                case DUCKDB_TYPE_DOUBLE:
+                    min = dbldata[0];
+                    max = dbldata[0];
+                    break;
+                case DUCKDB_TYPE_INTEGER:
+                    min = idata[0];
+                    max = idata[0];
+                    break;
+                }
+                min_max_initialized = true;
             }
             for (int inx = 0; inx < chunk_sz; inx++) {
                 if (duckdb_validity_row_is_valid(validities, inx)) {
@@ -765,16 +769,7 @@ public:
         int colm_type{ tipes[col_inx] };
         // Next we have types, one 32bit int per col
         // Have we already populated types and names?
-        switch (colm_type) {
-        case wdtFloat:
-            min = 0.0;
-            max = 0.0;
-            break;
-        case wdtInt:
-            min = 0;
-            max = 0;
-            break;
-        }
+        bool min_max_initialized{ false };
 
         uint32_t    this_chunk_row_count{ 0 };
         uint32_t    col_offset{ 0 };
@@ -794,6 +789,19 @@ public:
             case wdtInt:
                 idata = (int*)col_ptr;
                 break;
+            }
+            if (!min_max_initialized) {
+                switch (colm_type) {
+                case wdtFloat:
+                    min = dbldata[0];
+                    max = dbldata[0];
+                    break;
+                case wdtInt:
+                    min = idata[0];
+                    max = idata[0];
+                    break;
+                }
+                min_max_initialized = true;
             }
             for (int inx = 0; inx < this_chunk_row_count; inx++) {
                 switch (colm_type) {
