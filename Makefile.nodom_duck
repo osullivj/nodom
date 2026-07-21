@@ -6,6 +6,7 @@ BLD_DIR = bld
 EXE = $(BLD_DIR)/nodom_duck.html
 IMGUI_DIR = lib/imgui
 IMPLOT_DIR = lib/implot
+MEMEDIT_DIR = lib/imgui_club/imgui_memory_editor
 ND_SRC_DIR = src/cpp
 ND_WEB_DIR = src/web
 ND_FMT_DIR = lib/fmt
@@ -19,7 +20,7 @@ SOURCES += $(IMGUI_DIR)/backends/imgui_impl_glfw.cpp $(IMGUI_DIR)/backends/imgui
 SOURCES += $(IMPLOT_DIR)/implot.cpp $(IMPLOT_DIR)/implot_demo.cpp $(IMPLOT_DIR)/implot_items.cpp
 OBJS = $(addsuffix .o, $(addprefix bld/,$(basename $(notdir $(SOURCES)))))
 # UNAME_S := $(shell uname -s)
-CPPFLAGS = -std=c++17 -I $(IMGUI_DIR)/examples/libs/emscripten -I $(ND_FMT_DIR)/include -I $(IMPLOT_DIR)
+CPPFLAGS = -std=c++17 -I $(IMGUI_DIR)/examples/libs/emscripten -I $(ND_FMT_DIR)/include -I $(IMPLOT_DIR) -I $(MEMEDIT_DIR)
 LDFLAGS =
 EMS =
 

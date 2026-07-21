@@ -770,7 +770,7 @@ public:
         // Have we already populated types and names?
         bool min_max_initialized{ false };
 
-        uint32_t    this_chunk_row_count{ 0 };
+        int32_t     this_chunk_row_count{ 0 };
         uint32_t    col_offset{ 0 };
         uint32_t*   chunk_ptr{ nullptr };
         uint32_t*   col_ptr{ nullptr };
@@ -778,7 +778,7 @@ public:
         int32_t*    idata{ nullptr };
         for (auto scvit = wcv->begin(); scvit != wcv->end(); ++scvit) {
             chunk_ptr = reinterpret_cast<uint32_t*>(scvit->addr);
-            this_chunk_row_count = chunk_ptr[2];
+            this_chunk_row_count = static_cast<int32_t>(chunk_ptr[2]);
             col_offset = chunk_ptr[3+ncols+col_inx];
             col_ptr = chunk_ptr + col_offset;
             switch (colm_type) {
@@ -872,7 +872,7 @@ public:
         WasmChunk chunk{ bob[range->chunk_index] };
         uint32_t* chunk_ptr = reinterpret_cast<uint32_t*>(chunk.addr);
 
-        uint32_t this_chunk_sz = chunk_ptr[2];
+        int32_t this_chunk_sz = static_cast<int32_t>(chunk_ptr[2]);
         uint32_t available = this_chunk_sz - range->chunk_offset;
         if (available > range->remaining) {
             range->plot_count = range->remaining;
