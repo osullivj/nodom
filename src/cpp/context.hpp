@@ -6,6 +6,7 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "implot.h"
+#include "imgui_memory_editor.h"
 #include "locals.hpp"
 #include "ufuncs.hpp"
 #include "widgets.hpp"
@@ -179,6 +180,9 @@ private:
     DatePickerLocals    dp_vars;
     SpinnerLocals       sp_vars;
     ShadedPlotLocals    sh_pl_vars;
+    // imgui_club Memory Editor
+    // https://github.com/ocornut/imgui_club/tree/main#imgui_memory_editor
+    MemoryEditor        memory_editor;
 #ifdef __EMSCRIPTEN__
     IDBFileWriter       ini_writer;
     IDBFileCachePtr     ini_cache_ptr;
