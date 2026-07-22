@@ -202,6 +202,8 @@ inline RenderMethod RenderMethodFromString(const std::string& method) {
         return RenderMethod::Window;
     if (method == Static::rm_shaded_plot_cs)
         return RenderMethod::ShadedPlot;
+    if (method == Static::rm_memory_editor_cs)
+        return RenderMethod::MemoryEditor;
     return EndRenderMethod;
 }
 
