@@ -878,7 +878,8 @@ private:
         Static::rm_push_font_cs,
         Static::rm_pop_font_cs,
         Static::rm_window_cs,
-        Static::rm_shaded_plot_cs
+        Static::rm_shaded_plot_cs,
+        Static::rm_memory_editor_cs
     };
 
     inline static std::array<const char*, EndDBEventTypes> db_event_types{
@@ -1012,7 +1013,8 @@ private:
                     cs_window_flags}},
         {ShadedPlot, {cs_title, cs_show_lines, cs_show_fills, cs_shaded_plot_flags}},
         {PushFont, {cs_font, cs_font_size}},
-        {BeginChild, {cs_title}}
+        {BeginChild, {cs_title}},
+        {MemoryEditor, {cs_title}}
     };
 
     inline static std::map<RenderMethod, CacheSpecTypeMap> addr_cspecs{
@@ -1044,8 +1046,10 @@ private:
         {Window, {
             {cs_menu_bar, cdStrVec},
             {cs_menu_pop, cdStrVec}
+        }},
+        {MemoryEditor, {
+            {cs_query_id, cdResultSet}
         }}
-
     };
 
 public:
