@@ -1034,7 +1034,7 @@ private:
         }},
         {Table, {
             {cs_query_id, cdResultSet},
-            { cs_menu_pop, cdStrVec}
+            {cs_menu_pop, cdStrVec}
         }},
         {ShadedPlot, {
             {cs_query_id, cdResultSet},
