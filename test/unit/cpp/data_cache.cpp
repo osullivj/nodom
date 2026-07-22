@@ -341,6 +341,8 @@ BOOST_FIXTURE_TEST_CASE(MinMenuBarDataAndLayout, DataCacheFixture)
 #endif
     str_count = 10;
     dc.on_json(data, layout, [&]() { dc.on_init(); });
+    // dump cache state before assertions...
+    dc.report_cache_state();
     BOOST_TEST(dc.widget_vec_size() == 1);
     BOOST_TEST(dc.pushables_size() == 0);
     BOOST_TEST(dc.error_count() == 0);
