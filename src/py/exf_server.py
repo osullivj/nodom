@@ -176,6 +176,7 @@ EXF_LAYOUT = [
         widget_id=SUMMARY_MODAL_ID,
         rname="DuckTableSummaryModal",  # "Noop"
         cspec=dict(
+            menupop="summary_rclick_menupop",
             title="Depth table",
             title_font="Arial",
             body_font="CourierNew",
@@ -183,7 +184,6 @@ EXF_LAYOUT = [
             button_font="CourierNew",
             button_font_size=12,
             query_id=SUMMARY_QID,
-            geom="Vanilla",  # redundant as summary table is always Vanilla
             window_flags=WindowFlags.ALWAYS_AUTO_RESIZE
             | WindowFlags.HORIZONTAL_SCROLLBAR,
         ),
@@ -334,6 +334,9 @@ EXF_DATA = dict(
         ],
         f"{DB_ID}.Online": SUMMARY_SEQUENCE,
     },
+    menus=dict(
+        summary_rclick_menupop=["Memory Editor"]
+    )
 )
 
 # nd_utils.file_list needs one more arg after this partial bind for the pattern we're matching
