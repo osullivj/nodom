@@ -76,6 +76,7 @@ struct Static {
 	inline static const char* menu_bar_cs{ "menubar" };
 	inline static const char* menu_cs{ "menu" };
 	inline static const char* menu_item_cs{ "menuitem" };
+	inline static const char* menu_pop_cs{ "menupop" };
 	inline static const char* lb_footer_style_cs{ "Style" };
 	inline static const char* cspec_cs{ "cspec" };
 	inline static const char* cname_cs{ "cname" };
