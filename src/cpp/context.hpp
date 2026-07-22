@@ -982,6 +982,25 @@ protected:
         }
     }
 
+    void render_menu_pop_item(WidgetPtr w) {
+        // cspec::menupop is a Str and menu_name in data.menus.
+        // NB BeginPopupContextItem() attaches to
+        // the previously rendered widget, or table column
+        DataRef* menu_pop_data_ref = cspec_data_ref(cs_menu_pop, w->data_refs);
+        if (menu_pop_data_ref != nullptr && ImGui::BeginPopupContextItem()) {
+            StrInx mpop_inx{ menu_pop_data_ref->ref_inx };
+            for (uint32_t i = 0; i < menu_pop_data_ref->size; i++) {
+                const char* menu_pop_name = data_lay_cache.get_string_value(mpop_inx);
+                if (menu_pop_name != nullptr && ImGui::MenuItem(menu_pop_name)) {
+                    EntityInx menu_pop_id = data_lay_cache.get_menu_id(menu_pop_name);
+                    pending_actions.push_back({ menu_pop_id, einx_Menu });
+                }
+                mpop_inx++;
+            }
+            ImGui::EndPopup();
+        }
+    }
+
     void render_home(WidgetPtr w) {
         const static char* method = "NDContext::render_home: ";
         static int default_home_flags = ImGuiWindowFlags_None; 
@@ -1391,6 +1410,9 @@ protected:
         assert(result_set_data_ref != nullptr);
         const char* query_id = data_lay_cache.get_string_value(result_set_data_ref->addr_inx);
 
+        // menupop is an optional cspec, so possibly nullptr here
+        DataRef* menupop_data_ref = cspec_data_ref(cs_menu_pop, w->data_refs);
+
         if (title) {    // scope to fire title_font dtor and pop before body
             LocalFont title_font(w, cs_title_font, cs_title_font_size);
             ImGui::OpenPopup(title);
@@ -1426,6 +1448,9 @@ protected:
                     ImGui::TableNextRow();
                     for (colm_index = 0; colm_index < colm_count; colm_index++) {
                         ImGui::TableSetColumnIndex(colm_index);
+                        if (menupop_data_ref) {
+                            render_menu_pop_item(w);
+                        }
                         const char* endchar = bulk.get_datum(result_handle, colm_index, row_index);
                         if (endchar) {
                             ImGui::TextUnformatted(bulk.buffer, endchar);
