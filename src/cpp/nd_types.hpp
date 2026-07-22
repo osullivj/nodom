@@ -162,6 +162,7 @@ enum RenderMethod : uint32_t {
     PopFont,
     Window,
     ShadedPlot,
+    MemoryEditor,
     EndRenderMethod
 };
 
