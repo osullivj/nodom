@@ -454,8 +454,8 @@ protected:
             CacheDataType ref_type{ ctmit->second };
             std::string ref_name = cspec_names[spec];   // [cindex|cname|query_id|menubar]
             if (!JContains(cspec, ref_name.c_str())) {
-                // menubar is optional in the Home and Window cspec
-                if (spec == cs_menu_bar)
+                // menubar & menupop both optional in the Home and Window cspec
+                if (spec == cs_menu_bar || spec == cs_menu_pop)
                     continue;
                 bad_data_refs.push_back(ref_name);
                 std::stringstream ss;
@@ -463,7 +463,7 @@ protected:
                 layout_errors.push_back(ss.str());
                 continue;
             }
-            // cname|cindex|menubar: ref_name will be a data addr
+            // cname|cindex|menubar|menupop: ref_name will be a data addr
             // query_id: ref_name will be an EntityInx
             // NB query_id may now be a FuncID EntityInx
             std::string addr_or_qid{ JAsString(cspec, ref_name) };
@@ -472,7 +472,8 @@ protected:
             auto amit = address_map.find(addr_or_qid);
             EntityInx query_inx = get_query_id(addr_or_qid);
 
-            // cindex|cname|menubar data_refs must have an address_map entry.
+            // cindex|cname|menubar|menupop data_refs must have
+            // an address_map entry.
             // query_id data_refs do not have an address_map entry,
             //      but must have a valid EntityInx, which should have
             //      been created by on_data() when it parses ActionKeys
@@ -481,7 +482,8 @@ protected:
             if (amit == address_map.end()) {
                 if (ref_name == Static::cname_cs || 
                     ref_name == Static::cindex_cs ||
-                    ref_name == Static::menu_bar_cs) {
+                    ref_name == Static::menu_bar_cs ||
+                    ref_name == Static::menu_pop_cs) {
                     bad_data_refs.push_back(ref_name);
                     std::stringstream ss;
                     ss << "BAD_DATA_REF(" << ref_name << "/" << addr_or_qid << ") not address mapped in cspec:";
@@ -921,6 +923,7 @@ private:
         Static::menu_bar_cs,
         Static::menu_cs,
         Static::menu_item_cs,
+        Static::menu_pop_cs,
         Static::db_cs,     // cs_db,
         Static::fps_cs,     // cs_fps,
         Static::demo_cs,     // cs_demo,
@@ -966,6 +969,7 @@ private:
         cdStr,      // cs_menu_bar
         cdStr,      // cs_menu
         cdStr,      // cs_menu_item
+        cdStr,      // cs_menu_pop
         cdBool,     // cs_show_footer_db
         cdBool,     // cs_show_footer_fps
         cdBool,     // cs_show_footer_demo
@@ -1013,7 +1017,8 @@ private:
 
     inline static std::map<RenderMethod, CacheSpecTypeMap> addr_cspecs{
         {Home, {
-            {cs_menu_bar, cdStrVec}
+            {cs_menu_bar, cdStrVec},
+            {cs_menu_pop, cdStrVec}
         }},
         {InputInt, {{cs_cname, cdInt}}},
         {Combo, {
@@ -1023,15 +1028,22 @@ private:
         {Checkbox, {{cs_cname, cdBool}}},
         {DatePicker, {{cs_cname, cdIntVec}}},
         {LoadingModal, {{cs_cname, cdStrVec}}},
-        {DuckTableSummaryModal, {{cs_query_id, cdResultSet}}},
-        {Table, {{cs_query_id, cdResultSet}}},
+        {DuckTableSummaryModal, {
+            {cs_query_id, cdResultSet},
+            {cs_menu_pop, cdStrVec}
+        }},
+        {Table, {
+            {cs_query_id, cdResultSet},
+            { cs_menu_pop, cdStrVec}
+        }},
         {ShadedPlot, {
             {cs_query_id, cdResultSet},
             {cs_xname, cdStr},
             {cs_yname, cdStr}
         }},
         {Window, {
-            {cs_menu_bar, cdStrVec}
+            {cs_menu_bar, cdStrVec},
+            {cs_menu_pop, cdStrVec}
         }}
 
     };
