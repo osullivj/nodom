@@ -49,6 +49,25 @@ static constexpr int CHUNK_SIZE = 2048;
 #ifndef __EMSCRIPTEN__
 using Bobbin = std::vector<duckdb_data_chunk>;
 
+struct Range {
+    // supplied on init
+    uint32_t    offset{ 0 };
+    uint32_t    row_count{ 0 };
+    // calced by init
+    uint32_t    start_chunk{ 0 };
+    uint32_t    chunk_index{ 0 };
+    uint32_t    remaining{ 0 };
+    uint32_t    chunk_offset{ 0 };
+    int         col_inx{ -1 };
+    // set by next() and consumed by render_memory_editor
+    double*     dbldata{ nullptr };
+    int32_t*    idata{ nullptr };
+    uint32_t    edit_count{ 0 };
+    // platform specific: calced by init
+    Bobbin* bob{ nullptr };
+    duckdb_type col_type{ DUCKDB_TYPE_INVALID };
+};
+
 struct XYRange {
     // supplied on init
     uint32_t    offset{ 0 };
@@ -198,7 +217,6 @@ public:
         duckdb_type colm_type(types[col_inx]);
         const std::vector<duckdb_logical_type>& logical_types{ logical_type_map.at(handle) };
         duckdb_logical_type colm_type_l(logical_types[col_inx]);
-
         
         bool min_max_initialized{ false };
         while (chunk_iter != bob.end()) {
@@ -250,6 +268,32 @@ public:
         return true;
     }
 
+    Range* init_range(RSHandle h, const char* col_name,
+                        uint32_t offset, uint32_t count) {
+        static Range range;
+
+        // signal that static range needs [re]init
+        range.bob = nullptr;
+        // TODO: hand back ptr to underlying data
+        // if the underlying is int, we cp into double_int_buffer
+        auto bob_iter = bobbin_map.find(h);
+        if (bob_iter == bobbin_map.end())
+            return nullptr;
+        Bobbin& bob = bobbin_map.at(h);
+        range.bob = &bob;
+        range.offset = offset;
+        range.row_count = count;
+        range.start_chunk = range.offset / CHUNK_SIZE;
+        range.chunk_offset = offset % CHUNK_SIZE;
+        range.chunk_index = range.start_chunk;
+        range.remaining = count;
+        range.col_inx = get_col_index(h, col_name);
+        const std::vector<duckdb_type>& types{ type_map.at(h) };
+        range.col_type = types[range.col_inx];
+
+        return &range;
+    }
+
     XYRange* init_xy_range(RSHandle h, const char* xcol_name, 
         const char* ycol_name, uint32_t offset, uint32_t count) {
         static XYRange range;
@@ -276,6 +320,66 @@ public:
         range.ycol_type = types[range.ycol_inx];
 
         return &range;
+    }
+
+    Range* next_range(Range* range) {
+        static double_t dbl_buf[CHUNK_SIZE];
+
+        if (range == nullptr || range->bob == nullptr)
+            return nullptr;
+
+        if (!(range->col_type == DUCKDB_TYPE_DOUBLE
+            || range->col_type == DUCKDB_TYPE_INTEGER)) {
+            return nullptr;
+        }
+        // was our last invocation for the last chunk?
+        // if so, cleardown
+        if (range->remaining == 0) {
+            range->bob = nullptr;
+            return nullptr;
+        }
+        Bobbin& bob{ *range->bob };
+        duckdb_data_chunk chunk{ bob[range->chunk_index] };
+        idx_t this_chunk_sz = duckdb_data_chunk_get_size(chunk);
+        uint32_t available = this_chunk_sz - range->chunk_offset;
+        if (available > range->remaining) {
+            range->edit_count = range->remaining;
+            range->remaining = 0;
+        }
+        else {
+            range->edit_count = available;
+            range->remaining -= available;
+        }
+
+        duckdb_vector colm = duckdb_data_chunk_get_vector(chunk, range->col_inx);
+        switch (range->col_type) {
+        case DUCKDB_TYPE_DOUBLE:
+            range->dbldata = (double_t*)duckdb_vector_get_data(colm);
+            break;
+        case DUCKDB_TYPE_INTEGER:
+            range->idata = (int32_t*)duckdb_vector_get_data(colm);
+            range->dbldata = dbl_buf;
+            break;
+        }
+
+        switch (range->col_type) {
+            case DUCKDB_TYPE_DOUBLE:
+                range->dbldata += range->chunk_offset;
+                break;
+            case DUCKDB_TYPE_INTEGER:
+                range->idata += range->chunk_offset;
+                for (int i = 0; i < range->edit_count; i++)
+                    dbl_buf[i] = static_cast<double>(range->idata[i]);
+            range->dbldata = dbl_buf;
+            break;
+        }          
+        if (range->chunk_index == range->start_chunk) {
+            // Only apply offset to first chunk. 
+            // And it may have been zero anyway
+            range->chunk_offset = 0;    
+        }
+        range->chunk_index++;
+        return range;
     }
 
     XYRange* next_xy_range(XYRange* range) {
@@ -324,21 +428,21 @@ public:
         range->ydata = (double_t*)duckdb_vector_get_data(ycolm);
 
         switch (range->xcol_type) {
-            case DUCKDB_TYPE_DOUBLE:
-                range->xdata += range->chunk_offset;
-                break;
-            case DUCKDB_TYPE_INTEGER:
-                range->idata += range->chunk_offset;
-                for (int i = 0; i < range->plot_count; i++)
-                    dbl_buf[i] = static_cast<double>(range->idata[i]);
+        case DUCKDB_TYPE_DOUBLE:
+            range->xdata += range->chunk_offset;
+            break;
+        case DUCKDB_TYPE_INTEGER:
+            range->idata += range->chunk_offset;
+            for (int i = 0; i < range->plot_count; i++)
+                dbl_buf[i] = static_cast<double>(range->idata[i]);
             range->xdata = dbl_buf;
             break;
-        }          
+        }
         range->ydata += range->chunk_offset;
         if (range->chunk_index == range->start_chunk) {
             // Only apply offset to first chunk. 
             // And it may have been zero anyway
-            range->chunk_offset = 0;    
+            range->chunk_offset = 0;
         }
         range->chunk_index++;
         return range;
@@ -770,7 +874,7 @@ public:
         // Have we already populated types and names?
         bool min_max_initialized{ false };
 
-        int32_t     this_chunk_row_count{ 0 };
+        uint32_t    this_chunk_row_count{ 0 };
         uint32_t    col_offset{ 0 };
         uint32_t*   chunk_ptr{ nullptr };
         uint32_t*   col_ptr{ nullptr };
@@ -778,7 +882,7 @@ public:
         int32_t*    idata{ nullptr };
         for (auto scvit = wcv->begin(); scvit != wcv->end(); ++scvit) {
             chunk_ptr = reinterpret_cast<uint32_t*>(scvit->addr);
-            this_chunk_row_count = static_cast<int32_t>(chunk_ptr[2]);
+            this_chunk_row_count = chunk_ptr[2];
             col_offset = chunk_ptr[3+ncols+col_inx];
             col_ptr = chunk_ptr + col_offset;
             switch (colm_type) {
@@ -872,7 +976,7 @@ public:
         WasmChunk chunk{ bob[range->chunk_index] };
         uint32_t* chunk_ptr = reinterpret_cast<uint32_t*>(chunk.addr);
 
-        int32_t this_chunk_sz = static_cast<int32_t>(chunk_ptr[2]);
+        uint32_t this_chunk_sz = chunk_ptr[2];
         uint32_t available = this_chunk_sz - range->chunk_offset;
         if (available > range->remaining) {
             range->plot_count = range->remaining;
@@ -934,7 +1038,6 @@ public:
     }
 
     IntVec& get_col_types(RSHandle handle) {
-        // First 3 32 bit words are done, ncols, nrows
         IntVec& colm_types = type_map[handle];
         return colm_types;
     }
@@ -952,8 +1055,8 @@ public:
         // Have we already populated types and names?
         std::vector<int>& tipes = type_map[handle];
         if (tipes.empty()) {
-            tipes.clear();
             for (int i = 0; i < colm_count; i++) {
+                // NB int32_t, not uint32_t as wasm Duck types may be -ve
                 WasmDuckType tipe{ static_cast<int32_t>(chunk_ptr[3 + i]) };
                 tipes.push_back(tipe);
             }
