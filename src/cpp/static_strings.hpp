@@ -30,6 +30,7 @@ struct Static {
 	inline static const char* rm_end_group_cs{ "EndGroup" };
 	inline static const char* rm_window_cs{ "Window" };
 	inline static const char* rm_shaded_plot_cs{ "ShadedPlot" };
+	inline static const char* rm_memory_editor_cs{ "MemoryEditor" };
 	inline static const char* rm_push_font_cs{ "PushFont" };	// Fonts
 	inline static const char* rm_pop_font_cs{ "PopFont" };
 
