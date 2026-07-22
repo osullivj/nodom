@@ -1,6 +1,7 @@
 // Local working state structs for renderables
 #pragma once
 #include "nd_types.hpp"
+#include "dl_types.hpp"
 
 struct DatePickerLocals {
     YMD     old_date{ 1970, 1, 1 };   // render_date_picker
@@ -42,6 +43,28 @@ struct ShadedPlotLocals {
     double      xmax_dbl{ 0.0 };
     double      ymin_dbl{ 0.0 };
     double      ymax_dbl{ 0.0 };
+    uint32_t    row_count{ 0 };
+    uint32_t    offset{ 0 };
+};
+
+struct TableItemContext {
+    DataRef*    menupop_data_ref{ nullptr };
+    char*       query_id{ nullptr };
+    char*       col_name{ nullptr };
+    uint32_t    row_inx{ 0 };
+    uint32_t    col_inx{ 0 };
+};
+
+struct MemoryEditorContext {
+    // primed by render_duck_table_summary_modal if,
+    // and only if, the modal has a menupop, and a 
+    // menuitem is selected
+    uint32_t    handle{ 0 };
+    char*       query_id{ nullptr };
+    char*       col_name{ nullptr };
+    uint32_t    row_inx{ 0 };
+    uint32_t    col_inx{ 0 };
+    // render_memory_editor working storage
     uint32_t    row_count{ 0 };
     uint32_t    offset{ 0 };
 };
