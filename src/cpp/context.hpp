@@ -180,9 +180,8 @@ private:
     DatePickerLocals    dp_vars;
     SpinnerLocals       sp_vars;
     ShadedPlotLocals    sh_pl_vars;
-    // imgui_club Memory Editor
-    // https://github.com/ocornut/imgui_club/tree/main#imgui_memory_editor
-    MemoryEditor        memory_editor;
+    TableItemContext    table_item_ctx;
+    MemoryEditorContext mem_edit_ctx;
 #ifdef __EMSCRIPTEN__
     IDBFileWriter       ini_writer;
     IDBFileCachePtr     ini_cache_ptr;
@@ -982,23 +981,24 @@ protected:
         }
     }
 
-    void render_menu_pop_item(WidgetPtr w) {
+    bool render_menu_pop_item(WidgetPtr w) {
         // cspec::menupop is a Str and menu_name in data.menus.
         // NB BeginPopupContextItem() attaches to
         // the previously rendered widget, or table column
-        DataRef* menu_pop_data_ref = cspec_data_ref(cs_menu_pop, w->data_refs);
-        if (menu_pop_data_ref != nullptr && ImGui::BeginPopupContextItem()) {
-            StrInx mpop_inx{ menu_pop_data_ref->ref_inx };
-            for (uint32_t i = 0; i < menu_pop_data_ref->size; i++) {
+        if (table_item_ctx.menupop_data_ref != nullptr && ImGui::BeginPopupContextItem()) {
+            StrInx mpop_inx{ table_item_ctx.menupop_data_ref->ref_inx };
+            for (uint32_t i = 0; i < table_item_ctx.menupop_data_ref->size; i++) {
                 const char* menu_pop_name = data_lay_cache.get_string_value(mpop_inx);
                 if (menu_pop_name != nullptr && ImGui::MenuItem(menu_pop_name)) {
                     EntityInx menu_pop_id = data_lay_cache.get_menu_id(menu_pop_name);
                     pending_actions.push_back({ menu_pop_id, einx_Menu });
+                    return true;
                 }
                 mpop_inx++;
             }
             ImGui::EndPopup();
         }
+        return false;
     }
 
     void render_home(WidgetPtr w) {
@@ -1408,10 +1408,10 @@ protected:
 
         DataRef* result_set_data_ref = cspec_data_ref(cs_query_id, w->data_refs);
         assert(result_set_data_ref != nullptr);
-        const char* query_id = data_lay_cache.get_string_value(result_set_data_ref->addr_inx);
+        table_item_ctx.query_id = (char*)data_lay_cache.get_string_value(result_set_data_ref->addr_inx);
 
         // menupop is an optional cspec, so possibly nullptr here
-        DataRef* menupop_data_ref = cspec_data_ref(cs_menu_pop, w->data_refs);
+        table_item_ctx.menupop_data_ref = cspec_data_ref(cs_menu_pop, w->data_refs);
 
         if (title) {    // scope to fire title_font dtor and pop before body
             LocalFont title_font(w, cs_title_font, cs_title_font_size);
@@ -1428,30 +1428,38 @@ protected:
         }
 
         std::uint32_t colm_count = Static::SMRY_COLM_CNT;
-        std::uint32_t colm_index = 0;
+        table_item_ctx.col_inx = 0;
+        // std::uint32_t colm_index = 0;
         if (ImGui::BeginPopupModal(title, nullptr, window_flags)) {
             LocalFont body_font(w, cs_body_font, cs_body_font_size);
-            std::uint64_t result_handle = bulk.get_handle(query_id);
+            std::uint64_t result_handle = bulk.get_handle(table_item_ctx.query_id);
             if (result_handle == 0) {
-                auto [iter, inserted] = bad_handle_map.insert(std::make_pair(query_id, 1));
+                auto [iter, inserted] = bad_handle_map.insert(std::make_pair(table_item_ctx.query_id, 1));
                 if (!inserted) iter->second++;
                 return;
             }
-            if (ImGui::BeginTable(query_id, (int)colm_count, table_flags)) {
-                for (colm_index = 0; colm_index < colm_count; colm_index++) {
-                    ImGui::TableSetupColumn(Static::duck_table_summary_colm_names[colm_index]);
+            if (ImGui::BeginTable(table_item_ctx.query_id, (int)colm_count, table_flags)) {
+                for (table_item_ctx.col_inx = 0; table_item_ctx.col_inx < colm_count; table_item_ctx.col_inx++) {
+                    ImGui::TableSetupColumn(Static::duck_table_summary_colm_names[table_item_ctx.col_inx]);
                 }
                 ImGui::TableHeadersRow();
                 std::uint32_t row_count = bulk.get_row_count(result_handle);
                 bulk.get_meta_data(result_handle, colm_count, row_count);
-                for (uint32_t row_index = 0; row_index < row_count; row_index++) {
+                for (table_item_ctx.row_inx = 0; table_item_ctx.row_inx < row_count; table_item_ctx.row_inx++) {
                     ImGui::TableNextRow();
-                    for (colm_index = 0; colm_index < colm_count; colm_index++) {
-                        ImGui::TableSetColumnIndex(colm_index);
-                        if (menupop_data_ref) {
-                            render_menu_pop_item(w);
+                    for (table_item_ctx.col_inx = 0; table_item_ctx.col_inx < colm_count; table_item_ctx.col_inx++) {
+                        ImGui::TableSetColumnIndex(table_item_ctx.col_inx);
+                        table_item_ctx.col_name = (char*)Static::duck_table_summary_colm_names[table_item_ctx.col_inx];
+                        if (table_item_ctx.menupop_data_ref) {
+                            if (render_menu_pop_item(w)) {
+                                // render_menu_pop_item() pushed a pending_action, 
+                                // so prep MemoryEditorContext in case that pending_action
+                                // is a push MemoryEditor widget.
+                                // TODO set mem_edit_ctx.col_name from 
+                                // summary row!
+                            }
                         }
-                        const char* endchar = bulk.get_datum(result_handle, colm_index, row_index);
+                        const char* endchar = bulk.get_datum(result_handle, table_item_ctx.col_inx, table_item_ctx.row_inx);
                         if (endchar) {
                             ImGui::TextUnformatted(bulk.buffer, endchar);
                         }
@@ -1578,6 +1586,7 @@ protected:
         const char* y_col_name = data_lay_cache.get_string_value(yinx);
 
         // get ranges from bulk cache
+        // TODO: memoize the range in a ShadedPlotContext
         if (!bulk.get_min_max(handle, x_col_name, sh_pl_vars.xmin_dbl, sh_pl_vars.xmax_dbl) ||
             !bulk.get_min_max(handle, y_col_name, sh_pl_vars.ymin_dbl, sh_pl_vars.ymax_dbl))
             return;
@@ -1672,6 +1681,42 @@ protected:
                 ImGui::EndTable();
             }
         }
+    }
+
+    void render_memory_editor(WidgetPtr w) {
+        const static char* method = "NDContext::render_memory_editor: ";
+
+        // imgui_club Memory Editor
+        // https://github.com/ocornut/imgui_club/tree/main#imgui_memory_editor
+        static MemoryEditor memory_editor;
+
+        DataRef* result_set_data_ref = cspec_data_ref(cs_query_id, w->data_refs);
+
+        // const char* title = cspec_string(cs_title, w->cspec_str, method);
+        // MemoryEditorContext and the bulk cache have all we need...
+        mem_edit_ctx.row_count = bulk.get_row_count(mem_edit_ctx.handle);
+        mem_edit_ctx.offset = 0;
+        Range* range = bulk.init_range(mem_edit_ctx.handle, mem_edit_ctx.col_name,
+            mem_edit_ctx.offset, mem_edit_ctx.row_count);
+        range = next_range(range);
+        switch (mem_edit_ctx.)
+        memory_editor.DrawWindow(mem_edit_ctx.col_name, range->dbldata, size);
+
+            if (sh_pl_vars.show_fills) {
+                sh_pl_vars.spec.Flags = shaded_plot_flags;
+                sh_pl_vars.spec.FillAlpha = 0.25f;
+                range = bulk.init_xy_range(handle, x_col_name, y_col_name, sh_pl_vars.offset, sh_pl_vars.row_count);
+                range = bulk.next_xy_range(range);
+                while (range != nullptr) {
+                    ImPlot::PlotShaded(title, range->xdata, range->ydata, range->plot_count, range->ydata[0], sh_pl_vars.spec);
+                    range = bulk.next_xy_range(range);
+                }
+            }
+
+
+        void* data{ nullptr };
+        size_t size{ 0 };
+
     }
 
     void render_push_font(WidgetPtr w) {
