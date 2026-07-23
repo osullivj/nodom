@@ -724,8 +724,14 @@ public:
                     std::cerr << method << "sql missing: " << db_request << std::endl;
                     continue;
                 }
+                if ((nd_type == Static::function_async_cs)  || 
+                    (nd_type == Static::function_sync_cs)) {
+                    int raw_func_inx = JAsInt(db_request, Static::query_id_cs);
+                    std::cerr << "NOT_YET_IMPLEMENTED(" << nd_type << "/" << raw_func_inx << "): " << db_request << std::endl;
+                    continue;
+                }
                 const std::string& qid(db_request[Static::query_id_cs]);
-                nlohmann::json db_response = { {Static::query_id_cs, qid}, { Static::error_cs, 0 } };
+                nlohmann::json db_response = { {Static::query_id_cs, qid}};
                 // Command request do not produce a result set, unlike queries
                 if (nd_type == Static::command_cs) {
                     duckdb_state dbstate;

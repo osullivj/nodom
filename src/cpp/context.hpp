@@ -902,13 +902,14 @@ protected:
 
     void func_dispatch(const NDAction& action_defn) {
         int raw_func_inx = data_lay_cache.get_func_inx(action_defn.query_id);
+        auto func_request = JNewObject();
+        JSet(func_request, Static::nd_type_cs, DBEventTypeToString(action_defn.db_action));
+        JSet(func_request, Static::query_id_cs, raw_func_inx);
+        JSet(func_request, Static::data_cs, data);
         // async slow path for funcs that await
         if (action_defn.db_action == dbFunctionAsync) {
-            auto func_request = JNewObject();
-            JSet(func_request, Static::nd_type_cs, DBEventTypeToString(action_defn.db_action));
-            JSet(func_request, Static::query_id_cs, raw_func_inx);
-            JSet(func_request, Static::data_cs, data);
-            // will invoke ems_db_dispatch to window.postMessage(func_request)
+            // ems: will invoke ems_db_dispatch to window.postMessage(func_request)
+            // win32: posts into db_loop
             bulk.db_dispatch(func_request);
         }
         else {  // sync fast path
@@ -916,9 +917,10 @@ protected:
             // no ret val as exec_js_action_sync invokes on_db_result,
             // so result obj will get picked up by dispatch_events
             exec_js_action_sync(raw_func_inx, data.as_handle(), rv.as_handle());
+#else
+            bulk.db_dispatch(func_request);
 #endif
         }
-
     }
 
     void db_dispatch(const NDAction& action_defn) {
