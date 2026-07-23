@@ -13,8 +13,8 @@
 // hardwired init data and layout
 static const char* min_menu_bar_data_cs{
     R"( { )"
-    R"(   "home_menu_bar":["Inc", "Dec"], )"
-    R"(   "menus":{                 )"
+    R"(   "menus":{  )"
+    R"(     "home_menu_bar":["Inc", "Dec"], )"
     R"(     "Inc":["Inc1", "Inc2"], )"
     R"(     "Dec":["Dec1", "Dec2"]  )"
     R"(   }  )"
@@ -260,7 +260,7 @@ BOOST_FIXTURE_TEST_CASE(AddServerLayout, DataCacheFixture)
     std::string layout_json = load_json(layout_json_path.c_str());
     auto layout = JParse<nlohmann::json>(layout_json);
 #endif
-    str_count = 24;   // Layout:[Home::title], Data:[op1,op2,op1_plus_op2], and all NDAction too!
+    str_count = 22;   // Layout:[Home::title], Data:[op1,op2,op1_plus_op2], and all NDAction too!
     int_count = 14;   // Layout:["step":1, "step":2], Data:[op1,op2,op1_plus_op2]
     dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.widget_vec_size() == 2);
@@ -279,9 +279,9 @@ BOOST_FIXTURE_TEST_CASE(ExfServerData, DataCacheFixture)
     auto layout = JParse<nlohmann::json>(Static::empty_list_cs);
 
 #endif
-    str_count = 25;
+    str_count = 30;
     dc.on_json(data, layout, [&]() { dc.on_init(); });
-    BOOST_TEST(dc.addr_map_size() == 13);
+    BOOST_TEST(dc.addr_map_size() == 10);
     BOOST_TEST(dc.action_map_size() == 4);
     BOOST_TEST(dc.data_ref_map_size() == 3);
     assert_cache_state();
@@ -301,7 +301,7 @@ BOOST_FIXTURE_TEST_CASE(ExfServerLayout, DataCacheFixture)
     std::string layout_json = load_json(layout_json_path.c_str());
     auto layout = JParse<nlohmann::json>(layout_json);
 #endif
-    str_count = 56;
+    str_count = 59;
     int_count = 13;
     dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.widget_vec_size() == 2);
@@ -346,7 +346,8 @@ BOOST_FIXTURE_TEST_CASE(MinMenuBarDataAndLayout, DataCacheFixture)
     BOOST_TEST(dc.widget_vec_size() == 1);
     BOOST_TEST(dc.pushables_size() == 0);
     BOOST_TEST(dc.error_count() == 0);
-    BOOST_TEST(dc.data_ref_map_size() == 1);    // menubar
-    BOOST_TEST(dc.menu_entity_map_size() == 6);    // 2 menu, 4 menu_item
+    BOOST_TEST(dc.data_ref_map_size() == 0);
+    BOOST_TEST(dc.menu_address_map_size() == 3);    // 2 menu, 1 menubar
+    BOOST_TEST(dc.menu_data_ref_map_size() == 3);
     assert_cache_state();
 }

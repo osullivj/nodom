@@ -38,6 +38,7 @@ CHART_BUTTON_ID = "i_am_chart_button"
 CHART_ID = "i_am_plot"
 SUMMARY_MODAL_ID = "i_am_depth_summary_modal"
 CHART_WINDOW_ID = "i_am_chart_window"
+MEM_EDIT_ID = "i_am_memory_editor"
 DB_ID = "DuckDB"
 DB_BUTTON_ID = "i_am_footer_db_button"
 EXF_LAYOUT = [
@@ -186,6 +187,14 @@ EXF_LAYOUT = [
             query_id=SUMMARY_QID,
             window_flags=WindowFlags.ALWAYS_AUTO_RESIZE
             | WindowFlags.HORIZONTAL_SCROLLBAR,
+        ),
+    ),
+    dict(
+        widget_id=MEM_EDIT_ID,
+        rname="MemoryEditor",  # "Noop"
+        cspec=dict(
+            title="Memory Editor",
+            query_id=SELECT_QID,
         ),
     ),
     dict(

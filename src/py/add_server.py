@@ -77,9 +77,9 @@ ADDITION_DATA = dict(
     op1=2,
     op2=3,
     op1_plus_op2=5,
-    home_menu_bar=["Inc", "Dec"],
     loading_message=["Inc1 clicked"],
     menus=dict(
+        home_menu_bar=["Inc", "Dec"],
         Inc=["Inc1", "Inc2"],
         Dec=["Dec1", "Dec2"],
     ),
