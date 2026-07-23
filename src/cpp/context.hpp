@@ -27,7 +27,6 @@
 // https://gist.github.com/nus/564e9e57e4c107faa1a45b8332c265b9
 static constexpr int MAX_ID_COUNT{ 256 };
 static constexpr int ND_MAX_COMBO_LIST{ 16 };
-static constexpr int act_ev_key_buf_len{ 256 };
 
 struct GLFWwindow;
 
@@ -169,8 +168,6 @@ private:
     GLFWwindow* glfw_window = nullptr;
 
     StringVec   js_func_names;
-    // Buffer for action_event compound keys
-    char act_ev_key_buf[act_ev_key_buf_len];
     // Buffers for err msg fmt, labels, dates...
     char string_buffer[STR_BUF_LEN];
     char date_buffer[STR_BUF_LEN];
@@ -180,7 +177,7 @@ private:
     DatePickerLocals    dp_vars;
     SpinnerLocals       sp_vars;
     ShadedPlotLocals    sh_pl_vars;
-    TableItemContext    table_item_ctx;
+    SummaryTableContext smry_tbl_ctx;
     MemoryEditorContext mem_edit_ctx;
 #ifdef __EMSCRIPTEN__
     IDBFileWriter       ini_writer;
@@ -958,8 +955,8 @@ protected:
             for (uint32_t i = 0; i < menu_bar_data_ref->size; i++) {
                 const char* menu_name = data_lay_cache.get_string_value(mbar_inx);
                 if (menu_name != nullptr && ImGui::BeginMenu(menu_name)) {
-                    EntityInx menu_id = data_lay_cache.get_menu_id(menu_name);
-                    DataRef* menu_data_ref = data_lay_cache.get_menu_data_ref(menu_id);
+                    AddrInx menu_addr_inx = data_lay_cache.get_menu_address_inx(menu_name);
+                    DataRef* menu_data_ref = data_lay_cache.get_menu_data_ref(menu_addr_inx);
                     if (menu_data_ref != nullptr) {
                         StrInx mitem_inx{ menu_data_ref->ref_inx };
                         for (uint32_t j = 0; j < menu_data_ref->size; j++) {
@@ -967,8 +964,7 @@ protected:
                             const char* menu_item = data_lay_cache.get_string_value(mitem_inx);
                             assert(menu_item != nullptr);
                             if (ImGui::MenuItem(menu_item)) {
-                                EntityInx menu_item_id = data_lay_cache.get_menu_id(menu_item);
-                                pending_actions.push_back({ menu_item_id, einx_Menu});
+                                pending_actions.push_back({ mitem_inx(), einx_Menu});
                             }
                             mitem_inx++;
                         }
@@ -981,17 +977,22 @@ protected:
         }
     }
 
-    bool render_menu_pop_item(WidgetPtr w) {
+    // NB render_menu_pop_item is never on the render stack, and is not
+    // invoked by dispatch_render. Instead it's possibly invoked directly
+    // from render_duck_table_summary_modal if the modal has a menupop,
+    // and the menuitem fires an Action that does ui_push MemoryEditor.
+    // If a menuitem is selected render_menu_pop_item rets true so
+    // the caller knows to prep MemoryEditorContext.
+    bool render_menu_pop_item(WidgetPtr parent) {
         // cspec::menupop is a Str and menu_name in data.menus.
         // NB BeginPopupContextItem() attaches to
-        // the previously rendered widget, or table column
-        if (table_item_ctx.menupop_data_ref != nullptr && ImGui::BeginPopupContextItem()) {
-            StrInx mpop_inx{ table_item_ctx.menupop_data_ref->ref_inx };
-            for (uint32_t i = 0; i < table_item_ctx.menupop_data_ref->size; i++) {
+        // the previously rendered widget, in this case a SummaryTable row.
+        if (smry_tbl_ctx.menupop_data_ref != nullptr && ImGui::BeginPopupContextItem()) {
+            StrInx mpop_inx{ smry_tbl_ctx.menupop_data_ref->ref_inx };
+            for (uint32_t i = 0; i < smry_tbl_ctx.menupop_data_ref->size; i++) {
                 const char* menu_pop_name = data_lay_cache.get_string_value(mpop_inx);
                 if (menu_pop_name != nullptr && ImGui::MenuItem(menu_pop_name)) {
-                    EntityInx menu_pop_id = data_lay_cache.get_menu_id(menu_pop_name);
-                    pending_actions.push_back({ menu_pop_id, einx_Menu });
+                    pending_actions.push_back({ mpop_inx(), einx_Menu});
                     return true;
                 }
                 mpop_inx++;
@@ -1408,10 +1409,10 @@ protected:
 
         DataRef* result_set_data_ref = cspec_data_ref(cs_query_id, w->data_refs);
         assert(result_set_data_ref != nullptr);
-        table_item_ctx.query_id = (char*)data_lay_cache.get_string_value(result_set_data_ref->addr_inx);
+        const char* query_id = data_lay_cache.get_string_value(result_set_data_ref->addr_inx);
 
         // menupop is an optional cspec, so possibly nullptr here
-        table_item_ctx.menupop_data_ref = cspec_data_ref(cs_menu_pop, w->data_refs);
+        smry_tbl_ctx.menupop_data_ref = cspec_data_ref(cs_menu_pop, w->data_refs);
 
         if (title) {    // scope to fire title_font dtor and pop before body
             LocalFont title_font(w, cs_title_font, cs_title_font_size);
@@ -1428,43 +1429,55 @@ protected:
         }
 
         std::uint32_t colm_count = Static::SMRY_COLM_CNT;
-        table_item_ctx.col_inx = 0;
-        // std::uint32_t colm_index = 0;
+        std::uint32_t col_inx = 0;
         if (ImGui::BeginPopupModal(title, nullptr, window_flags)) {
             LocalFont body_font(w, cs_body_font, cs_body_font_size);
-            std::uint64_t result_handle = bulk.get_handle(table_item_ctx.query_id);
-            if (result_handle == 0) {
-                auto [iter, inserted] = bad_handle_map.insert(std::make_pair(table_item_ctx.query_id, 1));
+            smry_tbl_ctx.smry_handle = bulk.get_handle(query_id);
+            if (smry_tbl_ctx.smry_handle == 0) {
+                auto [iter, inserted] = bad_handle_map.insert(std::make_pair(query_id, 1));
                 if (!inserted) iter->second++;
                 return;
             }
-            if (ImGui::BeginTable(table_item_ctx.query_id, (int)colm_count, table_flags)) {
-                for (table_item_ctx.col_inx = 0; table_item_ctx.col_inx < colm_count; table_item_ctx.col_inx++) {
-                    ImGui::TableSetupColumn(Static::duck_table_summary_colm_names[table_item_ctx.col_inx]);
+            if (ImGui::BeginTable(query_id, (int)colm_count, table_flags)) {
+                for (col_inx = 0; col_inx < colm_count; col_inx++) {
+                    ImGui::TableSetupColumn(Static::duck_table_summary_colm_names[col_inx]);
                 }
                 ImGui::TableHeadersRow();
-                std::uint32_t row_count = bulk.get_row_count(result_handle);
-                bulk.get_meta_data(result_handle, colm_count, row_count);
-                for (table_item_ctx.row_inx = 0; table_item_ctx.row_inx < row_count; table_item_ctx.row_inx++) {
+                bool memo_this_row{ false };
+                std::uint32_t row_count = bulk.get_row_count(smry_tbl_ctx.smry_handle);
+                bulk.get_meta_data(smry_tbl_ctx.smry_handle, colm_count, row_count);
+                for (smry_tbl_ctx.row_inx = 0; smry_tbl_ctx.row_inx < row_count; smry_tbl_ctx.row_inx++) {
                     ImGui::TableNextRow();
-                    for (table_item_ctx.col_inx = 0; table_item_ctx.col_inx < colm_count; table_item_ctx.col_inx++) {
-                        ImGui::TableSetColumnIndex(table_item_ctx.col_inx);
-                        table_item_ctx.col_name = (char*)Static::duck_table_summary_colm_names[table_item_ctx.col_inx];
-                        if (table_item_ctx.menupop_data_ref) {
-                            if (render_menu_pop_item(w)) {
-                                // render_menu_pop_item() pushed a pending_action, 
-                                // so prep MemoryEditorContext in case that pending_action
-                                // is a push MemoryEditor widget.
-                                // TODO set mem_edit_ctx.col_name from 
-                                // summary row!
-                            }
+                    if (smry_tbl_ctx.menupop_data_ref) {
+                        if (render_menu_pop_item(w)) {
+                            // render_menu_pop_item() pushed a pending_action, 
+                            // so prep MemoryEditorContext in case that pending_action
+                            // is a push MemoryEditor widget.
+                            memo_this_row = true;
                         }
-                        const char* endchar = bulk.get_datum(result_handle, table_item_ctx.col_inx, table_item_ctx.row_inx);
+                    }
+
+                    for (col_inx = 0; col_inx < colm_count; col_inx++) {
+                        ImGui::TableSetColumnIndex(col_inx);
+                        const char* endchar = bulk.get_datum(smry_tbl_ctx.smry_handle, col_inx, smry_tbl_ctx.row_inx);
                         if (endchar) {
                             ImGui::TextUnformatted(bulk.buffer, endchar);
                         }
                         else {
                             ImGui::TextUnformatted(bulk.buffer);
+                        }
+                        if (memo_this_row) {
+                            if (col_inx == Static::SMRY_NAME_COL_INX) {
+                                // +1 to guarantee a null term in col_name[12] if the col_name
+                                // happens to be a Duck inline str of len 12.
+                                strncpy(mem_edit_ctx.col_name, bulk.buffer, Static::INLN_STR_LEN+1);
+                            }
+                            else if (col_inx == Static::SMRY_TYPE_COL_INX) {
+                                strncpy(mem_edit_ctx.col_type, bulk.buffer, Static::INLN_STR_LEN + 1);
+                            }
+                            else if (col_inx == Static::SMRY_LAST_COL_INX) {
+                                memo_this_row = false;
+                            }
                         }
                     }
                 }
@@ -1686,37 +1699,53 @@ protected:
     void render_memory_editor(WidgetPtr w) {
         const static char* method = "NDContext::render_memory_editor: ";
 
+        // We're here cos someone's done an action.ui_push=memory_editor_widget_id
+        // That can only happen if render_duck_table_summary_modal had a menupop
+        // selection, which we'll find in SummaryTableContext. The MemoryEditorContext
+        // will also have been populated by render_duck_table_summary_modal.
         // imgui_club Memory Editor
         // https://github.com/ocornut/imgui_club/tree/main#imgui_memory_editor
         static MemoryEditor memory_editor;
 
+        // NB not the same result set used by render_duck_table_summary_modal,
+        // which is a summary result set. Here we want the result set which is
+        // the subject of the summary, which we get from widget cspec.
+        // TODO: set handle=-1 on ui_pop so we can skip some ptr chasing
         DataRef* result_set_data_ref = cspec_data_ref(cs_query_id, w->data_refs);
+        const char* query_id = data_lay_cache.get_string_value(result_set_data_ref->addr_inx);
+        assert(query_id != nullptr);
+        mem_edit_ctx.handle = bulk.get_handle(query_id);
 
+        // SummaryTableContext::row_inx gives us the summary row clicked,
+        // which is the same as the result set col inx :)
+
+        // MemoryEditorContext::col_name and col_type were
+        // set by render_duck_table_summary_modal. We use
+        // them to compose a title. Later variations on this
+        // method may get title from cspec like so...
         // const char* title = cspec_string(cs_title, w->cspec_str, method);
-        // MemoryEditorContext and the bulk cache have all we need...
-        mem_edit_ctx.row_count = bulk.get_row_count(mem_edit_ctx.handle);
+        compound_string(string_buffer, STR_BUF_LEN, mem_edit_ctx.col_name,
+                                    mem_edit_ctx.col_type, Static::space_cs);
+
+        mem_edit_ctx.row_count = bulk.get_row_count(handle);
         mem_edit_ctx.offset = 0;
         Range* range = bulk.init_range(mem_edit_ctx.handle, mem_edit_ctx.col_name,
             mem_edit_ctx.offset, mem_edit_ctx.row_count);
+        // next_range will give us a nullptr if the col isn't int or double
         range = next_range(range);
-        switch (mem_edit_ctx.)
-        memory_editor.DrawWindow(mem_edit_ctx.col_name, range->dbldata, size);
-
-            if (sh_pl_vars.show_fills) {
-                sh_pl_vars.spec.Flags = shaded_plot_flags;
-                sh_pl_vars.spec.FillAlpha = 0.25f;
-                range = bulk.init_xy_range(handle, x_col_name, y_col_name, sh_pl_vars.offset, sh_pl_vars.row_count);
-                range = bulk.next_xy_range(range);
-                while (range != nullptr) {
-                    ImPlot::PlotShaded(title, range->xdata, range->ydata, range->plot_count, range->ydata[0], sh_pl_vars.spec);
-                    range = bulk.next_xy_range(range);
-                }
+        if (range != nullptr) {
+            switch (mem_edit_ctx.col_type) {
+            case DUCKDB_TYPE_DOUBLE:
+                size =  
+                memory_editor.DrawWindow(string_buffer, range->dbldata, range->edit_count*8);
+                break;
+            case DUCKDB_TYPE_INTEGER:
+                memory_editor.DrawWindow(string_buffer, range->idata, range->edit_count*4);
+                break;
+            default:
+                return;
             }
-
-
-        void* data{ nullptr };
-        size_t size{ 0 };
-
+        }
     }
 
     void render_push_font(WidgetPtr w) {
