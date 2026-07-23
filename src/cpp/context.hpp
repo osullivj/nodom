@@ -1707,7 +1707,7 @@ protected:
         // will also have been populated by render_duck_table_summary_modal.
         // imgui_club Memory Editor
         // https://github.com/ocornut/imgui_club/tree/main#imgui_memory_editor
-        static MemoryEditor memory_editor;
+        static struct MemoryEditor memory_editor;
 
         // NB not the same result set used by render_duck_table_summary_modal,
         // which is a summary result set. Here we want the result set which is
@@ -1729,7 +1729,7 @@ protected:
         compound_string(string_buffer, STR_BUF_LEN, mem_edit_ctx.col_name,
                                     mem_edit_ctx.col_type, Static::space_cs);
 
-        mem_edit_ctx.row_count = bulk.get_row_count(handle);
+        mem_edit_ctx.row_count = bulk.get_row_count(mem_edit_ctx.handle);
         mem_edit_ctx.offset = 0;
         Range* range = bulk.init_range(mem_edit_ctx.handle, mem_edit_ctx.col_name,
             mem_edit_ctx.offset, mem_edit_ctx.row_count);
