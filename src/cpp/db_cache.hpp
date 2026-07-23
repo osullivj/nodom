@@ -274,11 +274,13 @@ public:
 
         // signal that static range needs [re]init
         range.bob = nullptr;
-        // TODO: hand back ptr to underlying data
-        // if the underlying is int, we cp into double_int_buffer
+        range.dbldata = nullptr;
+        range.idata = nullptr;
+        // unknown handle...
         auto bob_iter = bobbin_map.find(h);
         if (bob_iter == bobbin_map.end())
             return nullptr;
+        // if the underlying is int, we cp into double_int_buffer
         Bobbin& bob = bobbin_map.at(h);
         range.bob = &bob;
         range.offset = offset;
