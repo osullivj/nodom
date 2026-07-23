@@ -311,13 +311,17 @@ struct Static {
 	inline static const char* breadboard_usage_cs{ "breadboard.exe <app_key> <cfg_dir>" };
 
 	inline constexpr static uint32_t SMRY_COLM_CNT = 12;
+	inline constexpr static uint32_t INLN_STR_LEN = 12;
+	inline constexpr static uint32_t SMRY_NAME_COL_INX = 0;
+	inline constexpr static uint32_t SMRY_TYPE_COL_INX = 1;
+	inline constexpr static uint32_t SMRY_LAST_COL_INX = 11;
 
 	inline static const char* duck_table_summary_colm_names[SMRY_COLM_CNT] = {
-	"name", "type", // DUCKDB_TYPE_VARCHAR, DUCKDB_TYPE_VARCHAR, 
-	"min", "max",   // DUCKDB_TYPE_VARCHAR, DUCKDB_TYPE_VARCHAR,
-	"apxu", "avg",  // DUCKDB_TYPE_BIGINT, DUCKDB_TYPE_DOUBLE,
-	"std", "q25",   // DUCKDB_TYPE_DOUBLE, DUCKDB_TYPE_VARCHAR,
-	"q50", "q75",   // DUCKDB_TYPE_VARCHAR, DUCKDB_TYPE_VARCHAR,
-	"cnt", "null"   // DUCKDB_TYPE_BIGINT, DUCKDB_TYPE_DECIMAL
+	"name", "type",  // DUCKDB_TYPE_VARCHAR,	DUCKDB_TYPE_VARCHAR, 
+	"min",  "max",   // DUCKDB_TYPE_VARCHAR,	DUCKDB_TYPE_VARCHAR,
+	"apxu", "avg",   // DUCKDB_TYPE_BIGINT,		DUCKDB_TYPE_DOUBLE,
+	"std",  "q25",   // DUCKDB_TYPE_DOUBLE,		DUCKDB_TYPE_VARCHAR,
+	"q50",  "q75",   // DUCKDB_TYPE_VARCHAR,	DUCKDB_TYPE_VARCHAR,
+	"cnt",  "null"   // DUCKDB_TYPE_BIGINT,		DUCKDB_TYPE_DECIMAL
 	};
 };
