@@ -47,12 +47,10 @@ struct ShadedPlotLocals {
     uint32_t    offset{ 0 };
 };
 
-struct TableItemContext {
+struct SummaryTableContext {
     DataRef*    menupop_data_ref{ nullptr };
-    char*       query_id{ nullptr };
-    char*       col_name{ nullptr };
+    uint32_t    smry_handle{ 0 };
     uint32_t    row_inx{ 0 };
-    uint32_t    col_inx{ 0 };
 };
 
 struct MemoryEditorContext {
@@ -60,11 +58,14 @@ struct MemoryEditorContext {
     // and only if, the modal has a menupop, and a 
     // menuitem is selected
     uint32_t    handle{ 0 };
-    char*       query_id{ nullptr };
-    char*       col_name{ nullptr };
-    uint32_t    row_inx{ 0 };
-    uint32_t    col_inx{ 0 };
+    char        col_name[Static::INLN_STR_LEN+1];
+    char        col_type[Static::INLN_STR_LEN+1];
     // render_memory_editor working storage
     uint32_t    row_count{ 0 };
     uint32_t    offset{ 0 };
+
+    MemoryEditorContext() {
+        memset(col_name, 0, Static::INLN_STR_LEN);
+        memset(col_type, 0, Static::INLN_STR_LEN);
+    }
 };
