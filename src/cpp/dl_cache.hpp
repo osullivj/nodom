@@ -51,18 +51,25 @@ protected:
     std::map<std::string, EntityInx>    widget_map;
     EntityInx                           invalid_entity;
 
-    // Two reserved keys in data: actions and menus
+    // Reserved keys in data: actions, menus, functions
     StringSet                           special_keys{
                                             Static::actions_cs, 
                                             Static::menus_cs,
                                             Static::functions_cs
     };
 
-    // Top level menu_bar and individual menu_items are just data
-    // But menus must have contiguous elements, just like menubars.
-    // And we must be able to map from menu name to menu StrVec; hence menu_map
-    std::map<std::string, EntityInx>    menu_entity_map;
-    std::map<EntityInx, DataRef>        menu_data_ref_map;
+    // menuitems: RHS list entries under data.menus are reified as
+    // entities so they can appear in an ActionKey{EntityInx,EventInx}
+    // LHS of data.menus entries are not addresses, they are entities
+    std::map<std::string, EntityInx>    menuitem_entity_map;    
+    std::map<EntityInx, DataRef>        menuitem_data_ref_map;
+    // cspec:menubar attr val maps to StrVec where each Str
+    //      is also a key in menu_address_map that resolves 
+    //      to a StrVec representing a menu.
+    // cspec:menupop attr val maps to StrVec representing a menu.
+    // NB AddrInx and EntityInx are both cache_strings indicies
+    std::map<std::string, AddrInx>      menu_address_map;       
+    std::map<AddrInx, DataRef>          menu_data_ref_map;
 
     std::map<std::string, EntityInx>    js_func_entity_map;
     std::map<EntityInx, uint32_t>       js_func_inx_map;
@@ -356,21 +363,9 @@ protected:
             JKeys(jmenus, menu_name_vec);
             for (auto mit = menu_name_vec.cbegin(); mit != menu_name_vec.cend(); ++mit) {
                 std::string menu_name{ *mit };
-                EntityInx menu_inx = add_menu_id(menu_name);
-                DataRef menu_data_ref{ CreateDataRef(cdStrVec, menu_inx(), jmenus, menu_name) };
-                menu_data_ref_map[menu_inx] = menu_data_ref;
-
-                // add post proc for menus that creates menu_item
-                // entries in the menu_address_map
-                StrInx mitem_inx{ menu_data_ref.ref_inx };
-                for (int i = 0; i < menu_data_ref.size; i++) {
-                    const char* menu_item = get_string_value(mitem_inx);
-                    assert(menu_item != nullptr);
-                    // create a unique index for each menu_item that can be 
-                    // used as the Entity inx
-                    add_menu_id(menu_item);
-                    mitem_inx++;
-                }
+                AddrInx menu_ainx = add_menu_address(menu_name);
+                DataRef menu_data_ref{ CreateDataRef(cdStrVec, menu_ainx(), jmenus, menu_name, CST::MenuItemID) };
+                menu_data_ref_map[menu_ainx] = menu_data_ref;
             }
         }
 
@@ -463,27 +458,24 @@ protected:
                 layout_errors.push_back(ss.str());
                 continue;
             }
-            // cname|cindex|menubar|menupop: ref_name will be a data addr
+            // cname|cindex: ref_name resolves as data[addr] and is represented
+            //      as an AddrInx in address_map value and data_ref_map key
+            // menubar|menupop: ref_name resolves as data["menus"][menu_name]
             // query_id: ref_name will be an EntityInx
             // NB query_id may now be a FuncID EntityInx
             std::string addr_or_qid{ JAsString(cspec, ref_name) };
-            // NB amit->second is AddrInx. Either amit->second
-            // will be good, or query_inx
+            // NB [amit|memit]->second is AddrInx. Either 
+            // [amit|memit]->second will be good, or query_inx
             auto amit = address_map.find(addr_or_qid);
+            auto memit = menu_address_map.find(addr_or_qid);
             EntityInx query_inx = get_query_id(addr_or_qid);
 
-            // cindex|cname|menubar|menupop data_refs must have
-            // an address_map entry.
-            // query_id data_refs do not have an address_map entry,
+            // query_id data_refs do not have a [menu_]address_map entry,
             //      but must have a valid EntityInx, which should have
             //      been created by on_data() when it parses ActionKeys
-            // menu data_ref fulfilled in menus
-            // menu_item data_ref to enabled bool is optional
             if (amit == address_map.end()) {
                 if (ref_name == Static::cname_cs || 
-                    ref_name == Static::cindex_cs ||
-                    ref_name == Static::menu_bar_cs ||
-                    ref_name == Static::menu_pop_cs) {
+                    ref_name == Static::cindex_cs) {
                     bad_data_refs.push_back(ref_name);
                     std::stringstream ss;
                     ss << "BAD_DATA_REF(" << ref_name << "/" << addr_or_qid << ") not address mapped in cspec:";
@@ -491,18 +483,46 @@ protected:
                     layout_errors.push_back(ss.str());
                     continue;
                 }
-                if (ref_name == Static::query_id_cs && !query_inx.is_valid()) {
+            }
+            if (memit == menu_address_map.end()) {
+                if (ref_name == Static::menu_bar_cs ||
+                    ref_name == Static::menu_pop_cs) {
                     bad_data_refs.push_back(ref_name);
                     std::stringstream ss;
-                    ss << "BAD_DATA_REF(" << ref_name << "/" << addr_or_qid << ") not used by any data.actions ActionKey occurs in cspec:";
+                    ss << "BAD_DATA_REF(" << ref_name << "/" << addr_or_qid << ") not menu address mapped in cspec:";
                     ss << cspec;
                     layout_errors.push_back(ss.str());
                     continue;
                 }
             }
-            DataRef data_ref = CreateDataRef(ref_type, 
-                query_inx.is_valid() ? query_inx() : amit->second(), 
-                data, addr_or_qid);
+            if (ref_name == Static::query_id_cs && !query_inx.is_valid()) {
+                bad_data_refs.push_back(ref_name);
+                std::stringstream ss;
+                ss << "BAD_DATA_REF(" << ref_name << "/" << addr_or_qid << ") not used by any data.actions ActionKey occurs in cspec:";
+                ss << cspec;
+                layout_errors.push_back(ss.str());
+                continue;
+            }
+            // NB we're not on a hotpath, this is compile time, so a little
+            // stack thrashing is OK.
+            DataRef data_ref;
+            AddrInx addr_inx;
+            switch (spec) {
+            case cs_menu_bar:    // all relevant StrVecs for menu[bar|pop] should exist already
+            case cs_menu_pop:    // addr_or_qid should resolve in menu_address_map
+                // NB.at(addr_or_qid) will throw if not found: we want that
+                // behaviour, not the [] behaviour.
+                addr_inx = menu_address_map.at(addr_or_qid);
+                data_ref = menu_data_ref_map.at(addr_inx);
+                break;
+            case cs_cname:
+            case cs_cindex:
+                data_ref = CreateDataRef(ref_type, amit->second(), data, addr_or_qid);
+                break;
+            case cs_query_id:   // cdResultSet
+                data_ref = CreateDataRef(ref_type, query_inx(), data, addr_or_qid);
+                break;
+            }
             // sanity check the DataRef
             if (data_ref.size == 0 && 
                 (data_ref.tipe == cdStrVec || data_ref.tipe == cdIntVec)) {
@@ -513,13 +533,32 @@ protected:
                 continue;
             }
             else {
+                std::stringstream ss;
+                switch (spec) {
+                case cs_menu_bar:
+                case cs_menu_pop:
+                    menu_data_ref_map[data_ref.addr_inx] = data_ref;
+                    break;
+                case cs_cname:
+                case cs_cindex:
+                    data_ref_map[data_ref.addr_inx] = data_ref;
+                    break;
+                case cs_query_id:
+                    data_ref_map[data_ref.addr_inx] = data_ref;
+                    break;
+                default:
+                    bad_data_refs.push_back(ref_name);
+                    ss << "CSPEC_SKEW(" << ref_name << "/" << addr_or_qid << ")";
+                    layout_errors.push_back(ss.str());
+                    continue;
+                }
                 widget->data_refs[spec] = data_ref;
-                data_ref_map[data_ref.addr_inx] = data_ref;
             }
         }
     }
 
-    DataRef CreateDataRef(CDT ref_type, AddrInx inx, const JSON& data, const std::string& addr) {
+    DataRef CreateDataRef(CDT ref_type, AddrInx inx, const JSON& data, 
+                    const std::string& addr, CST subtype=CST::None) {
         DataRef data_ref{ ref_type, inx };
         StringVec svec;
         IntVec ivec;
@@ -565,9 +604,9 @@ protected:
             if (data_ref.size > 0) {
                 auto it = svec.begin();
                 // only record addr of 1st vec element
-                data_ref.ref_inx = contiguous_string_index<CIT::Value>(*it++)();
+                data_ref.ref_inx = contiguous_string_index<CIT::Value>(*it++, subtype)();
                 while (it != svec.end()) {
-                    contiguous_string_index<CIT::Value>(*it++);
+                    contiguous_string_index<CIT::Value>(*it++, subtype);
                 }
             }
             break;
@@ -626,7 +665,7 @@ public:
     }
 
     size_t addr_map_size() { return address_map.size(); }
-    size_t menu_entity_map_size() { return menu_entity_map.size(); }
+    size_t menu_address_map_size() { return menu_address_map.size(); }
     size_t widget_vec_size() { return widget_vec.size(); }
     size_t pushables_size() { return pushables.size(); }
     size_t action_map_size() { return action_map.size(); }
@@ -712,8 +751,8 @@ public:
         return nullptr;
     }
 
-    DataRef* get_menu_data_ref(EntityInx einx) {
-        auto it = menu_data_ref_map.find(einx);
+    DataRef* get_menu_data_ref(AddrInx ainx) {
+        auto it = menu_data_ref_map.find(ainx);
         if (it != menu_data_ref_map.end()) {
             return &it->second;
         }
@@ -764,9 +803,9 @@ public:
         return it == js_func_entity_map.end() ? 0 : it->second;
     }
 
-    EntityInx get_menu_id(const std::string& menu) {
-        auto it = menu_entity_map.find(menu);
-        return it == menu_entity_map.end() ? 0 : it->second;
+    AddrInx get_menu_address_inx(const std::string& menu) {
+        auto it = menu_address_map.find(menu);
+        return it == menu_address_map.end() ? 0 : it->second;
     }
 
     int* get_int_value(IntInx inx) {
@@ -783,9 +822,19 @@ public:
         return ainx;
     }
 
-    EntityInx add_menu_id(const std::string& addr) {
-        EntityInx einx{ get_string_index<CIT::EntityID>(addr, CST::QueryID) };
-        menu_entity_map[addr] = einx;
+    AddrInx add_menu_address(const std::string& menu_addr) {
+        AddrInx ainx = get_string_index<CIT::Address>(menu_addr);
+        menu_address_map[menu_addr] = ainx;
+        return ainx;
+    }
+
+    EntityInx add_menu_item(const std::string& menu_item_name) {
+        // beware: we assume caller invocations of this method
+        // respect it's use of contiguous_string_index, and parsing
+        // dependencies won't interleave any string not a menu_item
+        // on the data.menus.<menu_name>:StrVec 
+        EntityInx einx{ contiguous_string_index<CIT::EntityID>(menu_item_name, CST::MenuItemID) };
+        menuitem_entity_map[menu_item_name] = einx;
         return einx;
     }
 
@@ -1168,12 +1217,12 @@ public:
         std::cout << std::dec << std::endl;
     }
 
-    void report_menu_entity_map() {
-        size_t len = menu_entity_map.size();
+    void report_menu_address_map() {
+        size_t len = menu_address_map.size();
         int inx{ 0 };
-        std::cout << "== report_menu_entity_map len:" << std::dec << len << std::endl;
-        std::cout << "inx:addr:EntityInx{0x0324,inx}" << std::endl;
-        for (auto cit = menu_entity_map.cbegin(); cit != menu_entity_map.cend(); ++cit) {
+        std::cout << "== report_menu_address_map len:" << std::dec << len << std::endl;
+        std::cout << "inx:addr:AddrInx{0x0324,inx}" << std::endl;
+        for (auto cit = menu_address_map.cbegin(); cit != menu_address_map.cend(); ++cit) {
             std::cout << std::setfill('0') << std::setw(3) << std::hex << inx++ << ":";
             std::cout << cit->first << ":" << cit->second << std::endl;
         }
@@ -1279,7 +1328,7 @@ public:
         report_cache_ints(eic);
         report_cache_floats(efc);
         report_address_map();
-        report_menu_entity_map();
+        report_menu_address_map();
         report_data_refs();
         report_func_maps();
         report_actions();
