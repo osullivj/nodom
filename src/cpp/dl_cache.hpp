@@ -474,9 +474,14 @@ protected:
             // query_id data_refs do not have a [menu_]address_map entry,
             //      but must have a valid EntityInx, which should have
             //      been created by on_data() when it parses ActionKeys
+            // xname|yname are added to query_id by ShadedPlot, to specify
+            //      indirectly (via data) ref column names in the result set
+            //      denoted by query_id
             if (amit == address_map.end()) {
                 if (ref_name == Static::cname_cs || 
-                    ref_name == Static::cindex_cs) {
+                    ref_name == Static::cindex_cs||
+                    ref_name == Static::xname_cs ||
+                    ref_name == Static::yname_cs) {
                     bad_data_refs.push_back(ref_name);
                     std::stringstream ss;
                     ss << "BAD_DATA_REF(" << ref_name << "/" << addr_or_qid << ") not address mapped in cspec:";
@@ -523,6 +528,10 @@ protected:
             case cs_query_id:   // cdResultSet
                 data_ref = CreateDataRef(ref_type, query_inx(), data, addr_or_qid);
                 break;
+            case cs_xname:
+            case cs_yname:
+                data_ref = CreateDataRef(ref_type, amit->second(), data, addr_or_qid);
+                break;
             }
             // sanity check the DataRef
             if (data_ref.size == 0 && 
@@ -542,9 +551,9 @@ protected:
                     break;
                 case cs_cname:
                 case cs_cindex:
-                    data_ref_map[data_ref.addr_inx] = data_ref;
-                    break;
                 case cs_query_id:
+                case cs_xname:
+                case cs_yname:
                     data_ref_map[data_ref.addr_inx] = data_ref;
                     break;
                 default:
