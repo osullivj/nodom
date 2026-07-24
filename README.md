@@ -1,3 +1,17 @@
 # nodom
-NoDOM Web GUI: the [imgui-jswt](https://github.com/osullivj/imgui-jswt)
-and [h3gui](https://github.com/osullivj/h3gui) repos will be merged here.
+NoDOM High Performance Web GUI
+
+- Implemented in Data Oriented Modern C++
+- Compiles to WASM with Emscripten, and Win32 x64 with MSVC 2022
+- Integrates with DuckDB WASM for bulk data
+- Declarative GUI specified in JSON served to WASM client by websocket
+- WebGL based GUI uses GPU rendering
+- Designed for the trading floor: performance over presentation
+
+# Standing on the shoulders of giants...
+NoDOM builds on top of some amazing OSS code...
+
+- [Dr ImGui](https://github.com/ocornut/imgui)
+- [ImPlot](https://github.com/epezent/implot)
+- [Emscripten](https://emscripten.org/)
+- [DuckDB-WASM](https://duckdb.org/docs/lts/clients/wasm/overview)
