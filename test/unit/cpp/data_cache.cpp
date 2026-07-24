@@ -297,9 +297,9 @@ BOOST_FIXTURE_TEST_CASE(ExfServerData, DataCacheFixture)
     auto layout = JParse<nlohmann::json>(Static::empty_list_cs);
 
 #endif
-    str_count = 30;
+    str_count = 34;
     dc.on_json(data, layout, [&]() { dc.on_init(); });
-    BOOST_TEST(dc.addr_map_size() == 10);
+    BOOST_TEST(dc.addr_map_size() == 12);   // xaxis,yaxis took us from 10 to 12
     BOOST_TEST(dc.action_map_size() == 4);
     BOOST_TEST(dc.data_ref_map_size() == 3);
     assert_cache_state();
@@ -319,11 +319,15 @@ BOOST_FIXTURE_TEST_CASE(ExfServerLayout, DataCacheFixture)
     std::string layout_json = load_json(layout_json_path.c_str());
     auto layout = JParse<nlohmann::json>(layout_json);
 #endif
-    str_count = 59;
-    int_count = 13;
+    // check these against hex indices in cache dump
+    str_count = 72;
+    int_count = 14;
     dc.on_json(data, layout, [&]() { dc.on_init(); });
-    BOOST_TEST(dc.widget_vec_size() == 2);
-    BOOST_TEST(dc.pushables_size() == 1);
+    BOOST_TEST(dc.widget_vec_size() == 5);
+
+    // LoadingModal, DuckTableSummaryModal, MemoryEditor, Window::ShadedPlot
+    BOOST_TEST(dc.pushables_size() == 4); 
+
     dc.report_cache_errors();
     BOOST_TEST(dc.error_count() == 0);
     assert_cache_state();
