@@ -114,9 +114,12 @@ BOOST_FIXTURE_TEST_CASE(RenderMethodRoundTrips, DataCacheFixture)
 
 BOOST_FIXTURE_TEST_CASE(CacheSpecRoundTrips, DataCacheFixture)
 {
-    for (int cs1 = CacheSpecifier::cs_title; cs1 != CacheSpecifier::cs_end_cache_specs; cs1++) {
-        const char* csn = dc.get_cspec_name(CacheSpecifier(cs1));
-        BOOST_TEST(csn != nullptr);
+    for (int csi = CacheSpecifier::cs_title; csi != CacheSpecifier::cs_end_cache_specs; csi++) {
+        CacheSpecifier cs1{ static_cast<CacheSpecifier>(csi)};
+        const char* css = dc.get_cspec_name(cs1);
+        CacheSpecifier cs2 = dc.get_cspec_enum(css);
+        BOOST_TEST(cs1 == cs2);
+        BOOST_TEST(cs2 != CacheSpecifier::cs_end_cache_specs);
     }
 }
 
