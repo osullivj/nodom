@@ -1,5 +1,6 @@
 #pragma once
 #include <utility>
+#include <string_view>
 #include "json_ops.hpp"
 #include "dl_types.hpp"
 #include "logger.hpp"
@@ -898,6 +899,17 @@ public:
         if (cs < CacheSpecifier::cs_end_cache_specs)
             return cspec_names[cs];
         return nullptr;
+    }
+
+    CacheSpecifier get_cspec_enum(const char* css) {
+        for (int csi = CacheSpecifier::cs_title; csi != CacheSpecifier::cs_end_cache_specs; csi++) {
+            CacheSpecifier cs{static_cast<CacheSpecifier>(csi)};
+            const char* css_ = get_cspec_name(cs);
+            if (std::string_view(css) == std::string_view(css_)) {
+                return cs;
+            }
+        }
+        return CacheSpecifier::cs_end_cache_specs;
     }
 
 private:
