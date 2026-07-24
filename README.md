@@ -6,6 +6,7 @@ NoDOM High Performance Web GUI
 - Integrates with DuckDB WASM for bulk data
 - Declarative GUI specified in JSON served to WASM client by websocket
 - WebGL based GUI uses GPU rendering
+- No emscripten::val roundtrips on the render hotpath
 - Designed for the trading floor: performance over presentation
 
 # Standing on the shoulders of giants...
