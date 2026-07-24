@@ -2,6 +2,7 @@
 NoDOM High Performance Web GUI
 
 - Implemented in Data Oriented Modern C++
+- Builds on highly performant GameDev tech
 - Compiles to WASM with Emscripten, and Win32 x64 with MSVC 2022
 - Integrates with DuckDB WASM for bulk data
 - Declarative GUI specified in JSON served to WASM client by websocket
