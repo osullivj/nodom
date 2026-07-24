@@ -20,6 +20,7 @@ BLD_DIR = bld
 EXE = $(BLD_DIR)/nodom.html
 IMGUI_DIR = lib/imgui
 IMPLOT_DIR = lib/implot
+MEMEDIT_DIR = lib/imgui_club/imgui_memory_editor
 ND_SRC_DIR = src/cpp
 ND_WEB_DIR = src/web
 ND_FMT_DIR = lib/fmt
@@ -33,7 +34,7 @@ SOURCES += $(IMGUI_DIR)/backends/imgui_impl_glfw.cpp $(IMGUI_DIR)/backends/imgui
 SOURCES += $(IMPLOT_DIR)/implot.cpp $(IMPLOT_DIR)/implot_demo.cpp $(IMPLOT_DIR)/implot_items.cpp
 OBJS = $(addsuffix .o, $(addprefix bld/,$(basename $(notdir $(SOURCES)))))
 # UNAME_S := $(shell uname -s)
-CPPFLAGS = -std=c++17 -I $(IMGUI_DIR)/examples/libs/emscripten -I $(ND_FMT_DIR)/include -I $(IMPLOT_DIR)
+CPPFLAGS = -std=c++17 -I $(IMGUI_DIR)/examples/libs/emscripten -I $(ND_FMT_DIR)/include -I $(IMPLOT_DIR) -I $(MEMEDIT_DIR)
 LDFLAGS =
 EMS =
 
@@ -50,7 +51,7 @@ EMS =
 EMS += -s DISABLE_EXCEPTION_CATCHING=1
 # EMS += -s DISABLE_EXCEPTION_CATCHING=0
 EMS +=  --use-port=contrib.glfw3
-LDFLAGS += -sEXPORTED_FUNCTIONS=_main,_on_db_result_cpp,_malloc,_free,_get_chunk_cpp,_on_chunk_cpp,_on_async_done -sEXPORTED_RUNTIME_METHODS=ccall,cwrap,HEAPU8,HEAPU16,HEAPU32,HEAPU64,stringToNewUTF8,UTF8ToString
+LDFLAGS += -sEXPORTED_FUNCTIONS=_main,_on_db_result_cpp,_malloc,_free,_get_chunk_cpp,_on_chunk_cpp,_on_async_done -sEXPORTED_RUNTIME_METHODS=ccall,cwrap,HEAPU8,HEAPU16,HEAPU32,HEAPU64,stringToNewUTF8,UTF8ToString,nodom_functions
 LDFLAGS += -s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s NO_EXIT_RUNTIME=0
 LDFLAGS += -s ASSERTIONS=1 -lembind  -lwebsocket.js -lidbstore.js
 
