@@ -52,6 +52,11 @@
         "cspec": { "text": "Summary" }
       },
       {
+        "rname": "Button",
+        "widget_id": "i_am_the_chart_button",
+        "cspec": { "text": "Chart" }
+      },
+      {
         "rname": "Footer",
         "cspec": {
           "db": true,
@@ -85,5 +90,50 @@
       "spinner_radius": 20,
       "spinner_thickness": 4
     }
+  },
+  {
+    "widget_id": "i_am_depth_summary_modal",
+    "rname": "DuckTableSummaryModal",
+    "cspec": {
+      "title": "Depth table",
+      "query_id":"the_depth_summary",
+      "menupop":"summary_rclick_menupop",
+      "title_font": "Arial",
+      "body_font": "CourierNew",
+      "cname": "scan_urls",
+      "spinner_radius": 20,
+      "spinner_thickness": 4
+    }
+  },
+  {
+    "widget_id": "i_am_memory_editor",
+    "rname": "MemoryEditor",
+    "cspec": {
+      "title": "Memory Editor",
+      "query_id":"the_depth_query"
+    }
+  },
+  {
+    "widget_id": "i_am_chart_window",
+    "rname": "Window",
+    "cspec": {
+      "title": "Chart",
+      "title_font":"Arial",
+      "window_flags":0
+    },
+    "children":[
+      {
+        "rname":"ShadedPlot",
+        "widget_id":"i_am_plot",
+        "cspec":{
+          "query_id":"the_depth_query",
+          "show_fills":true,
+          "show_lines":true,
+          "title":"AskPrice1 vs SeqNo",
+          "xname":"xaxis",
+          "yname":"yaxis"
+        }
+      }
+    ]
   }
 ]

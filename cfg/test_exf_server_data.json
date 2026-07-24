@@ -18,7 +18,10 @@
   "summary_sql": "",
   "ui_sql": "",
   "enable_logging_sql": "",
+  "xaxis":"SeqNo",
+  "yaxis":"AskPrice1",
   "menus":{
+    "summary_rclick_menupop":["Memory Editor"],
     "main_menu_bar": ["Queries", "Caches"],
     "Queries": ["the_depth_query", "the_depth_summary"],
     "Caches": ["Hot", "Cold", "Bulk"]
