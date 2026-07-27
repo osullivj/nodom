@@ -152,6 +152,7 @@ enum RenderMethod : uint32_t {
     Button,
     Table,      // Compound widgets
     Footer,
+    DebugFooter,
     DatePicker,
     DuckTableSummaryModal,
     LoadingModal,
