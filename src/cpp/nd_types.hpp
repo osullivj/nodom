@@ -72,6 +72,12 @@ int WasmDuckTypeToSize(WasmDuckType dt);
 void printf_comma(int i, int col_count);
 void sprintf_value(char* cbuf, uint32_t* chunk_ptr, int bptr, int32_t tipe, int row_index);
 
+#ifdef __EMSCRIPTEN__
+using RSHandle = std::uint32_t;
+#else
+using RSHandle = std::uint64_t; // == &duckdb_result
+#endif
+
 enum PixReportType : int32_t {
     RenderFPS = 2,
     RenderPushPC,
