@@ -1446,7 +1446,7 @@ protected:
                 }
                 ImGui::TableHeadersRow();
                 bool memo_this_row{ false };
-                std::uint32_t row_count = bulk.get_row_count(smry_tbl_ctx.smry_handle);
+                std::uint32_t row_count{ 0 };
                 bulk.get_meta_data(smry_tbl_ctx.smry_handle, colm_count, row_count);
                 for (smry_tbl_ctx.row_inx = 0; smry_tbl_ctx.row_inx < row_count; smry_tbl_ctx.row_inx++) {
                     ImGui::TableNextRow();
