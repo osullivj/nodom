@@ -167,6 +167,8 @@ inline RenderMethod RenderMethodFromString(const std::string& method) {
     // Compound
     if (method == Static::rm_footer_cs)
         return RenderMethod::Footer;
+    if (method == Static::rm_debug_footer_cs)
+        return RenderMethod::DebugFooter;
     if (method == Static::rm_date_picker_cs)
         return RenderMethod::DatePicker;
     if (method == Static::rm_duck_table_summary_modal_cs)
