@@ -16,6 +16,7 @@ struct Static {
 	inline static const char* rm_button_cs{ "Button" };
 	inline static const char* rm_table_cs{ "Table" };
 	inline static const char* rm_footer_cs{ "Footer" };		// Compount
+	inline static const char* rm_debug_footer_cs{ "DebugFooter" };		// Compount
 	inline static const char* rm_date_picker_cs{ "DatePicker" };
 	inline static const char* rm_duck_table_summary_modal_cs{ "DuckTableSummaryModal" };
 	inline static const char* rm_loading_modal_cs{ "LoadingModal" };
