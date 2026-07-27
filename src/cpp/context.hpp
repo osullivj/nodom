@@ -733,6 +733,9 @@ protected:
         case RenderMethod::Footer:
             render_footer(w);
             break;
+        case RenderMethod::DebugFooter:
+            render_debug_footer(w);
+            break;
         case RenderMethod::DatePicker:
             render_date_picker(w);
             break;
@@ -986,11 +989,19 @@ protected:
     // If a menuitem is selected render_menu_pop_item rets true so
     // the caller knows to prep MemoryEditorContext.
     bool render_menu_pop_item(WidgetPtr parent) {
+        const static char* method = "NDContext::render_menu_pop_item: ";
+
+
         // cspec::menupop is a Str and menu_name in data.menus.
         // NB BeginPopupContextItem() attaches to
         // the previously rendered widget, in this case a SummaryTable row.
-        if (smry_tbl_ctx.menupop_data_ref != nullptr && ImGui::BeginPopupContextItem()) {
+        assert(smry_tbl_ctx.menupop_data_ref);
+        if ( ImGui::BeginPopupContextItem()) {
+        // if (smry_tbl_ctx.menupop_data_ref != nullptr && ImGui::BeginPopupContextItem()) {
             StrInx mpop_inx{ smry_tbl_ctx.menupop_data_ref->ref_inx };
+
+            NDLogger::cout() << method << "mpop_inx:" << mpop_inx << std::endl;
+
             for (uint32_t i = 0; i < smry_tbl_ctx.menupop_data_ref->size; i++) {
                 const char* menu_pop_name = data_lay_cache.get_string_value(mpop_inx);
                 if (menu_pop_name != nullptr && ImGui::MenuItem(menu_pop_name)) {
@@ -1136,10 +1147,8 @@ protected:
         cspec_bool(cs_show_footer_db, w->cspec_bool, &footer_show_db);
         cspec_bool(cs_show_footer_fps, w->cspec_bool, &footer_show_fps);
         cspec_bool(cs_show_footer_demo, w->cspec_bool, &footer_show_demo);
-        cspec_bool(cs_show_footer_id_stack, w->cspec_bool, &footer_show_id_stack);
         cspec_bool(cs_show_footer_font_scale, w->cspec_bool, &footer_show_font_scale);
         cspec_bool(cs_show_footer_style, w->cspec_bool, &footer_show_style);
-        cspec_bool(cs_show_footer_dlc, w->cspec_bool, &footer_show_dlc);
 
         ImGui::BeginGroup();
         if (footer_show_db) {
@@ -1162,15 +1171,6 @@ protected:
                 ImPlot::ShowDemoWindow();
             }
         }
-        if (footer_show_id_stack) {
-            ImGui::SameLine();
-            ImGui::Checkbox("IDStack", &show_id_stack);
-            if (show_id_stack)  ImGui::ShowStackToolWindow();
-        }
-        /* TODO
-        if (memory) {
-
-        } */
         if (footer_show_font_scale) {
             ImGuiStyle& style = ImGui::GetStyle();
             ImGui::SameLine();
@@ -1182,17 +1182,34 @@ protected:
             ImGui::SameLine();
             ImGui::Text("%.2f", style.FontScaleMain);
         }
-        if (footer_show_dlc) {
-            ImGui::SameLine();
-            if (ImGui::Button("DLC")) {
-                pending_actions.push_back({ ninx_FooterDLCButton, einx_Click });
-            }
-        }
         if (footer_show_style) {
             static const char* cs_combo_list[3] = { Static::dark_cs, Static::light_cs, Static::classic_cs };
             int old_val = style_coloring;
             ImGui::Combo(Static::lb_footer_style_cs, &style_coloring, cs_combo_list, 3, 3);
             if (style_coloring != old_val) SetStyleColoring(style_coloring);
+        }
+        ImGui::EndGroup();
+    }
+
+    void render_debug_footer(WidgetPtr w) {
+        // static const char* method = "NDContext::render_debug_footer: ";
+
+        // TODO: understand ems mem anlytics and restore in footer
+        cspec_bool(cs_show_footer_id_stack, w->cspec_bool, &footer_show_id_stack);
+        cspec_bool(cs_show_footer_font_scale, w->cspec_bool, &footer_show_font_scale);
+        cspec_bool(cs_show_footer_style, w->cspec_bool, &footer_show_style);
+        cspec_bool(cs_show_footer_dlc, w->cspec_bool, &footer_show_dlc);
+
+        ImGui::BeginGroup();
+
+        ImGui::SameLine();
+        ImGui::Checkbox("IDStack", &show_id_stack);
+        if (show_id_stack)
+            ImGui::ShowStackToolWindow();
+
+        ImGui::SameLine();
+        if (ImGui::Button("DLC")) {
+            pending_actions.push_back({ ninx_FooterDLCButton, einx_Click });
         }
         ImGui::EndGroup();
     }
