@@ -118,8 +118,6 @@ struct XYRange {
 
 static constexpr int MAX_COLUMNS = 256;
 
-using RSHandle = std::uint64_t; // == &duckdb_result
-
 class BBDuckDBCache {
 private:
     // work Qs for talking to NDContext, and thread
@@ -824,7 +822,6 @@ EM_JS(void, ems_db_dispatch, (emscripten::EM_VAL db_request_handle), {
     window.postMessage(db_request);
 });
 
-using RSHandle = std::uint32_t;
 class WebDuckDBCache {
 private:
     // work Qs for talking to NDContext
