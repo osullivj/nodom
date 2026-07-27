@@ -49,7 +49,7 @@ struct ShadedPlotLocals {
 
 struct SummaryTableContext {
     DataRef*    menupop_data_ref{ nullptr };
-    uint32_t    smry_handle{ 0 };
+    RSHandle    smry_handle{ 0 };   // uint64_t on win32, uint32_t on ems
     uint32_t    row_inx{ 0 };
 };
 
@@ -57,7 +57,7 @@ struct MemoryEditorContext {
     // primed by render_duck_table_summary_modal if,
     // and only if, the modal has a menupop, and a 
     // menuitem is selected
-    uint32_t    handle{ 0 };
+    RSHandle    handle{ 0 };
     char        col_name[Static::INLN_STR_LEN+1];
     char        col_type[Static::INLN_STR_LEN+1];
     // render_memory_editor working storage
