@@ -138,6 +138,7 @@ private:
     bool  footer_show_fps{ false };
     bool  footer_show_demo{ false };
     bool  footer_show_id_stack{ false };
+
     bool  footer_show_font_scale{ false };
     bool  footer_show_style{ false };
     bool  footer_show_dlc{ false };
@@ -146,6 +147,7 @@ private:
     bool  show_demo{ false };
     bool  show_id_stack{ false };
     bool  show_memory{ false};
+    bool  show_metrics{ false };
 
     // colours: https://www.w3schools.com/colors/colors_picker.asp
     ImColor red;    // ImGui.COL32(255, 51, 0);
@@ -1203,14 +1205,20 @@ protected:
         ImGui::BeginGroup();
 
         ImGui::SameLine();
+        if (ImGui::Button("DLC")) {
+            pending_actions.push_back({ ninx_FooterDLCButton, einx_Click });
+        }
+
+        ImGui::SameLine();
         ImGui::Checkbox("IDStack", &show_id_stack);
         if (show_id_stack)
             ImGui::ShowStackToolWindow();
 
         ImGui::SameLine();
-        if (ImGui::Button("DLC")) {
-            pending_actions.push_back({ ninx_FooterDLCButton, einx_Click });
-        }
+        ImGui::Checkbox("Metrics", &show_metrics);
+        if (show_metrics)
+            ImGui::ShowMetricsWindow();
+
         ImGui::EndGroup();
     }
 
