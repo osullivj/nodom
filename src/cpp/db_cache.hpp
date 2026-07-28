@@ -370,7 +370,7 @@ public:
                 range->idata += range->chunk_offset;
                 for (int i = 0; i < range->edit_count; i++)
                     dbl_buf[i] = static_cast<double>(range->idata[i]);
-            range->dbldata = dbl_buf;
+                range->dbldata = dbl_buf;
             break;
         }          
         if (range->chunk_index == range->start_chunk) {
