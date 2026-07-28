@@ -2,6 +2,14 @@
 #pragma once
 #include "nd_types.hpp"
 #include "dl_types.hpp"
+#include "imgui.h"
+#include "imgui_internal.h"
+
+// Constraint: do not store imgui working state in these
+// structs; ie GetCurrentTable(), which is inlined and
+// designed to be invoked when the data is needed.
+// The value is the boundary, and GetCurrentTable()
+// will let you cross the boundary only when appropriate.
 
 struct DatePickerLocals {
     YMD     old_date{ 1970, 1, 1 };   // render_date_picker
@@ -53,19 +61,20 @@ struct SummaryTableContext {
     uint32_t    row_inx{ 0 };
 };
 
-struct MemoryEditorContext {
-    // primed by render_duck_table_summary_modal if,
-    // and only if, the modal has a menupop, and a 
-    // menuitem is selected
-    RSHandle    handle{ 0 };
-    char        col_name[Static::INLN_STR_LEN+1];
-    char        col_type[Static::INLN_STR_LEN+1];
-    // render_memory_editor working storage
-    uint32_t    row_count{ 0 };
-    uint32_t    offset{ 0 };
+struct TableContext {
+    DataRef*    menupop_data_ref{ nullptr };
+    RSHandle    handle{ 0 };   // uint64_t on win32, uint32_t on ems
+    uint32_t    col_inx{ 0 };
+    uint32_t    row_inx{ 0 };
+};
 
-    MemoryEditorContext() {
-        memset(col_name, 0, Static::INLN_STR_LEN);
-        memset(col_type, 0, Static::INLN_STR_LEN);
-    }
+struct TableMemEditContext {
+    // primed by render_table if,
+    // and only if, the table has a menupop,
+    // and a  menuitem is selected
+    // render_memory_editor working storage
+    uint32_t    col_inx{ 0 };
+    uint32_t    row_count{ 0 };
+    uint32_t    col_count{ 0 };
+    uint32_t    offset{ 0 };
 };
