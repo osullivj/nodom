@@ -1089,10 +1089,13 @@ private:
         {MemoryEditor, {cs_title}}
     };
 
+    // TODO: addr_cspecs refactor so we can signal
+    // optionality here in the data, rather than
+    // hardwired ifs on CacheSpec types.
     inline static std::map<RenderMethod, CacheSpecTypeMap> addr_cspecs{
         {Home, {
-            {cs_menu_bar, cdStrVec},
-            {cs_menu_pop, cdStrVec}
+            {cs_menu_bar, cdStrVec},    // optional
+            {cs_menu_pop, cdStrVec}     // optional
         }},
         {InputInt, {{cs_cname, cdInt}}},
         {Combo, {
@@ -1116,11 +1119,11 @@ private:
             {cs_yname, cdStr}
         }},
         {Window, {
-            {cs_menu_bar, cdStrVec},
-            {cs_menu_pop, cdStrVec}
+            {cs_menu_bar, cdStrVec},    // optional
+            {cs_menu_pop, cdStrVec}     // optional
         }},
         {MemoryEditor, {
-            {cs_query_id, cdResultSet}
+            {cs_query_id, cdResultSet}  // optional
         }}
     };
 
