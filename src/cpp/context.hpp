@@ -58,10 +58,10 @@ using CritArray = std::array<std::string, Critical::EndCritical>;
 template <typename JSON, typename DB>
 class NDContext {
 private:
-    DB&                     bulk;   // DB bulk cache
-    JSON                    layout; // layout and data are fetched by websock
+    DB&                     bulk;           // DB bulk cache
+    JSON                    layout;         // layout and data are fetched by websock
     JSON                    data;
-    JSON                    rv;     // return value
+    JSON                    return_value;   // return value from FunctionAsync
     std::deque<WidgetPtr>   stack;  // render stack
     DataLayCache<JSON>      data_lay_cache;
 
@@ -180,7 +180,8 @@ private:
     SpinnerLocals       sp_vars;
     ShadedPlotLocals    sh_pl_vars;
     SummaryTableContext smry_tbl_ctx;
-    MemoryEditorContext mem_edit_ctx;
+    TableContext        tbl_ctx;
+    TableMemEditContext mem_edit_ctx;
 #ifdef __EMSCRIPTEN__
     IDBFileWriter       ini_writer;
     IDBFileCachePtr     ini_cache_ptr;
@@ -260,7 +261,7 @@ public:
         data_lay_cache.on_json(data, layout, [&](){ on_dlc_init(); });
 
         // init the ret val
-        rv = JParse<JSON>(Static::function_result_obj_cs);
+        return_value = JParse<JSON>(Static::function_result_obj_cs);
     }
 
     void on_dlc_init() {
@@ -921,7 +922,8 @@ protected:
 #ifdef __EMSCRIPTEN__
             // no ret val as exec_js_action_sync invokes on_db_result,
             // so result obj will get picked up by dispatch_events
-            exec_js_action_sync(raw_func_inx, data.as_handle(), rv.as_handle());
+            exec_js_action_sync(raw_func_inx, data.as_handle(),
+                                            return_value.as_handle());
 #else
             bulk.db_dispatch(func_request);
 #endif
@@ -986,35 +988,69 @@ protected:
 
     // NB render_menu_pop_item is never on the render stack, and is not
     // invoked by dispatch_render. Instead it's possibly invoked directly
-    // from render_duck_table_summary_modal if the modal has a menupop,
+    // from render_table if the table has a menupop,
     // and the menuitem fires an Action that does ui_push MemoryEditor.
     // If a menuitem is selected render_menu_pop_item rets true so
     // the caller knows to prep MemoryEditorContext.
+    // 
+    // useful popup level discussion
+    // https://github.com/ocornut/imgui/discussions/3773
     bool render_menu_pop_item(WidgetPtr parent) {
         const static char* method = "NDContext::render_menu_pop_item: ";
+        // cspec::menupop is a Str and a menu_name in data.menus.
+        // NB BeginPopupContextItem() attaches to the previously
+        // rendered widget, unless it's a table, in which case 
+        // we invoke TableBeginContextMenuPopup
 
+        // any render method rendering an imgui window
+        // should call render_menu_pop_window() (NYI)
+        assert(parent->rname != RenderMethod::Window);
 
-        // cspec::menupop is a Str and menu_name in data.menus.
-        // NB BeginPopupContextItem() attaches to
-        // the previously rendered widget, in this case a SummaryTable row.
-        assert(smry_tbl_ctx.menupop_data_ref);
-        if ( ImGui::BeginPopupContextItem()) {
-        // if (smry_tbl_ctx.menupop_data_ref != nullptr && ImGui::BeginPopupContextItem()) {
-            StrInx mpop_inx{ smry_tbl_ctx.menupop_data_ref->ref_inx };
+        // Currently only render_table() invokes us. In future 
+        // we'll loosen this assert to accept menupop_data_refs
+        // from other (non Window) render methods. Since
+        // render_duck_table_summary_modal() is modal it changes
+        // event flow; we'd have to make the parent window of
+        // the summary table non modal for rclicks to get
+        // dispatched here. 
+        assert(tbl_ctx.menupop_data_ref);
 
-            NDLogger::cout() << method << "mpop_inx:" << mpop_inx << std::endl;
+        switch (parent->rname) {
+        case Table: // prep TableMemEditContext for subsequent render_memory_editor()
+            // prep for render_memory_editor() bulk.init_range() invocation
+            mem_edit_ctx.offset = 0;
 
-            for (uint32_t i = 0; i < smry_tbl_ctx.menupop_data_ref->size; i++) {
-                const char* menu_pop_name = data_lay_cache.get_string_value(mpop_inx);
-                if (menu_pop_name != nullptr && ImGui::MenuItem(menu_pop_name)) {
-                    pending_actions.push_back({ mpop_inx(), einx_Menu});
-                    return true;
+            if ((ImGui::GetCurrentTable() != nullptr)
+                // IsContextPopupOpen is set true by TableOpenContextMenu()
+                // which is called by EndTable, TableHeader and TableHeadersRow.
+                // So TableOpenContextMenu() opens the menu, and we attach
+                // items here.
+                && ImGui::GetCurrentTable()->IsContextPopupOpen 
+                // only interested in col specific, not boundary clicks 
+                && (ImGui::GetCurrentTable()->ContextPopupColumn != -1)) {
+
+                mem_edit_ctx.col_inx = ImGui::GetCurrentTable()->ContextPopupColumn;
+                if (!ImGui::TableBeginContextMenuPopup(ImGui::GetCurrentTable()))
+                    break;
+
+                StrInx mpop_inx{ tbl_ctx.menupop_data_ref->ref_inx };
+                NDLogger::cout() << method << "mpop_inx:" << mpop_inx << std::endl;
+                for (uint32_t i = 0; i < tbl_ctx.menupop_data_ref->size; i++) {
+                    const char* menu_pop_item = data_lay_cache.get_string_value(mpop_inx);
+                    if (menu_pop_item != nullptr && ImGui::MenuItem(menu_pop_item)) {
+                        pending_actions.push_back({ mpop_inx(), einx_Menu });
+                        return true;
+                    }
+                    mpop_inx++;
                 }
-                mpop_inx++;
+                ImGui::EndPopup();
             }
-            ImGui::EndPopup();
+
+        default:
+            // TODO: non table, non window, popup impls should go here,
+            // and use ImGui::BeginPopupContextItem()
+            break;
         }
-        return false;
     }
 
     void render_home(WidgetPtr w) {
@@ -1081,6 +1117,7 @@ protected:
         const char* label = cspec_string(cs_label, w->cspec_str, cname);
 
         ImGui::InputInt(label, int_ptr, step, step_fast, flags);
+        // TODO: refactor to pending action
         // copy local copy back into cache
         if (*int_ptr != old_val) {
             notify_server(int_data_ref, old_val, int_ptr);
@@ -1116,6 +1153,7 @@ protected:
             int old_val = *combo_index;
             ImGui::Combo(label, combo_index, cs_combo_list, combo_count, combo_count);
             int new_val = *combo_index;
+            // TODO: refactor to pending_action
             if (old_val != new_val) {
                 notify_server(combo_inx_data_ref, old_val, new_val);
             }
@@ -1128,8 +1166,7 @@ protected:
         const char* button_text = cspec_string(cs_text, w->cspec_str, method);
         DataRef* bool_data_ref = cspec_data_ref(cs_cname, w->data_refs);
 
-        if (bool_data_ref != nullptr &&
-            bool_data_ref->tipe == cdBool) {
+        if (bool_data_ref != nullptr && bool_data_ref->tipe == cdBool) {
             BoolInx binx{ bool_data_ref->ref_inx };
             bool* bool_ptr = data_lay_cache.get_bool_value(binx);
             if (bool_ptr != nullptr) {
@@ -1211,13 +1248,15 @@ protected:
 
         ImGui::SameLine();
         ImGui::Checkbox("IDStack", &show_id_stack);
-        if (show_id_stack)
+        if (show_id_stack) {
             ImGui::ShowStackToolWindow();
+        }
 
         ImGui::SameLine();
         ImGui::Checkbox("Metrics", &show_metrics);
-        if (show_metrics)
+        if (show_metrics) {
             ImGui::ShowMetricsWindow();
+        }
 
         ImGui::EndGroup();
     }
@@ -1394,6 +1433,7 @@ protected:
             }
             ImGui::EndCombo();
         }
+        // TODO: refactor to pending_actions
         if (dp_vars.new_date != dp_vars.old_date) {
             notify_server(ymd_data_ref, dp_vars.old_date, dp_vars.new_date);
         }
@@ -1469,21 +1509,15 @@ protected:
                 for (col_inx = 0; col_inx < colm_count; col_inx++) {
                     ImGui::TableSetupColumn(Static::duck_table_summary_colm_names[col_inx]);
                 }
+                /* TODO: possible reenable: would only work if this window non modal
+                if (smry_tbl_ctx.menupop_data_ref)
+                    render_menu_pop_item(w); */
+
                 ImGui::TableHeadersRow();
-                bool memo_this_row{ false };
                 std::uint32_t row_count{ 0 };
                 bulk.get_meta_data(smry_tbl_ctx.smry_handle, colm_count, row_count);
                 for (smry_tbl_ctx.row_inx = 0; smry_tbl_ctx.row_inx < row_count; smry_tbl_ctx.row_inx++) {
                     ImGui::TableNextRow();
-                    if (smry_tbl_ctx.menupop_data_ref) {
-                        if (render_menu_pop_item(w)) {
-                            // render_menu_pop_item() pushed a pending_action, 
-                            // so prep MemoryEditorContext in case that pending_action
-                            // is a push MemoryEditor widget.
-                            memo_this_row = true;
-                        }
-                    }
-
                     for (col_inx = 0; col_inx < colm_count; col_inx++) {
                         ImGui::TableSetColumnIndex(col_inx);
                         const char* endchar = bulk.get_datum(smry_tbl_ctx.smry_handle, col_inx, smry_tbl_ctx.row_inx);
@@ -1492,19 +1526,6 @@ protected:
                         }
                         else {
                             ImGui::TextUnformatted(bulk.buffer);
-                        }
-                        if (memo_this_row) {
-                            if (col_inx == Static::SMRY_NAME_COL_INX) {
-                                // +1 to guarantee a null term in col_name[12] if the col_name
-                                // happens to be a Duck inline str of len 12.
-                                strncpy(mem_edit_ctx.col_name, bulk.buffer, Static::INLN_STR_LEN+1);
-                            }
-                            else if (col_inx == Static::SMRY_TYPE_COL_INX) {
-                                strncpy(mem_edit_ctx.col_type, bulk.buffer, Static::INLN_STR_LEN + 1);
-                            }
-                            else if (col_inx == Static::SMRY_LAST_COL_INX) {
-                                memo_this_row = false;
-                            }
                         }
                     }
                 }
@@ -1676,43 +1697,68 @@ protected:
         assert(result_set_data_ref != nullptr);
         const char* query_id = data_lay_cache.get_string_value(result_set_data_ref->addr_inx);
 
-        // TODO: recode bulk.get_meta_data() to lazy load 
-        // and report geom
+        /// NB cspec:menupop is optional
+        tbl_ctx.menupop_data_ref = cspec_data_ref(cs_menu_pop, w->data_refs);
+
+        // TODO: recode bulk.get_meta_data() to lazy load and report geom.
+        // API wise it's a bit clunky and needs a refactor.
         std::uint32_t colm_count = 0;
         std::uint32_t row_count = 0;
-        std::uint32_t colm_index = 0;
+        tbl_ctx.col_inx = 0;
+        tbl_ctx.row_inx = 0;
         {
             LocalFont body_font(w, cs_body_font, cs_body_font_size);
-            RSHandle result_handle = bulk.get_handle(query_id);
-            if (result_handle == 0) {
+            tbl_ctx.handle = bulk.get_handle(query_id);
+            if (tbl_ctx.handle == 0) {
                 auto [iter, inserted] = bad_handle_map.insert(std::make_pair(query_id, 1));
                 if (!inserted) iter->second++;
                 return;
             }
-            if (!bulk.get_meta_data(result_handle, colm_count, row_count)) {
+            if (!bulk.get_meta_data(tbl_ctx.handle, colm_count, row_count)) {
                 NDLogger::cout() << method << "GET_META_DATA_FAIL for QID: " << query_id << std::endl;
                 return;
             }
-            StringVec& colm_names = bulk.get_col_names(result_handle);
+            StringVec& colm_names = bulk.get_col_names(tbl_ctx.handle);
             if (ImGui::BeginTable(title, (int)colm_count, table_flags)) {
+                if (tbl_ctx.menupop_data_ref != nullptr && ImGui::GetCurrentTable() != nullptr) {
+                    ImGui::GetCurrentTable()->DisableDefaultContextMenu = true;
+                }
                 ImGui::TableSetupScrollFreeze(1, 1);
-                for (colm_index = 0; colm_index < colm_count; colm_index++) {
-                    ImGui::TableSetupColumn(colm_names[colm_index].c_str(), ImGuiTableColumnFlags_None);
+                for (tbl_ctx.col_inx = 0; tbl_ctx.col_inx < colm_count; tbl_ctx.col_inx++) {
+                    ImGui::TableSetupColumn(colm_names[tbl_ctx.col_inx].c_str(), ImGuiTableColumnFlags_None);
                 }
                 ImGui::TableHeadersRow();
+                // see imgui_tables.cpp hdr comment:
+                //  if we leave DisableDefaultContextMenu:false we get these invocations
+                //  from TableUpdateLayout().
+                // TableBeginContextMenuPopup();
+                //   TableDrawDefaultContextMenu()
+                //   EndPopup()
+                // Setting it true causes TableUpdateLayout() to skip that chunk of impl. 
+                // NB the flow comment at the top of imgui_tables.cpp details how
+                // TableBeginContextMenuPopup() should be invoked after column setup,
+                // but before the header row.
                 ImGuiListClipper clipper;
                 clipper.Begin((int)row_count, -1.0f);
                 while (clipper.Step()) {
-                    for (int row_index = clipper.DisplayStart; row_index < clipper.DisplayEnd; row_index++) {
+                    for (tbl_ctx.row_inx = clipper.DisplayStart; tbl_ctx.row_inx < clipper.DisplayEnd; tbl_ctx.row_inx++) {
                         ImGui::TableNextRow();
-                        for (colm_index = 0; colm_index < colm_count; colm_index++) {
-                            if (ImGui::TableSetColumnIndex(colm_index)) {
-                                const char* endchar = bulk.get_datum(result_handle, colm_index, row_index);
+                        for (tbl_ctx.col_inx = 0; tbl_ctx.col_inx < colm_count; tbl_ctx.col_inx++) {
+                            if (ImGui::TableSetColumnIndex(tbl_ctx.col_inx)) {
+                                const char* endchar = bulk.get_datum(tbl_ctx.handle, tbl_ctx.col_inx, tbl_ctx.row_inx);
                                 if (endchar) {
                                     ImGui::TextUnformatted(bulk.buffer, endchar);
                                 }
                                 else {
                                     ImGui::TextUnformatted(bulk.buffer);
+                                }
+                                if (tbl_ctx.menupop_data_ref && ImGui::IsMouseReleased(1) 
+                                                        && ImGui::TableGetHoveredColumn()) {
+                                    // Render popup menu and potentially dispatch a Menu action
+                                    // First, open a column specific popup...
+                                    ImGui::TableOpenContextMenu(tbl_ctx.col_inx);
+                                    // ...then populate menu and capture selection
+                                    render_menu_pop_item(w);
                                 }
                             }
                         }
@@ -1727,50 +1773,47 @@ protected:
         const static char* method = "NDContext::render_memory_editor: ";
 
         // We're here cos someone's done an action.ui_push=memory_editor_widget_id
-        // That can only happen if render_duck_table_summary_modal had a menupop
+        // That can only happen if render_table has had a menupop
         // selection, which we'll find in SummaryTableContext. The MemoryEditorContext
         // will also have been populated by render_duck_table_summary_modal.
         // imgui_club Memory Editor
         // https://github.com/ocornut/imgui_club/tree/main#imgui_memory_editor
         static struct MemoryEditor memory_editor;
 
-        // NB not the same result set used by render_duck_table_summary_modal,
-        // which is a summary result set. Here we want the result set which is
-        // the subject of the summary, which we get from widget cspec.
-        // TODO: set handle=-1 on ui_pop so we can skip some ptr chasing
+        // cpsec:query_id is optional for render_memory_editor. When present it
+        // signals a bulk column MemEdit, so we prep DrawWindow's three params
+        // const char* title, void* mem_data, size_t mem_size from
+        // TableContext and TableMemEditContext
         DataRef* result_set_data_ref = cspec_data_ref(cs_query_id, w->data_refs);
         const char* query_id = data_lay_cache.get_string_value(result_set_data_ref->addr_inx);
-        assert(query_id != nullptr);
-        mem_edit_ctx.handle = bulk.get_handle(query_id);
+        if (query_id != nullptr) {
+            // expensive lookup op that we'd typically do in
+            // a bulk cache based render method. We don't need
+            // to do that here a tbl_ctx should have the correct
+            // handle. So we'll assert tbl_ctx.handle does
+            // match our query_id in debug builds as a sanity check.
+            assert(bulk.get_handle(query_id) == tbl_ctx.handle);
+            StringVec& colm_names = bulk.get_col_names(tbl_ctx.handle);
+            assert(colm_names.size() > mem_edit_ctx.col_inx);
+            const std::string& col_name = colm_names[mem_edit_ctx.col_inx];
 
-        // SummaryTableContext::row_inx gives us the summary row clicked,
-        // which is the same as the result set col inx :)
+            bulk.get_meta_data(tbl_ctx.handle, mem_edit_ctx.col_count, mem_edit_ctx.row_count);
+            Range* range = bulk.init_range(tbl_ctx.handle, col_name.c_str(), mem_edit_ctx.offset, mem_edit_ctx.row_count);
 
-        // MemoryEditorContext::col_name and col_type were
-        // set by render_duck_table_summary_modal. We use
-        // them to compose a title. Later variations on this
-        // method may get title from cspec like so...
-        // const char* title = cspec_string(cs_title, w->cspec_str, method);
-        compound_string(string_buffer, STR_BUF_LEN, mem_edit_ctx.col_name,
-                                    mem_edit_ctx.col_type, Static::space_cs);
-
-        mem_edit_ctx.row_count = bulk.get_row_count(mem_edit_ctx.handle);
-        mem_edit_ctx.offset = 0;
-        Range* range = bulk.init_range(mem_edit_ctx.handle, mem_edit_ctx.col_name,
-            mem_edit_ctx.offset, mem_edit_ctx.row_count);
-        // next_range will give us a nullptr if the col isn't int or double
-        range = next_range(range);
-        if (range != nullptr) {
-            switch (mem_edit_ctx.col_type) {
-            case DUCKDB_TYPE_DOUBLE:
-                size =  
-                memory_editor.DrawWindow(string_buffer, range->dbldata, range->edit_count*8);
-                break;
-            case DUCKDB_TYPE_INTEGER:
-                memory_editor.DrawWindow(string_buffer, range->idata, range->edit_count*4);
-                break;
-            default:
-                return;
+            // next_range will give us a nullptr if the col isn't int or double
+            range = next_range(range);
+            if (range != nullptr) {
+                switch (range->col_type) {
+                case DUCKDB_TYPE_DOUBLE:
+                    size =
+                        memory_editor.DrawWindow(col_name.c_str(), range->dbldata, range->edit_count * 8);
+                    break;
+                case DUCKDB_TYPE_INTEGER:
+                    memory_editor.DrawWindow(col_name.c_str(), range->idata, range->edit_count * 4);
+                    break;
+                default:
+                    return;
+                }
             }
         }
     }
