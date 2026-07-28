@@ -140,12 +140,16 @@ EXF_LAYOUT = [
                     dlc=True,
                 ),
             ),
+            dict(rname="Spacing", cspec=dict()),
+            dict(rname="DebugFooter",cspec=dict()),
+            dict(rname="Separator", cspec=dict()),
             # The DepthGrid table shows one row of depth at a time with 5 bids and asks
             dict(
                 rname="Table",
                 cspec=dict(
                     title="Depth grid",
                     query_id=SELECT_QID,
+                    menupop="table_rclick_menupop",
                     table_flags=TableFlags.SCROLL_X
                     | TableFlags.SCROLL_Y
                     | TableFlags.ROW_BG
@@ -153,12 +157,11 @@ EXF_LAYOUT = [
                     | TableFlags.BORDERS_V
                     | TableFlags.RESIZABLE
                     | TableFlags.REORDERABLE
-                    | TableFlags.HIDEABLE,
+                    | TableFlags.HIDEABLE
+                    | TableFlags.CONTEXT_MENU_IN_BODY
                 ),
             ),
             dict(rname="Separator", cspec=dict()),
-            dict(rname="Spacing", cspec=dict()),
-            dict(rname="DebugFooter",cspec=dict()),
             dict(rname="EndChild"),
             dict(rname="PopFont"),
         ],
@@ -180,7 +183,6 @@ EXF_LAYOUT = [
         widget_id=SUMMARY_MODAL_ID,
         rname="DuckTableSummaryModal",  # "Noop"
         cspec=dict(
-            menupop="summary_rclick_menupop",
             title="Depth table",
             title_font="Arial",
             body_font="CourierNew",
@@ -347,7 +349,7 @@ EXF_DATA = dict(
         f"{DB_ID}.Online": SUMMARY_SEQUENCE,
     },
     menus=dict(
-        summary_rclick_menupop=["Memory Editor"]
+        table_rclick_menupop=["Memory Editor"]
     )
 )
 
