@@ -1728,16 +1728,9 @@ protected:
                     ImGui::TableSetupColumn(colm_names[tbl_ctx.col_inx].c_str(), ImGuiTableColumnFlags_None);
                 }
                 ImGui::TableHeadersRow();
-                // see imgui_tables.cpp hdr comment:
-                //  if we leave DisableDefaultContextMenu:false we get these invocations
-                //  from TableUpdateLayout().
-                // TableBeginContextMenuPopup();
-                //   TableDrawDefaultContextMenu()
-                //   EndPopup()
-                // Setting it true causes TableUpdateLayout() to skip that chunk of impl. 
-                // NB the flow comment at the top of imgui_tables.cpp details how
-                // TableBeginContextMenuPopup() should be invoked after column setup,
-                // but before the header row.
+                if (tbl_ctx.menupop_data_ref != nullptr && ImGui::GetCurrentTable()->IsContextPopupOpen) {
+                    render_menu_pop_item(w);
+                }
                 ImGuiListClipper clipper;
                 clipper.Begin((int)row_count, -1.0f);
                 while (clipper.Step()) {
@@ -1751,14 +1744,6 @@ protected:
                                 }
                                 else {
                                     ImGui::TextUnformatted(bulk.buffer);
-                                }
-                                if (tbl_ctx.menupop_data_ref && ImGui::IsMouseReleased(1) 
-                                                        && ImGui::TableGetHoveredColumn()) {
-                                    // Render popup menu and potentially dispatch a Menu action
-                                    // First, open a column specific popup...
-                                    ImGui::TableOpenContextMenu(tbl_ctx.col_inx);
-                                    // ...then populate menu and capture selection
-                                    render_menu_pop_item(w);
                                 }
                             }
                         }
