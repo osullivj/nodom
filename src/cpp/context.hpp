@@ -1034,11 +1034,11 @@ protected:
                     break;
 
                 StrInx mpop_inx{ tbl_ctx.menupop_data_ref->ref_inx };
-                NDLogger::cout() << method << "mpop_inx:" << mpop_inx << std::endl;
                 for (uint32_t i = 0; i < tbl_ctx.menupop_data_ref->size; i++) {
                     const char* menu_pop_item = data_lay_cache.get_string_value(mpop_inx);
                     if (menu_pop_item != nullptr && ImGui::MenuItem(menu_pop_item)) {
                         pending_actions.push_back({ mpop_inx(), einx_Menu });
+                        ImGui::EndPopup();
                         return true;
                     }
                     mpop_inx++;
@@ -1728,6 +1728,9 @@ protected:
                     ImGui::TableSetupColumn(colm_names[tbl_ctx.col_inx].c_str(), ImGuiTableColumnFlags_None);
                 }
                 ImGui::TableHeadersRow();
+                // If any of the table header logic invoked above has invoked 
+                // TableOpenContextMenu(), and we have a cspec:menupop, then
+                // go ahead and render the popup menu
                 if (tbl_ctx.menupop_data_ref != nullptr && ImGui::GetCurrentTable()->IsContextPopupOpen) {
                     render_menu_pop_item(w);
                 }
