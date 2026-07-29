@@ -62,9 +62,11 @@ struct Range {
     // set by next() and consumed by render_memory_editor
     double*     dbldata{ nullptr };
     int32_t*    idata{ nullptr };
+    char*       anydata{ nullptr };
     uint32_t    edit_count{ 0 };
     // platform specific: calced by init
-    Bobbin* bob{ nullptr };
+    Bobbin*     bob{ nullptr };
+    size_t      mem_size{ 0 };
     duckdb_type col_type{ DUCKDB_TYPE_INVALID };
 };
 
@@ -90,6 +92,28 @@ struct XYRange {
     duckdb_type ycol_type{ DUCKDB_TYPE_INVALID };
 };
 #else 
+struct Range {
+    // supplied on init
+    uint32_t    offset{ 0 };
+    uint32_t    row_count{ 0 };
+    // calced by init
+    uint32_t    start_chunk{ 0 };
+    uint32_t    chunk_index{ 0 };
+    uint32_t    remaining{ 0 };
+    uint32_t    chunk_offset{ 0 };
+    int         col_inx{ -1 };
+    // set by next() and consumed by render_memory_editor
+    double*     dbldata{ nullptr };
+    int32_t*    idata{ nullptr };
+    char*       anydata{ nullptr };
+    uint32_t    edit_count{ 0 };
+
+    // platform specific: calced by init
+    WasmChunkVec*   bob{ nullptr };
+    size_t          mem_size{ 0 };
+    WasmDuckType    col_type{ wdtNone };
+};
+
 struct XYRange {
     // supplied on init
     uint32_t    offset{ 0 };
@@ -106,6 +130,7 @@ struct XYRange {
     double*     ydata{ nullptr };
     int32_t*    idata{ nullptr };
     uint32_t    plot_count{ 0 };
+
     // platform specific: calced by init
     WasmChunkVec* bob{ nullptr };
     WasmDuckType xcol_type{ wdtNone };
@@ -365,9 +390,13 @@ public:
         switch (range->col_type) {
             case DUCKDB_TYPE_DOUBLE:
                 range->dbldata += range->chunk_offset;
+                range->anydata = reinterpret_cast<char*>(range->dbldata);
+                range->mem_size = range->edit_count * 8;
                 break;
             case DUCKDB_TYPE_INTEGER:
                 range->idata += range->chunk_offset;
+                range->anydata = reinterpret_cast<char*>(range->idata);
+                range->mem_size = range->edit_count * 4;
                 for (int i = 0; i < range->edit_count; i++)
                     dbl_buf[i] = static_cast<double>(range->idata[i]);
                 range->dbldata = dbl_buf;
@@ -931,8 +960,33 @@ public:
         return true;
     }
 
+    Range* init_range(RSHandle h, const char* col_name, 
+                                uint32_t offset, uint32_t count) {
+        static Range range;
+
+        WasmChunkVec* wcv = reinterpret_cast<WasmChunkVec*>(h);
+        if (wcv == nullptr)
+            return nullptr;
+
+        // if the underlying is int, we cp into double_int_buffer
+        range.bob = wcv;
+        range.offset = offset;
+        range.offset = offset;
+        range.row_count = count;
+        range.start_chunk = range.offset / CHUNK_SIZE;
+        range.chunk_offset = offset % CHUNK_SIZE;
+        range.chunk_index = range.start_chunk;
+        range.remaining = count;
+        range.col_inx = get_col_index(h, col_name);
+
+        const std::vector<int>& types{ type_map.at(h) };
+        range.col_type = static_cast<WasmDuckType>(types[range.col_inx]);
+
+        return &range;
+    }
+
     XYRange* init_xy_range(RSHandle h, const char* xcol_name,
-        const char* ycol_name, uint32_t offset, uint32_t count) {
+                    const char* ycol_name, uint32_t offset, uint32_t count) {
         static XYRange range;
 
         WasmChunkVec* wcv = reinterpret_cast<WasmChunkVec*>(h);
@@ -955,6 +1009,68 @@ public:
         range.ycol_type = static_cast<WasmDuckType>(types[range.ycol_inx]);
 
         return &range;
+    }
+
+    Range* next_range(Range* range) {
+        static double_t dbl_buf[CHUNK_SIZE];
+
+        if (range == nullptr || range->bob == nullptr)
+            return nullptr;
+
+        if (!(range->col_type == wdtInt
+            || range->col_type == wdtFloat)) {
+            return nullptr;
+        }
+        // was our last invocation for the last chunk?
+        // if so, cleardown
+        if (range->remaining == 0) {
+            range->bob = nullptr;
+            return nullptr;
+        }
+
+        WasmChunkVec& bob{ *range->bob };
+        range->chunk = bob[range->chunk_index];
+        uint32_t* chunk_ptr = reinterpret_cast<uint32_t*>(range->chunk.addr);
+        uint32_t this_chunk_sz = chunk_ptr[2];
+        uint32_t available = this_chunk_sz - range->chunk_offset;
+        if (available > range->remaining) {
+            range->edit_count = range->remaining;
+            range->remaining = 0;
+        }
+        else {
+            range->edit_count = available;
+            range->remaining -= available;
+        }
+        uint32_t ncols = chunk_ptr[1];
+        uint32_t col_offset = chunk_ptr[3 + ncols + range->col_inx];
+
+        switch (range->col_type) {
+        case wdtFloat:
+            range->dbldata = reinterpret_cast<double_t*>(chunk_ptr + col_offset);
+            break;
+        case wdtInt:
+            range->idata = reinterpret_cast<int32_t*>(chunk_ptr + col_offset);
+            range->dbldata = dbl_buf;
+            break;
+        }
+
+        switch (range->xcol_type) {
+        case wdtFloat:
+            range->dbldata += range->chunk_offset;
+            break;
+        case wdtInt:
+            range->idata += range->chunk_offset;
+            for (int i = 0; i < range->plot_count; i++)
+                dbl_buf[i] = static_cast<double>(range->idata[i]);
+            break;
+        }
+        if (range->chunk_index == range->start_chunk) {
+            // Only apply offset to first chunk. 
+            // And it may have been zero anyway
+            range->chunk_offset = 0;
+        }
+        range->chunk_index++;
+        return range;
     }
 
     XYRange* next_xy_range(XYRange* range) {
@@ -1025,6 +1141,7 @@ public:
         range->chunk_index++;
         return range;
     }
+
 
     StringVec& get_col_names(RSHandle handle) {
         // First 3 32 bit words are done, ncols, nrows
