@@ -1798,18 +1798,8 @@ protected:
             // data, which will always be 8 bytes and therefore available via dbldata
             range = bulk.next_range(range);
             if (range != nullptr) {
-                switch (range->col_type) {
-                case DUCKDB_TYPE_INTEGER:
-                    memory_editor.DrawWindow(col_name.c_str(), range->idata,
-                        range->edit_count * 4, reinterpret_cast<size_t>(range->idata));
-                    break;
-                case DUCKDB_TYPE_DOUBLE:
-                    memory_editor.DrawWindow(col_name.c_str(), range->dbldata,
-                        range->edit_count * 8, reinterpret_cast<size_t>(range->dbldata));
-                    break;
-                default:
-                    break;
-                }
+                memory_editor.DrawWindow(col_name.c_str(), range->anydata, 
+                    range->mem_size, reinterpret_cast<size_t>(range->anydata));
             }
             if (!memory_editor.Open) {
                 // top right close button clicked,
