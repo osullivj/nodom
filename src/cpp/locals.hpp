@@ -77,4 +77,7 @@ struct TableMemEditContext {
     uint32_t    row_count{ 0 };
     uint32_t    col_count{ 0 };
     uint32_t    offset{ 0 };
+    char*       data{ nullptr };
+    std::size_t size{ 0 };
+    std::size_t base_addr{ 0 };
 };
