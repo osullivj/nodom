@@ -1000,7 +1000,7 @@ protected:
     // 
     // useful popup level discussion
     // https://github.com/ocornut/imgui/discussions/3773
-    bool render_menu_pop_item(WidgetPtr parent) {
+    void render_menu_pop_item(WidgetPtr parent) {
         const static char* method = "NDContext::render_menu_pop_item: ";
         // cspec::menupop is a Str and a menu_name in data.menus.
         // NB BeginPopupContextItem() attaches to the previously
@@ -1023,34 +1023,31 @@ protected:
         switch (parent->rname) {
         case Table: // prep TableMemEditContext for subsequent render_memory_editor()
             // prep for render_memory_editor() bulk.init_range() invocation
-            mem_edit_ctx.offset = 0;
 
             if ((ImGui::GetCurrentTable() != nullptr)
                 // IsContextPopupOpen is set true by TableOpenContextMenu()
                 // which is called by EndTable, TableHeader and TableHeadersRow.
                 // So TableOpenContextMenu() opens the menu, and we attach
                 // items here.
-                && ImGui::GetCurrentTable()->IsContextPopupOpen 
+                && ImGui::GetCurrentTable()->IsContextPopupOpen
                 // only interested in col specific, not boundary clicks 
                 && (ImGui::GetCurrentTable()->ContextPopupColumn != -1)) {
 
+                mem_edit_ctx.offset = 0;
                 mem_edit_ctx.col_inx = ImGui::GetCurrentTable()->ContextPopupColumn;
-                if (!ImGui::TableBeginContextMenuPopup(ImGui::GetCurrentTable()))
-                    break;
+                if (ImGui::TableBeginContextMenuPopup(ImGui::GetCurrentTable())) {
 
-                StrInx mpop_inx{ tbl_ctx.menupop_data_ref->ref_inx };
-                for (uint32_t i = 0; i < tbl_ctx.menupop_data_ref->size; i++) {
-                    const char* menu_pop_item = data_lay_cache.get_string_value(mpop_inx);
-                    if (menu_pop_item != nullptr && ImGui::MenuItem(menu_pop_item)) {
-                        pending_actions.push_back({ mpop_inx(), einx_Menu });
-                        ImGui::EndPopup();
-                        return true;
+                    StrInx mpop_inx{ tbl_ctx.menupop_data_ref->ref_inx };
+                    for (uint32_t i = 0; i < tbl_ctx.menupop_data_ref->size; i++) {
+                        const char* menu_pop_item = data_lay_cache.get_string_value(mpop_inx);
+                        if (menu_pop_item != nullptr && ImGui::MenuItem(menu_pop_item)) {
+                            pending_actions.push_back({ mpop_inx(), einx_Menu });
+                        }
+                        mpop_inx++;
                     }
-                    mpop_inx++;
+                    ImGui::EndPopup();
                 }
-                ImGui::EndPopup();
             }
-
         default:
             // TODO: non table, non window, popup impls should go here,
             // and use ImGui::BeginPopupContextItem()
