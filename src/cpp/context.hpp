@@ -1803,10 +1803,12 @@ protected:
                     memory_editor.DrawWindow(col_name.c_str(), range->idata,
                         range->edit_count * 4, reinterpret_cast<size_t>(range->idata));
                     break;
-                default:
-                    memory_editor.DrawWindow(col_name.c_str(), range->dbldata, 
+                case DUCKDB_TYPE_DOUBLE:
+                    memory_editor.DrawWindow(col_name.c_str(), range->dbldata,
                         range->edit_count * 8, reinterpret_cast<size_t>(range->dbldata));
-                    return;
+                    break;
+                default:
+                    break;
                 }
             }
             if (!memory_editor.Open) {
