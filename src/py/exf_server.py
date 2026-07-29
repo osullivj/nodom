@@ -39,6 +39,7 @@ CHART_ID = "i_am_plot"
 SUMMARY_MODAL_ID = "i_am_depth_summary_modal"
 CHART_WINDOW_ID = "i_am_chart_window"
 MEM_EDIT_ID = "i_am_memory_editor"
+MEM_EDIT_MENU_ITEM = "Memory Editor"
 DB_ID = "DuckDB"
 DB_BUTTON_ID = "i_am_footer_db_button"
 EXF_LAYOUT = [
@@ -347,9 +348,12 @@ EXF_DATA = dict(
             )
         ],
         f"{DB_ID}.Online": SUMMARY_SEQUENCE,
+        f"{MEM_EDIT_MENU_ITEM}.Menu":[
+            dict(ui_push=MEM_EDIT_ID)
+        ]
     },
     menus=dict(
-        table_rclick_menupop=["Memory Editor"]
+        table_rclick_menupop=[MEM_EDIT_MENU_ITEM]
     )
 )
 
