@@ -815,7 +815,10 @@ protected:
     }
 
     void action_dispatch(EntityInx ninx, EventInx einx) {
-        // const static char* method = "NDContext::action_dispatch: ";
+        const static char* method = "NDContext::action_dispatch: ";
+
+        NDLogger::cout() << method << "EntityInx(" << ninx
+            << "), EventInx(" << einx << ")" << std::endl;
 
         // hotwire the data_lay_cache logging here
         // NB app supplied actions for { ninx_FooterDLCButton, einx_Click }
