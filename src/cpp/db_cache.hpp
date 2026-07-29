@@ -1029,8 +1029,8 @@ public:
         }
 
         WasmChunkVec& bob{ *range->bob };
-        range->chunk = bob[range->chunk_index];
-        uint32_t* chunk_ptr = reinterpret_cast<uint32_t*>(range->chunk.addr);
+        WasmChunk chunk = bob[range->chunk_index];
+        uint32_t* chunk_ptr = reinterpret_cast<uint32_t*>(chunk.addr);
         uint32_t this_chunk_sz = chunk_ptr[2];
         uint32_t available = this_chunk_sz - range->chunk_offset;
         if (available > range->remaining) {
@@ -1044,6 +1044,11 @@ public:
         uint32_t ncols = chunk_ptr[1];
         uint32_t col_offset = chunk_ptr[3 + ncols + range->col_inx];
 
+        // Unlike the BB win32 ver of this func above, we can handle
+        // set anydata and mem_size from the WasmChunk directly
+        range->anydata = reinterpret_cast<char*>(chunk_ptr);
+        range->mem_size = chunk.size;
+
         switch (range->col_type) {
         case wdtFloat:
             range->dbldata = reinterpret_cast<double_t*>(chunk_ptr + col_offset);
@@ -1054,13 +1059,13 @@ public:
             break;
         }
 
-        switch (range->xcol_type) {
+        switch (range->col_type) {
         case wdtFloat:
             range->dbldata += range->chunk_offset;
             break;
         case wdtInt:
             range->idata += range->chunk_offset;
-            for (int i = 0; i < range->plot_count; i++)
+            for (int i = 0; i < range->edit_count; i++)
                 dbl_buf[i] = static_cast<double>(range->idata[i]);
             break;
         }
