@@ -1794,18 +1794,25 @@ protected:
             Range* range = bulk.init_range(tbl_ctx.handle, col_name.c_str(), mem_edit_ctx.offset, mem_edit_ctx.row_count);
 
             // next_range will give us a nullptr if the col isn't int or double
+            // unlike Wasm, we cannot get "inside" the chunk, so we just show the raw
+            // data, which will always be 8 bytes and therefore available via dbldata
             range = bulk.next_range(range);
             if (range != nullptr) {
                 switch (range->col_type) {
-                case DUCKDB_TYPE_DOUBLE:
-                    memory_editor.DrawWindow(col_name.c_str(), range->dbldata, range->edit_count * 8);
-                    break;
                 case DUCKDB_TYPE_INTEGER:
-                    memory_editor.DrawWindow(col_name.c_str(), range->idata, range->edit_count * 4);
+                    memory_editor.DrawWindow(col_name.c_str(), range->idata,
+                        range->edit_count * 4, reinterpret_cast<size_t>(range->idata));
                     break;
                 default:
+                    memory_editor.DrawWindow(col_name.c_str(), range->dbldata, 
+                        range->edit_count * 8, reinterpret_cast<size_t>(range->dbldata));
                     return;
                 }
+            }
+            if (!memory_editor.Open) {
+                // top right close button clicked,
+                // so remove ourselves from render stack
+                pending_pops.push_back(w->rname);
             }
         }
     }
