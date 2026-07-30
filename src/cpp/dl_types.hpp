@@ -98,6 +98,7 @@ struct NDWidget {
     IntValMap       cspec_int;
     BoolValMap      cspec_bool;
     FloatValMap     cspec_float;
+    DoubleValMap    cspec_double;
     StrValMap       cspec_str;
     DataRefMap      data_refs;
     std::vector<std::shared_ptr<NDWidget>>  children;
