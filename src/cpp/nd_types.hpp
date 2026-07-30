@@ -451,6 +451,7 @@ enum CacheSpecifier : uint32_t {
     cs_window_flags,
     cs_column_flags,
     cs_close_button,
+    cs_tooltip,
     cs_show_lines,
     cs_show_fills,
     cs_shaded_plot_flags,
