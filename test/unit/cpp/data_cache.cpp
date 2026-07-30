@@ -143,7 +143,7 @@ BOOST_FIXTURE_TEST_CASE(AddAddr, DataCacheFixture)
 
     BOOST_TEST(AddrInx::item_type == CIT::Address);
     BOOST_TEST(AddrInx::data_type == CDT::cdStr);
-    BOOST_TEST(addr_inx.magic_index == uint32_t(0x01040001));
+    BOOST_TEST(addr_inx.magic_index == uint32_t(0x01050001));
     BOOST_TEST(addr_inx() == uint32_t(1));
     assert_cache_state();
 }
