@@ -1607,7 +1607,11 @@ protected:
         int window_flags = default_window_flags;
         cspec_int(cs_window_flags, w->cspec_int, &window_flags);
 
-        if (ImGui::Begin(title, nullptr, window_flags)) {
+        // For cspec:close_button, a simple true/false does not suffice.
+        // We need to know if attribute was present in the JSON. bool*
+        // ret val tells us that...
+        bool* cb_ptr = cspec_bool(cs_close_button, w->cspec_bool);
+        if (ImGui::Begin(title, cb_ptr, window_flags)) {
             render_menu_bar(w);
             for (int inx = 0; inx < w->children.size(); inx++) {
                 dispatch_render(w->children[inx]);
@@ -1616,6 +1620,10 @@ protected:
         // https://github.com/ocornut/imgui/issues/6683
         // We always need a matching End() even if Begin() rets false
         ImGui::End();
+        if (cb_ptr != nullptr && !*cb_ptr) {
+            // top right close button clicked, so rm self from render stack
+            pending_pops.push_back(w->rname);
+        }
     }
 
     void render_shaded_plot(WidgetPtr w) {
