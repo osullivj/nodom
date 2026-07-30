@@ -210,6 +210,7 @@ EXF_LAYOUT = [
             title="Chart",
             title_font="Arial",
             window_flags=0,
+            close_button=True
         ),
         children=[
             dict(
