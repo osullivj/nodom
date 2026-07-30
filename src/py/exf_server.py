@@ -126,6 +126,7 @@ EXF_LAYOUT = [
                 widget_id=CHART_BUTTON_ID,
                 cspec=dict(
                     text=CHART_BUTTON_TEXT,
+                    tooltip="Raise the charting window"
                 ),
             ),
             dict(
