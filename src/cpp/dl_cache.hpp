@@ -1000,6 +1000,7 @@ private:
         Static::window_flags_cs,      // cs_window_flags
         Static::column_flags_cs,      // cs_column_flags
         Static::close_button_cs,
+        Static::tooltip_cs,
         Static::show_lines_cs,
         Static::show_fills_cs,
         Static::shaded_plot_flags_cs,
@@ -1047,6 +1048,7 @@ private:
         cdInt,      // cs_window_flags
         cdInt,      // cs_column_flags
         cdBool,     // cs_close_button
+        cdBool,     // cs_tooltip
         cdBool,     // cs_show_lines
         cdBool,     // cs_show_fills
         cdInt,      // cs_shaded_plot_flags
