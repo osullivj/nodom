@@ -65,6 +65,7 @@ struct Static {
 	inline static const char* window_flags_cs{ "window_flags" };
 	inline static const char* column_flags_cs{ "column_flags" };
 	inline static const char* child_flags_cs{ "child_flags" };
+	inline static const char* close_button_cs{ "close_button" };
 	inline static const char* db_cs{ "db" };
 	inline static const char* fps_cs{ "fps" };
 	inline static const char* demo_cs{ "demo" };
