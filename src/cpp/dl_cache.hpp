@@ -845,6 +845,10 @@ public:
         return fp_bool_ptrs[inx()];
     }
 
+    double* get_double_value(DoubleInx inx) {
+        return fp_double_ptrs[inx()];
+    }
+
     AddrInx add_address(const std::string& addr) {
         AddrInx ainx = get_string_index<CIT::Address>(addr);
         address_map[addr] = ainx;
@@ -918,6 +922,11 @@ public:
         cache_bools[binx()] = *v;
         return binx;
     }
+
+    DoubleInx intern_double(double v) {
+        return get_double_index(v);
+    }
+
 
     const char* get_render_name(RenderMethod rm) {
         return render_names[rm];
