@@ -203,6 +203,7 @@
     <ClInclude Include="logger.hpp" />
     <ClInclude Include="nd_types.hpp" />
     <ClInclude Include="nlohmann.hpp" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="static_strings.hpp" />
     <ClInclude Include="ufuncs.hpp" />
     <ClInclude Include="websock.hpp" />
@@ -212,6 +213,12 @@
     <None Include="..\..\misc\debuggers\imgui.natvis" />
     <None Include="..\README.txt" />
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="breadboard.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\web\favicon.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
