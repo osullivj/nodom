@@ -1362,6 +1362,7 @@ public:
 
     void report_cache_state() {
         int esc, eic, efc;
+        report_sanity_check();
         report_cache_errors();
         report_cache_strings(esc);
         report_cache_ints(eic);
