@@ -451,7 +451,7 @@ protected:
             std::string ref_name = cspec_names[spec];   // [cindex|cname|query_id|menubar]
             if (!JContains(cspec, ref_name.c_str())) {
                 // menubar & menupop both optional in the Home and Window cspec
-                if (spec == cs_menu_bar || spec == cs_menu_pop)
+                if (is_optional(spec))
                     continue;
                 bad_data_refs.push_back(ref_name);
                 std::stringstream ss;
@@ -921,6 +921,16 @@ public:
         return CacheSpecifier::cs_end_cache_specs;
     }
 
+    bool is_optional(CacheSpecifier spec) {
+        switch (spec) {
+        case cs_menu_bar:
+        case cs_menu_pop:
+            return true;
+        default:
+            return false;
+        }
+    }
+
 private:
     // statics that define DataLayCache data and layout geometry
     inline static std::array<const char*, EndRenderMethod> render_names{
@@ -1036,6 +1046,7 @@ private:
         cdInt,      // cs_combo_flags
         cdInt,      // cs_window_flags
         cdInt,      // cs_column_flags
+        cdBool,     // cs_close_button
         cdBool,     // cs_show_lines
         cdBool,     // cs_show_fills
         cdInt,      // cs_shaded_plot_flags
@@ -1083,7 +1094,7 @@ private:
                     cs_spinner_thickness, cs_spinner_radius,
                     cs_window_flags}},
         {Window, {cs_title, cs_title_font, cs_title_font_size,
-                    cs_window_flags}},
+                    cs_window_flags, cs_close_button}},
         {ShadedPlot, {cs_title, cs_show_lines, cs_show_fills, cs_shaded_plot_flags}},
         {PushFont, {cs_font, cs_font_size}},
         {BeginChild, {cs_title}},
@@ -1120,8 +1131,7 @@ private:
         }},
         {Window, {
             {cs_menu_bar, cdStrVec},    // optional
-            {cs_menu_pop, cdStrVec},    // optional
-            {cs_close_button, cdBool}   // optional
+            {cs_menu_pop, cdStrVec}     // optional
         }},
         {MemoryEditor, {
             {cs_query_id, cdResultSet}  // optional
