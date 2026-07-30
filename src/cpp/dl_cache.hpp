@@ -1135,9 +1135,6 @@ private:
         {MemoryEditor, {cs_title}}
     };
 
-    // TODO: addr_cspecs refactor so we can signal
-    // optionality here in the data, rather than
-    // hardwired ifs on CacheSpec types.
     inline static std::map<RenderMethod, CacheSpecTypeMap> addr_cspecs{
         {Home, {
             {cs_menu_bar, cdStrVec},    // optional
@@ -1173,6 +1170,12 @@ private:
         }}
     };
 
+    inline static CspecValOverMap val_overrides{
+        {InputDouble, {
+            {cs_step, cdDouble},
+            {cs_step_fast, cdDouble}
+        }}
+    };
 public:
     void report_sanity_check() {
         std::cout << "== report_sanity_check" << std::endl;
