@@ -1023,6 +1023,7 @@ private:
         Static::step_fast_cs,      // cs_step_fast
         Static::spinner_radius_cs,      // cs_spinner_radius
         Static::spinner_thickness_cs,      // cs_spinner_thickness
+        Static::format_cs,
         Static::flags_cs,      // cs_flags
         Static::table_flags_cs,      // cs_table_flags
         Static::combo_flags_cs,      // cs_combo_flags
@@ -1071,6 +1072,7 @@ private:
         cdInt,      // cs_step_fast
         cdInt,      // cs_spinner_radius
         cdInt,      // cs_spinner_thickness
+        cdStr,      // cs_format
         cdInt,      // cs_flags
         cdInt,      // cs_table_flags
         cdInt,      // cs_combo_flags
