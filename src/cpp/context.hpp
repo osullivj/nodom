@@ -1453,8 +1453,13 @@ protected:
         const static char* method = "NDContext::render_button: ";
 
         const char* button_text = cspec_string(cs_text, w->cspec_str, method);
+        const char* tooltip = cspec_string(cs_tooltip, w->cspec_str, nullptr);
 
-        if (ImGui::Button(button_text)) {
+        bool clicked = ImGui::Button(button_text);
+        if (tooltip != nullptr) {
+            ImGui::SetItemTooltip("%s", tooltip);
+        }
+        if (clicked) {
             pending_actions.push_back({ w->widget_inx, einx_Click });
         }
     }
