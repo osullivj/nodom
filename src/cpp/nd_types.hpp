@@ -483,6 +483,8 @@ using IntValMap = std::map<CacheSpecifier, IntInx>;
 using BoolValMap = std::map<CacheSpecifier, BoolInx>;
 using FloatValMap = std::map<CacheSpecifier, FloatInx>;
 using StrValMap = std::map<CacheSpecifier, StrInx>;
+using DoubleValMap = std::map<CacheSpecifier, DoubleInx>;
+
 
 // YMD, WEEK and their index enums for DatePicker
 using YMD = std::array<int, 3>;
