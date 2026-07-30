@@ -213,9 +213,6 @@
     <None Include="..\README.txt" />
     <None Include="packages.config" />
   </ItemGroup>
-  <ItemGroup>
-    <Image Include="..\..\favicon.ico" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="packages\WinPixEventRuntime.1.0.240308001\build\WinPixEventRuntime.targets" Condition="Exists('packages\WinPixEventRuntime.1.0.240308001\build\WinPixEventRuntime.targets')" />
