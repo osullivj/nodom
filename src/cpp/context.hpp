@@ -1143,6 +1143,7 @@ protected:
         cspec_double(cs_step_fast, w->cspec_double, &step_fast);
         int flags = 0;
         cspec_int(cs_flags, w->cspec_int, &flags);
+        const char* fmt = cspec_string(cs_format, w->cspec_str, Static::default_format_cs);
 
         DataRef* dbl_data_ref = cspec_data_ref(cs_cname, w->data_refs);
         assert(dbl_data_ref != nullptr);
@@ -1156,8 +1157,7 @@ protected:
         AddrInx addr{ dbl_data_ref->addr_inx };
         const char* cname = data_lay_cache.get_addr_value(addr);
         const char* label = cspec_string(cs_label, w->cspec_str, cname);
-
-        ImGui::InputDouble(label, dbl_ptr, step, step_fast, flags);
+        ImGui::InputDouble(label, dbl_ptr, step, step_fast, fmt, flags);
         // TODO: refactor to pending action
         // copy local copy back into cache
         if (*dbl_ptr != old_val) {
