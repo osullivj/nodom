@@ -196,7 +196,7 @@ BOOST_FIXTURE_TEST_CASE(AddDouble, DataCacheFixture)
     DoubleInx double_inx = dc.intern_double(step);    // not backed
     BOOST_TEST(DoubleInx::item_type == CIT::Value);
     BOOST_TEST(DoubleInx::data_type == CDT::cdDouble);
-    BOOST_TEST(double_inx.magic_index == uint32_t(0x02020000));
+    BOOST_TEST(double_inx.magic_index == uint32_t(0x02030000));
     BOOST_TEST(double_inx() == uint32_t(0));
     assert_cache_state();
 }
