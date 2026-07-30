@@ -1107,8 +1107,7 @@ private:
         {DatePicker, {{cs_cname, cdIntVec}}},
         {LoadingModal, {{cs_cname, cdStrVec}}},
         {DuckTableSummaryModal, {
-            {cs_query_id, cdResultSet},
-            {cs_menu_pop, cdStrVec}
+            {cs_query_id, cdResultSet}
         }},
         {Table, {
             {cs_query_id, cdResultSet},
@@ -1121,7 +1120,8 @@ private:
         }},
         {Window, {
             {cs_menu_bar, cdStrVec},    // optional
-            {cs_menu_pop, cdStrVec}     // optional
+            {cs_menu_pop, cdStrVec},    // optional
+            {cs_close_button, cdBool}   // optional
         }},
         {MemoryEditor, {
             {cs_query_id, cdResultSet}  // optional
