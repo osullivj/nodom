@@ -175,6 +175,7 @@
     <ClInclude Include="logger.hpp" />
     <ClInclude Include="nd_types.hpp" />
     <ClInclude Include="nlohmann.hpp" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="static_strings.hpp" />
     <ClInclude Include="ufuncs.hpp" />
   </ItemGroup>
@@ -184,6 +185,10 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="..\..\favicon.ico" />
+    <Image Include="..\web\favicon.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="ndcc.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
