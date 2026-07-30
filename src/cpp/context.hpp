@@ -1770,6 +1770,7 @@ protected:
         // https://github.com/ocornut/imgui_club/tree/main#imgui_memory_editor
         static struct MemoryEditor memory_editor;
 
+        // TODO: plenty of scope for memoization below...
         // cpsec:query_id is optional for render_memory_editor. When present it
         // signals a bulk column MemEdit, so we prep DrawWindow's three params
         // const char* title, void* mem_data, size_t mem_size from
