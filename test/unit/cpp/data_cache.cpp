@@ -170,7 +170,7 @@ BOOST_FIXTURE_TEST_CASE(AddBool, DataCacheFixture)
     BoolInx bool_inx = dc.extern_bool(&show_footer_db);   // not backed
     BOOST_TEST(IntInx::item_type == CIT::Value);
     BOOST_TEST(IntInx::data_type == CDT::cdInt);
-    BOOST_TEST(bool_inx.magic_index == uint32_t(0x02030000));
+    BOOST_TEST(bool_inx.magic_index == uint32_t(0x02040000));
     BOOST_TEST(bool_inx() == uint32_t(0));
     assert_cache_state();
 }
