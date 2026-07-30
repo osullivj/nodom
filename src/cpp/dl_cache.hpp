@@ -989,6 +989,7 @@ private:
         Static::combo_flags_cs,      // cs_combo_flags
         Static::window_flags_cs,      // cs_window_flags
         Static::column_flags_cs,      // cs_column_flags
+        Static::close_button_cs,
         Static::show_lines_cs,
         Static::show_fills_cs,
         Static::shaded_plot_flags_cs,
