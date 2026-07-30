@@ -199,11 +199,11 @@ BOOST_FIXTURE_TEST_CASE(AddString, DataCacheFixture)
     str_count = 3;
     BOOST_TEST(StrInx::item_type == CIT::Value);
     BOOST_TEST(StrInx::data_type == CDT::cdStr);
-    BOOST_TEST(str_inx.magic_index == uint32_t(0x02040002));
+    BOOST_TEST(str_inx.magic_index == uint32_t(0x02050002));
     BOOST_TEST(str_inx() == uint32_t(2));
     BOOST_TEST(AddrInx::item_type == CIT::Address);
     BOOST_TEST(AddrInx::data_type == CDT::cdStr);
-    BOOST_TEST(addr_inx.magic_index == uint32_t(0x01040001));
+    BOOST_TEST(addr_inx.magic_index == uint32_t(0x01050001));
     BOOST_TEST(addr_inx() == uint32_t(1));
     assert_cache_state();
 }
