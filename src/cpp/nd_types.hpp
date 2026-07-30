@@ -146,6 +146,7 @@ enum RenderMethod : uint32_t {
     Noop = 0,   // Null
     Home,       // Home
     InputInt,   // Native widgets
+    InputDouble,
     Combo,
     Checkbox,
     Text,
