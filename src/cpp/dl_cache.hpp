@@ -1142,6 +1142,7 @@ private:
             {cs_menu_pop, cdStrVec}     // optional
         }},
         {InputInt, {{cs_cname, cdInt}}},
+        {InputDouble, {{cs_cname, cdDouble}}},
         {Combo, {
             {cs_cindex, cdInt},
             {cs_cname, cdStrVec}
