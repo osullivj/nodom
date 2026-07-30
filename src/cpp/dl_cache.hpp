@@ -937,6 +937,7 @@ private:
         Static::rm_noop_cs,
         Static::rm_home_cs,
         Static::rm_input_int_cs,
+        Static::rm_input_double_cs,
         Static::rm_combo_cs,
         Static::rm_checkbox_cs,
         Static::rm_text_cs,
@@ -1073,6 +1074,7 @@ private:
     inline static  std::map<RenderMethod, CacheSpecVec> value_cspecs{
         {Home, {cs_title, cs_title_font, cs_title_font_size, cs_window_flags}},
         {InputInt, {cs_label, cs_step, cs_step_fast, cs_flags}},
+        {InputDouble, {cs_label, cs_step, cs_step_fast, cs_flags}},
         {Combo, {cs_label, cs_step}},
         {Checkbox, {cs_label}},
         {Text, {cs_text}},
