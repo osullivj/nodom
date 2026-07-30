@@ -5,6 +5,8 @@
 #include <sstream>
 #ifdef __EMSCRIPTEN__
 #include <emscripten/emscripten.h>
+#include "imgui.h"
+#include "imgui_internal.h"
 #else
 #include <boost/thread.hpp>
 #endif
@@ -25,6 +27,7 @@ protected:
 		std::cout << this->str();
 #else
 		emscripten_log(EM_LOG_CONSOLE | EM_LOG_INFO, "%s", this->str().c_str());
+		ImGui::DebugLog("NDI:%s", this->str().c_str());
 #endif
 		// clear buf by setting contents to empty string
 		this->str("");
@@ -40,6 +43,7 @@ protected:
 		std::cerr << this->str();
 #else
 		emscripten_log(EM_LOG_CONSOLE | EM_LOG_ERROR, "%s", this->str().c_str());
+		ImGui::DebugLog("NDE:%s", this->str().c_str());
 #endif
 		// clear buf by setting contents to empty string
 		this->str("");
