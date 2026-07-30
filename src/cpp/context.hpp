@@ -1126,6 +1126,37 @@ protected:
         }
     }
 
+    void render_input_double(WidgetPtr w) {
+        // const static char* method = "NDContext::render_input_double: ";
+
+        int step = 1;
+        cspec_int(cs_step, w->cspec_int, &step);
+        int step_fast = 1;
+        cspec_int(cs_step_fast, w->cspec_int, &step);
+        int flags = 0;
+        cspec_int(cs_flags, w->cspec_int, &flags);
+
+        DataRef* int_data_ref = cspec_data_ref(cs_cname, w->data_refs);
+        assert(int_data_ref != nullptr);
+        assert(int_data_ref->tipe == cdInt);
+        IntInx iinx{ int_data_ref->ref_inx };
+        int* int_ptr = data_lay_cache.get_int_value(iinx);
+        assert(int_ptr != nullptr);
+        int old_val = *int_ptr;
+
+        // get hold of the cname addr to use as default label value
+        AddrInx addr{ int_data_ref->addr_inx };
+        const char* cname = data_lay_cache.get_addr_value(addr);
+        const char* label = cspec_string(cs_label, w->cspec_str, cname);
+
+        ImGui::InputInt(label, int_ptr, step, step_fast, flags);
+        // TODO: refactor to pending action
+        // copy local copy back into cache
+        if (*int_ptr != old_val) {
+            notify_server(int_data_ref, old_val, int_ptr);
+        }
+    }
+
     void render_combo(WidgetPtr w) {
         const static char* method = "NDContext::render_combo: ";
         // Static storage for the combo list. NB single GUI thread!

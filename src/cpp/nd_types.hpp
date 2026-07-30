@@ -212,12 +212,13 @@ enum CacheItemSubType : uint32_t {
 enum CacheDataType : uint32_t {
     cdInt = 0x10000, 
     cdFloat = 0x20000, 
-    cdBool = 0x30000, 
-    cdStr = 0x40000, 
-    cdIntVec = 0x50000,
-    cdStrVec = 0x60000,
-    cdAny = 0x70000,
-    cdResultSet = 0x80000,
+    cdDouble = 0x30000,
+    cdBool = 0x40000, 
+    cdStr = 0x50000, 
+    cdIntVec = 0x60000,
+    cdStrVec = 0x70000,
+    cdAny = 0x80000,
+    cdResultSet = 0x90000,
     EndDataTypes = 0xF0000
 };
 
@@ -377,6 +378,7 @@ using AddrInx = DataCacheIndex<CIT::Address,CDT::cdStr>;
 using IntInx = DataCacheIndex<CIT::Value,CDT::cdInt>;
 using BoolInx = DataCacheIndex<CIT::Value, CDT::cdBool>;
 using FloatInx = DataCacheIndex<CIT::Value, CDT::cdFloat>;
+using DoubleInx = DataCacheIndex<CIT::Value, CDT::cdDouble>;
 using StrInx = DataCacheIndex<CIT::Value, CDT::cdStr>;
 // Array values
 using IntVecInx = DataCacheIndex<CIT::Value, CDT::cdIntVec>;  // mutable
