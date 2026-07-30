@@ -14,6 +14,7 @@ protected:
     // you have an LHS CacheName. All these vecs hold
     // ptrs to mem managed by someone else...
     std::vector<float*>         fp_float_ptrs;
+    std::vector<double*>        fp_double_ptrs;
     std::vector<int*>           fp_int_ptrs;
     std::vector<const char*>    fp_char_ptrs;
     std::vector<bool*>          fp_bool_ptrs;
@@ -26,7 +27,17 @@ protected:
     // and fp_char_ptrs can stay in a one to one.
     std::vector<std::string>    cache_strings;
     std::vector<int>            cache_ints;
+
+    // Why both floats and doubles? We have two target platforms;
+    // emscripten and win32 x64. DLC sanity check gives us sizes of
+    // key atomics on both ems and win32. Many systems resolve this
+    // issue by treating all quantities as doubles (Excel), or
+    // "numbers" in JavaScript. We'd like to be doubles only,
+    // but imgui uses floats in it's API, and we don't want the
+    // overhead and risk of implicit conversions.
     std::vector<float>          cache_floats;
+    std::vector<double>         cache_doubles;
+
     std::array<bool, CCAP>      cache_bools;
 
     WidgetVec                   widget_vec;
@@ -144,6 +155,14 @@ protected:
         cache_floats.push_back(value);
         fp_float_ptrs.push_back(&(cache_floats.back()));
         return FloatInx((uint32_t)fp_float_ptrs.size() - 1);
+    }
+
+    DoubleInx get_double_index(double value) {
+        // cannot be a ptr to value in fp_int_ptrs as it's rval,
+        // so go ahead and create new cache_floats backed storage
+        cache_doubles.push_back(value);
+        fp_double_ptrs.push_back(&(cache_doubles.back()));
+        return DoubleInx((uint32_t)fp_double_ptrs.size() - 1);
     }
 
     void clear() {
