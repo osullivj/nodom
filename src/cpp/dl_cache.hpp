@@ -1048,7 +1048,7 @@ private:
         cdInt,      // cs_window_flags
         cdInt,      // cs_column_flags
         cdBool,     // cs_close_button
-        cdBool,     // cs_tooltip
+        cdStr,      // cs_tooltip
         cdBool,     // cs_show_lines
         cdBool,     // cs_show_fills
         cdInt,      // cs_shaded_plot_flags
