@@ -1076,7 +1076,7 @@ private:
         {Combo, {cs_label, cs_step}},
         {Checkbox, {cs_label}},
         {Text, {cs_text}},
-        {Button, {cs_text}},
+        {Button, {cs_text, cs_tooltip}},
         {Table, {cs_title, cs_title_font, cs_title_font_size,
                     cs_body_font, cs_body_font_size,
                     cs_table_flags, cs_window_flags, cs_column_flags}},
