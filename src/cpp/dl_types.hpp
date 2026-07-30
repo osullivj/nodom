@@ -154,6 +154,8 @@ inline RenderMethod RenderMethodFromString(const std::string& method) {
     // Native
     if (method == Static::rm_input_int_cs)
         return RenderMethod::InputInt;
+    if (method == Static::rm_input_double_cs)
+        return RenderMethod::InputDouble;
     if (method == Static::rm_combo_cs)
         return RenderMethod::Combo;
     if (method == Static::rm_checkbox_cs)
