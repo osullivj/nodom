@@ -434,7 +434,7 @@ protected:
         const CacheSpecVec& values{ value_cspecs[widget->rname] };
         for (auto cit = values.cbegin(); cit != values.cend(); ++cit) {
             CacheSpecifier spec{ *cit };
-            CacheDataType value_type = cspec_types[spec];
+            CacheDataType value_type = get_cspec_type(spec, widget->rname);
             const char* value_name = cspec_names[spec];
             if (JContains(cspec, value_name)) {
                 switch (value_type) {
@@ -947,6 +947,17 @@ public:
             }
         }
         return CacheSpecifier::cs_end_cache_specs;
+    }
+
+    CDT get_cspec_type(CacheSpecifier cs, RenderMethod rm) {
+        if (val_overrides.find(rm) == val_overrides.end()) {
+            return cspec_types[cs];
+        }
+        ValOverMap& vom{ val_overrides[rm] };
+        if (vom.find(cs) != vom.end()) {
+            return vom[cs];
+        }
+        return cspec_types[cs];
     }
 
     bool is_optional(CacheSpecifier spec) {
