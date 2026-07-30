@@ -486,6 +486,9 @@ using FloatValMap = std::map<CacheSpecifier, FloatInx>;
 using StrValMap = std::map<CacheSpecifier, StrInx>;
 using DoubleValMap = std::map<CacheSpecifier, DoubleInx>;
 
+// for value cspec overrides
+using ValOverMap = std::map<CacheSpecifier, CDT>;
+using CspecValOverMap = std::map<RenderMethod, ValOverMap>;
 
 // YMD, WEEK and their index enums for DatePicker
 using YMD = std::array<int, 3>;
