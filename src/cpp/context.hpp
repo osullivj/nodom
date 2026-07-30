@@ -688,8 +688,16 @@ protected:
         return nullptr;
     }
 
-
     const char* cspec_string(CacheSpecifier spec, StrValMap& str_val_map, const char* dflt) {
+        auto cs_str_iter = str_val_map.find(spec);
+        if (cs_str_iter != str_val_map.end()) {
+            StrInx text_inx{ cs_str_iter->second };
+            return data_lay_cache.template get_string_value<StrInx>(text_inx);
+        }
+        return dflt;
+    }
+
+    const char* cspec_double(CacheSpecifier spec, StrValMap& str_val_map, const char* dflt) {
         auto cs_str_iter = str_val_map.find(spec);
         if (cs_str_iter != str_val_map.end()) {
             StrInx text_inx{ cs_str_iter->second };
@@ -1129,31 +1137,31 @@ protected:
     void render_input_double(WidgetPtr w) {
         // const static char* method = "NDContext::render_input_double: ";
 
-        int step = 1;
-        cspec_int(cs_step, w->cspec_int, &step);
-        int step_fast = 1;
-        cspec_int(cs_step_fast, w->cspec_int, &step);
+        double step = 1.0;
+        cspec_double(cs_step, w->cspec_double, &step);
+        double step_fast = 1.0;
+        cspec_double(cs_step_fast, w->cspec_double, &step_fast);
         int flags = 0;
         cspec_int(cs_flags, w->cspec_int, &flags);
 
-        DataRef* int_data_ref = cspec_data_ref(cs_cname, w->data_refs);
-        assert(int_data_ref != nullptr);
-        assert(int_data_ref->tipe == cdInt);
-        IntInx iinx{ int_data_ref->ref_inx };
-        int* int_ptr = data_lay_cache.get_int_value(iinx);
-        assert(int_ptr != nullptr);
-        int old_val = *int_ptr;
+        DataRef* dbl_data_ref = cspec_data_ref(cs_cname, w->data_refs);
+        assert(dbl_data_ref != nullptr);
+        assert(dbl_data_ref->tipe == cdDouble);
+        DoubleInx dinx{ dbl_data_ref->ref_inx };
+        double* dbl_ptr = data_lay_cache.get_double_value(dinx);
+        assert(dbl_ptr != nullptr);
+        double old_val = *dbl_ptr;
 
         // get hold of the cname addr to use as default label value
-        AddrInx addr{ int_data_ref->addr_inx };
+        AddrInx addr{ dbl_data_ref->addr_inx };
         const char* cname = data_lay_cache.get_addr_value(addr);
         const char* label = cspec_string(cs_label, w->cspec_str, cname);
 
-        ImGui::InputInt(label, int_ptr, step, step_fast, flags);
+        ImGui::InputDouble(label, dbl_ptr, step, step_fast, flags);
         // TODO: refactor to pending action
         // copy local copy back into cache
-        if (*int_ptr != old_val) {
-            notify_server(int_data_ref, old_val, int_ptr);
+        if (*dbl_ptr != old_val) {
+            notify_server(dbl_data_ref, old_val, dbl_ptr);
         }
     }
 
