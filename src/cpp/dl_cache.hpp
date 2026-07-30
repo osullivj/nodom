@@ -1102,7 +1102,7 @@ private:
     inline static  std::map<RenderMethod, CacheSpecVec> value_cspecs{
         {Home, {cs_title, cs_title_font, cs_title_font_size, cs_window_flags}},
         {InputInt, {cs_label, cs_step, cs_step_fast, cs_flags}},
-        {InputDouble, {cs_label, cs_step, cs_step_fast, cs_flags}},
+        {InputDouble, {cs_label, cs_step, cs_step_fast, cs_format, cs_flags}},
         {Combo, {cs_label, cs_step}},
         {Checkbox, {cs_label}},
         {Text, {cs_text}},
