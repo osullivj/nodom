@@ -10,6 +10,7 @@ struct Static {
 	inline static const char* rm_noop_cs{ "Noop" };
 	inline static const char* rm_home_cs{ "Home" };		// Home
 	inline static const char* rm_input_int_cs{ "InputInt" };	// Native
+	inline static const char* rm_input_double_cs{ "InputDouble" };
 	inline static const char* rm_combo_cs{ "Combo" };
 	inline static const char* rm_checkbox_cs{ "Checkbox" };
 	inline static const char* rm_text_cs{ "Text" };
