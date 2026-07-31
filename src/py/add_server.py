@@ -55,6 +55,8 @@ ADDITION_LAYOUT = [
                     dlc=True,
                 ),
             ),
+            dict(rname="Spacing", cspec=dict()),
+            dict(rname="DebugFooter",cspec=dict()),
             dict(rname="PopFont"),
         ],
     ),
