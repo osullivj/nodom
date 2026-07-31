@@ -914,11 +914,17 @@ public:
         uint32_t*   col_ptr{ nullptr };
         double*     dbldata{ nullptr };
         int32_t*    idata{ nullptr };
+        int         chunk_inx{ 0 };
         for (auto scvit = wcv->begin(); scvit != wcv->end(); ++scvit) {
             chunk_ptr = reinterpret_cast<uint32_t*>(scvit->addr);
             this_chunk_row_count = chunk_ptr[2];
             col_offset = chunk_ptr[3+ncols+col_inx];
             col_ptr = chunk_ptr + col_offset;
+            // col hdr: 32bit type, 32bit sz
+            // wind past col hdr
+            int32_t col_type = *col_ptr++;
+            int32_t col_size = *col_ptr++;
+            // fprintf(stdout, "get_min_max: chunk:%d, col:%d, type:%d, sz:%d\n", chunk_ptr, col_offset, col_type, col_size);
             switch (colm_type) {
             case wdtFloat:
                 dbldata = (double*)col_ptr;
@@ -956,6 +962,7 @@ public:
                     break;
                 }
             }
+            chunk_inx++;
         }
         return true;
     }
@@ -1113,8 +1120,9 @@ public:
             range->remaining -= available;
         }
         uint32_t ncols = chunk_ptr[1];
-        uint32_t xcol_offset = chunk_ptr[3 + ncols + range->xcol_inx];
-        uint32_t ycol_offset = chunk_ptr[3 + ncols + range->ycol_inx];
+        // extra +2 below to wind past type and size sanity checks
+        uint32_t xcol_offset = chunk_ptr[3 + ncols + range->xcol_inx] + 2;
+        uint32_t ycol_offset = chunk_ptr[3 + ncols + range->ycol_inx] + 2;
 
         range->ydata = reinterpret_cast<double_t*>(chunk_ptr + ycol_offset);
         switch (range->xcol_type) {
