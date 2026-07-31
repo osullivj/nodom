@@ -59,6 +59,12 @@ int main(int argc, char* argv[]) {
         NDConfig<json_t>& cfg{ NDConfig<json_t>::get_instance() };
         cfg.initialize(config_s);
 
+        // are we logging to imgui DebugLog?
+        bool imlogging{ false };
+        if (cfg.get_value(Static::imlog_cs, imlogging)) {
+            NDLogger::get_instance().set_imgui_logging(imlogging);
+        }
+
         // specify the ini path
         std::string ini_file{ app_key };
         ini_file += "_layout.ini";
