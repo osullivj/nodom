@@ -49,6 +49,14 @@ public:
         return false;
     }
 
+    bool get_value(const char* key, bool& val) {
+        if (JContains(config, key)) {
+            val = JAsBool(config, key);
+            return true;
+        }
+        return false;
+    }
+
     bool get_nested_str_map(const char* key, StringStringMap& ssmap) {
         if (JContains(config, key)) {
             StringVec svec;
