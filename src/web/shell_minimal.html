@@ -41,8 +41,12 @@
             oncontextmenu="event.preventDefault()"
         ></canvas>
         <script type="text/javascript">
+            const nd_config = {
+              fonts: ["CourierNew.ttf", "Arial.ttf"],
+              imlog:true
+            };
             var Module = {
-                arguments: ["app_key","","","{}"],
+                arguments: ["app_key","","",JSON.stringify(nd_config)],
                 preRun: [],
                 postRun: [],
                 print: (function () {
