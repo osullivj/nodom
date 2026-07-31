@@ -48,6 +48,12 @@ int main(int argc, char* argv[]) {
     NDConfig<json_t>& cfg{ NDConfig<json_t>::get_instance() };
     cfg.initialize(init_config.c_str());
 
+    // are we logging to imgui DebugLog?
+    bool imlogging{ false };
+    if (cfg.get_value(Static::imlog_cs, imlogging)) {
+        NDLogger::get_instance().set_imgui_logging(imlogging);
+    }
+
     DuckDB_t server;
     // Static::empty_cs as 3rd parm causes NDContext::get_ini_path()
     // to return a null ptr in im_start, so io.IniFilename is NULL
