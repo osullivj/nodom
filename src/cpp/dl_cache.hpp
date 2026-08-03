@@ -964,6 +964,7 @@ public:
         switch (spec) {
         case cs_menu_bar:
         case cs_menu_pop:
+        case cs_tooltip:
             return true;
         default:
             return false;
@@ -977,6 +978,7 @@ private:
         Static::rm_home_cs,
         Static::rm_input_int_cs,
         Static::rm_input_double_cs,
+        Static::rm_input_string_cs,
         Static::rm_combo_cs,
         Static::rm_checkbox_cs,
         Static::rm_text_cs,
@@ -1114,10 +1116,11 @@ private:
 
     inline static  std::map<RenderMethod, CacheSpecVec> value_cspecs{
         {Home, {cs_title, cs_title_font, cs_title_font_size, cs_window_flags}},
-        {InputInt, {cs_label, cs_step, cs_step_fast, cs_flags}},
-        {InputDouble, {cs_label, cs_step, cs_step_fast, cs_format, cs_flags}},
-        {Combo, {cs_label, cs_step}},
-        {Checkbox, {cs_label}},
+        {InputInt, {cs_label, cs_step, cs_step_fast, cs_flags, cs_tooltip}},
+        {InputDouble, {cs_label, cs_step, cs_step_fast, cs_format, cs_flags, cs_tooltip}},
+        {InputString, {cs_label, cs_format, cs_flags, cs_tooltip}},
+        {Combo, {cs_label, cs_step, cs_tooltip}},
+        {Checkbox, {cs_label, cs_tooltip}},
         {Text, {cs_text}},
         {Button, {cs_text, cs_tooltip}},
         {Table, {cs_title, cs_title_font, cs_title_font_size,
