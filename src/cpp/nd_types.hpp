@@ -147,6 +147,7 @@ enum RenderMethod : uint32_t {
     Home,       // Home
     InputInt,   // Native widgets
     InputDouble,
+    InputString,
     Combo,
     Checkbox,
     Text,
