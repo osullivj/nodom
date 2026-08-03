@@ -63,6 +63,9 @@ protected:
     std::map<std::string, EntityInx>    widget_map;
     EntityInx                           invalid_entity;
 
+    // char* bufs for text edit widget input_string
+    // Keyed on widget_id
+    BufferMap                           buffer_map;
     // Reserved keys in data: actions, menus, functions
     StringSet                           special_keys{
                                             Static::actions_cs, 
@@ -960,16 +963,29 @@ public:
         return cspec_types[cs];
     }
 
+    // a set is nothing more than a truth function for set membership :)
     bool is_optional(CacheSpecifier spec) {
         switch (spec) {
         case cs_menu_bar:
         case cs_menu_pop:
         case cs_tooltip:
+        case cs_buffer_size:
             return true;
         default:
             return false;
         }
     }
+
+    bool has_buffer(CacheSpecifier spec) {
+        switch (spec) {
+        // TODO: add multline widget here too
+        case cs_input_string:
+            return true;
+        default:
+            return false;
+        }
+    }
+
 
 private:
     // statics that define DataLayCache data and layout geometry
@@ -1118,7 +1134,7 @@ private:
         {Home, {cs_title, cs_title_font, cs_title_font_size, cs_window_flags}},
         {InputInt, {cs_label, cs_step, cs_step_fast, cs_flags, cs_tooltip}},
         {InputDouble, {cs_label, cs_step, cs_step_fast, cs_format, cs_flags, cs_tooltip}},
-        {InputString, {cs_label, cs_format, cs_flags, cs_tooltip}},
+        {InputString, {cs_label, cs_format, cs_flags, cs_tooltip, cs_buffer_size}},
         {Combo, {cs_label, cs_step, cs_tooltip}},
         {Checkbox, {cs_label, cs_tooltip}},
         {Text, {cs_text}},
