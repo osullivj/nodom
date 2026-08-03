@@ -666,6 +666,8 @@ protected:
             auto wptr = std::make_shared<NDWidget>(extract_render_name(w), winx);
             wvec->push_back(wptr);
             orthogonalize_cspec(cspec, data, wvec->back());
+            create_widget_buffer(wptr);
+            // TODO: insert invocation of create_widget_buffer()
             const JSON children = extract_children(w);
             int child_count = JSize(children);
             if (child_count > 0) {
@@ -942,6 +944,9 @@ public:
     }
 
     CacheSpecifier get_cspec_enum(const char* css) {
+        if (css == nullptr) {
+            return CacheSpecifier::cs_end_cache_specs;
+        }
         for (int csi = CacheSpecifier::cs_title; csi != CacheSpecifier::cs_end_cache_specs; csi++) {
             CacheSpecifier cs{static_cast<CacheSpecifier>(csi)};
             const char* css_ = get_cspec_name(cs);
@@ -949,7 +954,7 @@ public:
                 return cs;
             }
         }
-        return CacheSpecifier::cs_end_cache_specs;
+        
     }
 
     CDT get_cspec_type(CacheSpecifier cs, RenderMethod rm) {
@@ -969,7 +974,6 @@ public:
         case cs_menu_bar:
         case cs_menu_pop:
         case cs_tooltip:
-        case cs_buffer_size:
             return true;
         default:
             return false;
@@ -986,6 +990,29 @@ public:
         }
     }
 
+    bool create_widget_buffer(WidgetPtr w) {
+        int* buffer_size{nullptr};
+        switch (w->rname) {
+        case InputString:
+            buffer_size = cspec_int(cs_buffer_size, w->cspec_int);
+            w->buffer = (char*)malloc(*buffer_size);
+            memset(w->buffer, 0, *buffer_size);
+            return true;
+        default:
+            return false;
+        }
+    }
+
+    int* cspec_int(CacheSpecifier spec, IntValMap& int_val_map, int* target = nullptr) {
+        auto cs_int_iter = int_val_map.find(spec);
+        if (cs_int_iter != int_val_map.end()) {
+            IntInx int_inx{ cs_int_iter->second };
+            int* rv = get_int_value(int_inx);
+            if (target != nullptr && rv != nullptr) *target = *rv;
+            return rv;
+        }
+        return nullptr;
+    }
 
 private:
     // statics that define DataLayCache data and layout geometry
@@ -1067,6 +1094,7 @@ private:
         Static::menu_cs,
         Static::menu_item_cs,
         Static::menu_pop_cs,
+        Static::buffer_size_cs,
         Static::db_cs,     // cs_db,
         Static::fps_cs,     // cs_fps,
         Static::demo_cs,     // cs_demo,
@@ -1116,6 +1144,7 @@ private:
         cdStr,      // cs_menu
         cdStr,      // cs_menu_item
         cdStr,      // cs_menu_pop
+        cdInt,      // cs_buffer_size
         cdBool,     // cs_show_footer_db
         cdBool,     // cs_show_footer_fps
         cdBool,     // cs_show_footer_demo
@@ -1134,7 +1163,7 @@ private:
         {Home, {cs_title, cs_title_font, cs_title_font_size, cs_window_flags}},
         {InputInt, {cs_label, cs_step, cs_step_fast, cs_flags, cs_tooltip}},
         {InputDouble, {cs_label, cs_step, cs_step_fast, cs_format, cs_flags, cs_tooltip}},
-        {InputString, {cs_label, cs_format, cs_flags, cs_tooltip, cs_buffer_size}},
+        {InputString, {cs_label, cs_flags, cs_tooltip, cs_buffer_size}},
         {Combo, {cs_label, cs_step, cs_tooltip}},
         {Checkbox, {cs_label, cs_tooltip}},
         {Text, {cs_text}},
