@@ -160,6 +160,8 @@ inline RenderMethod RenderMethodFromString(const std::string& method) {
         return RenderMethod::InputInt;
     if (method == Static::rm_input_double_cs)
         return RenderMethod::InputDouble;
+    if (method == Static::rm_input_string_cs)
+        return RenderMethod::InputString;
     if (method == Static::rm_combo_cs)
         return RenderMethod::Combo;
     if (method == Static::rm_checkbox_cs)
