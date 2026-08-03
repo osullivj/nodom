@@ -464,6 +464,7 @@ enum CacheSpecifier : uint32_t {
     cs_menu,
     cs_menu_item,
     cs_menu_pop,
+    cs_buffer_size,
     cs_show_footer_db,
     cs_show_footer_fps,
     cs_show_footer_demo,
