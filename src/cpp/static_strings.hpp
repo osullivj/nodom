@@ -84,7 +84,7 @@ struct Static {
 	inline static const char* menu_cs{ "menu" };
 	inline static const char* menu_item_cs{ "menuitem" };
 	inline static const char* menu_pop_cs{ "menupop" };
-	inline static const char* lb_footer_style_cs{ "Style" };
+	inline static const char* buffer_size_cs{ "buffer_size" };
 	inline static const char* cspec_cs{ "cspec" };
 	inline static const char* cname_cs{ "cname" };
 	inline static const char* qname_cs{ "qname" };
@@ -277,6 +277,7 @@ struct Static {
 	inline static const char* dark_cs{ "Dark" };
 	inline static const char* light_cs{ "Light" };
 	inline static const char* classic_cs{ "Classic" };
+	inline static const char* lb_footer_style_cs{ "Style" };
 
 	// hardwired init data and layout
 	inline static const char* init_data_cs{
