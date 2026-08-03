@@ -19,6 +19,11 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\lib\imgui\imgui.cpp" />
+    <ClCompile Include="..\..\..\lib\imgui\imgui_demo.cpp" />
+    <ClCompile Include="..\..\..\lib\imgui\imgui_draw.cpp" />
+    <ClCompile Include="..\..\..\lib\imgui\imgui_tables.cpp" />
+    <ClCompile Include="..\..\..\lib\imgui\imgui_widgets.cpp" />
     <ClCompile Include="data_cache.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -110,7 +115,7 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>%ND_HOME%\lib\fmt\include;%ND_BOOST_HOME%;%ND_HOME%\src\cpp;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%ND_HOME%\lib\fmt\include;%ND_BOOST_HOME%;%ND_HOME%\src\cpp;%ND_HOME%\lib\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <PreprocessorDefinitions>_WIN32_WINNT=0x0601;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalOptions>/bigobj /utf-8 /wd4127 /wd4172 /wd4302 /wd4311 %(AdditionalOptions)</AdditionalOptions>
