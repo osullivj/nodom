@@ -1162,6 +1162,38 @@ protected:
         }
     }
 
+    void render_input_string(WidgetPtr w) {
+        // const static char* method = "NDContext::render_input_string: ";
+
+        int flags = 0;
+        cspec_int(cs_flags, w->cspec_int, &flags);
+
+        DataRef* str_data_ref = cspec_data_ref(cs_cname, w->data_refs);
+        assert(str_data_ref != nullptr);
+        assert(str_data_ref->tipe == cdString);
+        StringInx sinx{ str_data_ref->ref_inx };
+        const char* cptr = data_lay_cache.get_string_value(sinx);
+        assert(cptr != nullptr);
+        assert(w->buffer != nullptr);
+
+        int bufsz{ 0 };
+        cspec_int(cs_buffer_size, w->cspec_int, &bufsz);
+        strncpy(w->buffer, cptr, bufsz);
+
+        // get hold of the cname addr to use as default label value
+        AddrInx addr{ dbl_data_ref->addr_inx };
+        const char* cname = data_lay_cache.get_addr_value(addr);
+        const char* label = cspec_string(cs_label, w->cspec_str, cname);
+
+        if (ImGui::InputText(label, w->buffer, flags)) {
+            // TODO: end_render_cycle
+            if (std::string_view(cptr) != std::string_view(w->buffer)) {
+                notify_server(dbl_data_ref, old_val, dbl_ptr);
+            }
+        }
+    }
+
+
     void render_combo(WidgetPtr w) {
         const static char* method = "NDContext::render_combo: ";
         // Static storage for the combo list. NB single GUI thread!
