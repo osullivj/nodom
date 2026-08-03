@@ -5,11 +5,11 @@
 #include <sstream>
 #ifdef __EMSCRIPTEN__
 #include <emscripten/emscripten.h>
-#include "imgui.h"
-#include "imgui_internal.h"
 #else
 #include <boost/thread.hpp>
 #endif
+#include "imgui.h"
+#include "imgui_internal.h"
 
 // On Windows in Breadboard, we need to serialize access to the log
 // Otherwise log lines get interleaved, making troubleshooting harder
