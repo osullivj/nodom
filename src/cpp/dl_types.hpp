@@ -104,6 +104,7 @@ struct NDWidget {
     DoubleValMap    cspec_double;
     StrValMap       cspec_str;
     DataRefMap      data_refs;
+    char*           buffer{ nullptr }; // eg render_input_string
     std::vector<std::shared_ptr<NDWidget>>  children;
 };
 using WidgetPtr = std::shared_ptr<NDWidget>;
@@ -148,6 +149,7 @@ using ActionErrorVec = std::vector<NDActionErrors>;
 using ActionMap = std::map<ActionKey, ActionVec>;
 using ActionInternMap = std::map<ActionKey, ActionInternVec>;
 using ActionErrorMap = std::map<ActionKey, ActionErrorVec>;
+using BufferMap = std::map<EntityInx, char*>;
 
 inline RenderMethod RenderMethodFromString(const std::string& method) {
     if (method == Static::rm_noop_cs)
