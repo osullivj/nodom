@@ -96,6 +96,11 @@ struct NDWidget {
     NDWidget(RenderMethod meth, EntityInx winx)
         :rname(meth), widget_inx(winx) { }
 
+    ~NDWidget() {
+        if (buffer != nullptr)
+            free(buffer);
+    }
+
     RenderMethod    rname{ EndRenderMethod };
     EntityInx       widget_inx;
     IntValMap       cspec_int;
