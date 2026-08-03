@@ -1,5 +1,8 @@
 #pragma once
 #include <memory>
+#include <vector>
+#include <map>
+#include <string>
 #include "static_strings.hpp"
 
 // cspec Property Groups

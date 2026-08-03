@@ -1001,10 +1001,7 @@ protected:
 
     // NB render_menu_pop_item is never on the render stack, and is not
     // invoked by dispatch_render. Instead it's possibly invoked directly
-    // from render_table if the table has a menupop,
-    // and the menuitem fires an Action that does ui_push MemoryEditor.
-    // If a menuitem is selected render_menu_pop_item rets true so
-    // the caller knows to prep MemoryEditorContext.
+    // from render_table if the table has a menupop.
     // 
     // useful popup level discussion
     // https://github.com/ocornut/imgui/discussions/3773
@@ -1057,7 +1054,7 @@ protected:
                 }
             }
         default:
-            // TODO: non table, non window, popup impls should go here,
+            // TODO: non table non window popup impls should go here
             // and use ImGui::BeginPopupContextItem()
             break;
         }
@@ -1898,8 +1895,24 @@ protected:
         ImGui::EndGroup();
     }
 
+    bool is_pushed(WidgetPtr w) {
+        int stack_length = (int)stack.size();
+        for (int inx = 0; inx < stack_length; inx++) {
+            if (stack[inx]->widget_inx == w->widget_inx)
+                return true;
+        }
+        return false;
+    }
+
     void push_widget(WidgetPtr w) {
-        stack.push_back(w);
+        const static char* method = "NDContext::push_widget: ";
+        if (!is_pushed(w)) {
+            stack.push_back(w);
+        }
+        else {
+            NDLogger::cerr() << method << "PUSH_FAIL widget_inx("
+                << w->widget_inx << ")" << std::endl;
+        }
     }
 
     void pop_widget(RenderMethod m) {
