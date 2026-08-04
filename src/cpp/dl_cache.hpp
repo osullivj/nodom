@@ -439,6 +439,9 @@ protected:
             CacheSpecifier spec{ *cit };
             CacheDataType value_type = get_cspec_type(spec, widget->rname);
             const char* value_name = cspec_names[spec];
+            if (spec == cs_buffer_size) {
+                int a{ 10 };
+            }
             if (JContains(cspec, value_name)) {
                 switch (value_type) {
                 case cdInt:
@@ -446,6 +449,9 @@ protected:
                     break;
                 case cdFloat:
                     widget->cspec_float[spec] = get_float_index(JAsFloat(cspec, value_name));
+                    break;
+                case cdDouble:
+                    widget->cspec_double[spec] = get_double_index(JAsDouble(cspec, value_name));
                     break;
                 case cdBool:
                     widget->cspec_bool[spec] = get_bool_index(JAsBool(cspec, value_name) ? 1 : 0);
@@ -460,6 +466,16 @@ protected:
                 case EndDataTypes:
                     assert(false);
                     break;
+                }
+            }
+            else {
+                if (is_mandatory(spec)) {
+                    bad_data_refs.push_back(value_name);
+                    std::stringstream ss;
+                    ss << "MISSING_CSPEC(" << value_name << ") in cspec:"
+                        << cspec << ", for " << render_names[widget->rname];
+                    layout_errors.push_back(ss.str());
+                    continue;
                 }
             }
         }
@@ -601,10 +617,6 @@ protected:
         case EndDataTypes:
             assert(false);
             break;
-
-        case cdFloat:       // not required by any widget yet
-            assert(false);
-            break;
         case cdResultSet:
             // no need to set data_ref.ref_inx as the result set
             // is not in the data cache
@@ -615,6 +627,12 @@ protected:
             break;
         case cdInt: // spec:cindex, sz:1
             data_ref.ref_inx = get_int_index(JAsInt(data, addr))();
+            break;
+        case cdFloat:       // InputFloat
+            data_ref.ref_inx = get_float_index(JAsFloat(data, addr.c_str()))();
+            break;
+        case cdDouble: // InpoutDouble spec:cname, sz:1
+            data_ref.ref_inx = get_double_index(JAsDouble(data, addr.c_str()))();
             break;
         case cdBool:
             data_ref.ref_inx = get_bool_index(JAsInt(data, addr))();
@@ -980,10 +998,9 @@ public:
         }
     }
 
-    bool has_buffer(CacheSpecifier spec) {
+    bool is_mandatory(CacheSpecifier spec) {
         switch (spec) {
-        // TODO: add multline widget here too
-        case cs_input_string:
+        case cs_buffer_size:
             return true;
         default:
             return false;
@@ -991,12 +1008,16 @@ public:
     }
 
     bool create_widget_buffer(WidgetPtr w) {
-        int* buffer_size{nullptr};
+        int buffer_size{-1};
+        int* pbuf{ nullptr };
+
         switch (w->rname) {
         case InputString:
-            buffer_size = cspec_int(cs_buffer_size, w->cspec_int);
-            w->buffer = (char*)malloc(*buffer_size);
-            memset(w->buffer, 0, *buffer_size);
+            pbuf = cspec_int(cs_buffer_size, w->cspec_int, &buffer_size);
+            if (pbuf != nullptr) {
+                w->buffer = (char*)malloc(buffer_size);
+                memset(w->buffer, 0, buffer_size);
+            }
             return true;
         default:
             return false;
@@ -1201,6 +1222,7 @@ private:
         }},
         {InputInt, {{cs_cname, cdInt}}},
         {InputDouble, {{cs_cname, cdDouble}}},
+        {InputString, {{cs_cname, cdStr}}},
         {Combo, {
             {cs_cindex, cdInt},
             {cs_cname, cdStrVec}
@@ -1378,9 +1400,7 @@ public:
                     << drmit->second.size << std::endl;
             }
             else {
-                AddrInx ainx{ drmit->first };
-                std::cout << ainx
-                    << ":"
+                std::cout << drmit->first << ":"
                     << CDTToString(drmit->second.tipe) << ","
                     << get_addr_value(drmit->second.addr_inx) << ","
                     << std::hex << drmit->second.ref_inx << ","
