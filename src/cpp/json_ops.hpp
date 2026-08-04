@@ -158,6 +158,11 @@ inline float JAsFloat(const emscripten::val& obj, const char* key) {
 	return obj[key].as<float>();
 }
 
+template <>
+inline double JAsDouble(const emscripten::val& obj, const char* key) {
+	return obj[key].as<double>();
+}
+
 template <typename K>
 int JAsInt(const emscripten::val& obj, K key) {
 	return obj[key].template as<int>();
