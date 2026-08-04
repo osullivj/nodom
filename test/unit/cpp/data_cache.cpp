@@ -87,15 +87,21 @@ struct DataCacheFixture {
     }
 
     void assert_cache_state() {
+        dc.report_sanity_check();
+        dc.report_cache_errors();
+
         int sc = dc.report_cache_strings(extern_str_count);
         BOOST_TEST(str_count == sc);
 
         int ic = dc.report_cache_ints(extern_int_count);
         BOOST_TEST(int_count == ic);
+
         int fc = dc.report_cache_floats(extern_float_count);
         BOOST_TEST(float_count == fc);
+
         dc.report_address_map();
         dc.report_data_refs();
+        dc.report_func_maps();
         dc.report_actions();
         std::cout << std::endl;
     }
@@ -292,6 +298,47 @@ BOOST_FIXTURE_TEST_CASE(AddServerLayout, DataCacheFixture)
 #endif
     str_count = 22;   // Layout:[Home::title], Data:[op1,op2,op1_plus_op2], and all NDAction too!
     int_count = 14;   // Layout:["step":1, "step":2], Data:[op1,op2,op1_plus_op2]
+    dc.on_json(data, layout, [&]() { dc.on_init(); });
+    BOOST_TEST(dc.widget_vec_size() == 2);
+    BOOST_TEST(dc.pushables_size() == 1);
+    assert_cache_state();
+}
+
+
+BOOST_FIXTURE_TEST_CASE(QedServerData, DataCacheFixture)
+{
+#ifdef __EMSCRIPTEN__
+    auto data = JParse<emscripten::val>(add_server_data);
+#else
+    std::string data_json_path = test_json_dir + "test_qed_server_data.json";
+    std::string data_json = load_json(data_json_path.c_str());
+    auto data = JParse<nlohmann::json>(data_json);
+    auto layout = JParse<nlohmann::json>(Static::empty_list_cs);
+#endif
+    // 3 addresses in AddServer test data
+    str_count = 3;
+    int_count = 0;
+    dc.on_json(data, layout, [&]() { dc.on_init(); });
+    BOOST_TEST(dc.addr_map_size() == 3);
+    BOOST_TEST(dc.action_map_size() == 0);
+    assert_cache_state();
+}
+
+BOOST_FIXTURE_TEST_CASE(QedServerLayout, DataCacheFixture)
+{
+#ifdef __EMSCRIPTEN__
+    // TODO: load from ems FS
+    auto layout = JParse<emscripten::val>(add_server_layout);
+#else
+    std::string data_json_path = test_json_dir + "test_qed_server_data.json";
+    std::string data_json = load_json(data_json_path.c_str());
+    auto data = JParse<nlohmann::json>(data_json);
+    std::string layout_json_path = test_json_dir + "test_qed_server_layout.json";
+    std::string layout_json = load_json(layout_json_path.c_str());
+    auto layout = JParse<nlohmann::json>(layout_json);
+#endif
+    str_count = 10;   // 
+    int_count = 2;   // 
     dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.widget_vec_size() == 2);
     BOOST_TEST(dc.pushables_size() == 1);
