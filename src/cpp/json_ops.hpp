@@ -26,6 +26,9 @@ std::string JAsString(const JSON& obj, K key);
 template <typename JSON>
 float JAsFloat(const JSON& obj, const char* key);
 
+template <typename JSON>
+double JAsDouble(const JSON& obj, const char* key);
+
 template <typename JSON, typename K>
 float JAsInt(const JSON& obj, K key);
 
@@ -81,6 +84,11 @@ std::string JAsString(const nlohmann::json& obj, K key) {
 template <>
 inline float JAsFloat(const nlohmann::json& obj, const char* key) {
 	return obj[key].template get<float>();
+}
+
+template <>
+inline double JAsDouble(const nlohmann::json& obj, const char* key) {
+	return obj[key].template get<double>();
 }
 
 template <typename K>
