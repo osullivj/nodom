@@ -309,6 +309,7 @@ struct Static {
 	// CacheDataType
 	inline static const char* cdt_int_cs{ "cdInt" };
 	inline static const char* cdt_float_cs{ "cdFloat" };
+	inline static const char* cdt_double_cs{ "cdDouble" };
 	inline static const char* cdt_bool_cs{ "cdBool" };
 	inline static const char* cdt_str_cs{ "cdStr" };
 	inline static const char* cdt_int_vec_cs{ "cdIntVec" };
