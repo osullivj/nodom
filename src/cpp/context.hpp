@@ -697,13 +697,26 @@ protected:
         return dflt;
     }
 
-    const char* cspec_double(CacheSpecifier spec, StrValMap& str_val_map, const char* dflt) {
-        auto cs_str_iter = str_val_map.find(spec);
-        if (cs_str_iter != str_val_map.end()) {
-            StrInx text_inx{ cs_str_iter->second };
-            return data_lay_cache.template get_string_value<StrInx>(text_inx);
+    double* cspec_double(CacheSpecifier spec, DoubleValMap& dbl_val_map, double* target = nullptr) {
+        auto cs_dbl_iter = dbl_val_map.find(spec);
+        if (cs_dbl_iter != dbl_val_map.end()) {
+            DoubleInx dbl_inx{ cs_dbl_iter->second };
+            double* rv = data_lay_cache.get_double_value(dbl_inx);
+            if (target != nullptr && rv != nullptr) *target = *rv;
+            return rv;
         }
-        return dflt;
+        return nullptr;
+    }
+
+    float* cspec_float(CacheSpecifier spec, FloatValMap& flt_val_map, float* target = nullptr) {
+        auto cs_flt_iter = flt_val_map.find(spec);
+        if (cs_flt_iter != flt_val_map.end()) {
+            FloatInx flt_inx{ cs_flt_iter->second };
+            float* rv = data_lay_cache.get_float_value(flt_inx);
+            if (target != nullptr && rv != nullptr) *target = *rv;
+            return rv;
+        }
+        return nullptr;
     }
 
     DataRef* cspec_data_ref(CacheSpecifier spec, DataRefMap& data_ref_map) {
@@ -725,6 +738,12 @@ protected:
             break;
         case RenderMethod::InputInt:
             render_input_int(w);
+            break;
+        case RenderMethod::InputDouble:
+            render_input_double(w);
+            break;
+        case RenderMethod::InputString:
+            render_input_string(w);
             break;
         case RenderMethod::Combo:
             render_combo(w);
