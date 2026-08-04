@@ -278,6 +278,8 @@ inline const char* CDTToString(CacheDataType cdt) {
         return Static::cdt_int_cs;
     case cdFloat:
         return Static::cdt_float_cs;
+    case cdDouble:
+        return Static::cdt_double_cs;
     case cdBool:
         return Static::cdt_bool_cs;
     case cdStr:
@@ -300,6 +302,8 @@ inline CacheDataType CDTFromString(const std::string& ctype) {
         return cdInt;
     if (ctype == Static::cdt_float_cs)
         return cdFloat;
+    if (ctype == Static::cdt_double_cs)
+        return cdDouble;
     if (ctype == Static::cdt_bool_cs)
         return cdBool;
     if (ctype == Static::cdt_str_cs)
