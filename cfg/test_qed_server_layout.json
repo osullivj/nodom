@@ -1,0 +1,34 @@
+ [
+    {
+      "children": [
+       {
+          "cspec": {
+            "cname": "dbl"
+          },
+          "rname": "InputDouble"
+        },
+        {
+          "cspec": {
+            "cname": "str"
+          },
+          "rname": "InputString"
+        }
+      ],
+      "cspec": {
+        "title": "Query Editor"
+      },
+      "rname": "Home"
+    },
+    {
+      "cspec": {
+        "body_font": "CourierNew",
+        "cname": "loading_message",
+        "spinner_radius": 20,
+        "spinner_thickness": 4,
+        "title": "Loading...",
+        "title_font": "Arial"
+      },
+      "rname": "LoadingModal",
+      "widget_id": "loading_modal"
+    }
+  ]

@@ -1,0 +1,5 @@
+{
+ "dbl" : 0.1,
+ "str" : "Please edit me!",
+ "loading_message":["Loading QueryEditor..."]
+}
