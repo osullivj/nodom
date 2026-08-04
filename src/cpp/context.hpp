@@ -1205,7 +1205,9 @@ protected:
         const char* cname = data_lay_cache.get_addr_value(addr);
         const char* label = cspec_string(cs_label, w->cspec_str, cname);
 
-        if (ImGui::InputText(label, w->buffer, flags)) {
+        // returns true on every change, not just when edit done
+        ImGui::InputText(label, w->buffer, bufsz, flags);
+        if (ImGui::IsItemDeactivatedAfterEdit()) {
             // TODO: end_render_cycle
             if (std::string_view(cptr) != std::string_view(w->buffer)) {
                 notify_server(str_data_ref, cptr, w->buffer);
