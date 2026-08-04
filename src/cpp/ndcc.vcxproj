@@ -165,6 +165,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\lib\fmt\src\format.cc" />
+    <ClCompile Include="..\..\lib\imgui\imgui.cpp" />
+    <ClCompile Include="..\..\lib\imgui\imgui_demo.cpp" />
+    <ClCompile Include="..\..\lib\imgui\imgui_draw.cpp" />
+    <ClCompile Include="..\..\lib\imgui\imgui_tables.cpp" />
+    <ClCompile Include="..\..\lib\imgui\imgui_widgets.cpp" />
     <ClCompile Include="main_ndcc.cpp" />
     <ClCompile Include="nd_utils.cpp" />
   </ItemGroup>
