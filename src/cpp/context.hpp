@@ -1273,10 +1273,9 @@ protected:
         assert(cptr != nullptr);
         assert(w->buffer != nullptr);
 
-        // cp the cached str at cptr into widget buffer
-        int bufsz{ 0 };
-        cspec_int(cs_buffer_size, w->cspec_int, &bufsz);
-        strncpy(w->buffer, cptr, bufsz);
+        // if widget buffer not init, cp the cached str in
+        if (w->buffer_not_set())
+            w->set_buffer(cptr);
 
         // get hold of the cname addr to use as default label value
         AddrInx addr{ str_data_ref->addr_inx };
@@ -1284,11 +1283,12 @@ protected:
         const char* label = cspec_string(cs_label, w->cspec_str, cname);
 
         // returns true on every change, not just when edit done
-        ImGui::InputText(label, w->buffer, bufsz, flags);
+        ImGui::InputText(label, w->buffer, w->buffer_size, flags);
         // TODO: end_render_cycle
         if (ImGui::IsItemDeactivatedAfterEdit()) {
             if (std::string_view(cptr) != std::string_view(w->buffer)) {
                 notify_server(str_data_ref, cptr, w->buffer);
+                w->clear_buffer();
             }
         }
     }
