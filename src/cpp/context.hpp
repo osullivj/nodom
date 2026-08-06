@@ -824,6 +824,9 @@ protected:
         case RenderMethod::InputString:
             render_input_string(w);
             break;
+        case RenderMethod::InputTextArea:
+            render_input_text_area(w);
+            break;
         case RenderMethod::Combo:
             render_combo(w);
             break;
@@ -1302,6 +1305,50 @@ protected:
         }
     }
 
+    void render_input_text_area(WidgetPtr w) {
+        // const static char* method = "NDContext::render_input_text_area: ";
+
+        int flags = 0;
+        cspec_int(cs_flags, w->cspec_int, &flags);
+
+        DataRef* str_data_ref = cspec_data_ref(cs_cname, w->data_refs);
+        assert(str_data_ref != nullptr);
+        assert(str_data_ref->tipe == cdStr);
+        StrInx sinx{ str_data_ref->ref_inx };
+        const char* cptr = data_lay_cache.get_string_value(sinx);
+        assert(cptr != nullptr);
+        assert(w->buffer != nullptr);
+
+        // if widget buffer not init, cp the cached str in
+        if (w->buffer_not_set())
+            w->set_buffer(cptr);
+
+        // get hold of the cname addr to use as default label value
+        AddrInx addr{ str_data_ref->addr_inx };
+        const char* cname = data_lay_cache.get_addr_value(addr);
+        const char* label = cspec_string(cs_label, w->cspec_str, cname);
+
+        // returns true on every change, not just when edit done
+        ImGui::InputTextMultiline(label, w->buffer, w->buffer_size,
+            ImVec2(-FLT_MIN, ImGui::GetTextLineHeight() * 16), flags);
+
+        // TODO: end_render_cycle
+        if (ImGui::IsItemDeactivatedAfterEdit()) {
+            if (std::string_view(cptr) != std::string_view(w->buffer)) {
+                notify_server(str_data_ref, cptr, w->buffer);
+                // in render_input_int() and render_input_double()
+                // DLC gives the render meth a ptr to the DLC's copy.
+                // Obv strings are not the same, and we have to complete
+                // the copying from widget buffer to DLC at the end of
+                // the edit, so that the next visit here won't copy the
+                // old value over the edit result because clear_buffer()
+                // results in buffer_not_set() being true, and then
+                // pre edit copy overwrites the old val.
+                data_lay_cache.update_string(str_data_ref->ref_inx, w->buffer);
+                w->clear_buffer();
+            }
+        }
+    }
 
     void render_combo(WidgetPtr w) {
         const static char* method = "NDContext::render_combo: ";
