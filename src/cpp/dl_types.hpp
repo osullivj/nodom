@@ -101,6 +101,30 @@ struct NDWidget {
             free(buffer);
     }
 
+    inline void alloc_buffer(int sz) {
+        buffer_size = sz;
+        buffer = (char*)malloc(buffer_size);
+        assert(buffer);
+        memset(buffer, 0, buffer_size);
+    }
+
+    inline void clear_buffer() {
+        if (buffer != nullptr)
+            memset(buffer, 0, buffer_size);
+    }
+
+    inline void set_buffer(const char* v) {
+        if (buffer != nullptr)
+            strncpy(buffer, v, buffer_size);
+    }
+
+    // return true if there is a buffer and it's not init
+    inline bool buffer_not_set() {
+        if (buffer == nullptr)
+            return false;
+        return buffer[0] == 0;
+    }
+
     RenderMethod    rname{ EndRenderMethod };
     EntityInx       widget_inx;
     IntValMap       cspec_int;
@@ -110,6 +134,7 @@ struct NDWidget {
     StrValMap       cspec_str;
     DataRefMap      data_refs;
     char*           buffer{ nullptr }; // eg render_input_string
+    int             buffer_size{ 0 };
     std::vector<std::shared_ptr<NDWidget>>  children;
 };
 using WidgetPtr = std::shared_ptr<NDWidget>;
