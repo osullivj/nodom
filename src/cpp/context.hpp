@@ -3,6 +3,7 @@
 #include <map>
 #include <queue>
 #include <functional>
+#include <ios>
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "implot.h"
@@ -480,11 +481,18 @@ public:
         ws_send(msgbuf.str());
     }
 
-    // void notify_server(const std::string& caddr, JSON& old_val, JSON& new_val) {
-    template <typename V, typename W>
-    void notify_server(DataRef* dref, V& old_val, W& new_val) {
+    // We used to have two notify_server methods declared like so...
+    // template <typename V, typename W>
+    // void notify_server(DataRef* dref, V& old_val, W& new_val)
+    // template <typename V, typename W>
+    // void notify_server(DataRef* dref, V& old_val, W* new_val)
+    // Which means we don't know the type at "coding time" in the method
+    // even though we have all type info at the call site, and at compile
+    // time. We do need that info because we have to distinguish between
+    // int:0 and dbl:0; we need formatting to produce dbl:0.0.
+    void notify_server(DataRef* dref, JSON& old_val, JSON& new_val) {
 
-        const static char* method = "NDContext::notify_server: ";
+        const static char* method = "NDContext::notify_server_json: ";
 
         const char* addr = data_lay_cache.get_addr_value(dref->addr_inx);
         const char* tipe = CDTToString(dref->tipe);
@@ -496,19 +504,17 @@ public:
         // as we know they're strings. For new_val and old_val
         // we rely on operator<< which is supplied by
         // nlohmann::json. For emscripten::val we use our own
-        // operator<< from dl_cache.hpp.
+        // operator<< from json_ops.hpp
         msgbuf << "{ \"" << Static::nd_type_cs << "\":\"" << Static::data_change_cs << "\",\""
             << Static::cache_key_cs << "\":\"" << addr << "\",\""
             << Static::new_value_cs << "\":" << new_val << ",\""
-
             << Static::old_value_cs << "\":" << old_val << "}";
         ws_send(msgbuf.str());
     }
 
-    template <typename V, typename W>
-    void notify_server(DataRef* dref, V& old_val, W* new_val) {
+    void notify_server(DataRef* dref, bool& old_val, bool* new_val) {
 
-        const static char* method = "NDContext::notify_server: ";
+        const static char* method = "NDContext::notify_server_bool: ";
 
         const char* addr = data_lay_cache.get_addr_value(dref->addr_inx);
         const char* tipe = CDTToString(dref->tipe);
@@ -516,11 +522,7 @@ public:
             << ", old: " << old_val << ", new: " << *new_val << std::endl;
 
         std::stringstream msgbuf;
-        // We supply wrapping "" for data_change_cs and caddr
-        // as we know they're strings. For new_val and old_val
-        // we rely on operator<< which is supplied by
-        // nlohmann::json. For emscripten::val we use our own
-        // operator<< from dl_cache.hpp.
+        // JSON impls will print true or false. No wrapping quotes needed.
         msgbuf << "{ \"" << Static::nd_type_cs << "\":\"" << Static::data_change_cs << "\",\""
             << Static::cache_key_cs << "\":\"" << addr << "\",\""
             << Static::new_value_cs << "\":" << *new_val << ",\""
@@ -528,6 +530,83 @@ public:
         ws_send(msgbuf.str());
     }
 
+    void notify_server(DataRef* dref, int& old_val, int* new_val) {
+
+        const static char* method = "NDContext::notify_server_int: ";
+
+        const char* addr = data_lay_cache.get_addr_value(dref->addr_inx);
+        const char* tipe = CDTToString(dref->tipe);
+        std::cout << method << "type:" << tipe << ", addr:" << addr
+            << ", old: " << old_val << ", new: " << *new_val << std::endl;
+
+        std::stringstream msgbuf;
+        // JSON impls will print an int. No wrapping quotes needed.
+        msgbuf << "{ \"" << Static::nd_type_cs << "\":\"" << Static::data_change_cs << "\",\""
+            << Static::cache_key_cs << "\":\"" << addr << "\",\""
+            << Static::new_value_cs << "\":" << *new_val << ",\""
+            << Static::old_value_cs << "\":" << old_val << "}";
+        ws_send(msgbuf.str());
+    }
+
+    void notify_server(DataRef* dref, double& old_val, double* new_val) {
+
+        const static char* method = "NDContext::notify_server_int: ";
+
+        const char* addr = data_lay_cache.get_addr_value(dref->addr_inx);
+        const char* tipe = CDTToString(dref->tipe);
+        std::cout << method << "type:" << tipe << ", addr:" << addr
+            << ", old: " << old_val << ", new: " << *new_val << std::endl;
+
+        std::stringstream msgbuf;
+        // JSON impls will print a dbl, unless it's an int as well. For
+        // example 1.0===1. We need to ensure the decimal place is present
+        // so the value isn't interpreted as an int.
+        msgbuf << "{ \"" << Static::nd_type_cs << "\":\"" << Static::data_change_cs << "\",\""
+            << Static::cache_key_cs << "\":\"" << addr << "\",\""
+            << Static::new_value_cs << "\":" << std::showpoint << *new_val << ",\""
+            << Static::old_value_cs << "\":" << old_val << "}" << std::noshowpoint;
+        ws_send(msgbuf.str());
+    }
+
+    void notify_server(DataRef* dref, const char* old_val, const char* new_val) {
+
+        const static char* method = "NDContext::notify_server_int: ";
+
+        const char* addr = data_lay_cache.get_addr_value(dref->addr_inx);
+        const char* tipe = CDTToString(dref->tipe);
+        std::cout << method << "type:" << tipe << ", addr:" << addr
+            << ", old: " << old_val << ", new: " << new_val << std::endl;
+
+        std::stringstream msgbuf;
+        // JSON impls will print a dbl, unless it's an int as well. For
+        // example 1.0===1. We need to ensure the decimal place is present
+        // so the value isn't interpreted as an int.
+        msgbuf << "{ \"" << Static::nd_type_cs << "\":\"" << Static::data_change_cs << "\",\""
+            << Static::cache_key_cs << "\":\"" << addr << "\",\""
+            << Static::new_value_cs << "\":" << *new_val << ",\""
+            << Static::old_value_cs << "\":" << *old_val << "}" << std::noshowpoint;
+        ws_send(msgbuf.str());
+    }
+
+    void notify_server(DataRef* dref, YMD& old_val, YMD& new_val) {
+
+        const static char* method = "NDContext::notify_server_ymd: ";
+
+        const char* addr = data_lay_cache.get_addr_value(dref->addr_inx);
+        const char* tipe = CDTToString(dref->tipe);
+        std::cout << method << "type:" << tipe << ", addr:" << addr
+            << ", old: " << old_val << ", new: " << new_val << std::endl;
+
+        std::stringstream msgbuf;
+        // JSON impls will print a dbl, unless it's an int as well. For
+        // example 1.0===1. We need to ensure the decimal place is present
+        // so the value isn't interpreted as an int.
+        msgbuf << "{ \"" << Static::nd_type_cs << "\":\"" << Static::data_change_cs << "\",\""
+            << Static::cache_key_cs << "\":\"" << addr << "\",\""
+            << Static::new_value_cs << "\":" << new_val << ",\""
+            << Static::old_value_cs << "\":" << old_val << "}" << std::noshowpoint;
+        ws_send(msgbuf.str());
+    }
 
     void dispatch_events(std::queue<JSON>& events) {
         const static char* method = "NDContext::dispatch_events: ";
@@ -1247,7 +1326,7 @@ protected:
             int new_val = *combo_index;
             // TODO: refactor to pending_action
             if (old_val != new_val) {
-                notify_server(combo_inx_data_ref, old_val, new_val);
+                notify_server(combo_inx_data_ref, old_val, combo_index);
             }
         }
     }
