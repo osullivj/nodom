@@ -148,6 +148,7 @@ enum RenderMethod : uint32_t {
     InputInt,   // Native widgets
     InputDouble,
     InputString,
+    InputTextArea,
     Combo,
     Checkbox,
     Text,
