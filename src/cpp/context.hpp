@@ -1288,6 +1288,15 @@ protected:
         if (ImGui::IsItemDeactivatedAfterEdit()) {
             if (std::string_view(cptr) != std::string_view(w->buffer)) {
                 notify_server(str_data_ref, cptr, w->buffer);
+                // in render_input_int() and render_input_double()
+                // DLC gives the render meth a ptr to the DLC's copy.
+                // Obv strings are not the same, and we have to complete
+                // the copying from widget buffer to DLC at the end of
+                // the edit, so that the next visit here won't copy the
+                // old value over the edit result because clear_buffer()
+                // results in buffer_not_set() being true, and then
+                // pre edit copy overwrites the old val.
+                data_lay_cache.update_string(str_data_ref->ref_inx, w->buffer);
                 w->clear_buffer();
             }
         }
