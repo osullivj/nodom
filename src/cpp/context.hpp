@@ -550,7 +550,7 @@ public:
 
     void notify_server(DataRef* dref, double& old_val, double* new_val) {
 
-        const static char* method = "NDContext::notify_server_int: ";
+        const static char* method = "NDContext::notify_server_dbl: ";
 
         const char* addr = data_lay_cache.get_addr_value(dref->addr_inx);
         const char* tipe = CDTToString(dref->tipe);
@@ -570,7 +570,7 @@ public:
 
     void notify_server(DataRef* dref, const char* old_val, const char* new_val) {
 
-        const static char* method = "NDContext::notify_server_int: ";
+        const static char* method = "NDContext::notify_server_str: ";
 
         const char* addr = data_lay_cache.get_addr_value(dref->addr_inx);
         const char* tipe = CDTToString(dref->tipe);
@@ -583,8 +583,8 @@ public:
         // so the value isn't interpreted as an int.
         msgbuf << "{ \"" << Static::nd_type_cs << "\":\"" << Static::data_change_cs << "\",\""
             << Static::cache_key_cs << "\":\"" << addr << "\",\""
-            << Static::new_value_cs << "\":\"" << *new_val << "\",\""
-            << Static::old_value_cs << "\":\"" << *old_val << "\"}";
+            << Static::new_value_cs << "\":\"" << new_val << "\",\""
+            << Static::old_value_cs << "\":\"" << old_val << "\"}";
         ws_send(msgbuf.str());
     }
 
@@ -1308,6 +1308,9 @@ protected:
         // Static storage for the combo list. NB single GUI thread!
         // No malloc at runtime, but we will clear the array with a memset
         // on each visit. JOS 2025-01-26
+        // TODO: refactor away from local static storage to
+        // wudget->buffer. buffer_size attr will free us from
+        // ND_MAX_COMBO_LIST
         static const char* cs_combo_list[ND_MAX_COMBO_LIST];
         memset(cs_combo_list, 0, ND_MAX_COMBO_LIST * sizeof(char*));
 
