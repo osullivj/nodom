@@ -583,8 +583,8 @@ public:
         // so the value isn't interpreted as an int.
         msgbuf << "{ \"" << Static::nd_type_cs << "\":\"" << Static::data_change_cs << "\",\""
             << Static::cache_key_cs << "\":\"" << addr << "\",\""
-            << Static::new_value_cs << "\":" << *new_val << ",\""
-            << Static::old_value_cs << "\":" << *old_val << "}" << std::noshowpoint;
+            << Static::new_value_cs << "\":\"" << *new_val << "\",\""
+            << Static::old_value_cs << "\":\"" << *old_val << "\"}";
         ws_send(msgbuf.str());
     }
 
@@ -1222,8 +1222,7 @@ protected:
         const char* label = cspec_string(cs_label, w->cspec_str, cname);
 
         ImGui::InputInt(label, int_ptr, step, step_fast, flags);
-        // TODO: refactor to pending action
-        // copy local copy back into cache
+        // int editting doesn't produce so much jitter as str
         if (*int_ptr != old_val) {
             notify_server(int_data_ref, old_val, int_ptr);
         }
@@ -1286,8 +1285,8 @@ protected:
 
         // returns true on every change, not just when edit done
         ImGui::InputText(label, w->buffer, bufsz, flags);
+        // TODO: end_render_cycle
         if (ImGui::IsItemDeactivatedAfterEdit()) {
-            // TODO: end_render_cycle
             if (std::string_view(cptr) != std::string_view(w->buffer)) {
                 notify_server(str_data_ref, cptr, w->buffer);
             }
