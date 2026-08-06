@@ -12,6 +12,7 @@ struct Static {
 	inline static const char* rm_input_int_cs{ "InputInt" };	// Native
 	inline static const char* rm_input_double_cs{ "InputDouble" };
 	inline static const char* rm_input_string_cs{ "InputString" };
+	inline static const char* rm_input_text_area_cs{ "InputTextArea" };
 	inline static const char* rm_combo_cs{ "Combo" };
 	inline static const char* rm_checkbox_cs{ "Checkbox" };
 	inline static const char* rm_text_cs{ "Text" };
