@@ -1014,8 +1014,8 @@ public:
         switch (w->rname) {
         case InputString:
             pbuf = cspec_int(cs_buffer_size, w->cspec_int, &buffer_size);
-            if (pbuf != nullptr) {
-                w->buffer = (char*)malloc(buffer_size);
+            if (pbuf != nullptr) {  // cspec:cs_buffer_size value supplied
+                w->alloc_buffer(buffer_size);
                 memset(w->buffer, 0, buffer_size);
             }
             return true;
