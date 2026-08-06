@@ -113,7 +113,6 @@ public:
         return DataCacheIndex<itype, CDT::cdStr>((uint32_t)cache_strings.size() - 1, stype);
     }
 
-protected:
     void update_string(uint32_t inx, const std::string& val) {
         if (inx >= cache_strings.size())
             throw std::runtime_error("NoDOM BAD_ADDR:update_string:"
@@ -122,6 +121,7 @@ protected:
         fp_char_ptrs[inx] = cache_strings[inx].c_str();
     }
 
+protected:
     IntInx get_int_index(int value) {
         // create storage for an int value, and FP ptr too
         cache_ints.push_back(value);
