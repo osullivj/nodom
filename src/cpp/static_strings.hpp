@@ -86,6 +86,7 @@ struct Static {
 	inline static const char* menu_item_cs{ "menuitem" };
 	inline static const char* menu_pop_cs{ "menupop" };
 	inline static const char* buffer_size_cs{ "buffer_size" };
+	inline static const char* line_height_cs{ "line_height" };
 	inline static const char* cspec_cs{ "cspec" };
 	inline static const char* cname_cs{ "cname" };
 	inline static const char* qname_cs{ "qname" };
