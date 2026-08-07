@@ -1,14 +1,11 @@
 #pragma once
-#include <string>
-#include <map>
-#include <queue>
 #include <functional>
 #include <ios>
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "implot.h"
 #include "imgui_memory_editor.h"
-#include "locals.hpp"
+#include "locals.hpp"   // pulls in nd_types.hpp, dl_types.hpp
 #include "ufuncs.hpp"
 #include "widgets.hpp"
 #include "db_cache.hpp"
@@ -134,6 +131,7 @@ private:
     EventInx    einx_FunctionAsync;             // CST::SubSysEvent
     EventInx    einx_FunctionResult;            // CST::SubSysEvent
     EventInx    einx_Invalid;                   // !init->OH_FECK
+
 
     bool  footer_show_db{ false };
     bool  footer_show_fps{ false };
@@ -299,6 +297,7 @@ public:
         einx_FunctionSync = data_lay_cache.template get_string_index<CIT::Event>(Static::function_sync_cs, CST::SubSysEvent);
         einx_FunctionAsync = data_lay_cache.template get_string_index<CIT::Event>(Static::function_async_cs, CST::SubSysEvent);
         einx_FunctionResult = data_lay_cache.template get_string_index<CIT::Event>(Static::function_result_cs, CST::SubSysEvent);
+
 
         data_lay_cache.report_cache_state();
         size_t dlc_error_count = data_lay_cache.error_count();
