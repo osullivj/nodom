@@ -1167,6 +1167,7 @@ private:
         cdStr,      // cs_menu_item
         cdStr,      // cs_menu_pop
         cdInt,      // cs_buffer_size
+        cdInt,      // cs_line_height
         cdBool,     // cs_show_footer_db
         cdBool,     // cs_show_footer_fps
         cdBool,     // cs_show_footer_demo
@@ -1186,7 +1187,7 @@ private:
         {InputInt, {cs_label, cs_step, cs_step_fast, cs_flags, cs_tooltip}},
         {InputDouble, {cs_label, cs_step, cs_step_fast, cs_format, cs_flags, cs_tooltip}},
         {InputString, {cs_label, cs_flags, cs_tooltip, cs_buffer_size}},
-        {InputTextArea, {cs_label, cs_flags, cs_tooltip, cs_buffer_size}},
+        {InputTextArea, {cs_label, cs_flags, cs_tooltip, cs_buffer_size, cs_line_height}},
         {Combo, {cs_label, cs_step, cs_tooltip}},
         {Checkbox, {cs_label, cs_tooltip}},
         {Text, {cs_text}},
@@ -1225,6 +1226,9 @@ private:
         {InputInt, {{cs_cname, cdInt}}},
         {InputDouble, {{cs_cname, cdDouble}}},
         {InputString, {{cs_cname, cdStr}}},
+        {InputTextArea, {
+            {cs_cname, cdStr},          // optional
+        }},
         {Combo, {
             {cs_cindex, cdInt},
             {cs_cname, cdStrVec}
