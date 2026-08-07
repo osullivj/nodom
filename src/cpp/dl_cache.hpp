@@ -58,6 +58,8 @@ protected:
     StringVec                           bad_data_refs;
     StringVec                           layout_errors;
 
+    std::map<std::string, AddrInx>      operand_map;
+
     // EntityIDs created as QueryIDs.
     std::map<std::string, EntityInx>    query_map;
     std::map<std::string, EntityInx>    widget_map;
@@ -89,6 +91,8 @@ protected:
     std::map<std::string, EntityInx>    js_func_entity_map;
     std::map<EntityInx, uint32_t>       js_func_inx_map;
     StringVec                           js_func_vec;
+
+    AddrInx     ainx_OpIndex;
 
 public:
     template <CIT itype>
@@ -170,21 +174,52 @@ protected:
 
     void clear() {
         fp_float_ptrs.clear();
+        fp_double_ptrs.clear();
         fp_int_ptrs.clear();
         fp_char_ptrs.clear();
+        fp_bool_ptrs.clear();
+
         cache_strings.clear();
         cache_ints.clear();
         cache_floats.clear();
+        cache_doubles.clear();
+        // cache_bools.clear();
+
         widget_vec.clear();
         pushables.clear();
+        noop_widget.reset();
+
         action_map.clear();
         action_interned_map.clear();
         action_error_map.clear();
         bad_action_keys.clear();
+        action_errors.clear();
+
         address_map.clear();
+        data_ref_map.clear();
+
         bad_addrs.clear();
         bad_data_refs.clear();
         layout_errors.clear();
+
+        operand_map.clear();
+        query_map.clear();
+        widget_map.clear();
+        buffer_map.clear();
+
+        menuitem_entity_map.clear();
+        menuitem_data_ref_map.clear();
+
+        menu_address_map.clear();
+        menu_data_ref_map.clear();
+
+        js_func_entity_map.clear();
+        js_func_inx_map.clear();
+        js_func_vec.clear();
+    }
+
+    void init() {
+        ainx_OpIndex = add_operand(Static::ndfop_index_cs);
     }
 
     void parse_actions(const JSON& data, const JSON& action_seq, ActionVec& nd_action_vec, ActionInternVec& act_intern_vec, ActionErrorVec& act_error_vec) {
@@ -429,6 +464,31 @@ protected:
         }
     }
 
+    bool compile_forth(WidgetPtr w, CacheSpecifier spec, const std::string& forth_source) {
+        std::stringstream forth_stream{ forth_source };
+        std::string token;
+        // yes, we're creating a new ForthLambda
+        // ND not on a hotpath
+        ForthLambda& lambda{ w->ndf_lambda_map[spec] };
+        while (std::getline(forth_stream, token, Static::space_c)) {
+            if (operand_map.find(token) != operand_map.end()) {
+                lambda.push_back(operand_map[token]);
+            }
+            else if (address_map.find(token) != address_map.end()) {
+                lambda.push_back(address_map[token]);
+            }
+            else {
+                bad_data_refs.push_back(token);
+                std::stringstream ss;
+                ss << "FORTH_CSPEC(" << token << ") in cspec:"
+                    << spec << ", does not compile for " << render_names[w->rname];
+                layout_errors.push_back(ss.str());
+                return false;
+            }
+        }
+        return true;
+    }
+
     void orthogonalize_cspec(const JSON& cspec, const JSON& data, WidgetPtr widget) {
         // TODO: add exception handling to catch type mismatches...
         // 
@@ -439,9 +499,6 @@ protected:
             CacheSpecifier spec{ *cit };
             CacheDataType value_type = get_cspec_type(spec, widget->rname);
             const char* value_name = cspec_names[spec];
-            if (spec == cs_buffer_size) {
-                int a{ 10 };
-            }
             if (JContains(cspec, value_name)) {
                 switch (value_type) {
                 case cdInt:
@@ -508,7 +565,6 @@ protected:
             auto amit = address_map.find(addr_or_qid);
             auto memit = menu_address_map.find(addr_or_qid);
             EntityInx query_inx = get_query_id(addr_or_qid);
-
             // query_id data_refs do not have a [menu_]address_map entry,
             //      but must have a valid EntityInx, which should have
             //      been created by on_data() when it parses ActionKeys
@@ -520,6 +576,11 @@ protected:
                     ref_name == Static::cindex_cs||
                     ref_name == Static::xname_cs ||
                     ref_name == Static::yname_cs) {
+                    // before we error check it's not an NDF Lambda
+                    if (ref_name == Static::cname_cs) {
+                        if (compile_forth(widget, spec, addr_or_qid))
+                            continue;
+                    }
                     bad_data_refs.push_back(ref_name);
                     std::stringstream ss;
                     ss << "BAD_DATA_REF(" << ref_name << "/" << addr_or_qid << ") not address mapped in cspec:";
@@ -727,9 +788,11 @@ public:
 
     void on_json(const JSON& data, const JSON& layout, VVFunc on_init) {
         clear();
+        init();
         on_data(data);
         on_layout(data, layout);
-        if (on_init) on_init();
+        if (on_init)
+            on_init();
     }
 
     void on_data_change(const std::string& addr, const JSON& dc) {
@@ -875,6 +938,12 @@ public:
     AddrInx add_address(const std::string& addr) {
         AddrInx ainx = get_string_index<CIT::Address>(addr);
         address_map[addr] = ainx;
+        return ainx;
+    }
+
+    AddrInx add_operand(const std::string& op) {
+        AddrInx ainx = get_string_index<CIT::Address>(op);
+        operand_map[op] = ainx;
         return ainx;
     }
 
