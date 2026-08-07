@@ -185,6 +185,8 @@ struct Static {
 	inline static const char* function_async_cs{ "FunctionAsync" };
 	inline static const char* function_result_cs{ "FunctionResult" };
 
+	// NDF (NoDOM Forth) operands
+	inline static const char* ndfop_index_cs{ "[]" };
 
 	inline static const char* gui_cs{ "GUI" };
 	inline static const char* websock_cs{ "WebSock" };
@@ -268,6 +270,7 @@ struct Static {
 	// fast path cache variables
 	inline static const char underscore_c{ '_' };
 	inline static const char period_c{ '.' };
+	inline static const char space_c{ ' ' };
 	inline static const char* font_scale_dpi_cs{ "font_scale_dpi" };
 	inline static const char* _font_scale_dpi_cs{ "_font_scale_dpi" };
 	inline static const char* _font_scale_main_cs{ "_font_scale_main" };
