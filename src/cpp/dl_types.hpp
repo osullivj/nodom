@@ -133,6 +133,8 @@ struct NDWidget {
     DoubleValMap    cspec_double;
     StrValMap       cspec_str;
     DataRefMap      data_refs;
+    ForthMap        ndf_lambda_map;
+    ForthMap        ndf_result_map;
     char*           buffer{ nullptr }; // eg render_input_string
     int             buffer_size{ 0 };
     std::vector<std::shared_ptr<NDWidget>>  children;
