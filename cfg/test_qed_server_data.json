@@ -1,5 +1,9 @@
 {
- "dbl" : 0.1,
- "str" : "Please edit me!",
+ "queries" :[
+   "BEGIN; DROP TABLE IF EXISTS depth; CREATE TABLE depth as select * from read_parquet(%s); COMMIT;",
+   "select * from depth where LastTradeSize!=0 and AskQty5!=0 and BidQty5!=0 order by SeqNo;",
+   "summarize select * from depth;"
+ ],
+ "selected_query" : 0,
  "loading_message":["Loading QueryEditor..."]
 }

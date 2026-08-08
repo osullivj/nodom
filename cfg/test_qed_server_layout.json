@@ -3,15 +3,18 @@
       "children": [
        {
           "cspec": {
-            "cname": "dbl"
+            "cname": "queries",
+            "cindex": "selected_query",
+            "label": "Query"
           },
-          "rname": "InputDouble"
+          "rname": "Combo"
         },
         {
           "cspec": {
-            "cname": "str"
+            "cname": "queries selected_query []",
+            "buffer_size":64
           },
-          "rname": "InputString"
+          "rname": "InputTextArea"
         }
       ],
       "cspec": {
