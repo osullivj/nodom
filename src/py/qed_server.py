@@ -22,7 +22,7 @@ NDAPP = "qed_server"
 
 logr = nd_utils.init_logging(NDAPP, console=True)
 
-ADDITION_LAYOUT = [
+QED_LAYOUT = [
     dict(
         rname="Home",
         cspec=dict(
@@ -31,9 +31,17 @@ ADDITION_LAYOUT = [
         ),
         children=[
             dict(rname="PushFont", cspec=dict(font="CourierNew")),
-            dict(rname="InputDouble", cspec=dict(cname="dbl")),
-            dict(rname="InputString", cspec=dict(cname="str",
-                                                buffer_size=64)),
+            dict(
+                rname="Combo",
+                cspec=dict(
+                    cname="queries",
+                    cindex="selected_query",
+                    label="Query",
+                ),
+            ),
+            dict(rname="InputTextArea", cspec=dict(
+                cname="queries selected_query []",
+                buffer_size=64)),
             dict(rname="Separator", cspec=dict()),
             dict(rname="PopFont"),
             dict(rname="PushFont", cspec=dict(font="Arial", font_size=8)),
@@ -43,11 +51,8 @@ ADDITION_LAYOUT = [
                     db=True,
                     fps=True,
                     demo=True,
-                    id_stack=True,
-                    memory=True,
                     font_scale=True,
                     style=True,
-                    dlc=True,
                 ),
             ),
             dict(rname="Spacing", cspec=dict()),
@@ -56,10 +61,10 @@ ADDITION_LAYOUT = [
         ],
     ),
     dict(
-        widget_id="menu_modal",
+        widget_id="qed_modal",
         rname="LoadingModal",
         cspec=dict(
-            title="Menu modal...",
+            title="QED modal...",
             title_font="Arial",
             body_font="CourierNew",
             cname="loading_message",
@@ -69,11 +74,19 @@ ADDITION_LAYOUT = [
     ),
 ]
 
+SCAN_SQL = "BEGIN; DROP TABLE IF EXISTS depth; CREATE TABLE depth as select * from read_parquet(%s); COMMIT;"
+QUERY_SQL = "select * from depth where LastTradeSize!=0 and AskQty5!=0 and BidQty5!=0 order by SeqNo;"
+SUMMARY_SQL = "summarize select * from depth;"
 
-ADDITION_DATA = dict(
-    dbl=0.1,
-    str="Edit me please!",
-    loading_message=["Loading..."],
+
+QED_DATA = dict(
+    queries=[
+        SCAN_SQL,
+        QUERY_SQL,
+        SUMMARY_SQL
+    ],
+    selected_query=0,
+    loading_message=["Loading queries..."],
 )
 
 
@@ -84,7 +97,7 @@ class QueryEditService(nd_utils.Service):
 
 
 # breadboard looks out for service at the module level
-service = QueryEditService(NDAPP, ADDITION_LAYOUT, ADDITION_DATA)
+service = QueryEditService(NDAPP, QED_LAYOUT, QED_DATA)
 
 # default to 8890 for http. Override to 443 for https
 define("port", default=8890, help="run on the given port", type=int)
