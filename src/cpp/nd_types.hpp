@@ -17,6 +17,7 @@
 using StringVec = std::vector<std::string>;
 using IntVec = std::vector<int>;
 using FloatVec = std::vector<float>;
+using DoubleVec = std::vector<double>;
 using StringStringMap = std::map<std::string, std::string>;
 using StringIntMap = std::map<std::string, int>;
 using StringSet = std::set<std::string>;
@@ -93,6 +94,7 @@ enum PixReportType : int32_t {
 void pix_init();
 void pix_fini();
 void pix_begin_render(int render_count);
+void pix_begin_post_render(int render_count);
 void pix_begin_dbase();
 void pix_end_event();
 void pix_report(PixReportType t, float val);
