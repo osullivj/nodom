@@ -4,6 +4,7 @@
 #include <map>
 #include <string>
 #include "static_strings.hpp"
+#include "nd_types.hpp"
 
 // cspec Property Groups
 // == Home: unique to Home, custom code
@@ -92,30 +93,38 @@ using MenuMap = std::map<AddrInx, DataRef>;
 struct NDWidget {
     NDWidget() = default;
     NDWidget(const NDWidget&) = default;
-    // NDWidget(RenderMethod meth, const std::string& wid)
     NDWidget(RenderMethod meth, EntityInx winx)
         :rname(meth), widget_inx(winx) { }
 
     ~NDWidget() {
         if (buffer != nullptr)
             free(buffer);
+        if (old_buffer != nullptr)
+            free(old_buffer);
     }
 
     inline void alloc_buffer(int sz) {
         buffer_size = sz;
         buffer = (char*)malloc(buffer_size);
+        old_buffer = (char*)malloc(buffer_size);
         assert(buffer);
+        assert(old_buffer);
         memset(buffer, 0, buffer_size);
+        memset(old_buffer, 0, buffer_size);
     }
 
     inline void clear_buffer() {
         if (buffer != nullptr)
+            memset(buffer, 0, buffer_size);
+        if (old_buffer != nullptr)
             memset(buffer, 0, buffer_size);
     }
 
     inline void set_buffer(const char* v) {
         if (buffer != nullptr)
             strncpy(buffer, v, buffer_size);
+        if (old_buffer != nullptr)
+            strncpy(old_buffer, v, buffer_size);
     }
 
     // return true if there is a buffer and it's not init
@@ -137,6 +146,12 @@ struct NDWidget {
     ForthMap        ndf_result_map;
     char*           buffer{ nullptr }; // eg render_input_string
     int             buffer_size{ 0 };
+    IntVec          old_int;
+    IntVec          old_bool;
+    FloatVec        old_float;
+    DoubleVec       old_double;
+    char*           old_buffer{ nullptr };
+    DataRef*        changed{ nullptr };
     std::vector<std::shared_ptr<NDWidget>>  children;
 };
 using WidgetPtr = std::shared_ptr<NDWidget>;
