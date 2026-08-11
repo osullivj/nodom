@@ -244,7 +244,7 @@ BOOST_FIXTURE_TEST_CASE(MinMenuBarDataAndLayout, DataCacheFixture)
     auto data = JParse<nlohmann::json>(min_menu_bar_data_cs);
     auto layout = JParse<nlohmann::json>(min_menu_bar_layout_cs);
 #endif
-    str_count = 10;
+    str_count = 11;
     dc.on_json(data, layout, [&]() { dc.on_init(); });
     // dump cache state before assertions...
     dc.report_cache_state();
@@ -267,7 +267,7 @@ BOOST_FIXTURE_TEST_CASE(MinMenuPopDataAndLayout, DataCacheFixture)
     auto data = JParse<nlohmann::json>(min_menu_pop_data_cs);
     auto layout = JParse<nlohmann::json>(min_menu_pop_layout_cs);
 #endif
-    str_count = 4;
+    str_count = 5;
     dc.on_json(data, layout, [&]() { dc.on_init(); });
     // dump cache state before assertions...
     dc.report_cache_state();
@@ -289,7 +289,7 @@ BOOST_FIXTURE_TEST_CASE(InitData, DataCacheFixture)
     auto layout = JParse<nlohmann::json>(Static::empty_list_cs);
 #endif
     // 3 addresses in AddServer test data
-    str_count = 6;
+    str_count = 7;
     dc.on_json(data, layout, [&]() {dc.on_init(); });
     BOOST_TEST(dc.addr_map_size() == 1);
     BOOST_TEST(dc.action_map_size() == 2);
@@ -305,7 +305,7 @@ BOOST_FIXTURE_TEST_CASE(InitLayout, DataCacheFixture)
     auto data = JParse<nlohmann::json>(Static::init_data_cs);
     auto layout = JParse<nlohmann::json>(Static::init_layout_cs);
 #endif
-    str_count = 9;
+    str_count = 10;
     dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.widget_vec_size() == 2);
     BOOST_TEST(dc.pushables_size() == 1);
@@ -321,7 +321,7 @@ BOOST_FIXTURE_TEST_CASE(InitDataAndLayout, DataCacheFixture)
     auto data = JParse<nlohmann::json>(Static::init_data_cs);
     auto layout = JParse<nlohmann::json>(Static::init_layout_cs);
 #endif
-    str_count = 9;
+    str_count = 10;
     dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.widget_vec_size() == 2);
     BOOST_TEST(dc.pushables_size() == 1);
@@ -340,7 +340,7 @@ BOOST_FIXTURE_TEST_CASE(AddServerData, DataCacheFixture)
     auto layout = JParse<nlohmann::json>(Static::empty_list_cs);
 #endif
     // 3 addresses in AddServer test data
-    str_count = 16;
+    str_count = 17;
     int_count = 4;
     dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.addr_map_size() == 5);
@@ -361,7 +361,7 @@ BOOST_FIXTURE_TEST_CASE(AddServerLayout, DataCacheFixture)
     std::string layout_json = load_json(layout_json_path.c_str());
     auto layout = JParse<nlohmann::json>(layout_json);
 #endif
-    str_count = 22;   // Layout:[Home::title], Data:[op1,op2,op1_plus_op2], and all NDAction too!
+    str_count = 23;   // Layout:[Home::title], Data:[op1,op2,op1_plus_op2], and all NDAction too!
     int_count = 14;   // Layout:["step":1, "step":2], Data:[op1,op2,op1_plus_op2]
     dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.widget_vec_size() == 2);
@@ -381,7 +381,7 @@ BOOST_FIXTURE_TEST_CASE(QedServerData, DataCacheFixture)
     auto layout = JParse<nlohmann::json>(Static::empty_list_cs);
 #endif
     // 3 addresses in AddServer test data
-    str_count = 3;
+    str_count = 4;
     int_count = 0;
     dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.addr_map_size() == 3);
@@ -402,7 +402,7 @@ BOOST_FIXTURE_TEST_CASE(QedServerLayout, DataCacheFixture)
     std::string layout_json = load_json(layout_json_path.c_str());
     auto layout = JParse<nlohmann::json>(layout_json);
 #endif
-    str_count = 10;   // 
+    str_count = 14;   // 
     int_count = 2;   // 
     dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.widget_vec_size() == 2);
