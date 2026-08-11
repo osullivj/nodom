@@ -60,7 +60,8 @@ private:
     JSON                    layout;         // layout and data are fetched by websock
     JSON                    data;
     JSON                    return_value;   // return value from FunctionAsync
-    std::deque<WidgetPtr>   stack;  // render stack
+    std::deque<WidgetPtr>   stack;          // render stack
+    std::deque<WidgetPtr>   changed;        // 
     DataLayCache<JSON>      data_lay_cache;
 
     // latest critical error state raised, and array of crit err
@@ -178,6 +179,7 @@ private:
     DatePickerLocals    dp_vars;
     SpinnerLocals       sp_vars;
     ShadedPlotLocals    sh_pl_vars;
+    EndRenderLocals     er_vars;
     SummaryTableContext smry_tbl_ctx;
     TableContext        tbl_ctx;
     TableMemEditContext mem_edit_ctx;
@@ -407,8 +409,8 @@ public:
         for (int inx = 0; inx < stack_length; inx++) {
             dispatch_render(stack[inx]);
         }
-        end_render_cycle();
         pix_end_event();
+        end_render_cycle();
     }
 
     void start_render_cycle() {
@@ -432,6 +434,8 @@ public:
     void end_render_cycle() {
         const static char* method = "NDContext::end_render_cycle: ";
 
+        pix_begin_post_render(render_count);
+
         if (render_count == 0) {
             action_dispatch(ninx_GUI, einx_Online);
         }
@@ -441,6 +445,28 @@ public:
                 << ", font_pop_count: " << font_pop_count << std::endl;
         }
         render_count++;
+
+        // Did any widget post a change to underlying data?
+        // NB widgets may compose many pieces of data, but
+        // they can only change one!
+        if (!changed.empty()) {
+            for (auto chit = changed.begin(); chit != changed.end(); ++chit) {
+                WidgetPtr w{ *chit };
+                switch (w->rname) {
+                case Combo:
+                    er_vars.old_int = w->old_int.back();
+                    er_vars.new_int = data_lay_cache.get_int_value(IntInx(w->changed->ref_inx));
+                    notify_server(w->changed, er_vars.old_int, er_vars.new_int);
+                    w->old_int.clear();
+                    er_vars.old_int = 0;
+                    er_vars.new_int = nullptr;
+                    break;
+
+                }
+
+            }
+        }
+
 
         if (!pending_actions.empty()) {
             PendingAction pa{ pending_actions.front() };
@@ -471,6 +497,7 @@ public:
             }
 #endif
         }
+        pix_end_event();
     }
 
     void server_request(const std::string& key) {
@@ -745,56 +772,23 @@ public:
 
 protected:
     int* cspec_int(CacheSpecifier spec, IntValMap& int_val_map, int* target = nullptr) {
-        auto cs_int_iter = int_val_map.find(spec);
-        if (cs_int_iter != int_val_map.end()) {
-            IntInx int_inx{ cs_int_iter->second };
-            int* rv = data_lay_cache.get_int_value(int_inx);
-            if (target != nullptr && rv != nullptr) *target = *rv;
-            return rv;
-        }
-        return nullptr;
+        return data_lay_cache.cspec_int(spec, int_val_map, target);
     }
 
     bool* cspec_bool(CacheSpecifier spec, BoolValMap& bool_val_map, bool* target = nullptr) {
-        auto cs_bool_iter = bool_val_map.find(spec);
-        if (cs_bool_iter != bool_val_map.end()) {
-            BoolInx bool_inx{ cs_bool_iter->second };
-            bool* rv = data_lay_cache.get_bool_value(bool_inx);
-            if (target != nullptr && rv != nullptr) *target = *rv;
-            return rv;
-        }
-        return nullptr;
+        return data_lay_cache.cspec_bool(spec, bool_val_map, target);
     }
 
     const char* cspec_string(CacheSpecifier spec, StrValMap& str_val_map, const char* dflt) {
-        auto cs_str_iter = str_val_map.find(spec);
-        if (cs_str_iter != str_val_map.end()) {
-            StrInx text_inx{ cs_str_iter->second };
-            return data_lay_cache.template get_string_value<StrInx>(text_inx);
-        }
-        return dflt;
+        return data_lay_cache.cspec_string(spec, str_val_map, dflt);
     }
 
     double* cspec_double(CacheSpecifier spec, DoubleValMap& dbl_val_map, double* target = nullptr) {
-        auto cs_dbl_iter = dbl_val_map.find(spec);
-        if (cs_dbl_iter != dbl_val_map.end()) {
-            DoubleInx dbl_inx{ cs_dbl_iter->second };
-            double* rv = data_lay_cache.get_double_value(dbl_inx);
-            if (target != nullptr && rv != nullptr) *target = *rv;
-            return rv;
-        }
-        return nullptr;
+        return data_lay_cache.cspec_double(spec, dbl_val_map, target);
     }
 
     float* cspec_float(CacheSpecifier spec, FloatValMap& flt_val_map, float* target = nullptr) {
-        auto cs_flt_iter = flt_val_map.find(spec);
-        if (cs_flt_iter != flt_val_map.end()) {
-            FloatInx flt_inx{ cs_flt_iter->second };
-            float* rv = data_lay_cache.get_float_value(flt_inx);
-            if (target != nullptr && rv != nullptr) *target = *rv;
-            return rv;
-        }
-        return nullptr;
+        return data_lay_cache.cspec_float(spec, flt_val_map, target);
     }
 
     DataRef* cspec_data_ref(CacheSpecifier spec, DataRefMap& data_ref_map) {
@@ -1226,7 +1220,9 @@ protected:
         ImGui::InputInt(label, int_ptr, step, step_fast, flags);
         // int editting doesn't produce so much jitter as str
         if (*int_ptr != old_val) {
-            notify_server(int_data_ref, old_val, int_ptr);
+            // notify_server(int_data_ref, old_val, int_ptr);
+            w->old_int.push_back(old_val);
+            changed.push_back(w);
         }
     }
 
@@ -1257,7 +1253,9 @@ protected:
         // TODO: refactor to pending action
         // copy local copy back into cache
         if (*dbl_ptr != old_val) {
-            notify_server(dbl_data_ref, old_val, dbl_ptr);
+            // notify_server(dbl_data_ref, old_val, dbl_ptr);
+            w->old_double.push_back(old_val);
+            changed.push_back(w);
         }
     }
 
@@ -1299,7 +1297,9 @@ protected:
                 // results in buffer_not_set() being true, and then
                 // pre edit copy overwrites the old val.
                 data_lay_cache.update_string(str_data_ref->ref_inx, w->buffer);
-                w->clear_buffer();
+                changed.push_back(w);
+                // post_render will call clear_buffer()
+                // w->clear_buffer();
             }
         }
     }
@@ -1344,7 +1344,9 @@ protected:
                 // results in buffer_not_set() being true, and then
                 // pre edit copy overwrites the old val.
                 data_lay_cache.update_string(str_data_ref->ref_inx, w->buffer);
-                w->clear_buffer();
+                changed.push_back(w);
+                // post_render will call clear_buffer()
+                // w->clear_buffer();
             }
         }
     }
@@ -1383,7 +1385,10 @@ protected:
             int new_val = *combo_index;
             // TODO: refactor to pending_action
             if (old_val != new_val) {
-                notify_server(combo_inx_data_ref, old_val, combo_index);
+                // notify_server(combo_inx_data_ref, old_val, combo_index);
+                w->old_int.push_back(old_val);
+                w->changed = combo_inx_data_ref;
+                changed.push_back(w);
             }
         }
     }
@@ -1401,7 +1406,9 @@ protected:
                 bool old_val = *bool_ptr;
                 ImGui::Checkbox(button_text, bool_ptr);
                 if (old_val != *bool_ptr) {
-                    notify_server(bool_data_ref, old_val, bool_ptr);
+                    // notify_server(bool_data_ref, old_val, bool_ptr);
+                    w->old_int.push_back(old_val);
+                    changed.push_back(w);
                 }
             }
         }
@@ -1663,7 +1670,11 @@ protected:
         }
         // TODO: refactor to pending_actions
         if (dp_vars.new_date != dp_vars.old_date) {
-            notify_server(ymd_data_ref, dp_vars.old_date, dp_vars.new_date);
+            // notify_server(ymd_data_ref, dp_vars.old_date, dp_vars.new_date);
+            w->old_int.push_back(dp_vars.old_date[0]);
+            w->old_int.push_back(dp_vars.old_date[1]);
+            w->old_int.push_back(dp_vars.old_date[2]);
+            changed.push_back(w);
         }
     }
 
