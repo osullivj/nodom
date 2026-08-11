@@ -232,6 +232,54 @@ BOOST_FIXTURE_TEST_CASE(BadIndex, DataCacheFixture)
     BOOST_CHECK_THROW(AddrInx{ MAX_DCI + 1 }, std::exception);
 }
 
+
+
+
+BOOST_FIXTURE_TEST_CASE(MinMenuBarDataAndLayout, DataCacheFixture)
+{
+#ifdef __EMSCRIPTEN__
+    // TODO: load from ems FS
+    auto layout = JParse<emscripten::val>(add_server_layout);
+#else
+    auto data = JParse<nlohmann::json>(min_menu_bar_data_cs);
+    auto layout = JParse<nlohmann::json>(min_menu_bar_layout_cs);
+#endif
+    str_count = 10;
+    dc.on_json(data, layout, [&]() { dc.on_init(); });
+    // dump cache state before assertions...
+    dc.report_cache_state();
+    BOOST_TEST(dc.widget_vec_size() == 1);
+    BOOST_TEST(dc.pushables_size() == 0);
+    BOOST_TEST(dc.error_count() == 0);
+    BOOST_TEST(dc.data_ref_map_size() == 0);
+    BOOST_TEST(dc.menu_address_map_size() == 3);    // 2 menu, 1 menubar
+    BOOST_TEST(dc.menu_data_ref_map_size() == 3);
+    assert_cache_state();
+}
+
+
+BOOST_FIXTURE_TEST_CASE(MinMenuPopDataAndLayout, DataCacheFixture)
+{
+#ifdef __EMSCRIPTEN__
+    // TODO: load from ems FS
+    auto layout = JParse<emscripten::val>(add_server_layout);
+#else
+    auto data = JParse<nlohmann::json>(min_menu_pop_data_cs);
+    auto layout = JParse<nlohmann::json>(min_menu_pop_layout_cs);
+#endif
+    str_count = 4;
+    dc.on_json(data, layout, [&]() { dc.on_init(); });
+    // dump cache state before assertions...
+    dc.report_cache_state();
+    BOOST_TEST(dc.widget_vec_size() == 1);
+    BOOST_TEST(dc.pushables_size() == 0);
+    BOOST_TEST(dc.error_count() == 0);
+    BOOST_TEST(dc.data_ref_map_size() == 0);
+    BOOST_TEST(dc.menu_address_map_size() == 1);    // 1 menu
+    BOOST_TEST(dc.menu_data_ref_map_size() == 1);
+    assert_cache_state();
+}
+
 BOOST_FIXTURE_TEST_CASE(InitData, DataCacheFixture)
 {
 #ifdef __EMSCRIPTEN__
@@ -261,6 +309,23 @@ BOOST_FIXTURE_TEST_CASE(InitLayout, DataCacheFixture)
     dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.widget_vec_size() == 2);
     BOOST_TEST(dc.pushables_size() == 1);
+    assert_cache_state();
+}
+
+BOOST_FIXTURE_TEST_CASE(InitDataAndLayout, DataCacheFixture)
+{
+#ifdef __EMSCRIPTEN__
+    // TODO: load from ems FS
+    auto layout = JParse<emscripten::val>(add_server_layout);
+#else
+    auto data = JParse<nlohmann::json>(Static::init_data_cs);
+    auto layout = JParse<nlohmann::json>(Static::init_layout_cs);
+#endif
+    str_count = 9;
+    dc.on_json(data, layout, [&]() { dc.on_init(); });
+    BOOST_TEST(dc.widget_vec_size() == 2);
+    BOOST_TEST(dc.pushables_size() == 1);
+    BOOST_TEST(dc.error_count() == 0);
     assert_cache_state();
 }
 
@@ -392,65 +457,3 @@ BOOST_FIXTURE_TEST_CASE(ExfServerLayout, DataCacheFixture)
     assert_cache_state();
 }
 
-BOOST_FIXTURE_TEST_CASE(InitDataAndLayout, DataCacheFixture)
-{
-#ifdef __EMSCRIPTEN__
-    // TODO: load from ems FS
-    auto layout = JParse<emscripten::val>(add_server_layout);
-#else
-    auto data = JParse<nlohmann::json>(Static::init_data_cs);
-    auto layout = JParse<nlohmann::json>(Static::init_layout_cs);
-#endif
-    str_count = 9;
-    dc.on_json(data, layout, [&]() { dc.on_init(); });
-    BOOST_TEST(dc.widget_vec_size() == 2);
-    BOOST_TEST(dc.pushables_size() == 1);
-    BOOST_TEST(dc.error_count() == 0);
-    assert_cache_state();
-}
-
-
-BOOST_FIXTURE_TEST_CASE(MinMenuBarDataAndLayout, DataCacheFixture)
-{
-#ifdef __EMSCRIPTEN__
-    // TODO: load from ems FS
-    auto layout = JParse<emscripten::val>(add_server_layout);
-#else
-    auto data = JParse<nlohmann::json>(min_menu_bar_data_cs);
-    auto layout = JParse<nlohmann::json>(min_menu_bar_layout_cs);
-#endif
-    str_count = 10;
-    dc.on_json(data, layout, [&]() { dc.on_init(); });
-    // dump cache state before assertions...
-    dc.report_cache_state();
-    BOOST_TEST(dc.widget_vec_size() == 1);
-    BOOST_TEST(dc.pushables_size() == 0);
-    BOOST_TEST(dc.error_count() == 0);
-    BOOST_TEST(dc.data_ref_map_size() == 0);
-    BOOST_TEST(dc.menu_address_map_size() == 3);    // 2 menu, 1 menubar
-    BOOST_TEST(dc.menu_data_ref_map_size() == 3);
-    assert_cache_state();
-}
-
-
-BOOST_FIXTURE_TEST_CASE(MinMenuPopDataAndLayout, DataCacheFixture)
-{
-#ifdef __EMSCRIPTEN__
-    // TODO: load from ems FS
-    auto layout = JParse<emscripten::val>(add_server_layout);
-#else
-    auto data = JParse<nlohmann::json>(min_menu_pop_data_cs);
-    auto layout = JParse<nlohmann::json>(min_menu_pop_layout_cs);
-#endif
-    str_count = 4;
-    dc.on_json(data, layout, [&]() { dc.on_init(); });
-    // dump cache state before assertions...
-    dc.report_cache_state();
-    BOOST_TEST(dc.widget_vec_size() == 1);
-    BOOST_TEST(dc.pushables_size() == 0);
-    BOOST_TEST(dc.error_count() == 0);
-    BOOST_TEST(dc.data_ref_map_size() == 0);
-    BOOST_TEST(dc.menu_address_map_size() == 1);    // 1 menu
-    BOOST_TEST(dc.menu_data_ref_map_size() == 1);
-    assert_cache_state();
-}
