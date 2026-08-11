@@ -55,6 +55,11 @@ struct ShadedPlotLocals {
     uint32_t    offset{ 0 };
 };
 
+struct EndRenderLocals {
+    int     old_int{ 0 };
+    int*    new_int{ nullptr };
+};
+
 struct SummaryTableContext {
     DataRef*    menupop_data_ref{ nullptr };
     RSHandle    smry_handle{ 0 };   // uint64_t on win32, uint32_t on ems
