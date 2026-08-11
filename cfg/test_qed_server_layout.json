@@ -32,6 +32,6 @@
         "title_font": "Arial"
       },
       "rname": "LoadingModal",
-      "widget_id": "loading_modal"
+      "widget_id": "i_am_loading_modal"
     }
   ]
