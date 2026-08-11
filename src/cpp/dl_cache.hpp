@@ -481,7 +481,7 @@ protected:
                 bad_data_refs.push_back(token);
                 std::stringstream ss;
                 ss << "FORTH_CSPEC(" << token << ") in cspec:"
-                    << spec << ", does not compile for " << render_names[w->rname];
+                    << forth_source << ", does not compile for " << render_names[w->rname];
                 layout_errors.push_back(ss.str());
                 return false;
             }
@@ -1186,6 +1186,7 @@ private:
         Static::menu_item_cs,
         Static::menu_pop_cs,
         Static::buffer_size_cs,
+        Static::line_height_cs,
         Static::db_cs,     // cs_db,
         Static::fps_cs,     // cs_fps,
         Static::demo_cs,     // cs_demo,
