@@ -464,6 +464,12 @@ protected:
         }
     }
 
+    bool is_operand(AddrInx ainx) {
+        if (ainx == ainx_OpIndex)
+            return true;
+        return false;
+    }
+
     bool compile_forth(WidgetPtr w, CacheSpecifier spec, const std::string& forth_source) {
         std::stringstream forth_stream{ forth_source };
         std::string token;
@@ -488,6 +494,76 @@ protected:
         }
         return true;
     }
+
+    bool forth_index_op(ForthLambda& result) {
+        assert(result.size() >= 3);
+        result.pop_back();  // pop the [] operand
+        AddrInx index_inx{result.back()};
+        result.pop_back();
+        AddrInx list_inx{ result.back() };
+        result.pop_back();
+        assert(data_ref_map.find(index_inx) != data_ref_map.end());
+        assert(data_ref_map.find(list_inx) != data_ref_map.end());
+        DataRef* list_data_ref{ data_ref_map[list_inx] };
+        DataRef* index_data_ref{ data_ref_map[index_inx] };
+        assert(list_data_ref != nullptr);
+        assert(index_data_ref != nullptr);
+        IntInx iinx{ index_data_ref->ref_inx };
+        int* index_ptr = data_lay_cache.get_int_value(iinx);
+        assert(index_ptr != nullptr);
+        assert(*index_ptr < list_data_ref->size);
+        switch (list_data_ref->tipe) {
+        case cdIntVec:
+            result.push_back(AddrInx<cdInt>(*index_ptr + list_data_ref->raw_inx));
+            break;
+        case cdStrVec:
+            result.push_back(AddrInx<cdStr>(*index_ptr + list_data_ref->raw_inx));
+            break;
+        default:
+            assert(false);
+            break;
+        }
+        return true;
+    }
+
+    bool dispatch_forth(ForthLambda& result) {
+        if (result.empty()) {
+            // no more computation possible
+            return false;
+        }
+        AddrInx op{ result.back() };
+        if (ainx == ainx_OpIndex)
+            return forth_index_op(result);
+        return false;
+
+    }
+
+    bool execute_forth(WidgetPtr w, CacheSpecifier spec) {
+        // check that compile_forth() created a ForthLambda
+        if (w->ndf_lambda_map.find(spec)) {
+            return false;
+        }
+        ForthLambda& lambda{ w->ndf_lambda_map[spec] };
+        if (lambda.empty()) {
+            return false;
+        }
+        // result stack will be empty on first exec,
+        // but not subsequently
+        ForthLambda& result{ w->ndf_result_map[spec] };
+        if (!result.empty()) {
+            result.clear();
+        }
+        // load the result stack
+        for (const auto op_or_addr : lambda) {
+            result.push_back(op_or_addr);
+        }
+        // compute
+        while (dispatch_forth(result)) {
+        }
+        return true;
+    }
+
+
 
     void orthogonalize_cspec(const JSON& cspec, const JSON& data, WidgetPtr widget) {
         // TODO: add exception handling to catch type mismatches...
@@ -1085,7 +1161,7 @@ public:
             pbuf = cspec_int(cs_buffer_size, w->cspec_int, &buffer_size);
             if (pbuf != nullptr) {  // cspec:cs_buffer_size value supplied
                 w->alloc_buffer(buffer_size);
-                memset(w->buffer, 0, buffer_size);
+                w->clear_buffer();
             }
             return true;
         default:
@@ -1104,6 +1180,47 @@ public:
         return nullptr;
     }
 
+    bool* cspec_bool(CacheSpecifier spec, BoolValMap& bool_val_map, bool* target = nullptr) {
+        auto cs_bool_iter = bool_val_map.find(spec);
+        if (cs_bool_iter != bool_val_map.end()) {
+            BoolInx bool_inx{ cs_bool_iter->second };
+            bool* rv = get_bool_value(bool_inx);
+            if (target != nullptr && rv != nullptr) *target = *rv;
+            return rv;
+        }
+        return nullptr;
+    }
+
+    const char* cspec_string(CacheSpecifier spec, StrValMap& str_val_map, const char* dflt) {
+        auto cs_str_iter = str_val_map.find(spec);
+        if (cs_str_iter != str_val_map.end()) {
+            StrInx text_inx{ cs_str_iter->second };
+            return get_string_value<StrInx>(text_inx);
+        }
+        return dflt;
+    }
+
+    double* cspec_double(CacheSpecifier spec, DoubleValMap& dbl_val_map, double* target = nullptr) {
+        auto cs_dbl_iter = dbl_val_map.find(spec);
+        if (cs_dbl_iter != dbl_val_map.end()) {
+            DoubleInx dbl_inx{ cs_dbl_iter->second };
+            double* rv = get_double_value(dbl_inx);
+            if (target != nullptr && rv != nullptr) *target = *rv;
+            return rv;
+        }
+        return nullptr;
+    }
+
+    float* cspec_float(CacheSpecifier spec, FloatValMap& flt_val_map, float* target = nullptr) {
+        auto cs_flt_iter = flt_val_map.find(spec);
+        if (cs_flt_iter != flt_val_map.end()) {
+            FloatInx flt_inx{ cs_flt_iter->second };
+            float* rv = get_float_value(flt_inx);
+            if (target != nullptr && rv != nullptr) *target = *rv;
+            return rv;
+        }
+        return nullptr;
+    }
 private:
     // statics that define DataLayCache data and layout geometry
     inline static std::array<const char*, EndRenderMethod> render_names{
