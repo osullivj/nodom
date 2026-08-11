@@ -403,7 +403,7 @@ BOOST_FIXTURE_TEST_CASE(QedServerLayout, DataCacheFixture)
     auto layout = JParse<nlohmann::json>(layout_json);
 #endif
     str_count = 14;   // 
-    int_count = 2;   // 
+    int_count = 4;   // 
     dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.widget_vec_size() == 2);
     BOOST_TEST(dc.pushables_size() == 1);
@@ -421,7 +421,7 @@ BOOST_FIXTURE_TEST_CASE(ExfServerData, DataCacheFixture)
     auto layout = JParse<nlohmann::json>(Static::empty_list_cs);
 
 #endif
-    str_count = 34;
+    str_count = 35;
     dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.addr_map_size() == 12);   // xaxis,yaxis took us from 10 to 12
     BOOST_TEST(dc.action_map_size() == 4);
@@ -444,7 +444,7 @@ BOOST_FIXTURE_TEST_CASE(ExfServerLayout, DataCacheFixture)
     auto layout = JParse<nlohmann::json>(layout_json);
 #endif
     // check these against hex indices in cache dump
-    str_count = 72;
+    str_count = 73;
     int_count = 14;
     dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.widget_vec_size() == 5);
