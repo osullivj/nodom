@@ -8,6 +8,7 @@
 
 #ifdef USE_PIX
 uint32_t render_color = PIX_COLOR(255, 0, 125);
+uint32_t post_render_color = PIX_COLOR(175, 0, 125);
 uint32_t dbase_color = PIX_COLOR(125, 0, 255);
 #endif
 
@@ -42,6 +43,13 @@ void pix_begin_render(int render_count) {
 	PIXBeginEvent(render_color, "render %d", render_count);
 #endif
 }
+
+void pix_begin_post_render(int render_count) {
+#ifdef USE_PIX
+	PIXBeginEvent(post_render_color, "post render %d", render_count);
+#endif
+}
+
 
 void pix_begin_dbase() {
 #ifdef USE_PIX
