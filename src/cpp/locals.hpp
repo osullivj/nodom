@@ -58,6 +58,10 @@ struct ShadedPlotLocals {
 struct EndRenderLocals {
     int     old_int{ 0 };
     int*    new_int{ nullptr };
+    double  old_double{ 0.0 };
+    double* new_double{ nullptr };
+    // no old_string/new_string: see render_input_string comment 
+    // for strings we must invoke w->clear_buffer();
 };
 
 struct SummaryTableContext {
