@@ -492,6 +492,7 @@ protected:
                 return false;
             }
         }
+        // the widget still needs to resolve 
         return true;
     }
 
@@ -654,6 +655,12 @@ protected:
                     ref_name == Static::yname_cs) {
                     // before we error check it's not an NDF Lambda
                     if (ref_name == Static::cname_cs) {
+                        // Yes, sharp eyed reader! This means the widget
+                        // will not have a DataRefMap entry for cname.
+                        // Instead the forth result will get loaded
+                        // into forth_result_data_ref, and cspec_data_ref()
+                        // will return &forth_result_data_ref. Obv we
+                        // want NDF to be a 0alloc 0cp uforth.
                         if (compile_forth(widget, spec, addr_or_qid))
                             continue;
                     }
