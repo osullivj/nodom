@@ -152,6 +152,7 @@ struct NDWidget {
     DoubleVec       old_double;
     char*           old_buffer{ nullptr };
     DataRef*        changed{ nullptr };
+    DataRef         forth_result_data_ref;
     std::vector<std::shared_ptr<NDWidget>>  children;
 };
 using WidgetPtr = std::shared_ptr<NDWidget>;
