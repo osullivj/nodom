@@ -62,6 +62,8 @@ struct EndRenderLocals {
     double* new_double{ nullptr };
     bool    old_bool{ false };
     bool*   new_bool{ nullptr };
+    YMD     old_date{ 1970, 1, 1 };
+    int*    new_date{ nullptr };
     // no old_string/new_string: see render_input_string comment 
     // for strings we must invoke w->clear_buffer();
 };
