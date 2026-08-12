@@ -454,6 +454,7 @@ public:
                 WidgetPtr w{ *chit };
                 switch (w->rname) {
                 case Combo:
+                case InputInt:
                     er_vars.old_int = w->old_int.back();
                     er_vars.new_int = data_lay_cache.get_int_value(IntInx(w->changed->ref_inx));
                     notify_server(w->changed, er_vars.old_int, er_vars.new_int);
@@ -461,7 +462,14 @@ public:
                     er_vars.old_int = 0;
                     er_vars.new_int = nullptr;
                     break;
-
+                case InputDouble:
+                    er_vars.old_double = w->old_double.back();
+                    er_vars.new_double = data_lay_cache.get_double_value(DoubleInx(w->changed->ref_inx));
+                    notify_server(w->changed, er_vars.old_double, er_vars.new_double);
+                    w->old_double.clear();
+                    er_vars.old_double = 0.0;
+                    er_vars.new_int = nullptr;
+                    break;
                 }
 
             }
@@ -1222,6 +1230,7 @@ protected:
         if (*int_ptr != old_val) {
             // notify_server(int_data_ref, old_val, int_ptr);
             w->old_int.push_back(old_val);
+            w->changed = int_data_ref;
             changed.push_back(w);
         }
     }
@@ -1255,6 +1264,7 @@ protected:
         if (*dbl_ptr != old_val) {
             // notify_server(dbl_data_ref, old_val, dbl_ptr);
             w->old_double.push_back(old_val);
+            w->changed = dbl_data_ref;
             changed.push_back(w);
         }
     }
@@ -1297,8 +1307,9 @@ protected:
                 // results in buffer_not_set() being true, and then
                 // pre edit copy overwrites the old val.
                 data_lay_cache.update_string(str_data_ref->ref_inx, w->buffer);
+                w->changed = str_data_ref;
                 changed.push_back(w);
-                // post_render will call clear_buffer()
+                // post_render will call clear_buffer() after notify_server()
                 // w->clear_buffer();
             }
         }
@@ -1396,7 +1407,7 @@ protected:
     void render_checkbox(WidgetPtr w) {
         const static char* method = "NDContext::render_checkbox: ";
 
-        const char* button_text = cspec_string(cs_text, w->cspec_str, method);
+        const char* check_text = cspec_string(cs_text, w->cspec_str, method);
         DataRef* bool_data_ref = cspec_data_ref(cs_cname, w->data_refs);
 
         if (bool_data_ref != nullptr && bool_data_ref->tipe == cdBool) {
@@ -1404,10 +1415,10 @@ protected:
             bool* bool_ptr = data_lay_cache.get_bool_value(binx);
             if (bool_ptr != nullptr) {
                 bool old_val = *bool_ptr;
-                ImGui::Checkbox(button_text, bool_ptr);
+                ImGui::Checkbox(check_text, bool_ptr);
                 if (old_val != *bool_ptr) {
                     // notify_server(bool_data_ref, old_val, bool_ptr);
-                    w->old_int.push_back(old_val);
+                    w->old_bool.push_back(old_val);
                     changed.push_back(w);
                 }
             }
@@ -1674,6 +1685,7 @@ protected:
             w->old_int.push_back(dp_vars.old_date[0]);
             w->old_int.push_back(dp_vars.old_date[1]);
             w->old_int.push_back(dp_vars.old_date[2]);
+            w->changed = ymd_data_ref;
             changed.push_back(w);
         }
     }
