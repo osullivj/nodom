@@ -461,6 +461,7 @@ public:
                     w->old_int.clear();
                     er_vars.old_int = 0;
                     er_vars.new_int = nullptr;
+                    w->changed = nullptr;
                     break;
                 case InputDouble:
                     er_vars.old_double = w->old_double.back();
@@ -469,12 +470,26 @@ public:
                     w->old_double.clear();
                     er_vars.old_double = 0.0;
                     er_vars.new_int = nullptr;
+                    w->changed = nullptr;
+                    break;
+                case InputString:
+                case InputTextArea:
+                    notify_server(w->changed, w->old_buffer, w->buffer);
+                    w->clear_buffer();
+                    w->changed = nullptr;
+                    break;
+                case Checkbox:
+                    er_vars.old_bool = w->old_bool.back();
+                    er_vars.new_bool = data_lay_cache.get_bool_value(BoolInx(w->changed->ref_inx));
+                    notify_server(w->changed, er_vars.old_bool, er_vars.new_bool);
+                    w->old_bool.clear();
+                    er_vars.old_bool = false;
+                    er_vars.new_bool = nullptr;
+                    w->changed = nullptr;
                     break;
                 }
-
             }
         }
-
 
         if (!pending_actions.empty()) {
             PendingAction pa{ pending_actions.front() };
@@ -1419,6 +1434,7 @@ protected:
                 if (old_val != *bool_ptr) {
                     // notify_server(bool_data_ref, old_val, bool_ptr);
                     w->old_bool.push_back(old_val);
+                    w->changed = bool_data_ref;
                     changed.push_back(w);
                 }
             }
