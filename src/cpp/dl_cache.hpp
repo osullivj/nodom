@@ -464,13 +464,7 @@ protected:
         }
     }
 
-    bool is_operand(AddrInx ainx) {
-        if (ainx == ainx_OpIndex)
-            return true;
-        return false;
-    }
-
-    bool compile_forth(WidgetPtr w, CacheSpecifier spec, const std::string& forth_source) {
+    bool compile_forth(WidgetPtr w, CacheSpecifier spec, CDT ref_type, const std::string& forth_source) {
         std::stringstream forth_stream{ forth_source };
         std::string token;
         // yes, we're creating a new ForthLambda
@@ -492,11 +486,12 @@ protected:
                 return false;
             }
         }
-        // the widget still needs to resolve 
+        DataRef& result_data_ref{ w->forth_result_data_refs[spec] };
+        result_data_ref.tipe = ref_type;
         return true;
     }
 
-    bool forth_index_op(ForthLambda& result) {
+    bool forth_index_op(ForthLambda& result, ForthLambda& result_addr) {
         assert(result.size() >= 3);
         result.pop_back();  // pop the [] operand
         AddrInx index_inx{result.back()};
@@ -505,20 +500,20 @@ protected:
         result.pop_back();
         assert(data_ref_map.find(index_inx) != data_ref_map.end());
         assert(data_ref_map.find(list_inx) != data_ref_map.end());
-        DataRef* list_data_ref{ data_ref_map[list_inx] };
-        DataRef* index_data_ref{ data_ref_map[index_inx] };
-        assert(list_data_ref != nullptr);
-        assert(index_data_ref != nullptr);
-        IntInx iinx{ index_data_ref->ref_inx };
-        int* index_ptr = data_lay_cache.get_int_value(iinx);
+        DataRef& list_data_ref{ data_ref_map[list_inx] };
+        DataRef& index_data_ref{ data_ref_map[index_inx] };
+        IntInx iinx{ index_data_ref.ref_inx };
+        int* index_ptr = get_int_value(iinx);
         assert(index_ptr != nullptr);
-        assert(*index_ptr < list_data_ref->size);
-        switch (list_data_ref->tipe) {
+        assert(*index_ptr < list_data_ref.size);
+        switch (list_data_ref.tipe) {
         case cdIntVec:
-            result.push_back(AddrInx<cdInt>(*index_ptr + list_data_ref->raw_inx));
+            result.push_back(*index_ptr + list_data_ref.ref_inx);
+            result_addr.push_back(list_data_ref.addr_inx);
             break;
         case cdStrVec:
-            result.push_back(AddrInx<cdStr>(*index_ptr + list_data_ref->raw_inx));
+            result.push_back(*index_ptr + list_data_ref.ref_inx);
+            result_addr.push_back(list_data_ref.addr_inx);
             break;
         default:
             assert(false);
@@ -527,21 +522,21 @@ protected:
         return true;
     }
 
-    bool dispatch_forth(ForthLambda& result) {
+    bool dispatch_forth(ForthLambda& result, ForthLambda& result_addr) {
         if (result.empty()) {
             // no more computation possible
             return false;
         }
         AddrInx op{ result.back() };
-        if (ainx == ainx_OpIndex)
-            return forth_index_op(result);
+        if (op == ainx_OpIndex)
+            return forth_index_op(result, result_addr);
         return false;
 
     }
 
     bool execute_forth(WidgetPtr w, CacheSpecifier spec) {
         // check that compile_forth() created a ForthLambda
-        if (w->ndf_lambda_map.find(spec)) {
+        if (w->ndf_lambda_map.find(spec) == w->ndf_lambda_map.end()) {
             return false;
         }
         ForthLambda& lambda{ w->ndf_lambda_map[spec] };
@@ -554,21 +549,46 @@ protected:
         if (!result.empty()) {
             result.clear();
         }
+        ForthLambda& result_addr{ w->ndf_result_addr_map[spec] };
+        if (!result_addr.empty()) {
+            result_addr.clear();
+        }
         // load the result stack
         for (const auto op_or_addr : lambda) {
             result.push_back(op_or_addr);
         }
         // compute
-        while (dispatch_forth(result)) {
+        while (dispatch_forth(result, result_addr)) {
+        }
+        DataRef& result_data_ref{ w->forth_result_data_refs[spec] };
+        switch (result_data_ref.tipe) {
+        case cdStr:
+            result_data_ref.addr_inx = result_addr.back()();
+            result_data_ref.ref_inx = result.back()();
+            result_data_ref.size = 1;
+            break;
+        case cdInt:
+            result_data_ref.addr_inx = result_addr.back()();
+            result_data_ref.ref_inx = result.back()();
+            result_data_ref.size = 1;
+            break;
+        default:
+            assert(false);
         }
         return true;
     }
 
-
+    void execute_all_forth(WidgetVec* wv = nullptr) {
+        WidgetVec* wvec = (wv == nullptr) ? &widget_vec : wv;
+        for (auto wvit = wvec->begin(); wvit != wvec->end(); ++wvit) {
+            WidgetPtr w{ *wvit };
+            for (auto fmit = w->ndf_lambda_map.begin(); fmit != w->ndf_lambda_map.end(); ++fmit) {
+                execute_forth(w, fmit->first);
+            }
+        }
+    }
 
     void orthogonalize_cspec(const JSON& cspec, const JSON& data, WidgetPtr widget) {
-        // TODO: add exception handling to catch type mismatches...
-        // 
         // parse cspec: value_cspecs first, that is fields that just
         // give a value, rather than an address
         const CacheSpecVec& values{ value_cspecs[widget->rname] };
@@ -661,7 +681,7 @@ protected:
                         // into forth_result_data_ref, and cspec_data_ref()
                         // will return &forth_result_data_ref. Obv we
                         // want NDF to be a 0alloc 0cp uforth.
-                        if (compile_forth(widget, spec, addr_or_qid))
+                        if (compile_forth(widget, spec, ref_type, addr_or_qid))
                             continue;
                     }
                     bad_data_refs.push_back(ref_name);
@@ -874,6 +894,7 @@ public:
         init();
         on_data(data);
         on_layout(data, layout);
+        execute_all_forth();
         if (on_init)
             on_init();
     }
@@ -1139,6 +1160,7 @@ public:
     }
 
     // a set is nothing more than a truth function for set membership :)
+    // because Quine:"to be is to be the value of a bound variable"
     bool is_optional(CacheSpecifier spec) {
         switch (spec) {
         case cs_menu_bar:
