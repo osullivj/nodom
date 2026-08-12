@@ -410,6 +410,28 @@ BOOST_FIXTURE_TEST_CASE(QedServerLayout, DataCacheFixture)
     assert_cache_state();
 }
 
+BOOST_FIXTURE_TEST_CASE(QedServerForth, DataCacheFixture)
+{
+#ifdef __EMSCRIPTEN__
+    // TODO: load from ems FS
+    auto layout = JParse<emscripten::val>(add_server_layout);
+#else
+    std::string data_json_path = test_json_dir + "test_qed_server_data.json";
+    std::string data_json = load_json(data_json_path.c_str());
+    auto data = JParse<nlohmann::json>(data_json);
+    std::string layout_json_path = test_json_dir + "test_qed_server_layout.json";
+    std::string layout_json = load_json(layout_json_path.c_str());
+    auto layout = JParse<nlohmann::json>(layout_json);
+#endif
+    str_count = 14;   // 
+    int_count = 4;   // 
+    dc.on_json(data, layout, [&]() { dc.on_init(); });
+    BOOST_TEST(dc.widget_vec_size() == 2);
+    BOOST_TEST(dc.pushables_size() == 1);
+    // WidgetPtr w{ dc.get_pushable("i_am_text_area") };
+    assert_cache_state();
+}
+
 BOOST_FIXTURE_TEST_CASE(ExfServerData, DataCacheFixture)
 {
 #ifdef __EMSCRIPTEN__
