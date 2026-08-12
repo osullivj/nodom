@@ -144,6 +144,8 @@ struct NDWidget {
     DataRefMap      data_refs;
     ForthMap        ndf_lambda_map;
     ForthMap        ndf_result_map;
+    ForthMap        ndf_result_addr_map;
+    DataRefMap      forth_result_data_refs;
     char*           buffer{ nullptr }; // eg render_input_string
     int             buffer_size{ 0 };
     IntVec          old_int;
@@ -152,7 +154,6 @@ struct NDWidget {
     DoubleVec       old_double;
     char*           old_buffer{ nullptr };
     DataRef*        changed{ nullptr };
-    DataRef         forth_result_data_ref;
     std::vector<std::shared_ptr<NDWidget>>  children;
 };
 using WidgetPtr = std::shared_ptr<NDWidget>;
