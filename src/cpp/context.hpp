@@ -487,6 +487,19 @@ public:
                     er_vars.new_bool = nullptr;
                     w->changed = nullptr;
                     break;
+                case DatePicker:
+                    er_vars.old_date[2] = w->old_int.back();
+                    w->old_int.pop_back();
+                    er_vars.old_date[1] = w->old_int.back();
+                    w->old_int.pop_back();
+                    er_vars.old_date[0] = w->old_int.back();
+                    w->old_int.clear();
+                    // NB natural contiguity for interned ints in DLC!
+                    er_vars.new_date = data_lay_cache.get_int_value(IntInx(w->changed->ref_inx));
+                    notify_server(w->changed, er_vars.old_date, er_vars.new_date);
+                    er_vars.old_date = { 1970, 1, 1 };
+                    er_vars.new_int = nullptr;
+                    w->changed = nullptr;
                 }
             }
         }
@@ -627,9 +640,6 @@ public:
             << ", old: " << old_val << ", new: " << new_val << std::endl;
 
         std::stringstream msgbuf;
-        // JSON impls will print a dbl, unless it's an int as well. For
-        // example 1.0===1. We need to ensure the decimal place is present
-        // so the value isn't interpreted as an int.
         msgbuf << "{ \"" << Static::nd_type_cs << "\":\"" << Static::data_change_cs << "\",\""
             << Static::cache_key_cs << "\":\"" << addr << "\",\""
             << Static::new_value_cs << "\":\"" << new_val << "\",\""
@@ -637,23 +647,23 @@ public:
         ws_send(msgbuf.str());
     }
 
-    void notify_server(DataRef* dref, YMD& old_val, YMD& new_val) {
+    void notify_server(DataRef* dref, YMD& old_date, int* new_date) {
 
         const static char* method = "NDContext::notify_server_ymd: ";
 
         const char* addr = data_lay_cache.get_addr_value(dref->addr_inx);
         const char* tipe = CDTToString(dref->tipe);
         std::cout << method << "type:" << tipe << ", addr:" << addr
-            << ", old: " << old_val << ", new: " << new_val << std::endl;
+            << ", old: " << old_date << ", new: [" 
+            << new_date[0] << "," << new_date[1] << "," << new_date[2]
+            << "]" << std::endl;
 
         std::stringstream msgbuf;
-        // JSON impls will print a dbl, unless it's an int as well. For
-        // example 1.0===1. We need to ensure the decimal place is present
-        // so the value isn't interpreted as an int.
+        // old_date is decled YMD, so will select the ufuncs operator<<
         msgbuf << "{ \"" << Static::nd_type_cs << "\":\"" << Static::data_change_cs << "\",\""
             << Static::cache_key_cs << "\":\"" << addr << "\",\""
-            << Static::new_value_cs << "\":" << new_val << ",\""
-            << Static::old_value_cs << "\":" << old_val << "}" << std::noshowpoint;
+            << Static::new_value_cs << "\":[" << new_date[0] << "," << new_date[1] << "," << new_date[2] << "],\""
+            << Static::old_value_cs << "\":" << old_date << "}" << std::noshowpoint;
         ws_send(msgbuf.str());
     }
 
@@ -814,9 +824,16 @@ protected:
         return data_lay_cache.cspec_float(spec, flt_val_map, target);
     }
 
-    DataRef* cspec_data_ref(CacheSpecifier spec, DataRefMap& data_ref_map) {
-        auto cs_dref_iter = data_ref_map.find(spec);
-        if (cs_dref_iter != data_ref_map.end()) return &(cs_dref_iter->second);
+    DataRef* cspec_data_ref(CacheSpecifier spec, WidgetPtr w) {
+        auto cs_dref_iter = w->data_refs.find(spec);
+        if (cs_dref_iter != w->data_refs.end())
+            return &(cs_dref_iter->second);
+        // no direct mapping via data key: the render_method that invoked
+        // us could be asking for any addr cspec here, so we may need to
+        // return an NDF lambda result.
+        auto cs_ndfref_iter = w->forth_result_data_refs.find(spec);
+        if (cs_ndfref_iter != w->forth_result_data_refs.end())
+            return &(cs_ndfref_iter->second);
         return nullptr;
     }
     
@@ -1088,7 +1105,7 @@ protected:
     void render_menu_bar(WidgetPtr w) {
         // Each value in the menubar StrVec is a top level data key
         // to a menu defn
-        DataRef* menu_bar_data_ref = cspec_data_ref(cs_menu_bar, w->data_refs);
+        DataRef* menu_bar_data_ref = cspec_data_ref(cs_menu_bar, w);
         if (menu_bar_data_ref != nullptr && ImGui::BeginMenuBar()) {
             StrInx mbar_inx{ menu_bar_data_ref->ref_inx };
             for (uint32_t i = 0; i < menu_bar_data_ref->size; i++) {
@@ -1227,7 +1244,7 @@ protected:
         int flags = 0;
         cspec_int(cs_flags, w->cspec_int, &flags);
 
-        DataRef* int_data_ref = cspec_data_ref(cs_cname, w->data_refs);
+        DataRef* int_data_ref = cspec_data_ref(cs_cname, w);
         assert(int_data_ref != nullptr);
         assert(int_data_ref->tipe == cdInt);
         IntInx iinx{ int_data_ref->ref_inx };
@@ -1261,7 +1278,7 @@ protected:
         cspec_int(cs_flags, w->cspec_int, &flags);
         const char* fmt = cspec_string(cs_format, w->cspec_str, Static::default_format_cs);
 
-        DataRef* dbl_data_ref = cspec_data_ref(cs_cname, w->data_refs);
+        DataRef* dbl_data_ref = cspec_data_ref(cs_cname, w);
         assert(dbl_data_ref != nullptr);
         assert(dbl_data_ref->tipe == cdDouble);
         DoubleInx dinx{ dbl_data_ref->ref_inx };
@@ -1290,7 +1307,7 @@ protected:
         int flags = 0;
         cspec_int(cs_flags, w->cspec_int, &flags);
 
-        DataRef* str_data_ref = cspec_data_ref(cs_cname, w->data_refs);
+        DataRef* str_data_ref = cspec_data_ref(cs_cname, w);
         assert(str_data_ref != nullptr);
         assert(str_data_ref->tipe == cdStr);
         StrInx sinx{ str_data_ref->ref_inx };
@@ -1336,7 +1353,7 @@ protected:
         int flags = 0;
         cspec_int(cs_flags, w->cspec_int, &flags);
 
-        DataRef* str_data_ref = cspec_data_ref(cs_cname, w->data_refs);
+        DataRef* str_data_ref = cspec_data_ref(cs_cname, w);
         assert(str_data_ref != nullptr);
         assert(str_data_ref->tipe == cdStr);
         StrInx sinx{ str_data_ref->ref_inx };
@@ -1392,8 +1409,8 @@ protected:
         const char* label = cspec_string(cs_label, w->cspec_str, method);
         cspec_int(cs_step, w->cspec_int, &step);
 
-        DataRef* combo_list_data_ref = cspec_data_ref(cs_cname, w->data_refs);
-        DataRef* combo_inx_data_ref = cspec_data_ref(cs_cindex, w->data_refs);
+        DataRef* combo_list_data_ref = cspec_data_ref(cs_cname, w);
+        DataRef* combo_inx_data_ref = cspec_data_ref(cs_cindex, w);
         if (combo_list_data_ref != nullptr && combo_inx_data_ref != nullptr) {
             assert(combo_list_data_ref->tipe == cdStrVec);
             assert(combo_list_data_ref->size < ND_MAX_COMBO_LIST);
@@ -1423,7 +1440,7 @@ protected:
         const static char* method = "NDContext::render_checkbox: ";
 
         const char* check_text = cspec_string(cs_text, w->cspec_str, method);
-        DataRef* bool_data_ref = cspec_data_ref(cs_cname, w->data_refs);
+        DataRef* bool_data_ref = cspec_data_ref(cs_cname, w);
 
         if (bool_data_ref != nullptr && bool_data_ref->tipe == cdBool) {
             BoolInx binx{ bool_data_ref->ref_inx };
@@ -1556,7 +1573,7 @@ protected:
         cspec_int(cs_combo_flags, w->cspec_int, &dp_vars.combo_flags);
 
         // now get hold of the YMD int[3]
-        DataRef* ymd_data_ref = cspec_data_ref(cs_cname, w->data_refs);
+        DataRef* ymd_data_ref = cspec_data_ref(cs_cname, w);
         assert(ymd_data_ref != nullptr);
         assert(ymd_data_ref->tipe == cdIntVec);
         IntInx iinx{ ymd_data_ref->ref_inx };
@@ -1746,12 +1763,12 @@ protected:
         cspec_int(cs_table_flags, w->cspec_int, &table_flags);
         cspec_int(cs_window_flags, w->cspec_int, &window_flags);
 
-        DataRef* result_set_data_ref = cspec_data_ref(cs_query_id, w->data_refs);
+        DataRef* result_set_data_ref = cspec_data_ref(cs_query_id, w);
         assert(result_set_data_ref != nullptr);
         const char* query_id = data_lay_cache.get_string_value(result_set_data_ref->addr_inx);
 
         // menupop is an optional cspec, so possibly nullptr here
-        smry_tbl_ctx.menupop_data_ref = cspec_data_ref(cs_menu_pop, w->data_refs);
+        smry_tbl_ctx.menupop_data_ref = cspec_data_ref(cs_menu_pop, w);
 
         if (title) {    // scope to fire title_font dtor and pop before body
             LocalFont title_font(w, cs_title_font, cs_title_font_size);
@@ -1842,7 +1859,7 @@ protected:
         auto center = vp->GetCenter();
         ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, position);
         // Get the text list
-        DataRef* str_vec_data_ref = cspec_data_ref(cs_cname, w->data_refs);
+        DataRef* str_vec_data_ref = cspec_data_ref(cs_cname, w);
         assert(str_vec_data_ref != nullptr);
         assert(str_vec_data_ref->tipe == cdStrVec);
 
@@ -1909,13 +1926,13 @@ protected:
         cspec_bool(cs_show_lines, w->cspec_bool, &sh_pl_vars.show_lines);
         cspec_bool(cs_show_fills, w->cspec_bool, &sh_pl_vars.show_fills);
 
-        DataRef* result_set_data_ref = cspec_data_ref(cs_query_id, w->data_refs);
+        DataRef* result_set_data_ref = cspec_data_ref(cs_query_id, w);
         assert(result_set_data_ref != nullptr);
         const char* query_id = data_lay_cache.get_string_value(result_set_data_ref->addr_inx);
         RSHandle handle = bulk.get_handle(query_id);
 
-        DataRef* x_data_ref = cspec_data_ref(cs_xname, w->data_refs);
-        DataRef* y_data_ref = cspec_data_ref(cs_yname, w->data_refs);
+        DataRef* x_data_ref = cspec_data_ref(cs_xname, w);
+        DataRef* y_data_ref = cspec_data_ref(cs_yname, w);
         assert(x_data_ref != nullptr);
         assert(y_data_ref != nullptr);
 
@@ -1973,12 +1990,12 @@ protected:
         int table_flags = default_table_flags;
         cspec_int(cs_table_flags, w->cspec_int, &table_flags);
 
-        DataRef* result_set_data_ref = cspec_data_ref(cs_query_id, w->data_refs);
+        DataRef* result_set_data_ref = cspec_data_ref(cs_query_id, w);
         assert(result_set_data_ref != nullptr);
         const char* query_id = data_lay_cache.get_string_value(result_set_data_ref->addr_inx);
 
         /// NB cspec:menupop is optional
-        tbl_ctx.menupop_data_ref = cspec_data_ref(cs_menu_pop, w->data_refs);
+        tbl_ctx.menupop_data_ref = cspec_data_ref(cs_menu_pop, w);
 
         // TODO: recode bulk.get_meta_data() to lazy load and report geom.
         // API wise it's a bit clunky and needs a refactor.
@@ -2053,7 +2070,7 @@ protected:
         // signals a bulk column MemEdit, so we prep DrawWindow's three params
         // const char* title, void* mem_data, size_t mem_size from
         // TableContext and TableMemEditContext
-        DataRef* result_set_data_ref = cspec_data_ref(cs_query_id, w->data_refs);
+        DataRef* result_set_data_ref = cspec_data_ref(cs_query_id, w);
         const char* query_id = data_lay_cache.get_string_value(result_set_data_ref->addr_inx);
         if (query_id != nullptr) {
             // expensive lookup op that we'd typically do in
