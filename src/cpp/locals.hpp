@@ -60,6 +60,8 @@ struct EndRenderLocals {
     int*    new_int{ nullptr };
     double  old_double{ 0.0 };
     double* new_double{ nullptr };
+    bool    old_bool{ false };
+    bool*   new_bool{ nullptr };
     // no old_string/new_string: see render_input_string comment 
     // for strings we must invoke w->clear_buffer();
 };
