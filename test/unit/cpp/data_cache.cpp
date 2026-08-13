@@ -428,6 +428,9 @@ BOOST_FIXTURE_TEST_CASE(QedServerForth, DataCacheFixture)
     dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.widget_vec_size() == 2);
     BOOST_TEST(dc.pushables_size() == 1);
+    WidgetVec matches;
+    dc.find_widget(RenderMethod::InputTextArea, matches);
+    BOOST_TEST(matches.size() == 1);
     // WidgetPtr w{ dc.get_pushable("i_am_text_area") };
     assert_cache_state();
 }
