@@ -1073,6 +1073,19 @@ public:
         return inx;
     }
 
+    // unit test facilitator method: this should only be invoked
+    // by test/unit/cpp code, and never by any core impl in src/cpp
+    void find_widget(RenderMethod rm, WidgetVec& matches, WidgetVec* wv = nullptr) {
+        WidgetVec* wvec = (wv == nullptr) ? &widget_vec : wv;
+        for (auto wvit = wvec->begin(); wvit != wvec->end(); ++wvit) {
+            WidgetPtr w{ *wvit };
+            if (w->rname == rm)
+                matches.push_back(w);
+            if (!w->children.empty())
+                find_widget(rm, matches, &( w->children));
+        }
+    }
+
     EntityInx add_query_id(const std::string& qid) {
         EntityInx inx{ get_string_index<CIT::EntityID>(qid, CST::QueryID) };
         query_map[qid] = inx;
