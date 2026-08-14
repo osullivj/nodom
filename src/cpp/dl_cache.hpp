@@ -1263,6 +1263,19 @@ public:
         }
         return nullptr;
     }
+
+    DataRef* cspec_data_ref(CacheSpecifier spec, WidgetPtr w) {
+        auto cs_dref_iter = w->data_refs.find(spec);
+        if (cs_dref_iter != w->data_refs.end())
+            return &(cs_dref_iter->second);
+        // no direct mapping via data key: the render_method that invoked
+        // us could be asking for any addr cspec here, so we may need to
+        // return an NDF lambda result.
+        auto cs_ndfref_iter = w->forth_result_data_refs.find(spec);
+        if (cs_ndfref_iter != w->forth_result_data_refs.end())
+            return &(cs_ndfref_iter->second);
+        return nullptr;
+    }
 private:
     // statics that define DataLayCache data and layout geometry
     inline static std::array<const char*, EndRenderMethod> render_names{

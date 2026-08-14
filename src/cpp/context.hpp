@@ -825,16 +825,7 @@ protected:
     }
 
     DataRef* cspec_data_ref(CacheSpecifier spec, WidgetPtr w) {
-        auto cs_dref_iter = w->data_refs.find(spec);
-        if (cs_dref_iter != w->data_refs.end())
-            return &(cs_dref_iter->second);
-        // no direct mapping via data key: the render_method that invoked
-        // us could be asking for any addr cspec here, so we may need to
-        // return an NDF lambda result.
-        auto cs_ndfref_iter = w->forth_result_data_refs.find(spec);
-        if (cs_ndfref_iter != w->forth_result_data_refs.end())
-            return &(cs_ndfref_iter->second);
-        return nullptr;
+        return data_lay_cache.cspec_data_ref(spec, w);
     }
     
     // void dispatch_render(const JSON& w) {
