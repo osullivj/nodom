@@ -232,9 +232,6 @@ BOOST_FIXTURE_TEST_CASE(BadIndex, DataCacheFixture)
     BOOST_CHECK_THROW(AddrInx{ MAX_DCI + 1 }, std::exception);
 }
 
-
-
-
 BOOST_FIXTURE_TEST_CASE(MinMenuBarDataAndLayout, DataCacheFixture)
 {
 #ifdef __EMSCRIPTEN__
@@ -331,14 +328,11 @@ BOOST_FIXTURE_TEST_CASE(InitDataAndLayout, DataCacheFixture)
 
 BOOST_FIXTURE_TEST_CASE(AddServerData, DataCacheFixture)
 {
-#ifdef __EMSCRIPTEN__
-    auto data = JParse<emscripten::val>(add_server_data);
-#else
     std::string data_json_path = test_json_dir + "test_add_server_data.json";
     std::string data_json = load_json(data_json_path.c_str());
     auto data = JParse<nlohmann::json>(data_json);
     auto layout = JParse<nlohmann::json>(Static::empty_list_cs);
-#endif
+
     // 3 addresses in AddServer test data
     str_count = 17;
     int_count = 4;
@@ -350,17 +344,13 @@ BOOST_FIXTURE_TEST_CASE(AddServerData, DataCacheFixture)
 
 BOOST_FIXTURE_TEST_CASE(AddServerLayout, DataCacheFixture)
 {
-#ifdef __EMSCRIPTEN__
-    // TODO: load from ems FS
-    auto layout = JParse<emscripten::val>(add_server_layout);
-#else
     std::string data_json_path = test_json_dir + "test_add_server_data.json";
     std::string data_json = load_json(data_json_path.c_str());
     auto data = JParse<nlohmann::json>(data_json);
     std::string layout_json_path = test_json_dir + "test_add_server_layout.json";
     std::string layout_json = load_json(layout_json_path.c_str());
     auto layout = JParse<nlohmann::json>(layout_json);
-#endif
+
     str_count = 23;   // Layout:[Home::title], Data:[op1,op2,op1_plus_op2], and all NDAction too!
     int_count = 14;   // Layout:["step":1, "step":2], Data:[op1,op2,op1_plus_op2]
     dc.on_json(data, layout, [&]() { dc.on_init(); });
@@ -369,17 +359,13 @@ BOOST_FIXTURE_TEST_CASE(AddServerLayout, DataCacheFixture)
     assert_cache_state();
 }
 
-
 BOOST_FIXTURE_TEST_CASE(QedServerData, DataCacheFixture)
 {
-#ifdef __EMSCRIPTEN__
-    auto data = JParse<emscripten::val>(add_server_data);
-#else
     std::string data_json_path = test_json_dir + "test_qed_server_data.json";
     std::string data_json = load_json(data_json_path.c_str());
     auto data = JParse<nlohmann::json>(data_json);
     auto layout = JParse<nlohmann::json>(Static::empty_list_cs);
-#endif
+
     // 3 addresses in AddServer test data
     str_count = 4;
     int_count = 0;
@@ -391,17 +377,13 @@ BOOST_FIXTURE_TEST_CASE(QedServerData, DataCacheFixture)
 
 BOOST_FIXTURE_TEST_CASE(QedServerLayout, DataCacheFixture)
 {
-#ifdef __EMSCRIPTEN__
-    // TODO: load from ems FS
-    auto layout = JParse<emscripten::val>(add_server_layout);
-#else
     std::string data_json_path = test_json_dir + "test_qed_server_data.json";
     std::string data_json = load_json(data_json_path.c_str());
     auto data = JParse<nlohmann::json>(data_json);
     std::string layout_json_path = test_json_dir + "test_qed_server_layout.json";
     std::string layout_json = load_json(layout_json_path.c_str());
     auto layout = JParse<nlohmann::json>(layout_json);
-#endif
+
     str_count = 14;   // 
     int_count = 4;   // 
     dc.on_json(data, layout, [&]() { dc.on_init(); });
@@ -412,40 +394,46 @@ BOOST_FIXTURE_TEST_CASE(QedServerLayout, DataCacheFixture)
 
 BOOST_FIXTURE_TEST_CASE(QedServerForth, DataCacheFixture)
 {
-#ifdef __EMSCRIPTEN__
-    // TODO: load from ems FS
-    auto layout = JParse<emscripten::val>(add_server_layout);
-#else
     std::string data_json_path = test_json_dir + "test_qed_server_data.json";
     std::string data_json = load_json(data_json_path.c_str());
     auto data = JParse<nlohmann::json>(data_json);
     std::string layout_json_path = test_json_dir + "test_qed_server_layout.json";
     std::string layout_json = load_json(layout_json_path.c_str());
     auto layout = JParse<nlohmann::json>(layout_json);
-#endif
+
     str_count = 14;   // 
     int_count = 4;   // 
     dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.widget_vec_size() == 2);
     BOOST_TEST(dc.pushables_size() == 1);
+
+    // find the InputTextArea Widget
     WidgetVec matches;
     dc.find_widget(RenderMethod::InputTextArea, matches);
     BOOST_TEST(matches.size() == 1);
-    // WidgetPtr w{ dc.get_pushable("i_am_text_area") };
+    WidgetPtr w{ matches[0] };
+
+    // check the result of the NDF computation, which
+    // should be queries[0]. NB NDWidget validity window
+    // comments re: changed. We cannot use changed here
+    // in the absence of NDContext change mgmt.
+    nlohmann::json queries = data["queries"];
+    nlohmann::json query0 = queries[0];
+    DataRef* ndf_data_ref = dc.cspec_data_ref(CacheSpecifier::cs_cname, w);
+    StrInx sinx(ndf_data_ref->ref_inx);
+    const char* cached_query0 = dc.get_string_value(sinx);
+    std::string original_json_value = query0.template get<std::string>();
+    BOOST_TEST(original_json_value == cached_query0);
     assert_cache_state();
 }
 
 BOOST_FIXTURE_TEST_CASE(ExfServerData, DataCacheFixture)
 {
-#ifdef __EMSCRIPTEN__
-    auto data = JParse<emscripten::val>(add_server_data);
-#else
     std::string data_json_path = test_json_dir + "test_exf_server_data.json";
     std::string data_json = load_json(data_json_path.c_str());
     auto data = JParse<nlohmann::json>(data_json);
     auto layout = JParse<nlohmann::json>(Static::empty_list_cs);
 
-#endif
     str_count = 35;
     dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.addr_map_size() == 12);   // xaxis,yaxis took us from 10 to 12
@@ -457,17 +445,13 @@ BOOST_FIXTURE_TEST_CASE(ExfServerData, DataCacheFixture)
 
 BOOST_FIXTURE_TEST_CASE(ExfServerLayout, DataCacheFixture)
 {
-#ifdef __EMSCRIPTEN__
-    // TODO: load from ems FS
-    auto layout = JParse<emscripten::val>(add_server_layout);
-#else
     std::string data_json_path = test_json_dir + "test_exf_server_data.json";
     std::string data_json = load_json(data_json_path.c_str());
     auto data = JParse<nlohmann::json>(data_json);
     std::string layout_json_path = test_json_dir + "test_exf_server_layout.json";
     std::string layout_json = load_json(layout_json_path.c_str());
     auto layout = JParse<nlohmann::json>(layout_json);
-#endif
+
     // check these against hex indices in cache dump
     str_count = 73;
     int_count = 14;
