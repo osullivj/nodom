@@ -148,6 +148,9 @@ struct NDWidget {
     DataRefMap      forth_result_data_refs;
     char*           buffer{ nullptr }; // eg render_input_string
     int             buffer_size{ 0 };
+
+    // validity window for deferred notify_server(): these members
+    // may be set intra render, and will be cleared post render
     IntVec          old_int;
     IntVec          old_bool;
     FloatVec        old_float;

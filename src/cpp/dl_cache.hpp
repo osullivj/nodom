@@ -1200,6 +1200,7 @@ public:
 
         switch (w->rname) {
         case InputString:
+        case InputTextArea:
             pbuf = cspec_int(cs_buffer_size, w->cspec_int, &buffer_size);
             if (pbuf != nullptr) {  // cspec:cs_buffer_size value supplied
                 w->alloc_buffer(buffer_size);
