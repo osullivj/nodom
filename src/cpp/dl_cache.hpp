@@ -585,6 +585,9 @@ protected:
             for (auto fmit = w->ndf_lambda_map.begin(); fmit != w->ndf_lambda_map.end(); ++fmit) {
                 execute_forth(w, fmit->first);
             }
+            if (!w->children.empty()) {
+                execute_all_forth(&( w->children));
+            }
         }
     }
 
@@ -683,6 +686,13 @@ protected:
                         // want NDF to be a 0alloc 0cp uforth.
                         if (compile_forth(widget, spec, ref_type, addr_or_qid))
                             continue;
+                        bad_data_refs.push_back(ref_name);
+                        std::stringstream ss;
+                        ss << "BAD_FORTH_REF(" << ref_name << "/" << addr_or_qid << ") compilation failure in cspec:";
+                        ss << cspec;
+                        layout_errors.push_back(ss.str());
+                        continue;
+
                     }
                     bad_data_refs.push_back(ref_name);
                     std::stringstream ss;
