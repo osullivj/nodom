@@ -164,6 +164,9 @@ using WidgetVec = std::vector<WidgetPtr>;
 
 using PushableMap = std::map<EntityInx, WidgetPtr>;
 
+using InxWidgetVecMap = std::map<uint32_t, WidgetVec>;
+using InxCspecVecMap = std::map<uint32_t, CacheSpecVec>;
+
 using WCSCSFunc = std::function<void(WidgetPtr, CacheSpecifier, CacheSpecifier)>;
 
 
