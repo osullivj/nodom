@@ -502,6 +502,7 @@ public:
                     w->changed = nullptr;
                 }
             }
+            changed.clear();
         }
 
         if (!pending_actions.empty()) {
