@@ -179,6 +179,7 @@ private:
     DatePickerLocals    dp_vars;
     SpinnerLocals       sp_vars;
     ShadedPlotLocals    sh_pl_vars;
+    TextAreaLocals      txt_area_vars;
     EndRenderLocals     er_vars;
     SummaryTableContext smry_tbl_ctx;
     TableContext        tbl_ctx;
@@ -1342,8 +1343,10 @@ protected:
     void render_input_text_area(WidgetPtr w) {
         // const static char* method = "NDContext::render_input_text_area: ";
 
-        int flags = 0;
-        cspec_int(cs_flags, w->cspec_int, &flags);
+        txt_area_vars.flags = 0;
+        txt_area_vars.line_height = 4;
+        cspec_int(cs_flags, w->cspec_int, &txt_area_vars.flags);
+        cspec_int(cs_line_height, w->cspec_int, &txt_area_vars.line_height);
 
         DataRef* str_data_ref = cspec_data_ref(cs_cname, w);
         assert(str_data_ref != nullptr);
@@ -1363,10 +1366,10 @@ protected:
         const char* label = cspec_string(cs_label, w->cspec_str, cname);
 
         // returns true on every change, not just when edit done
+        txt_area_vars.size[1] = ImGui::GetTextLineHeight() * txt_area_vars.line_height;
         ImGui::InputTextMultiline(label, w->buffer, w->buffer_size,
-            ImVec2(-FLT_MIN, ImGui::GetTextLineHeight() * 16), flags);
+            txt_area_vars.size, txt_area_vars.flags);
 
-        // TODO: end_render_cycle
         if (ImGui::IsItemDeactivatedAfterEdit()) {
             if (std::string_view(cptr) != std::string_view(w->buffer)) {
                 notify_server(str_data_ref, cptr, w->buffer);
