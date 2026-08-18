@@ -63,6 +63,11 @@ private:
     std::deque<WidgetPtr>   stack;          // render stack
     std::deque<WidgetPtr>   changed;        // 
     DataLayCache<JSON>      data_lay_cache;
+    UintVec                 dirty_int_vec;
+    UintVec                 dirty_dbl_vec;
+    UintVec                 dirty_bool_vec;
+    UintVec                 dirty_date_vec;
+    UintVec                 dirty_str_vec;
 
     // latest critical error state raised, and array of crit err
     // msgs to show in Home
@@ -463,6 +468,7 @@ public:
                     er_vars.old_int = 0;
                     er_vars.new_int = nullptr;
                     w->changed = nullptr;
+                    dirty_int_vec.push_back(w->changed->ref_inx);
                     break;
                 case InputDouble:
                     er_vars.old_double = w->old_double.back();
@@ -472,12 +478,14 @@ public:
                     er_vars.old_double = 0.0;
                     er_vars.new_int = nullptr;
                     w->changed = nullptr;
+                    dirty_dbl_vec.push_back(w->changed->ref_inx);
                     break;
                 case InputString:
                 case InputTextArea:
                     notify_server(w->changed, w->old_buffer, w->buffer);
                     w->clear_buffer();
                     w->changed = nullptr;
+                    dirty_str_vec.push_back(w->changed->ref_inx);
                     break;
                 case Checkbox:
                     er_vars.old_bool = w->old_bool.back();
@@ -487,6 +495,7 @@ public:
                     er_vars.old_bool = false;
                     er_vars.new_bool = nullptr;
                     w->changed = nullptr;
+                    dirty_bool_vec.push_back(w->changed->ref_inx);
                     break;
                 case DatePicker:
                     er_vars.old_date[2] = w->old_int.back();
@@ -501,6 +510,7 @@ public:
                     er_vars.old_date = { 1970, 1, 1 };
                     er_vars.new_int = nullptr;
                     w->changed = nullptr;
+                    dirty_date_vec.push_back(w->changed->ref_inx);
                 }
             }
             changed.clear();
