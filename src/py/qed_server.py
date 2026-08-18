@@ -41,7 +41,8 @@ QED_LAYOUT = [
             ),
             dict(rname="InputTextArea", cspec=dict(
                 cname="queries selected_query []",
-                buffer_size=64)),
+                line_height=8,
+                buffer_size=8*256)),
             dict(rname="Separator", cspec=dict()),
             dict(rname="PopFont"),
             dict(rname="PushFont", cspec=dict(font="Arial", font_size=8)),
