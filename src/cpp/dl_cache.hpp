@@ -92,7 +92,10 @@ protected:
     std::map<EntityInx, uint32_t>       js_func_inx_map;
     StringVec                           js_func_vec;
 
-    AddrInx     ainx_OpIndex;
+    // NoDOM Forth
+    AddrInx         ainx_OpIndex;
+    // TODO: InxWidgetVecMap & InxCspecVecMap instances
+    // to back map from raw ref inxs to (widget,cspec) pairs
 
 public:
     template <CIT itype>
