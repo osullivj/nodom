@@ -117,7 +117,7 @@ struct NDWidget {
         if (buffer != nullptr)
             memset(buffer, 0, buffer_size);
         if (old_buffer != nullptr)
-            memset(buffer, 0, buffer_size);
+            memset(old_buffer, 0, buffer_size);
     }
 
     inline void set_buffer(const char* v) {
