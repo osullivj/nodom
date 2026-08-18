@@ -55,6 +55,12 @@ struct ShadedPlotLocals {
     uint32_t    offset{ 0 };
 };
 
+struct TextAreaLocals {
+    int     flags{ 0 };
+    int     line_height{ 0 };
+    ImVec2  size{ -FLT_MIN, 0.0 };
+};
+
 struct EndRenderLocals {
     int     old_int{ 0 };
     int*    new_int{ nullptr };
