@@ -18,6 +18,7 @@ using StringVec = std::vector<std::string>;
 using IntVec = std::vector<int>;
 using FloatVec = std::vector<float>;
 using DoubleVec = std::vector<double>;
+using UintVec = std::vector<std::uint32_t>;
 using StringStringMap = std::map<std::string, std::string>;
 using StringIntMap = std::map<std::string, int>;
 using StringSet = std::set<std::string>;
