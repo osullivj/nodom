@@ -96,6 +96,18 @@ protected:
     AddrInx         ainx_OpIndex;
     // TODO: InxWidgetVecMap & InxCspecVecMap instances
     // to back map from raw ref inxs to (widget,cspec) pairs
+    // NB recall that at most one thing can change in the cache
+    // as a result of an NDF comp. For example, if a StrVec changes,
+    // only one element will change at a time. So changes are
+    // irreducibly atomic. DatePicker YMD is a corner case. See
+    // NDContext::end_render_cycle() switch for the enumeration
+    // of the change scenarios, and how they populate the 
+    // NDContext::dirty_<type>_vec vectors with DataRef::ref_inx
+    // NDF checks if any of those ref_inx occur as operand
+    InxWidgetVecMap int_driven_widget_vecs;
+    InxCspecVecMap  int_driven_cspec_vecs;
+    InxWidgetVecMap str_driven_widget_vecs;
+    InxCspecVecMap  str_driven_cspec_vecs;
 
 public:
     template <CIT itype>
@@ -479,6 +491,20 @@ protected:
             }
             else if (address_map.find(token) != address_map.end()) {
                 lambda.push_back(address_map[token]);
+                // memo token as a driver for this NDF
+                uint32_t itoken = address_map[token]();
+                switch (ref_type) {
+                case cdInt:
+                case cdIntVec:
+                    int_driven_widget_vecs[itoken].push_back(w);
+                    int_driven_cspec_vecs[itoken].push_back(spec);
+                    break;
+                case cdStr:
+                case cdStrVec:
+                    str_driven_widget_vecs[itoken].push_back(w);
+                    str_driven_cspec_vecs[itoken].push_back(spec);
+                    break;
+                }
             }
             else {
                 bad_data_refs.push_back(token);
