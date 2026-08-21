@@ -113,6 +113,11 @@ protected:
     size_t          vec_inx{ 0 };
 
 public:
+    InxWidgetVecMap& get_int_driven_widget_vecs() { return int_driven_widget_vecs; }
+    InxWidgetVecMap& get_str_driven_widget_vecs() { return str_driven_widget_vecs; }
+    InxCspecVecMap& get_int_driven_cspec_vecs() { return int_driven_cspec_vecs; }
+    InxCspecVecMap& get_str_driven_cspec_vecs() { return str_driven_cspec_vecs; }
+
     template <CIT itype>
     auto get_string_index(const std::string& s, CST stype = CST::None) {
         auto iter = std::find(cache_strings.begin(), cache_strings.end(), s);
@@ -1001,15 +1006,16 @@ public:
         }
     }
 
-    void on_dirty_ints(UintVec& dirty_int_addr_vec, UintVec& dirty_int_ref_vec) {
-        size_t sz{ dirty_int_addr_vec.size() };
+    void on_dirty(UintVec& dirty_addr_vec, UintVec& dirty_ref_vec,
+            InxWidgetVecMap& driven_widget_vecs, InxCspecVecMap& driven_cspec_vecs) {
+        size_t sz{ dirty_addr_vec.size() };
         for (auto inx = 0; inx < sz; inx++) {
             // raw AddrInx is the key to int_driven_[widget|cspec]_vecs
-            dirty_addr_inx = dirty_int_addr_vec[inx];
+            dirty_addr_inx = dirty_addr_vec[inx];
             if (int_driven_widget_vecs.find(dirty_addr_inx) != int_driven_widget_vecs.end()) {
-                dirty_ref_inx = dirty_int_ref_vec[inx];
-                WidgetVec& wvec{ int_driven_widget_vecs.at(dirty_addr_inx) };
-                CacheSpecVec& csvec{ int_driven_cspec_vecs.at(dirty_addr_inx) };
+                dirty_ref_inx = dirty_ref_vec[inx];
+                WidgetVec& wvec{ driven_widget_vecs.at(dirty_addr_inx) };
+                CacheSpecVec& csvec{ driven_cspec_vecs.at(dirty_addr_inx) };
                 for (vec_inx = 0; vec_inx < wvec.size(); vec_inx++) {
                     execute_forth(wvec[vec_inx], csvec[vec_inx]);
                 }
