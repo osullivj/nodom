@@ -424,6 +424,22 @@ BOOST_FIXTURE_TEST_CASE(QedServerForth, DataCacheFixture)
     const char* cached_query0 = dc.get_string_value(sinx);
     std::string original_json_value = query0.template get<std::string>();
     BOOST_TEST(original_json_value == cached_query0);
+
+    // now let's change the value of selected_query, and recompute the NDF
+    // First, find the Combo Widget...
+    matches.clear();
+    dc.find_widget(RenderMethod::Combo, matches);
+    BOOST_TEST(matches.size() == 1);
+    w = matches[0];
+    // Combo:cspec:cindex is selected_query
+    DataRef* int_data_ref = dc.cspec_data_ref(cs_cindex, w);
+    assert(int_data_ref != nullptr);
+    assert(int_data_ref->tipe == cdInt);
+    IntInx iinx{ int_data_ref->ref_inx };
+    int* int_ptr = dc.get_int_value(iinx);
+    assert(int_ptr != nullptr);
+    *int_ptr = 1;
+
     assert_cache_state();
 }
 
