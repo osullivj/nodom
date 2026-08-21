@@ -95,7 +95,7 @@ protected:
     // NoDOM Forth
     AddrInx         ainx_OpIndex;
     // TODO: InxWidgetVecMap & InxCspecVecMap instances
-    // to back map from raw ref inxs to (widget,cspec) pairs
+    // to back map from raw AddrInxs to (widget,cspec) pairs
     // NB recall that at most one thing can change in the cache
     // as a result of an NDF comp. For example, if a StrVec changes,
     // only one element will change at a time. So changes are
@@ -108,7 +108,8 @@ protected:
     InxCspecVecMap  int_driven_cspec_vecs;
     InxWidgetVecMap str_driven_widget_vecs;
     InxCspecVecMap  str_driven_cspec_vecs;
-    uint32_t        dirty_inx{ 0 };
+    uint32_t        dirty_addr_inx{ 0 };
+    uint32_t        dirty_ref_inx{ 0 };
     size_t          vec_inx{ 0 };
 
 public:
@@ -481,44 +482,49 @@ protected:
         }
     }
 
-    bool compile_forth(WidgetPtr w, CacheSpecifier spec, CDT ref_type, const std::string& forth_source) {
+    bool compile_forth(WidgetPtr w, CacheSpecifier spec, CDT result_type, const std::string& forth_source) {
         std::stringstream forth_stream{ forth_source };
-        std::string token;
+        std::string stoken;
         // yes, we're creating a new ForthLambda
         // ND not on a hotpath
         ForthLambda& lambda{ w->ndf_lambda_map[spec] };
-        while (std::getline(forth_stream, token, Static::space_c)) {
-            if (operand_map.find(token) != operand_map.end()) {
-                lambda.push_back(operand_map[token]);
+        while (std::getline(forth_stream, stoken, Static::space_c)) {
+            if (operand_map.find(stoken) != operand_map.end()) {
+                lambda.push_back(operand_map[stoken]);
             }
-            else if (address_map.find(token) != address_map.end()) {
-                lambda.push_back(address_map[token]);
+            else if (address_map.find(stoken) != address_map.end()) {
+                AddrInx ainx{ address_map[stoken] };
+                DataRef& data_ref{ data_ref_map[ainx] };
+                lambda.push_back(ainx());
                 // memo token as a driver for this NDF
-                uint32_t itoken = address_map[token]();
-                switch (ref_type) {
+                // AddrInx is data_ref_map key; sao here we connect
+                // the changed data AddrInx key with the widget:addr_cspec
+                // key to the lambda that NDF that will need recomputing
+                // when it's source data changes
+                switch (data_ref.tipe) {
                 case cdInt:
                 case cdIntVec:
-                    int_driven_widget_vecs[itoken].push_back(w);
-                    int_driven_cspec_vecs[itoken].push_back(spec);
+                    int_driven_widget_vecs[ainx()].push_back(w);
+                    int_driven_cspec_vecs[ainx()].push_back(spec);
                     break;
                 case cdStr:
                 case cdStrVec:
-                    str_driven_widget_vecs[itoken].push_back(w);
-                    str_driven_cspec_vecs[itoken].push_back(spec);
+                    str_driven_widget_vecs[ainx()].push_back(w);
+                    str_driven_cspec_vecs[ainx()].push_back(spec);
                     break;
                 }
             }
             else {
-                bad_data_refs.push_back(token);
+                bad_data_refs.push_back(stoken);
                 std::stringstream ss;
-                ss << "FORTH_CSPEC(" << token << ") in cspec:"
+                ss << "FORTH_CSPEC(" << stoken << ") in cspec:"
                     << forth_source << ", does not compile for " << render_names[w->rname];
                 layout_errors.push_back(ss.str());
                 return false;
             }
         }
         DataRef& result_data_ref{ w->forth_result_data_refs[spec] };
-        result_data_ref.tipe = ref_type;
+        result_data_ref.tipe = result_type;
         return true;
     }
 
@@ -995,15 +1001,18 @@ public:
         }
     }
 
-    void on_dirty_ints(UintVec& dirty_int_vec) {
-        for (auto diit = dirty_int_vec.begin(); diit != dirty_int_vec.end(); ++diit) {
-            // process in the same order...
-            dirty_inx = *diit;
-            assert(int_driven_widget_vecs.find(dirty_inx) != int_driven_widget_vecs.end());
-            WidgetVec& wvec{ int_driven_widget_vecs.at(dirty_inx) };
-            CacheSpecVec& csvec{ int_driven_cspec_vecs.at(dirty_inx) };
-            for (vec_inx = 0; vec_inx < wvec.size(); vec_inx++) {
-                execute_forth(wvec[vec_inx], csvec[vec_inx]);
+    void on_dirty_ints(UintVec& dirty_int_addr_vec, UintVec& dirty_int_ref_vec) {
+        size_t sz{ dirty_int_addr_vec.size() };
+        for (auto inx = 0; inx < sz; inx++) {
+            // raw AddrInx is the key to int_driven_[widget|cspec]_vecs
+            dirty_addr_inx = dirty_int_addr_vec[inx];
+            if (int_driven_widget_vecs.find(dirty_addr_inx) != int_driven_widget_vecs.end()) {
+                dirty_ref_inx = dirty_int_ref_vec[inx];
+                WidgetVec& wvec{ int_driven_widget_vecs.at(dirty_addr_inx) };
+                CacheSpecVec& csvec{ int_driven_cspec_vecs.at(dirty_addr_inx) };
+                for (vec_inx = 0; vec_inx < wvec.size(); vec_inx++) {
+                    execute_forth(wvec[vec_inx], csvec[vec_inx]);
+                }
             }
         }
     }
