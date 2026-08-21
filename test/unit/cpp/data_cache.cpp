@@ -447,7 +447,8 @@ BOOST_FIXTURE_TEST_CASE(QedServerForth, DataCacheFixture)
     UintVec dirty_int_ref_vec;
     dirty_int_addr_vec.push_back(int_data_ref->addr_inx());
     dirty_int_ref_vec.push_back(iinx());
-    dc.on_dirty_ints(dirty_int_addr_vec, dirty_int_ref_vec);
+    dc.on_dirty(dirty_int_addr_vec, dirty_int_ref_vec,
+        dc.get_int_driven_widget_vecs(), dc.get_int_driven_cspec_vecs());
 
     // Now fetch the InputTextArea:cspec:cname NDF value again. No
     // need to refetch the DataRef ptr, we just need to get the ref_inx
