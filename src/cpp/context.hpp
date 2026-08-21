@@ -61,13 +61,19 @@ private:
     JSON                    data;
     JSON                    return_value;   // return value from FunctionAsync
     std::deque<WidgetPtr>   stack;          // render stack
-    std::deque<WidgetPtr>   changed;        // 
-    DataLayCache<JSON>      data_lay_cache;
-    UintVec                 dirty_int_vec;
-    UintVec                 dirty_dbl_vec;
-    UintVec                 dirty_bool_vec;
-    UintVec                 dirty_date_vec;
-    UintVec                 dirty_str_vec;
+    std::deque<WidgetPtr>   changed;        // list of widgets needing end_render_cycle() notify_server() invocation 
+    DataLayCache<JSON>      data_lay_cache; // DLC
+
+    UintVec                 dirty_int_ref_vec;  // memoization of deferred notify_server() changes
+    UintVec                 dirty_int_addr_vec; // one pair of vecs for each atomic cache type
+    UintVec                 dirty_dbl_ref_vec;  // NB an array change is a change to one elem, which is atomic!
+    UintVec                 dirty_dbl_addr_vec; // each changed atomic is represented by addr and ref inxs
+    UintVec                 dirty_bool_ref_vec; // which enable lookup via DLC::address_map and DLC::data_ref_map
+    UintVec                 dirty_bool_addr_vec;
+    UintVec                 dirty_date_ref_vec;
+    UintVec                 dirty_date_addr_vec;
+    UintVec                 dirty_str_ref_vec;
+    UintVec                 dirty_str_addr_vec;
 
     // latest critical error state raised, and array of crit err
     // msgs to show in Home
@@ -467,8 +473,9 @@ public:
                     w->old_int.clear();
                     er_vars.old_int = 0;
                     er_vars.new_int = nullptr;
+                    dirty_int_ref_vec.push_back(w->changed->ref_inx);
+                    dirty_int_addr_vec.push_back(w->changed->addr_inx());
                     w->changed = nullptr;
-                    dirty_int_vec.push_back(w->changed->ref_inx);
                     break;
                 case InputDouble:
                     er_vars.old_double = w->old_double.back();
@@ -477,15 +484,17 @@ public:
                     w->old_double.clear();
                     er_vars.old_double = 0.0;
                     er_vars.new_int = nullptr;
+                    dirty_dbl_ref_vec.push_back(w->changed->ref_inx);
+                    dirty_dbl_addr_vec.push_back(w->changed->addr_inx());
                     w->changed = nullptr;
-                    dirty_dbl_vec.push_back(w->changed->ref_inx);
                     break;
                 case InputString:
                 case InputTextArea:
                     notify_server(w->changed, w->old_buffer, w->buffer);
                     w->clear_buffer();
+                    dirty_str_ref_vec.push_back(w->changed->ref_inx);
+                    dirty_str_addr_vec.push_back(w->changed->addr_inx());
                     w->changed = nullptr;
-                    dirty_str_vec.push_back(w->changed->ref_inx);
                     break;
                 case Checkbox:
                     er_vars.old_bool = w->old_bool.back();
@@ -494,8 +503,9 @@ public:
                     w->old_bool.clear();
                     er_vars.old_bool = false;
                     er_vars.new_bool = nullptr;
+                    dirty_bool_ref_vec.push_back(w->changed->ref_inx);
+                    dirty_bool_addr_vec.push_back(w->changed->addr_inx());
                     w->changed = nullptr;
-                    dirty_bool_vec.push_back(w->changed->ref_inx);
                     break;
                 case DatePicker:
                     er_vars.old_date[2] = w->old_int.back();
@@ -509,8 +519,9 @@ public:
                     notify_server(w->changed, er_vars.old_date, er_vars.new_date);
                     er_vars.old_date = { 1970, 1, 1 };
                     er_vars.new_int = nullptr;
+                    dirty_date_ref_vec.push_back(w->changed->ref_inx);
+                    dirty_date_addr_vec.push_back(w->changed->addr_inx());
                     w->changed = nullptr;
-                    dirty_date_vec.push_back(w->changed->ref_inx);
                 }
             }
             changed.clear();
@@ -518,9 +529,10 @@ public:
 
         // Check the dirty_<type>_vec vectors for changes in DataRef addressables
         // that drive NDF lambda recalcs
-        if (!dirty_int_vec.empty()) {
-            data_lay_cache.on_dirty_ints(dirty_int_vec);
-            dirty_int_vec.clear();
+        if (!dirty_int_ref_vec.empty()) {
+            data_lay_cache.on_dirty_ints(dirty_int_addr_vec, dirty_int_ref_vec);
+            dirty_int_addr_vec.clear();
+            dirty_int_ref_vec.clear();
         }
 
         if (!pending_actions.empty()) {
@@ -740,12 +752,12 @@ public:
                     data_lay_cache.on_data_change(addr, resp);
                     // propogate change to server side
                     AddrInx ainx = data_lay_cache.get_addr_inx(addr);
-                    DataRef* changed = data_lay_cache.get_data_ref(ainx);
+                    DataRef* chngd_data_ref = data_lay_cache.get_data_ref(ainx);
                     if (JContains(resp, Static::old_value_cs) &&
                             JContains(resp, Static::new_value_cs)) {
                         JSON ov = resp[Static::old_value_cs];
                         JSON nv = resp[Static::new_value_cs];
-                        notify_server(changed, ov, nv);
+                        notify_server(chngd_data_ref, ov, nv);
                     }
                 }
             }
