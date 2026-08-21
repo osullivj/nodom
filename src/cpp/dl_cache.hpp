@@ -996,10 +996,9 @@ public:
     }
 
     void on_dirty_ints(UintVec& dirty_int_vec) {
-        while (!dirty_int_vec.empty()) {
+        for (auto diit = dirty_int_vec.begin(); diit != dirty_int_vec.end(); ++diit) {
             // process in the same order...
-            dirty_inx = dirty_int_vec.front();
-            dirty_int_vec.pop_front();
+            dirty_inx = *diit;
             assert(int_driven_widget_vecs.find(dirty_inx) != int_driven_widget_vecs.end());
             WidgetVec& wvec{ int_driven_widget_vecs.at(dirty_inx) };
             CacheSpecVec& csvec{ int_driven_cspec_vecs.at(dirty_inx) };
@@ -1007,7 +1006,6 @@ public:
                 execute_forth(wvec[vec_inx], csvec[vec_inx]);
             }
         }
-
     }
 
     ActionVec* get_action_vec(ActionKey ak) {
