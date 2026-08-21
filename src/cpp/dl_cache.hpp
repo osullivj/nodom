@@ -108,6 +108,8 @@ protected:
     InxCspecVecMap  int_driven_cspec_vecs;
     InxWidgetVecMap str_driven_widget_vecs;
     InxCspecVecMap  str_driven_cspec_vecs;
+    uint32_t        dirty_inx{ 0 };
+    size_t          vec_inx{ 0 };
 
 public:
     template <CIT itype>
@@ -991,6 +993,21 @@ public:
             }
             break;
         }
+    }
+
+    void on_dirty_ints(UintVec& dirty_int_vec) {
+        while (!dirty_int_vec.empty()) {
+            // process in the same order...
+            dirty_inx = dirty_int_vec.front();
+            dirty_int_vec.pop_front();
+            assert(int_driven_widget_vecs.find(dirty_inx) != int_driven_widget_vecs.end());
+            WidgetVec& wvec{ int_driven_widget_vecs.at(dirty_inx) };
+            CacheSpecVec& csvec{ int_driven_cspec_vecs.at(dirty_inx) };
+            for (vec_inx = 0; vec_inx < wvec.size(); vec_inx++) {
+                execute_forth(wvec[vec_inx], csvec[vec_inx]);
+            }
+        }
+
     }
 
     ActionVec* get_action_vec(ActionKey ak) {
