@@ -411,7 +411,7 @@ BOOST_FIXTURE_TEST_CASE(QedServerForth, DataCacheFixture)
     WidgetVec matches;
     dc.find_widget(RenderMethod::InputTextArea, matches);
     BOOST_TEST(matches.size() == 1);
-    WidgetPtr w{ matches[0] };
+    WidgetPtr text_area_widget{ matches[0] };
 
     // check the result of the NDF computation, which
     // should be queries[0]. NB NDWidget validity window
@@ -419,7 +419,7 @@ BOOST_FIXTURE_TEST_CASE(QedServerForth, DataCacheFixture)
     // in the absence of NDContext change mgmt.
     nlohmann::json queries = data["queries"];
     nlohmann::json query0 = queries[0];
-    DataRef* ndf_data_ref = dc.cspec_data_ref(CacheSpecifier::cs_cname, w);
+    DataRef* ndf_data_ref = dc.cspec_data_ref(CacheSpecifier::cs_cname, text_area_widget);
     StrInx sinx(ndf_data_ref->ref_inx);
     const char* cached_query0 = dc.get_string_value(sinx);
     std::string original_query0_value = query0.template get<std::string>();
@@ -430,14 +430,15 @@ BOOST_FIXTURE_TEST_CASE(QedServerForth, DataCacheFixture)
     matches.clear();
     dc.find_widget(RenderMethod::Combo, matches);
     BOOST_TEST(matches.size() == 1);
-    w = matches[0];
+    WidgetPtr combo_widget = matches[0];
     // Combo:cspec:cindex is selected_query
-    DataRef* int_data_ref = dc.cspec_data_ref(cs_cindex, w);
+    DataRef* int_data_ref = dc.cspec_data_ref(cs_cindex, combo_widget);
     assert(int_data_ref != nullptr);
     assert(int_data_ref->tipe == cdInt);
     IntInx iinx{ int_data_ref->ref_inx };
     int* int_ptr = dc.get_int_value(iinx);
     assert(int_ptr != nullptr);
+    assert(*int_ptr == 0);
     *int_ptr = 1;
 
     // To trigger the recalc we repro some of the
@@ -449,8 +450,10 @@ BOOST_FIXTURE_TEST_CASE(QedServerForth, DataCacheFixture)
     dc.on_dirty_ints(dirty_int_addr_vec, dirty_int_ref_vec);
 
     // Now fetch the ImputTextArea:cspec:cname NDF value again...
+    DataRef* ndf_data_ref2 = dc.cspec_data_ref(CacheSpecifier::cs_cname, text_area_widget);
+    StrInx sinx2(ndf_data_ref2->ref_inx);
     nlohmann::json query1 = queries[1];
-    const char* cached_query1 = dc.get_string_value(sinx);
+    const char* cached_query1 = dc.get_string_value(sinx2);
     std::string original_query1_value = query1.template get<std::string>();
     BOOST_TEST(original_query1_value == cached_query1);
 
