@@ -516,6 +516,13 @@ public:
             changed.clear();
         }
 
+        // Check the dirty_<type>_vec vectors for changes in DataRef addressables
+        // that drive NDF lambda recalcs
+        if (!dirty_int_vec.empty()) {
+            data_lay_cache.on_dirty_ints(dirty_int_vec);
+            dirty_int_vec.clear();
+        }
+
         if (!pending_actions.empty()) {
             PendingAction pa{ pending_actions.front() };
             pending_actions.pop_front();
