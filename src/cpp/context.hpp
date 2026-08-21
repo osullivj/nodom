@@ -530,9 +530,24 @@ public:
         // Check the dirty_<type>_vec vectors for changes in DataRef addressables
         // that drive NDF lambda recalcs
         if (!dirty_int_ref_vec.empty()) {
-            data_lay_cache.on_dirty_ints(dirty_int_addr_vec, dirty_int_ref_vec);
+            data_lay_cache.on_dirty(
+                dirty_int_addr_vec,
+                dirty_int_ref_vec,
+                data_lay_cache.get_int_driven_widget_vecs(),
+                data_lay_cache.get_int_driven_cspec_vecs()
+                );
             dirty_int_addr_vec.clear();
             dirty_int_ref_vec.clear();
+        }
+        if (!dirty_str_ref_vec.empty()) {
+            data_lay_cache.on_dirty(
+                dirty_str_addr_vec,
+                dirty_str_ref_vec,
+                data_lay_cache.get_str_driven_widget_vecs(),
+                data_lay_cache.get_str_driven_cspec_vecs()
+            );
+            dirty_str_addr_vec.clear();
+            dirty_str_ref_vec.clear();
         }
 
         if (!pending_actions.empty()) {
