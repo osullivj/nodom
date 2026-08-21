@@ -866,10 +866,6 @@ protected:
         return data_lay_cache.cspec_double(spec, dbl_val_map, target);
     }
 
-    float* cspec_float(CacheSpecifier spec, FloatValMap& flt_val_map, float* target = nullptr) {
-        return data_lay_cache.cspec_float(spec, flt_val_map, target);
-    }
-
     DataRef* cspec_data_ref(CacheSpecifier spec, WidgetPtr w) {
         return data_lay_cache.cspec_data_ref(spec, w);
     }
