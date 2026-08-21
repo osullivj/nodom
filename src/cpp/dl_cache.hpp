@@ -1323,17 +1323,6 @@ public:
         return nullptr;
     }
 
-    float* cspec_float(CacheSpecifier spec, FloatValMap& flt_val_map, float* target = nullptr) {
-        auto cs_flt_iter = flt_val_map.find(spec);
-        if (cs_flt_iter != flt_val_map.end()) {
-            FloatInx flt_inx{ cs_flt_iter->second };
-            float* rv = get_float_value(flt_inx);
-            if (target != nullptr && rv != nullptr) *target = *rv;
-            return rv;
-        }
-        return nullptr;
-    }
-
     DataRef* cspec_data_ref(CacheSpecifier spec, WidgetPtr w) {
         auto cs_dref_iter = w->data_refs.find(spec);
         if (cs_dref_iter != w->data_refs.end())
