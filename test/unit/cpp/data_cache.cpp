@@ -449,9 +449,10 @@ BOOST_FIXTURE_TEST_CASE(QedServerForth, DataCacheFixture)
     dirty_int_ref_vec.push_back(iinx());
     dc.on_dirty_ints(dirty_int_addr_vec, dirty_int_ref_vec);
 
-    // Now fetch the ImputTextArea:cspec:cname NDF value again...
-    DataRef* ndf_data_ref2 = dc.cspec_data_ref(CacheSpecifier::cs_cname, text_area_widget);
-    StrInx sinx2(ndf_data_ref2->ref_inx);
+    // Now fetch the InputTextArea:cspec:cname NDF value again. No
+    // need to refetch the DataRef ptr, we just need to get the ref_inx
+    // which will have changed.
+    StrInx sinx2(ndf_data_ref->ref_inx);
     nlohmann::json query1 = queries[1];
     const char* cached_query1 = dc.get_string_value(sinx2);
     std::string original_query1_value = query1.template get<std::string>();
