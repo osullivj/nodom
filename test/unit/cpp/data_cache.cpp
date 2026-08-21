@@ -422,8 +422,8 @@ BOOST_FIXTURE_TEST_CASE(QedServerForth, DataCacheFixture)
     DataRef* ndf_data_ref = dc.cspec_data_ref(CacheSpecifier::cs_cname, w);
     StrInx sinx(ndf_data_ref->ref_inx);
     const char* cached_query0 = dc.get_string_value(sinx);
-    std::string original_json_value = query0.template get<std::string>();
-    BOOST_TEST(original_json_value == cached_query0);
+    std::string original_query0_value = query0.template get<std::string>();
+    BOOST_TEST(original_query0_value == cached_query0);
 
     // now let's change the value of selected_query, and recompute the NDF
     // First, find the Combo Widget...
@@ -439,6 +439,20 @@ BOOST_FIXTURE_TEST_CASE(QedServerForth, DataCacheFixture)
     int* int_ptr = dc.get_int_value(iinx);
     assert(int_ptr != nullptr);
     *int_ptr = 1;
+
+    // To trigger the recalc we repro some of the
+    // NDContext::end_render_cycle() dirty vec impl
+    UintVec dirty_int_addr_vec;
+    UintVec dirty_int_ref_vec;
+    dirty_int_addr_vec.push_back(int_data_ref->addr_inx());
+    dirty_int_ref_vec.push_back(iinx());
+    dc.on_dirty_ints(dirty_int_addr_vec, dirty_int_ref_vec);
+
+    // Now fetch the ImputTextArea:cspec:cname NDF value again...
+    nlohmann::json query1 = queries[1];
+    const char* cached_query1 = dc.get_string_value(sinx);
+    std::string original_query1_value = query1.template get<std::string>();
+    BOOST_TEST(original_query1_value == cached_query1);
 
     assert_cache_state();
 }
