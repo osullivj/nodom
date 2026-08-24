@@ -617,6 +617,16 @@ protected:
         default:
             assert(false);
         }
+        switch (w->rname) {
+        case InputString:
+        case InputTextArea:
+            // force string buffer backed widgets to reload buffer
+            // on next render
+            w->clear_buffer();
+            break;
+        default:
+            break;
+        }
         return true;
     }
 
