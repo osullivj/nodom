@@ -1359,10 +1359,8 @@ protected:
 
         // returns true on every change, not just when edit done
         ImGui::InputText(label, w->buffer, w->buffer_size, flags);
-        // TODO: end_render_cycle
         if (ImGui::IsItemDeactivatedAfterEdit()) {
             if (std::string_view(cptr) != std::string_view(w->buffer)) {
-                notify_server(str_data_ref, cptr, w->buffer);
                 // in render_input_int() and render_input_double()
                 // DLC gives the render meth a ptr to the DLC's copy.
                 // Obv strings are not the same, and we have to complete
@@ -1412,7 +1410,6 @@ protected:
 
         if (ImGui::IsItemDeactivatedAfterEdit()) {
             if (std::string_view(cptr) != std::string_view(w->buffer)) {
-                notify_server(str_data_ref, cptr, w->buffer);
                 // in render_input_int() and render_input_double()
                 // DLC gives the render meth a ptr to the DLC's copy.
                 // Obv strings are not the same, and we have to complete
