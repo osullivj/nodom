@@ -1417,6 +1417,7 @@ private:
         Static::combo_flags_cs,      // cs_combo_flags
         Static::window_flags_cs,      // cs_window_flags
         Static::column_flags_cs,      // cs_column_flags
+        Static::text_flags_cs,
         Static::close_button_cs,
         Static::tooltip_cs,
         Static::show_lines_cs,
