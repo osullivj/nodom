@@ -1373,7 +1373,6 @@ protected:
                 w->changed = str_data_ref;
                 changed.push_back(w);
                 // post_render will call clear_buffer() after notify_server()
-                // w->clear_buffer();
             }
         }
     }
@@ -1421,7 +1420,6 @@ protected:
                 data_lay_cache.update_string(str_data_ref->ref_inx, w->buffer);
                 changed.push_back(w);
                 // post_render will call clear_buffer()
-                // w->clear_buffer();
             }
         }
     }
