@@ -530,22 +530,16 @@ public:
         // Check the dirty_<type>_vec vectors for changes in DataRef addressables
         // that drive NDF lambda recalcs
         if (!dirty_int_ref_vec.empty()) {
-            data_lay_cache.on_dirty(
-                dirty_int_addr_vec,
-                dirty_int_ref_vec,
+            data_lay_cache.on_dirty(dirty_int_addr_vec, dirty_int_ref_vec,
                 data_lay_cache.get_int_driven_widget_vecs(),
-                data_lay_cache.get_int_driven_cspec_vecs()
-                );
+                data_lay_cache.get_int_driven_cspec_vecs());
             dirty_int_addr_vec.clear();
             dirty_int_ref_vec.clear();
         }
         if (!dirty_str_ref_vec.empty()) {
-            data_lay_cache.on_dirty(
-                dirty_str_addr_vec,
-                dirty_str_ref_vec,
+            data_lay_cache.on_dirty(dirty_str_addr_vec, dirty_str_ref_vec,
                 data_lay_cache.get_str_driven_widget_vecs(),
-                data_lay_cache.get_str_driven_cspec_vecs()
-            );
+                data_lay_cache.get_str_driven_cspec_vecs());
             dirty_str_addr_vec.clear();
             dirty_str_ref_vec.clear();
         }
@@ -689,7 +683,14 @@ public:
         msgbuf << "{ \"" << Static::nd_type_cs << "\":\"" << Static::data_change_cs << "\",\""
             << Static::cache_key_cs << "\":\"" << addr << "\",\""
             << Static::new_value_cs << "\":\"" << new_val << "\",\""
-            << Static::old_value_cs << "\":\"" << old_val << "\"}";
+            << Static::old_value_cs << "\":\"" << old_val;
+
+        if (dref->offset == -1) {
+            msgbuf << "\"}";
+        }
+        else {
+            msgbuf << "\",\"" << Static::offset_cs << "\":" << dref->offset << "\"}";
+        }
         ws_send(msgbuf.str());
     }
 
