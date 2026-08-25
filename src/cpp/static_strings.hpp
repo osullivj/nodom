@@ -166,6 +166,7 @@ struct Static {
 	inline static const char* cache_key_cs{ "cache_key" };
 	inline static const char* on_data_change_cs{ "on_data_change" };
 	inline static const char* query_id_cs{ "query_id" };
+	inline static const char* offset_cs{ "offset" };
 
 	// Events: possible values for nd_type
 	inline static const char* batch_request_cs{ "BatchRequest" };
