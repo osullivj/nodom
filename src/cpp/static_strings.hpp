@@ -177,6 +177,7 @@ struct Static {
 	inline static const char* online_cs{ "Online" };
 	inline static const char* data_change_cs{ "DataChange" };
 	inline static const char* data_change_confirmed_cs{ "DataChangeConfirmed" };
+	inline static const char* data_change_rejected_cs{ "DataChangeRejected" };
 	inline static const char* query_cs{ "Query" };
 	inline static const char* query_result_cs{ "QueryResult" };
 	inline static const char* command_cs{ "Command" };
