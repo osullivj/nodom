@@ -533,7 +533,7 @@ protected:
         return true;
     }
 
-    bool forth_index_op(ForthLambda& result, ForthLambda& result_addr) {
+    bool forth_index_op(ForthLambda& result, ForthLambda& result_addr, ForthLambda& result_offset) {
         assert(result.size() >= 3);
         result.pop_back();  // pop the [] operand
         AddrInx index_inx{result.back()};
@@ -552,10 +552,12 @@ protected:
         case cdIntVec:
             result.push_back(*index_ptr + list_data_ref.ref_inx);
             result_addr.push_back(list_data_ref.addr_inx);
+            result_offset.push_back(*index_ptr);
             break;
         case cdStrVec:
             result.push_back(*index_ptr + list_data_ref.ref_inx);
             result_addr.push_back(list_data_ref.addr_inx);
+            result_offset.push_back(*index_ptr);
             break;
         default:
             assert(false);
@@ -564,14 +566,14 @@ protected:
         return true;
     }
 
-    bool dispatch_forth(ForthLambda& result, ForthLambda& result_addr) {
+    bool dispatch_forth(ForthLambda& result, ForthLambda& result_addr, ForthLambda& result_offset) {
         if (result.empty()) {
             // no more computation possible
             return false;
         }
         AddrInx op{ result.back() };
         if (op == ainx_OpIndex)
-            return forth_index_op(result, result_addr);
+            return forth_index_op(result, result_addr, result_offset);
         return false;
 
     }
@@ -595,12 +597,16 @@ protected:
         if (!result_addr.empty()) {
             result_addr.clear();
         }
+        ForthLambda& result_offset{ w->ndf_result_offset_map[spec] };
+        if (!result_offset.empty()) {
+            result_offset.clear();
+        }
         // load the result stack
         for (const auto op_or_addr : lambda) {
             result.push_back(op_or_addr);
         }
         // compute
-        while (dispatch_forth(result, result_addr)) {
+        while (dispatch_forth(result, result_addr, result_offset)) {
         }
         DataRef& result_data_ref{ w->forth_result_data_refs[spec] };
         switch (result_data_ref.tipe) {
@@ -608,11 +614,19 @@ protected:
             result_data_ref.addr_inx = result_addr.back()();
             result_data_ref.ref_inx = result.back()();
             result_data_ref.size = 1;
+            result_data_ref.offset = -1;
+            if (!result_offset.empty()) {
+                result_data_ref.offset = result_offset.back()();
+            }
             break;
         case cdInt:
             result_data_ref.addr_inx = result_addr.back()();
             result_data_ref.ref_inx = result.back()();
             result_data_ref.size = 1;
+            result_data_ref.offset = -1;
+            if (!result_offset.empty()) {
+                result_data_ref.offset = result_offset.back()();
+            }
             break;
         default:
             assert(false);
