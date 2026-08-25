@@ -749,6 +749,10 @@ public:
             else if (nd_type == Static::data_change_confirmed_cs) {
                 // TODO: add check that type has not mutated
             }
+            else if (nd_type == Static::data_change_rejected_cs) {
+                NDLogger::cerr() << method << "CHANGE_REJECT key:" << resp[Static::cache_key_cs]
+                    << ", new_value: " << resp[Static::new_value_cs] << std::endl;
+            }
             else if (nd_type == Static::function_result_cs) {
                 // see src/web/incdec.js, especially ret_val
                 int raw_fn_inx = JAsInt(resp, Static::query_id_cs);
@@ -1419,6 +1423,7 @@ protected:
                 // results in buffer_not_set() being true, and then
                 // pre edit copy overwrites the old val.
                 data_lay_cache.update_string(str_data_ref->ref_inx, w->buffer);
+                w->changed = str_data_ref;
                 changed.push_back(w);
                 // post_render will call clear_buffer()
             }
