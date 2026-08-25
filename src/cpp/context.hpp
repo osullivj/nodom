@@ -680,17 +680,11 @@ public:
             << ", old: " << old_val << ", new: " << new_val << std::endl;
 
         std::stringstream msgbuf;
-        msgbuf << "{ \"" << Static::nd_type_cs << "\":\"" << Static::data_change_cs << "\",\""
-            << Static::cache_key_cs << "\":\"" << addr << "\",\""
-            << Static::new_value_cs << "\":\"" << new_val << "\",\""
-            << Static::old_value_cs << "\":\"" << old_val;
-
-        if (dref->offset == -1) {
-            msgbuf << "\"}";
-        }
-        else {
-            msgbuf << "\",\"" << Static::offset_cs << "\":" << dref->offset << "\"}";
-        }
+        msgbuf << "{ \"" << Static::nd_type_cs  << "\":\"" << Static::data_change_cs << "\",\""
+            << Static::cache_key_cs << "\":\""  << addr << "\",\""
+            << Static::new_value_cs << "\":\""  << new_val << "\",\""
+            << Static::old_value_cs << "\":\""  << old_val << "\",\""
+            << Static::offset_cs    << "\":"    << dref->offset << "}";
         ws_send(msgbuf.str());
     }
 

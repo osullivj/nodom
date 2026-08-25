@@ -120,15 +120,22 @@ class Service(object):
         # Or they could supply their own on_data_change
         # First, post the new value into data cache
         logr.info(f"on_data_change: client_change:{client_change}")
-        ckey = client_change["cache_key"]
         data_cache = self.cache["data"]
-        old_val = data_cache[ckey]
+        ckey = client_change["cache_key"]
         new_val = client_change["new_value"]
+        old_val = data_cache[ckey]
+        offset = -1
+        if "offset" in client_change:
+            offset = client_change["offset"]
+            old_val = data_cache[ckey][offset]
         response_type = "DataChangeRejected"
         server_changes = []
         if type(old_val) == type(new_val):
             response_type = "DataChangeConfirmed"
-            data_cache[ckey] = new_val
+            if offset == -1:
+                data_cache[ckey] = new_val
+            else:
+                data_cache[ckey][offset] = new_val
             # Does a subclass want to add server side changes?
             server_changes = self.on_client_data_change(client_uuid, client_change)
         conf_dict = client_change.copy()
