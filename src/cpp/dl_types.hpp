@@ -80,10 +80,13 @@
 // JSON, and applies constraints. Think of it as an
 // encapsulation of data denoted by data[key]
 struct DataRef {
-    CDT tipe{ EndDataTypes };   // cdInt, cdFloat, cdBool, cdStr
-    AddrInx addr_inx;           // cache inx to key string
-    uint32_t ref_inx{OH_FECK};  // cache inx to data[key]
-    uint32_t size{ 1 };         // scalar or array
+    CDT         tipe{ EndDataTypes };   // cdInt, cdFloat, cdBool, cdStr
+    AddrInx     addr_inx;               // cache inx to key string
+    uint32_t    ref_inx{OH_FECK};       // cache inx to data[key]
+    uint32_t    size{ 1 };              // scalars have size:1, arrays size:N
+    int32_t     offset{ -1 };            // only used in NDWidget::forth_result_data_refs
+                                        //   instances by notify_server() for array element
+                                        //   DataChanges
 };
 
 using DataRefMap = std::map<CacheSpecifier, DataRef>;
@@ -146,6 +149,7 @@ struct NDWidget {
     ForthMap        ndf_result_map;         // result of lambda exec keyed same: typically a single
                                             //  DataRef::ref_inx value
     ForthMap        ndf_result_addr_map;    // DataRef::addr_inx value matching ndf_result_map
+    ForthMap        ndf_result_offset_map;  // array offsets
     DataRefMap      forth_result_data_refs;
     char*           buffer{ nullptr }; // eg render_input_string
     int             buffer_size{ 0 };
