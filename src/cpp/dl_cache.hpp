@@ -1469,6 +1469,7 @@ private:
         cdInt,      // cs_combo_flags
         cdInt,      // cs_window_flags
         cdInt,      // cs_column_flags
+        cdInt,      // cs_text_flags
         cdBool,     // cs_close_button
         cdStr,      // cs_tooltip
         cdBool,     // cs_show_lines
