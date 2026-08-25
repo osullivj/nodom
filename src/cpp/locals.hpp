@@ -56,7 +56,7 @@ struct ShadedPlotLocals {
 };
 
 struct TextAreaLocals {
-    int     flags{ 0 };
+    int     text_flags{ 0 };
     int     line_height{ 0 };
     ImVec2  size{ -FLT_MIN, 0.0 };
 };
