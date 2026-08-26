@@ -36,54 +36,6 @@ CHROME_LAUNCH_DICT = dict(exe=CHROME_EXE, user_data_dir="", b64_rsa_key=B64_RSA_
 ND_ROOT_DIR = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", ".."))
 PQ_DIR = os.path.normpath(os.path.join(ND_ROOT_DIR, "dat"))
 
-# Data config
-INSTRUMENTS = {
-    7907: "FGBMU8",  # count:16559 min:103.14 max:103.34
-    7935: "FGBMZ8",  # count:6489 min:103.46 max:103.665
-    7988: "FGBXZ8",  # count:10917 min:113.5 max:114.29
-    7993: "FGBSU8",  # count:532 min:91.2 max:91.52
-    8001: "FGBSZ8",  # count:1823 min:90.6 max:91.72
-    8009: "FGBXU8",  # count:21792 min:114.11 max:114.63
-    8010: "FGBLU8",  # count:19557 min:108.13 max:108.595
-    8028: "FGBLZ8",  # count:9423 min:108.355 max:108.81
-}
-RINSTRUMENTS = dict((v, k) for k, v in INSTRUMENTS.items())
-
-COLUMNS = dict(
-    SeqNo=("INTEGER", pa.int32()),
-    LastTradeTime=("TIMESTAMP", pa.timestamp("ms")),
-    LastTradePrice=("DOUBLE", pa.float64()),
-    LastTradeSize=("INTEGER", pa.int32()),
-    HighPrice=("DOUBLE", pa.float64()),
-    LowPrice=("DOUBLE", pa.float64()),
-    Volume=("INTEGER", pa.int32()),
-    LastTradeSequence=("INTEGER", pa.int32()),
-    TranDateTime=("TIMESTAMP", pa.timestamp("ms")),
-    BidQty1=("INTEGER", pa.int32()),
-    AskQty1=("INTEGER", pa.int32()),
-    BidQty2=("INTEGER", pa.int32()),
-    AskQty2=("INTEGER", pa.int32()),
-    BidQty3=("INTEGER", pa.int32()),
-    AskQty3=("INTEGER", pa.int32()),
-    BidQty4=("INTEGER", pa.int32()),
-    AskQty4=("INTEGER", pa.int32()),
-    BidQty5=("INTEGER", pa.int32()),
-    AskQty5=("INTEGER", pa.int32()),
-    BidPrice1=("DOUBLE", pa.float64()),
-    AskPrice1=("DOUBLE", pa.float64()),
-    BidPrice2=("DOUBLE", pa.float64()),
-    AskPrice2=("DOUBLE", pa.float64()),
-    BidPrice3=("DOUBLE", pa.float64()),
-    AskPrice3=("DOUBLE", pa.float64()),
-    BidPrice4=("DOUBLE", pa.float64()),
-    AskPrice4=("DOUBLE", pa.float64()),
-    BidPrice5=("DOUBLE", pa.float64()),
-    AskPrice5=("DOUBLE", pa.float64()),
-    FeedSequenceId=("INTEGER", pa.int32()),
-    TS=("TIMESTAMP", pa.timestamp("ms")),
-    CaptureTS=("TIMESTAMP", pa.timestamp("ms")),
-)
-
 TIME_FMT = "%H:%M:%S.%f"
 DATETIME_FMT = "%Y-%m-%d %H:%M:%S"
 TIMESTAMP_FMT = "%Y-%m-%d %H:%M:%S.%f"
