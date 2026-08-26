@@ -82,12 +82,12 @@
 struct DataRef {
     CDT         tipe{ EndDataTypes };   // cdInt, cdFloat, cdBool, cdStr
     AddrInx     addr_inx;               // cache inx to key string
-    uint32_t    ref_inx{OH_FECK};       // cache inx to data[key]
+    uint32_t    ref_inx{ OH_FECK };     // cache inx to data[key]
     uint32_t    size{ 1 };              // scalars have size:1, arrays size:N
-    int32_t     offset{ -1 };            // only used in NDWidget::forth_result_data_refs
-                                        //   instances by notify_server() for array element
+    int32_t     offset{ -1 };           // only used in NDWidget::forth_result_data_refs
+};                                      //   instances by notify_server() for array element
                                         //   DataChanges
-};
+
 
 using DataRefMap = std::map<CacheSpecifier, DataRef>;
 using DataRefVec = std::vector<DataRef>;
