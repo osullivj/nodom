@@ -68,7 +68,7 @@ FIN_LAYOUT = [
         widget_id="instrument_loading_modal",
         rname="LoadingModal",
         cspec=dict(
-            title="NoDOM Trader",
+            title="Loading NoDOM Trader",
             title_font="Arial",
             body_font="CourierNew",
             cname="loading_instruments_message",
@@ -113,7 +113,7 @@ FIN_DATA = {
     "selected_instrument":0,
     "loading_instruments_message":["Loading IEX instruments..."],
     "actions":{
-        "DuckDB.Online":[REBLD_INST_TBL_ACTN, QUERY_INST_TBL_ACTN, BATCH_INST_TBL_ACTN]
+        "GUI.CacheLoaded":[REBLD_INST_TBL_ACTN, QUERY_INST_TBL_ACTN, BATCH_INST_TBL_ACTN]
     },
     "menus": {
         "instruments_rclick_menupop":["Subscribe"]
