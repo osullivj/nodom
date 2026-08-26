@@ -35,7 +35,7 @@ FIN_LAYOUT = [
                 rname="Table",
                 cspec=dict(
                     title="Instruments",
-                    query_id="rebld_inst_tbl_qid",
+                    query_id="query_inst_tbl_qid",
                     menupop="instruments_rclick_menupop",
                     table_flags=TableFlags.SCROLL_Y
                     | TableFlags.ROW_BG
