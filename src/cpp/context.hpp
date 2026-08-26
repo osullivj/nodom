@@ -1431,7 +1431,7 @@ protected:
         // No malloc at runtime, but we will clear the array with a memset
         // on each visit. JOS 2025-01-26
         // TODO: refactor away from local static storage to
-        // wudget->buffer. buffer_size attr will free us from
+        // widget->buffer. buffer_size attr will free us from
         // ND_MAX_COMBO_LIST
         static const char* cs_combo_list[ND_MAX_COMBO_LIST];
         memset(cs_combo_list, 0, ND_MAX_COMBO_LIST * sizeof(char*));
