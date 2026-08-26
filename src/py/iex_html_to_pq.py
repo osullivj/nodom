@@ -57,8 +57,8 @@ if __name__ == "__main__":
         for inst in handler.instruments:
             print(inst)
         csv_out_path = os.path.join(nd_consts.PQ_DIR, f"{base_name}.csv")
-        with open(csv_out_path, "wt") as csv_file:
-            dict_writer = csv.DictWriter(csv_file, handler.field_names)
+        with open(csv_out_path, "w", newline='') as csv_file:
+            dict_writer = csv.DictWriter(csv_file, handler.field_names, dialect='excel')
             dict_writer.writeheader()
             dict_writer.writerows(handler.instruments)
             pq_out_path = nd_utils.write_parquet_arrow(base_name,
