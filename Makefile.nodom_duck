@@ -109,7 +109,7 @@ $(EXE): $(OBJS) $(BLD_DIR)
 web:
 	copy src\web\favicon.ico bld\favicon.ico
 	copy src\web\duck_module.js bld\duck_module.js
-	type bld\nodom_duck.html | sed s/app_key/exf/g > bld\exf.html
+	type bld\nodom_duck.html | sed s/app_key/$(ND_APP_KEY)/g > bld\$(ND_APP_KEY).html
 
 clean:
 	del $(BLD_DIR)\*.o
