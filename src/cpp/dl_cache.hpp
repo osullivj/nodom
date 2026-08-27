@@ -352,8 +352,7 @@ protected:
                         }
                         else {
                             // create data_ref_map entry for the query/cmd SQL source
-                            // NB we assume a cdStr. TODO: extend to support cdStrVec via
-                            // ctype
+                            // NB we assume a cdStr.
                             DataRef data_ref{ cdStr, amit->second };
                             data_ref.size = 1;
                             std::string sql = JAsString(data, sql_cache_key);

@@ -118,8 +118,8 @@ private:
         ActionVec*  sequence;
         int         inx{ 0 };
         EventInx    next;
-        EntityInx   query_id;
-    };
+        EntityInx   query_id;   // updated by action_execute()
+    };                          // to reflect last execed NDAction
     std::list<InFlight> in_flight_list;
 
     EntityInx   ninx_GUI;
@@ -428,7 +428,11 @@ public:
     void start_render_cycle() {
         const static char* method = "NDContext::start_render_cycle: ";
 
-        if (render_count == 0) initialize();
+        if (render_count == 0) {
+            // Do the WebGL subsys init; this is genuinely once per
+            // process lifetime, and not once per DLC::on_json()
+            initialize();
+        }
 
         // Zero the font push/pop counts before rendering. This
         // enables us to detect lopsided push/pop sequences after
@@ -1064,7 +1068,7 @@ protected:
             // for pushes we supply widget_id, not the rname
             pending_pushes.push_back(action_defn.push_ui);
         }
-        // Finally, do we have a DB op to handle?
+        // Finally, do we have a DB or function op to handle?
         // TODO: db_dispatch -> event_dispatch refactor
         if (db_event_is_valid(action_defn.db_action)) {
             if (action_defn.db_action == DBEventType::dbFunctionSync

@@ -178,10 +178,10 @@ using WCSCSFunc = std::function<void(WidgetPtr, CacheSpecifier, CacheSpecifier)>
 struct NDAction {
     EntityInx push_ui;
     RenderMethod pop_ui{ EndRenderMethod };
-    DBEventType db_action{ EndDBEventTypes }; // Query|Command|BatchRequest
-    EntityInx query_id;
+    DBEventType db_action{ EndDBEventTypes };   // Query|Command|BatchRequest|FunctionSync|FunctionAsync
+    EntityInx query_id;                         // func name if not DB op
     AddrInx sql_cname;
-    CacheDataType ctype{ EndDataTypes };
+    CacheDataType ctype{ EndDataTypes };        // func return type
 };
 
 struct NDActionInterned {
