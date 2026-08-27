@@ -113,7 +113,9 @@ FIN_DATA = {
     "selected_instrument":0,
     "loading_instruments_message":["Loading IEX instruments..."],
     "actions":{
-        "GUI.CacheLoaded":[REBLD_INST_TBL_ACTN, QUERY_INST_TBL_ACTN, BATCH_INST_TBL_ACTN]
+        # GUI.CacheLoaded on BB, DuckDB.Online for wasm
+        # TODO: gate implementation
+        "DuckDB.Online":[REBLD_INST_TBL_ACTN, QUERY_INST_TBL_ACTN, BATCH_INST_TBL_ACTN]
     },
     "menus": {
         "instruments_rclick_menupop":["Subscribe"]
@@ -133,9 +135,17 @@ service = FinService(NDAPP, FIN_LAYOUT, FIN_DATA)
 # default to 8890 for http. Override to 443 for https
 define("port", default=8890, help="run on the given port", type=int)
 
+# wire up the PQ handler
+EXTRA_HANDLERS = [
+    (
+        r"/api/parquet/(.*)",
+        nd_web.ParquetHandler,
+        dict(path=os.path.join(nd_consts.ND_ROOT_DIR, "dat")),
+    )
+]
 
 async def http_main():
-    app = nd_web.NDApp(service)
+    app = nd_web.NDApp(service, EXTRA_HANDLERS)
     app.listen(options.port)
     logr.info(f"{NDAPP} port:{options.port}")
     await asyncio.Event().wait()
@@ -143,7 +153,7 @@ async def http_main():
 
 async def https_main():
     cert_path = os.path.normpath(os.path.join(nd_consts.ND_ROOT_DIR, "cfg"))
-    app = nd_web.NDApp(service)
+    app = nd_web.NDApp(service, EXTRA_HANDLERS)
     https_server = tornado.httpserver.HTTPServer(
         app,
         ssl_options={
