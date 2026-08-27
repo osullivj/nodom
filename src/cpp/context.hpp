@@ -191,6 +191,7 @@ private:
     SpinnerLocals       sp_vars;
     ShadedPlotLocals    sh_pl_vars;
     TextAreaLocals      txt_area_vars;
+    BeginChildLocals    bg_ch_vars;
     EndRenderLocals     er_vars;
     SummaryTableContext smry_tbl_ctx;
     TableContext        tbl_ctx;
@@ -863,6 +864,10 @@ protected:
 
     const char* cspec_string(CacheSpecifier spec, StrValMap& str_val_map, const char* dflt) {
         return data_lay_cache.cspec_string(spec, str_val_map, dflt);
+    }
+
+    float* cspec_float(CacheSpecifier spec, FloatValMap& float_val_map, float* target = nullptr) {
+        return data_lay_cache.cspec_float(spec, float_val_map, target);
     }
 
     double* cspec_double(CacheSpecifier spec, DoubleValMap& dbl_val_map, double* target = nullptr) {
@@ -2148,20 +2153,25 @@ protected:
     void render_begin_child(WidgetPtr w) {
         const static char* method = "NDContext::render_begin_child: ";
 
-        // NB BeginChild is a grouping mechanism, so there's no single
+        // NB BeginChildWindow is a grouping mechanism, so there's no single
         // cache datum to which we refer, so no cname. However, we do look
         // require a title (for imgui ID purposes) and we can have styling
-        // attributes like ImGuiChildFlags
- 
+        // attributes like ImGuiChildFlags. And, most importantly, we can 
+        // specify size to stop a child table pushing later sibling widgets
+        // off the bottom.
         const char* title = cspec_string(cs_title, w->cspec_str, method);
 
-        int child_flags = 0;
-        // TODO: recover child flags from widget
-        ImVec2 size{ 0, 0 };
+        // TODO: impl ImGuiChildFlags as "child_flags"
+        bg_ch_vars.child_flags = 0;
+        bg_ch_vars.window_flags = 0;
+        cspec_int(cs_window_flags, w->cspec_int, &bg_ch_vars.window_flags);
+        cspec_float(cs_width, w->cspec_float, &bg_ch_vars.size.x);
+        cspec_float(cs_height, w->cspec_float, &bg_ch_vars.size.y);
+
         // TODO: we're not checking the ret val to see if we
         // need to render the children. We need a way to
         // memoize the BeginChild RV on the stack...
-        ImGui::BeginChild(title, size, child_flags);
+        ImGui::BeginChild(title, bg_ch_vars.size, bg_ch_vars.child_flags, bg_ch_vars.window_flags);
     }
 
     void render_end_child(WidgetPtr w) {
