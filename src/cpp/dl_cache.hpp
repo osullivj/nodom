@@ -1442,6 +1442,8 @@ private:
         Static::menu_pop_cs,
         Static::buffer_size_cs,
         Static::line_height_cs,
+        Static::height_cs,
+        Static::width_cs,
         Static::db_cs,     // cs_db,
         Static::fps_cs,     // cs_fps,
         Static::demo_cs,     // cs_demo,
@@ -1494,6 +1496,8 @@ private:
         cdStr,      // cs_menu_pop
         cdInt,      // cs_buffer_size
         cdInt,      // cs_line_height
+        cdInt,      // cs_height
+        cdInt,      // cs_width
         cdBool,     // cs_show_footer_db
         cdBool,     // cs_show_footer_fps
         cdBool,     // cs_show_footer_demo
@@ -1540,7 +1544,7 @@ private:
                     cs_window_flags, cs_close_button}},
         {ShadedPlot, {cs_title, cs_show_lines, cs_show_fills, cs_shaded_plot_flags}},
         {PushFont, {cs_font, cs_font_size}},
-        {BeginChild, {cs_title}},
+        {BeginChild, {cs_title, cs_height, cs_width}},
         {MemoryEditor, {cs_title}}
     };
 
