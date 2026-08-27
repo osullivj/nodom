@@ -188,7 +188,11 @@ private:
     char    string_buffer[STR_BUF_LEN];
     char    format_buffer[FMT_BUF_LEN];
     double  double_int_buffer[CHUNK_SIZE];
-    fmt::format_to_n_result<char*> fmt_result;
+    // working storage for get_datum fmt ops
+    fmt::format_to_n_result<char*>          fmt_result;
+    std::chrono::hours                      fmt_hours;
+    std::chrono::system_clock::time_point   fmt_time_point;
+
 
 public:
     char* buffer{ 0 };  // zero copy accessor
@@ -578,6 +582,12 @@ public:
                 return buffer + fmt_result.size;
                 // 4 duckdb_timestamp[_??] types, all holding
                 // a single int64_t named differently
+            case DUCKDB_TYPE_DATE:  // duckdb_date is a struct with one int32_t
+                idata = (int32_t*)duckdb_vector_get_data(colm);
+                fmt_hours = std::chrono::hours(idata[rel_index]);
+                fmt_time_point = std::chrono::system_clock::time_point(fmt_hours*24);
+                fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%Y-%m-%d}", fmt_time_point);
+                return buffer + fmt_result.size;
             case DUCKDB_TYPE_TIMESTAMP_S:
                 ts_secs = (duckdb_timestamp_s*)duckdb_vector_get_data(colm);
                 fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F %T}", TPSecs{ std::chrono::seconds{ ts_secs->seconds } });
