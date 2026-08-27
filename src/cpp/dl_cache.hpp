@@ -1127,6 +1127,10 @@ public:
         return fp_bool_ptrs[inx()];
     }
 
+    float* get_float_value(FloatInx inx) {
+        return fp_float_ptrs[inx()];
+    }
+
     double* get_double_value(DoubleInx inx) {
         return fp_double_ptrs[inx()];
     }
@@ -1335,6 +1339,17 @@ public:
         return dflt;
     }
 
+    float* cspec_float(CacheSpecifier spec, FloatValMap& flt_val_map, float* target = nullptr) {
+        auto cs_flt_iter = flt_val_map.find(spec);
+        if (cs_flt_iter != flt_val_map.end()) {
+            FloatInx flt_inx{ cs_flt_iter->second };
+            float* rv = get_float_value(flt_inx);
+            if (target != nullptr && rv != nullptr) *target = *rv;
+            return rv;
+        }
+        return nullptr;
+    }
+
     double* cspec_double(CacheSpecifier spec, DoubleValMap& dbl_val_map, double* target = nullptr) {
         auto cs_dbl_iter = dbl_val_map.find(spec);
         if (cs_dbl_iter != dbl_val_map.end()) {
@@ -1496,8 +1511,8 @@ private:
         cdStr,      // cs_menu_pop
         cdInt,      // cs_buffer_size
         cdInt,      // cs_line_height
-        cdInt,      // cs_height
-        cdInt,      // cs_width
+        cdFloat,    // cs_height: NB ImVec2::x and ::y are float
+        cdFloat,    // cs_width: 
         cdBool,     // cs_show_footer_db
         cdBool,     // cs_show_footer_fps
         cdBool,     // cs_show_footer_demo
@@ -1544,7 +1559,7 @@ private:
                     cs_window_flags, cs_close_button}},
         {ShadedPlot, {cs_title, cs_show_lines, cs_show_fills, cs_shaded_plot_flags}},
         {PushFont, {cs_font, cs_font_size}},
-        {BeginChild, {cs_title, cs_height, cs_width}},
+        {BeginChild, {cs_title, cs_height, cs_width, cs_window_flags}},
         {MemoryEditor, {cs_title}}
     };
 
