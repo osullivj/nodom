@@ -27,11 +27,11 @@ FIN_LAYOUT = [
         rname="Home",
         cspec=dict(
             title="NoDOM Trader",
-            title_font="Arial",
-            window_flags=WindowFlags.ALWAYS_AUTO_RESIZE
+            title_font="Arial"
         ),
         children=[
             dict(rname="PushFont", cspec=dict(font="CourierNew")),
+            dict(rname="BeginChild", cspec=dict(height=200)),
             dict(
                 rname="Table",
                 cspec=dict(
@@ -47,6 +47,7 @@ FIN_LAYOUT = [
                     | TableFlags.CONTEXT_MENU_IN_BODY
                 ),
             ),
+            dict(rname="EndChild"),
             dict(rname="Separator", cspec=dict()),
             dict(rname="PopFont"),
             dict(rname="PushFont", cspec=dict(font="Arial", font_size=8)),
@@ -116,7 +117,7 @@ FIN_DATA = {
     "actions":{
         # GUI.CacheLoaded on BB, DuckDB.Online for wasm
         # TODO: gate implementation
-        "DuckDB.Online":[REBLD_INST_TBL_ACTN, QUERY_INST_TBL_ACTN, BATCH_INST_TBL_ACTN]
+        "GUI.CacheLoaded":[REBLD_INST_TBL_ACTN, QUERY_INST_TBL_ACTN, BATCH_INST_TBL_ACTN]
     },
     "menus": {
         "instruments_rclick_menupop":["Subscribe"]
