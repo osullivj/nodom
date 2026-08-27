@@ -28,6 +28,7 @@ FIN_LAYOUT = [
         cspec=dict(
             title="NoDOM Trader",
             title_font="Arial",
+            window_flags=WindowFlags.ALWAYS_AUTO_RESIZE
         ),
         children=[
             dict(rname="PushFont", cspec=dict(font="CourierNew")),
