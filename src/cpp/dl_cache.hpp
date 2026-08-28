@@ -280,7 +280,7 @@ protected:
             }
             if (JContains(action_defn, Static::action_cs)) {
                 // Command, Query & BatchRequest DB actions all require query_id
-                // Command & Query need sql_cname too
+                // Command & Query need cname (for sql source) too
                 std::string action_s = JAsString(action_defn, Static::action_cs);
                 nd_action.action = EventTypeFromString(action_s);
                 interned.action = (char*)event_types[nd_action.action];
@@ -290,8 +290,8 @@ protected:
                     std::string func_id = JAsString(action_defn, Static::func_id_cs);
                     nd_action.entity_id = get_func_id(func_id);
                     interned.entity_id = (char*)get_string_value(nd_action.entity_id);
-                    if (JContains(action_defn, Static::sql_cname_cs)) {
-                        std::string fn_result_key = JAsString(action_defn, Static::sql_cname_cs);
+                    if (JContains(action_defn, Static::cname_cs)) {
+                        std::string fn_result_key = JAsString(action_defn, Static::cname_cs);
                         // This add_address should just find the addr cached by data keys
                         // parsing earlier...
                         nd_action.cname = add_address(fn_result_key);
@@ -320,7 +320,7 @@ protected:
                             else {
                                 DataRef data_ref = CreateDataRef(nd_action.ctype, 
                                                     nd_action.cname, data, fn_result_key);
-                                // we may see the same sql_cname/ctype in several actions...
+                                // we may see the same cname/ctype in several actions...
                                 if (data_ref_map.find(data_ref.addr_inx) == data_ref_map.end()) {
                                     data_ref_map[data_ref.addr_inx] = data_ref;
                                 }
@@ -1003,7 +1003,7 @@ public:
         case cdFloat:       // not required by any widget yet
             assert(false);
             break;
-        case cdStr:         // NDAction::sql_cname SQL data_ref
+        case cdStr:         // NDAction::cname SQL data_ref
             update_string(data_ref.ref_inx, JAsString(dc, Static::new_value_cs));
             break;
         case cdInt: // spec:cindex, sz:1
