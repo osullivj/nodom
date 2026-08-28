@@ -140,6 +140,18 @@ BOOST_FIXTURE_TEST_CASE(DataTypeRoundTrips, DataCacheFixture)
         BOOST_TEST(cdt != nullptr);
     }
 }
+
+BOOST_FIXTURE_TEST_CASE(EventTypeRoundTrips, DataCacheFixture)
+{
+    for (int iet = EventType::etCommand; iet != EventType::etEndEventTypes; iet++) {
+        EventType et1{ static_cast<EventType>(iet) };
+        const char* ets = EventTypeToString(et1);
+        EventType et2 = EventTypeFromString(ets);
+        BOOST_TEST(et1 == et2);
+        BOOST_TEST(et2 != EventType::etEndEventTypes);
+    }
+}
+
 BOOST_FIXTURE_TEST_CASE(AddAddr, DataCacheFixture)
 {
     std::string addr_str{ "integer_address" };
@@ -335,7 +347,7 @@ BOOST_FIXTURE_TEST_CASE(AddServerData, DataCacheFixture)
 
     // 3 addresses in AddServer test data
     str_count = 19;
-    int_count = 1;  // op1, op2, op1_plus_op2 only counted on layout parse
+    int_count = 3;  // op1, op2, op1_plus_op2 only counted on layout parse
     dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.addr_map_size() == 4);    // op1, op2, op1_plus_op2, loading_message
     BOOST_TEST(dc.action_map_size() == 4);
@@ -352,7 +364,7 @@ BOOST_FIXTURE_TEST_CASE(AddServerLayout, DataCacheFixture)
     auto layout = JParse<nlohmann::json>(layout_json);
 
     str_count = 25;   // Layout:[Home::title], Data:[op1,op2,op1_plus_op2], and all NDAction too!
-    int_count = 11;   // Layout:["step":1, "step":2], Data:[op1,op2,op1_plus_op2]
+    int_count = 13;   // Layout:["step":1, "step":2], Data:[op1,op2,op1_plus_op2]
     dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.widget_vec_size() == 2);
     BOOST_TEST(dc.pushables_size() == 1);
