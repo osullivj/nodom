@@ -33,30 +33,30 @@
     "i_am_the_scan_button.Click": [],
     "the_depth_scan.CommandResult": [
       {
-        "db_action": "Query",
+        "action": "Query",
         "query_id": "the_depth_query",
-        "sql_cname": "query_sql"
+        "cname": "query_sql"
       },
       {
-        "db_action": "BatchRequest",
+        "action": "BatchRequest",
         "query_id": "the_depth_query"
       }
     ],
     "DuckDB.Online": [
       {
         "ui_push": "i_am_parquet_loading_modal",
-        "db_action": "Command",
+        "action": "Command",
         "query_id": "the_depth_scan",
-        "sql_cname": "scan_sql"
+        "cname": "scan_sql"
       },
       {
         "ui_pop": "LoadingModal",
-        "db_action": "Query",
+        "action": "Query",
         "query_id": "the_depth_summary",
-        "sql_cname": "summary_sql"
+        "cname": "summary_sql"
       },
       {
-        "db_action": "BatchRequest",
+        "action": "BatchRequest",
         "query_id": "the_depth_summary"
       }
     ]
