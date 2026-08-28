@@ -191,7 +191,7 @@ inline bool render_is_valid(RenderMethod rm) {
 // This enable a max of 65535 (0xFFFF) DCIs
 // of any recognised data type.
 enum CacheItemType : uint32_t {
-    Address = 0x1000000,    // cname, sql_cname, cindex
+    Address = 0x1000000,    // cname, cname, cindex
     Value = 0x2000000,      // Int,Float,Bool,Str,IntVec,StrVec
     EntityID = 0x3000000,   // widget_id|query_id|susbsys_id
     Event = 0x4000000,      // Click,Online,QueryResult,CommandResult

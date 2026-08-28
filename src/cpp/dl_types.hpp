@@ -181,7 +181,7 @@ struct NDAction {
     EventType action{ etEndEventTypes };   // Query|Command|BatchRequest|FunctionSync|FunctionAsync
     EntityInx entity_id;                         // func name if not DB op
     AddrInx cname;
-    CacheDataType ctype{ EndDataTypes };        // func return type
+    CacheDataType ctype{ EndDataTypes };        // func param type
 };
 
 struct NDActionInterned {
@@ -300,6 +300,12 @@ inline EventType EventTypeFromString(const std::string& evt) {
         return etFunctionAsync;
     if (evt == Static::function_result_cs)
         return etFunctionResult;
+    if (evt == Static::live_request_cs)
+        return etLiveRequest;
+    if (evt == Static::live_response_cs)
+        return etLiveResponse;
+    if (evt == Static::live_update_cs)
+        return etLiveUpdate;
     return etEndEventTypes;
 }
 
@@ -323,6 +329,12 @@ inline const char* EventTypeToString(EventType dbet) {
         return Static::function_async_cs;
     case etFunctionResult:
         return Static::function_result_cs;
+    case etLiveRequest:
+        return Static::live_request_cs;
+    case etLiveResponse:
+        return Static::live_response_cs;
+    case etLiveUpdate:
+        return Static::live_update_cs;
     case etEndEventTypes:
         return nullptr;
     }
