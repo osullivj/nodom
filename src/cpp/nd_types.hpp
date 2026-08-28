@@ -228,21 +228,24 @@ enum CacheDataType : uint32_t {
     EndDataTypes = 0xF0000
 };
 
-enum DBEventType : uint32_t {
-    dbCommand = 0,
-    dbCommandResult,
-    dbQuery,
-    dbQueryResult,
-    dbBatchRequest,
-    dbBatchResponse,
-    dbFunctionSync,
-    dbFunctionAsync,
-    dbFunctionResult,
-    EndDBEventTypes
+enum EventType : uint32_t {
+    etCommand = 0,
+    etCommandResult,
+    etQuery,
+    etQueryResult,
+    etBatchRequest,
+    etBatchResponse,
+    etFunctionSync,
+    etFunctionAsync,
+    etFunctionResult,
+    etLiveRequest,
+    etLiveResponse,
+    etLiveUpdate,
+    etEndEventTypes
 };
 
-inline bool db_event_is_valid(DBEventType dbev) {
-    return dbev != EndDBEventTypes;
+inline bool event_is_valid(EventType ev) {
+    return ev != etEndEventTypes;
 }
 
 using CIT = CacheItemType;
@@ -375,9 +378,9 @@ struct DataCacheIndex {
 // Query IDs (the_depth_query, the_depth_summary)
 // Widget IDs (i_am_the_footer_button)
 // System IDs (GUI, DuckDB)
-// LHS of ActionKey
+// EntityInx is LHS of ActionKey
 using EntityInx = DataCacheIndex<CIT::EntityID, CDT::cdStr>;
-// RHS of ActionKey
+// EventInx is RHS of ActionKey
 using EventInx = DataCacheIndex<CIT::Event, CDT::cdStr>;
 using AddrInx = DataCacheIndex<CIT::Address,CDT::cdStr>;
 // Three types of atomic value; all mutable
@@ -389,6 +392,11 @@ using StrInx = DataCacheIndex<CIT::Value, CDT::cdStr>;
 // Array values
 using IntVecInx = DataCacheIndex<CIT::Value, CDT::cdIntVec>;  // mutable
 using StrVecInx = DataCacheIndex<CIT::Value, CDT::cdStrVec>;  // !mutable
+
+// Note on EntityInx: an EntityInx can be a QueryID, WidgetID or
+// any "thing" who's lifetime is same as process lifetime. Which means
+// exists from render0 to end process. Any Wittgensteinian (or Kripkensteinian ;)
+// readers should think of an EntityInx as a rigid designator.
 
 // Cache entry defn
 // AInx:VInx    eg  "op1":<int>
