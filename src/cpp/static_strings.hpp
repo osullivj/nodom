@@ -168,6 +168,7 @@ struct Static {
 	inline static const char* cache_key_cs{ "cache_key" };
 	inline static const char* on_data_change_cs{ "on_data_change" };
 	inline static const char* query_id_cs{ "query_id" };
+	inline static const char* func_id_cs{ "func_id" };
 	inline static const char* entity_id_cs{ "entity_id" };
 	inline static const char* offset_cs{ "offset" };
 
