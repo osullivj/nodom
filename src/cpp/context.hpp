@@ -1128,8 +1128,8 @@ protected:
         // BatchRequest just needs QID, no SQL; Command and Query need SQL
         if (action_defn.action != etBatchRequest) {
             assert(action_defn.cname.is_valid());
-            const char* sql_cname = data_lay_cache.get_addr_value(action_defn.cname);
-            assert(sql_cname != nullptr);
+            const char* cname_sql = data_lay_cache.get_addr_value(action_defn.cname);
+            assert(cname_sql != nullptr);
             DataRef* data_ref = data_lay_cache.get_data_ref(action_defn.cname);
             assert(data_ref != nullptr);
             const char* sql = data_lay_cache.template get_string_value<AddrInx>(data_ref->ref_inx);
