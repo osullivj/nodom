@@ -178,18 +178,18 @@ using WCSCSFunc = std::function<void(WidgetPtr, CacheSpecifier, CacheSpecifier)>
 struct NDAction {
     EntityInx push_ui;
     RenderMethod pop_ui{ EndRenderMethod };
-    DBEventType db_action{ EndDBEventTypes };   // Query|Command|BatchRequest|FunctionSync|FunctionAsync
-    EntityInx query_id;                         // func name if not DB op
-    AddrInx sql_cname;
+    EventType action{ etEndEventTypes };   // Query|Command|BatchRequest|FunctionSync|FunctionAsync
+    EntityInx entity_id;                         // func name if not DB op
+    AddrInx cname;
     CacheDataType ctype{ EndDataTypes };        // func return type
 };
 
 struct NDActionInterned {
     char* push_ui{ nullptr };
     char* pop_ui{ nullptr };
-    char* db_action{ nullptr };
-    char* query_id{ nullptr };
-    char* sql_cname{ nullptr };
+    char* action{ nullptr };
+    char* entity_id{ nullptr };
+    char* cname{ nullptr };
     char* ctype{ nullptr };
 };
 
@@ -281,49 +281,49 @@ inline RenderMethod RenderMethodFromString(const std::string& method) {
     return EndRenderMethod;
 }
 
-inline DBEventType DBEventTypeFromString(const std::string& evt) {
+inline EventType EventTypeFromString(const std::string& evt) {
     if (evt == Static::command_cs)
-        return dbCommand;
+        return etCommand;
     if (evt == Static::command_result_cs)
-        return dbCommandResult;
+        return etCommandResult;
     if (evt == Static::query_cs)
-        return dbQuery;
+        return etQuery;
     if (evt == Static::query_result_cs)
-        return dbQueryResult;
+        return etQueryResult;
     if (evt == Static::batch_request_cs)
-        return dbBatchRequest;
+        return etBatchRequest;
     if (evt == Static::batch_response_cs)
-        return dbBatchResponse;
+        return etBatchResponse;
     if (evt == Static::function_sync_cs)
-        return dbFunctionSync;
+        return etFunctionSync;
     if (evt == Static::function_async_cs)
-        return dbFunctionAsync;
+        return etFunctionAsync;
     if (evt == Static::function_result_cs)
-        return dbFunctionResult;
-    return EndDBEventTypes;
+        return etFunctionResult;
+    return etEndEventTypes;
 }
 
-inline const char* DBEventTypeToString(DBEventType dbet) {
+inline const char* EventTypeToString(EventType dbet) {
     switch (dbet) {
-    case dbCommand:
+    case etCommand:
         return Static::command_cs;
-    case dbCommandResult:
+    case etCommandResult:
         return Static::command_result_cs;
-    case dbQuery:
+    case etQuery:
         return Static::query_cs;
-    case dbQueryResult:
+    case etQueryResult:
         return Static::query_result_cs;
-    case dbBatchRequest:
+    case etBatchRequest:
         return Static::batch_request_cs;
-    case dbBatchResponse:
+    case etBatchResponse:
         return Static::batch_response_cs;
-    case dbFunctionSync:
+    case etFunctionSync:
         return Static::function_sync_cs;
-    case dbFunctionAsync:
+    case etFunctionAsync:
         return Static::function_async_cs;
-    case dbFunctionResult:
+    case etFunctionResult:
         return Static::function_result_cs;
-    case EndDBEventTypes:
+    case etEndEventTypes:
         return nullptr;
     }
     return nullptr;
