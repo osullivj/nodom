@@ -2,10 +2,6 @@
     "op1": 2,
     "op1_plus_op2": 5,
     "op2": 3,
-    "home_menu_bar": [
-      "Inc",
-      "Dec"
-    ],
     "loading_message": [
       "Inc1 clicked"
     ],
@@ -57,6 +53,10 @@
       "Inc": [
         "Inc1",
         "Inc2"
+      ],
+      "home_menu_bar": [
+        "Inc",
+        "Dec"
       ]
     }
   }
