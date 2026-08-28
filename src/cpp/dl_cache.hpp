@@ -287,7 +287,7 @@ protected:
                 // FunctionSync|FunctionAsync
                 if (nd_action.action == EventType::etFunctionSync
                         || nd_action.action == EventType::etFunctionAsync) {
-                    std::string func_id = JAsString(action_defn, Static::entity_id_cs);
+                    std::string func_id = JAsString(action_defn, Static::func_id_cs);
                     nd_action.entity_id = get_func_id(func_id);
                     interned.entity_id = (char*)get_string_value(nd_action.entity_id);
                     if (JContains(action_defn, Static::sql_cname_cs)) {
