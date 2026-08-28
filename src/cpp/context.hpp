@@ -118,7 +118,7 @@ private:
         ActionVec*  sequence;
         int         inx{ 0 };
         EventInx    next;
-        EntityInx   query_id;   // updated by action_execute()
+        EntityInx   entity_id;   // updated by action_execute()
     };                          // to reflect last execed NDAction
     std::list<InFlight> in_flight_list;
 
@@ -331,44 +331,44 @@ public:
         }
     }
 
-    DBEventType next_db_event(DBEventType dbet) {
+    EventType next_event(EventType dbet) {
         switch (dbet) {
-        case dbCommand:
-            return dbCommandResult;
-        case dbQuery:
-            return dbQueryResult;
-        case dbBatchRequest:
-            return dbBatchResponse;
-        case dbFunctionAsync:
-            return dbFunctionResult;
-        case dbFunctionSync:    // synchronous, so no completion event
+        case etCommand:
+            return etCommandResult;
+        case etQuery:
+            return etQueryResult;
+        case etBatchRequest:
+            return etBatchResponse;
+        case etFunctionAsync:
+            return etFunctionResult;
+        case etFunctionSync:    // synchronous, so no completion event
         default:
-            return EndDBEventTypes;
+            return etEndEventTypes;
         }
     }
 
-    EventInx db_event_type_to_event_inx(DBEventType dbet) {
-        switch (dbet) {
-        case dbCommand:
+    EventInx event_type_to_event_inx(EventType et) {
+        switch (et) {
+        case etCommand:
             return einx_Command;
-        case dbCommandResult:
+        case etCommandResult:
             return einx_CommandResult;
-        case dbQuery:
+        case etQuery:
             return einx_Query;
-        case dbQueryResult:
+        case etQueryResult:
             return einx_QueryResult;
-        case dbBatchRequest:
+        case etBatchRequest:
             return einx_BatchRequest;
-        case dbBatchResponse:
+        case etBatchResponse:
             return einx_BatchResponse;
-        case dbFunctionSync:
+        case etFunctionSync:
             return einx_FunctionSync;
-        case dbFunctionAsync:
+        case etFunctionAsync:
             return einx_FunctionAsync;
-        case dbFunctionResult:
+        case etFunctionResult:
             return einx_FunctionResult;
         default:
-            return EndDBEventTypes;
+            return etEndEventTypes;
         }
     }
 
@@ -1028,7 +1028,7 @@ protected:
         // there were any in flight sequences waiting for an action.event
         auto if_iter = in_flight_list.begin();
         while (if_iter != in_flight_list.end()) {
-            if (if_iter->query_id == ninx && einx == if_iter->next) {
+            if (if_iter->entity_id == ninx && einx == if_iter->next) {
                 // we have an in flight match with action.event so execute
                 // then add any resumption to new list
                 InFlight resume;
@@ -1074,10 +1074,9 @@ protected:
             pending_pushes.push_back(action_defn.push_ui);
         }
         // Finally, do we have a DB or function op to handle?
-        // TODO: db_dispatch -> event_dispatch refactor
-        if (db_event_is_valid(action_defn.db_action)) {
-            if (action_defn.db_action == DBEventType::dbFunctionSync
-                || action_defn.db_action == DBEventType::dbFunctionAsync) {
+        if (event_is_valid(action_defn.action)) {
+            if (action_defn.action == EventType::etFunctionSync
+                || action_defn.action == EventType::etFunctionAsync) {
                 func_dispatch(action_defn);
             }
             else {
@@ -1088,20 +1087,20 @@ protected:
             if (++action_inx < seq_len) {
                 resume.sequence = action_seq;
                 resume.inx = action_inx;
-                resume.query_id = action_defn.query_id;
-                resume.next = db_event_type_to_event_inx(next_db_event(action_defn.db_action));
+                resume.entity_id = action_defn.entity_id;
+                resume.next = event_type_to_event_inx(next_event(action_defn.action));
             }
         }
     }
 
     void func_dispatch(const NDAction& action_defn) {
-        int raw_func_inx = data_lay_cache.get_func_inx(action_defn.query_id);
+        int raw_func_inx = data_lay_cache.get_func_inx(action_defn.entity_id);
         auto func_request = JNewObject();
-        JSet(func_request, Static::nd_type_cs, DBEventTypeToString(action_defn.db_action));
+        JSet(func_request, Static::nd_type_cs, EventTypeToString(action_defn.action));
         JSet(func_request, Static::query_id_cs, raw_func_inx);
         JSet(func_request, Static::data_cs, data);
         // async slow path for funcs that await
-        if (action_defn.db_action == dbFunctionAsync) {
+        if (action_defn.action == etFunctionAsync) {
             // ems: will invoke ems_db_dispatch to window.postMessage(func_request)
             // win32: posts into db_loop
             bulk.db_dispatch(func_request);
@@ -1122,16 +1121,16 @@ protected:
         // const static char* method = "NDContext::db_dispatch: ";
 
         auto db_request = JNewObject();
-        JSet(db_request, Static::nd_type_cs, DBEventTypeToString(action_defn.db_action));
-        const char* qid = data_lay_cache.get_string_value(action_defn.query_id);
+        JSet(db_request, Static::nd_type_cs, EventTypeToString(action_defn.action));
+        const char* qid = data_lay_cache.get_string_value(action_defn.entity_id);
         assert(qid != nullptr);
         JSet(db_request, Static::query_id_cs, qid);
         // BatchRequest just needs QID, no SQL; Command and Query need SQL
-        if (action_defn.db_action != dbBatchRequest) {
-            assert(action_defn.sql_cname.is_valid());
-            const char* sql_cname = data_lay_cache.get_addr_value(action_defn.sql_cname);
+        if (action_defn.action != etBatchRequest) {
+            assert(action_defn.cname.is_valid());
+            const char* sql_cname = data_lay_cache.get_addr_value(action_defn.cname);
             assert(sql_cname != nullptr);
-            DataRef* data_ref = data_lay_cache.get_data_ref(action_defn.sql_cname);
+            DataRef* data_ref = data_lay_cache.get_data_ref(action_defn.cname);
             assert(data_ref != nullptr);
             const char* sql = data_lay_cache.template get_string_value<AddrInx>(data_ref->ref_inx);
             assert(sql != nullptr);
