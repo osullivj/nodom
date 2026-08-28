@@ -334,10 +334,10 @@ BOOST_FIXTURE_TEST_CASE(AddServerData, DataCacheFixture)
     auto layout = JParse<nlohmann::json>(Static::empty_list_cs);
 
     // 3 addresses in AddServer test data
-    str_count = 17;
-    int_count = 4;
+    str_count = 19;
+    int_count = 1;  // op1, op2, op1_plus_op2 only counted on layout parse
     dc.on_json(data, layout, [&]() { dc.on_init(); });
-    BOOST_TEST(dc.addr_map_size() == 5);
+    BOOST_TEST(dc.addr_map_size() == 4);    // op1, op2, op1_plus_op2, loading_message
     BOOST_TEST(dc.action_map_size() == 4);
     assert_cache_state();
 }
@@ -351,8 +351,8 @@ BOOST_FIXTURE_TEST_CASE(AddServerLayout, DataCacheFixture)
     std::string layout_json = load_json(layout_json_path.c_str());
     auto layout = JParse<nlohmann::json>(layout_json);
 
-    str_count = 23;   // Layout:[Home::title], Data:[op1,op2,op1_plus_op2], and all NDAction too!
-    int_count = 14;   // Layout:["step":1, "step":2], Data:[op1,op2,op1_plus_op2]
+    str_count = 25;   // Layout:[Home::title], Data:[op1,op2,op1_plus_op2], and all NDAction too!
+    int_count = 11;   // Layout:["step":1, "step":2], Data:[op1,op2,op1_plus_op2]
     dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.widget_vec_size() == 2);
     BOOST_TEST(dc.pushables_size() == 1);
