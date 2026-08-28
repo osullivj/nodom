@@ -112,8 +112,8 @@ private:
     // In flight action sequences. Key is query_id, not query_id.event
     struct InFlight {
         InFlight() {}
-        InFlight(ActionVec* avec, int i, EventInx n, EntityInx qid)
-            :sequence(avec), inx(i), next(n), query_id(qid) { }
+        InFlight(ActionVec* avec, int i, EventInx n, EntityInx eid)
+            :sequence(avec), inx(i), next(n), entity_id(eid) { }
 
         ActionVec*  sequence;
         int         inx{ 0 };
