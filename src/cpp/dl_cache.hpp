@@ -250,14 +250,14 @@ protected:
         int action_seq_len = JSize(action_seq);
         for (int inx = 0; inx < action_seq_len; inx++) {
             const JSON& action_defn(action_seq[inx]);
-            NDAction action;
+            NDAction nd_action;
             NDActionInterned interned;
             NDActionErrors errors;
             if (JContains(action_defn, Static::ui_pop_cs)) {
                 // a ui_pop must be a RenderMethod
                 std::string rname = JAsString(action_defn, Static::ui_pop_cs);
-                action.pop_ui = RenderMethodFromString(rname);
-                if (action.pop_ui == EndRenderMethod) {
+                nd_action.pop_ui = RenderMethodFromString(rname);
+                if (nd_action.pop_ui == EndRenderMethod) {
                     std::stringstream ss;
                     ss << "BAD_RNAME(" << rname << ")";
                     std::string error{ ss.str() };
@@ -266,7 +266,7 @@ protected:
                     action_errors.push_back(error);
                 }
                 else {
-                    interned.pop_ui = (char*)render_names[action.pop_ui];
+                    interned.pop_ui = (char*)render_names[nd_action.pop_ui];
                 }
             }
             if (JContains(action_defn, Static::ui_push_cs)) {
@@ -275,28 +275,28 @@ protected:
                 // widget_id. NB there may be widget_ids in layout that aren't 
                 // referenced in actions.
                 std::string widget_id = JAsString(action_defn, Static::ui_push_cs);
-                action.push_ui = add_widget_id(widget_id);
-                interned.push_ui = (char*)get_string_value(action.push_ui);
+                nd_action.push_ui = add_widget_id(widget_id);
+                interned.push_ui = (char*)get_string_value(nd_action.push_ui);
             }
-            if (JContains(action_defn, Static::db_action_cs)) {
+            if (JContains(action_defn, Static::action_cs)) {
                 // Command, Query & BatchRequest DB actions all require query_id
                 // Command & Query need sql_cname too
-                std::string db_action = JAsString(action_defn, Static::db_action_cs);
-                action.db_action = DBEventTypeFromString(db_action);
-                interned.db_action = (char*)db_event_types[action.db_action];
+                std::string action_s = JAsString(action_defn, Static::action_cs);
+                nd_action.action = EventTypeFromString(action_s);
+                interned.action = (char*)event_types[nd_action.action];
                 // FunctionSync|FunctionAsync
-                if (action.db_action == DBEventType::dbFunctionSync
-                        || action.db_action == DBEventType::dbFunctionAsync) {
-                    std::string func_id = JAsString(action_defn, Static::query_id_cs);
-                    action.query_id = get_func_id(func_id);
-                    interned.query_id = (char*)get_string_value(action.query_id);
+                if (nd_action.action == EventType::etFunctionSync
+                        || nd_action.action == EventType::etFunctionAsync) {
+                    std::string func_id = JAsString(action_defn, Static::entity_id_cs);
+                    nd_action.entity_id = get_func_id(func_id);
+                    interned.entity_id = (char*)get_string_value(nd_action.entity_id);
                     if (JContains(action_defn, Static::sql_cname_cs)) {
                         std::string fn_result_key = JAsString(action_defn, Static::sql_cname_cs);
                         // This add_address should just find the addr cached by data keys
                         // parsing earlier...
-                        action.sql_cname = add_address(fn_result_key);
+                        nd_action.cname = add_address(fn_result_key);
                         // check that the sql cname refers to a cache data entry
-                        interned.sql_cname = (char*)get_addr_value(action.sql_cname);
+                        interned.cname = (char*)get_addr_value(nd_action.cname);
                         if (!JContains(action_defn, Static::ctype_cs)) {
                             std::stringstream ss;
                             ss << "CTYPE_NOT_FOUND(" << fn_result_key << ")";
@@ -307,9 +307,9 @@ protected:
                         }
                         else {
                             std::string ctype = JAsString(action_defn, Static::ctype_cs);
-                            action.ctype = CDTFromString(ctype);
-                            interned.ctype = (char*)CDTToString(action.ctype);
-                            if (action.ctype == EndDataTypes) {
+                            nd_action.ctype = CDTFromString(ctype);
+                            interned.ctype = (char*)CDTToString(nd_action.ctype);
+                            if (nd_action.ctype == EndDataTypes) {
                                 std::stringstream ss;
                                 ss << "BAD_CTYPE(" << ctype << ")";
                                 std::string error{ ss.str() };
@@ -318,8 +318,8 @@ protected:
                                 action_errors.push_back(error);
                             }
                             else {
-                                DataRef data_ref = CreateDataRef(action.ctype, action.sql_cname,
-                                    data, fn_result_key);
+                                DataRef data_ref = CreateDataRef(nd_action.ctype, 
+                                                    nd_action.cname, data, fn_result_key);
                                 // we may see the same sql_cname/ctype in several actions...
                                 if (data_ref_map.find(data_ref.addr_inx) == data_ref_map.end()) {
                                     data_ref_map[data_ref.addr_inx] = data_ref;
@@ -331,16 +331,16 @@ protected:
                 }
                 else {  // Command|Query|BatchRequest
                     std::string query_id = JAsString(action_defn, Static::query_id_cs);
-                    action.query_id = add_query_id(query_id);
-                    interned.query_id = (char*)get_string_value(action.query_id);
+                    nd_action.entity_id = add_query_id(query_id);
+                    interned.entity_id = (char*)get_string_value(nd_action.entity_id);
 
-                    if (action.db_action == dbCommand || action.db_action == dbQuery) {
-                        std::string sql_cache_key = JAsString(action_defn, Static::sql_cname_cs);
+                    if (nd_action.action == etCommand || nd_action.action == etQuery) {
+                        std::string sql_cache_key = JAsString(action_defn, Static::cname_cs);
                         // This add_address should just find the addr cached by data keys
                         // parsing earlier...
-                        action.sql_cname = add_address(sql_cache_key);
+                        nd_action.cname = add_address(sql_cache_key);
                         // check that the sql cname refers to a cache data entry
-                        interned.sql_cname = (char*)get_addr_value(action.sql_cname);
+                        interned.cname = (char*)get_addr_value(nd_action.cname);
                         auto amit = address_map.find(sql_cache_key);
                         if (amit == address_map.end()) {
                             std::stringstream ss;
@@ -363,7 +363,7 @@ protected:
                 }
             }
             if (errors.inx == -1) {
-                nd_action_vec.push_back(action);
+                nd_action_vec.push_back(nd_action);
                 act_intern_vec.push_back(interned);
             }
             else {
@@ -385,19 +385,19 @@ protected:
             NDLogger::cout() << "pop_ui(" << render_names[action.pop_ui] << "/" << interned.pop_ui << ")";
             prefix_comma = true;
         }
-        if (db_event_is_valid(action.db_action)) {
+        if (event_is_valid(action.action)) {
             if (prefix_comma) NDLogger::cout() << ", ";
-            NDLogger::cout() << "db_action(" << action.db_action << "/" << interned.db_action << ")";
+            NDLogger::cout() << "db_action(" << action.action << "/" << interned.action << ")";
             prefix_comma = true;
         }
-        if (action.query_id.is_valid()) {
+        if (action.entity_id.is_valid()) {
             if (prefix_comma) NDLogger::cout() << ", ";
-            NDLogger::cout() << "query_id(" << action.query_id << "/" << interned.query_id << ")";
+            NDLogger::cout() << "entity_id(" << action.entity_id << "/" << interned.entity_id << ")";
             prefix_comma = true;
         }
-        if (action.sql_cname.is_valid()) {
+        if (action.cname.is_valid()) {
             if (prefix_comma) NDLogger::cout() << ", ";
-            NDLogger::cout() << "sql_cname(" << action.sql_cname << "/" << interned.sql_cname << ")";
+            NDLogger::cout() << "cname(" << action.cname << "/" << interned.cname << ")";
         }
         if (cache_data_type_is_valid(action.ctype)) {
             if (prefix_comma) NDLogger::cout() << ", ";
@@ -1268,8 +1268,9 @@ public:
         return cspec_types[cs];
     }
 
-    // a set is nothing more than a truth function for set membership :)
-    // because Quine:"to be is to be the value of a bound variable"
+    // A set is nothing more than a truth function for set membership :)
+    // I guess that's function/set duality! Per Quine:"to be is to be the
+    // value of a bound variable"
     bool is_optional(CacheSpecifier spec) {
         switch (spec) {
         case cs_menu_bar:
@@ -1408,7 +1409,7 @@ private:
         Static::rm_memory_editor_cs
     };
 
-    inline static std::array<const char*, EndDBEventTypes> db_event_types{
+    inline static std::array<const char*, etEndEventTypes> event_types{
         Static::command_cs,
         Static::command_result_cs,
         Static::query_cs,
