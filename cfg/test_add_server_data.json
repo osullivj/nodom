@@ -13,33 +13,33 @@
       "Dec1.Menu": [
         {
           "ctype": "cdInt",
-          "db_action": "FunctionAsync",
-          "query_id": "FDec1",
-          "sql_cname": "op1"
+          "action": "FunctionAsync",
+          "func_id": "FDec1",
+          "cname": "op1"
         }
       ],
       "Dec2.Menu": [
         {
           "ctype": "cdInt",
-          "db_action": "FunctionAsync",
-          "query_id": "FDec2",
-          "sql_cname": "op1"
+          "action": "FunctionAsync",
+          "func_id": "FDec2",
+          "cname": "op1"
         }
       ],
       "Inc1.Menu": [
         {
           "ctype": "cdInt",
-          "db_action": "FunctionSync",
-          "query_id": "FInc1",
+          "action": "FunctionSync",
+          "func_id": "FInc1",
           "sql_cname": "op1"
         }
       ],
       "Inc2.Menu": [
         {
           "ctype": "cdInt",
-          "db_action": "FunctionSync",
-          "query_id": "FInc2",
-          "sql_cname": "op1"
+          "action": "FunctionSync",
+          "func_id": "FInc2",
+          "cname": "op1"
         }
       ]
     },
