@@ -144,7 +144,7 @@ struct Static {
 	inline static const char* ui_push_cs{ "ui_push" };
 	// An action dict may have a db subdict
 	// specifying a DB action
-	inline static const char* db_action_cs{ "db_action" };
+	// inline static const char* db_action_cs{ "db_action" };
 	// DB subdict must supply an action (Command|Query|BatchRequest|FunctionSync|FunctionAsync),
 	// a unique query ID and a cache address for the SQL in sql_cname
 	inline static const char* action_cs{ "action" };
@@ -168,6 +168,7 @@ struct Static {
 	inline static const char* cache_key_cs{ "cache_key" };
 	inline static const char* on_data_change_cs{ "on_data_change" };
 	inline static const char* query_id_cs{ "query_id" };
+	inline static const char* entity_id_cs{ "entity_id" };
 	inline static const char* offset_cs{ "offset" };
 
 	// Events: possible values for nd_type
