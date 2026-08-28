@@ -146,11 +146,11 @@ struct Static {
 	// specifying a DB action
 	// inline static const char* db_action_cs{ "db_action" };
 	// DB subdict must supply an action (Command|Query|BatchRequest|FunctionSync|FunctionAsync),
-	// a unique query ID and a cache address for the SQL in sql_cname
+	// a unique query/func ID and a cache address for the SQL/param in cname
 	inline static const char* action_cs{ "action" };
-	inline static const char* sql_cname_cs{ "sql_cname" };
-	// for Command|Query|BatchRequest sql_cname is a Str DataRef
-	// but for FunctionSync|FunctionAsync sql_cname could be any
+	// inline static const char* sql_cname_cs{ "sql_cname" };
+	// for Command|Query cname is a Str DataRef
+	// but for FunctionSync|FunctionAsync cname could be any
 	// type of DataRef, so we check ctype 
 	inline static const char* ctype_cs{ "ctype" };
 
@@ -190,6 +190,9 @@ struct Static {
 	inline static const char* function_sync_cs{ "FunctionSync" };
 	inline static const char* function_async_cs{ "FunctionAsync" };
 	inline static const char* function_result_cs{ "FunctionResult" };
+	inline static const char* live_request_cs{ "LiveRequest" };
+	inline static const char* live_response_cs{ "LiveResponse" };
+	inline static const char* live_update_cs{ "LiveUpdate" };
 
 	// NDF (NoDOM Forth) operands
 	inline static const char* ndfop_index_cs{ "[]" };
