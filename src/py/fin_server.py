@@ -117,7 +117,7 @@ FIN_DATA = {
     "actions":{
         # GUI.CacheLoaded on BB, DuckDB.Online for wasm
         # TODO: gate implementation
-        "GUI.CacheLoaded":[REBLD_INST_TBL_ACTN, QUERY_INST_TBL_ACTN, BATCH_INST_TBL_ACTN]
+        "DuckDB.Online":[REBLD_INST_TBL_ACTN, QUERY_INST_TBL_ACTN, BATCH_INST_TBL_ACTN]
     },
     "menus": {
         "instruments_rclick_menupop":["Subscribe"]
