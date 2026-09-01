@@ -201,6 +201,7 @@
     <ClInclude Include="json_ops.hpp" />
     <ClInclude Include="locals.hpp" />
     <ClInclude Include="logger.hpp" />
+    <ClInclude Include="lv_cache.hpp" />
     <ClInclude Include="nd_types.hpp" />
     <ClInclude Include="nlohmann.hpp" />
     <ClInclude Include="resource.h" />
