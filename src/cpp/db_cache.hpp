@@ -141,8 +141,6 @@ struct XYRange {
 
 #ifndef __EMSCRIPTEN__
 
-static constexpr int MAX_COLUMNS = 256;
-
 class BBDuckDBCache {
 private:
     // work Qs for talking to NDContext, and thread
