@@ -142,6 +142,9 @@ private:
     EventInx    einx_FunctionSync;              // CST::SubSysEvent
     EventInx    einx_FunctionAsync;             // CST::SubSysEvent
     EventInx    einx_FunctionResult;            // CST::SubSysEvent
+    EventInx    einx_LiveRequest;               // CST::SubSysEvent
+    EventInx    einx_LiveResponse;              // CST::SubSysEvent
+    EventInx    einx_LiveUpdate;                // CST::SubSysEvent
     EventInx    einx_Invalid;                   // !init->OH_FECK
 
 
@@ -312,7 +315,10 @@ public:
         einx_FunctionSync = data_lay_cache.template get_string_index<CIT::Event>(Static::function_sync_cs, CST::SubSysEvent);
         einx_FunctionAsync = data_lay_cache.template get_string_index<CIT::Event>(Static::function_async_cs, CST::SubSysEvent);
         einx_FunctionResult = data_lay_cache.template get_string_index<CIT::Event>(Static::function_result_cs, CST::SubSysEvent);
-
+        // Live events, piggybacked on DB event sys
+        einx_LiveRequest = data_lay_cache.template get_string_index<CIT::Event>(Static::live_request_cs, CST::SubSysEvent);
+        einx_LiveResponse = data_lay_cache.template get_string_index<CIT::Event>(Static::live_response_cs, CST::SubSysEvent);
+        einx_LiveUpdate = data_lay_cache.template get_string_index<CIT::Event>(Static::live_update_cs, CST::SubSysEvent);
 
         data_lay_cache.report_cache_state();
         size_t dlc_error_count = data_lay_cache.error_count();
