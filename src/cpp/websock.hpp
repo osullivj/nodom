@@ -65,7 +65,7 @@ private:
     std::string             uri;
     NDContext<JSON, DB>&    ctx;
     std::queue<JSON>        server_responses;
-    DB&                     server;
+    DB&                     bulk;
     bool                    connected{ false };
 
     // websock data members: diff impls for 
@@ -82,8 +82,8 @@ private:
 #endif
 
 public:
-    NDWebSockClient(DB& svr, NDContext<JSON, DB>& c)
-                                    :ctx(c), server(svr) {
+    NDWebSockClient(DB& blk, NDContext<JSON, DB>& c)
+                                    :ctx(c), bulk(blk) {
         NDConfig<JSON>& cfg{ NDConfig<JSON>::get_instance() };
         cfg.get_value(Static::server_url_cs, uri);
 #ifdef __EMSCRIPTEN__
@@ -124,18 +124,19 @@ public:
             ctx.dispatch_events(server_responses);
         }
         // win32: potential lock contention in get_db_responses()
-        // which attempts to acquire server.result_mutex, when
+        // which attempts to acquire bulk.result_mutex, when
         // db_loop() may be holding result_mutex to enqueue
         // DB responses. NB this is _just_ contention, not deadlock.
         // Also note that we cannot handle DB events until data and
         // layout have been loaded.
         if (ctx.cache_is_loaded()) {
-            server.get_db_responses(server_responses);
+            bulk.get_db_responses(server_responses);
         }
         if (!server_responses.empty()) {
             // now handle results from DB
             ctx.dispatch_events(server_responses);
         }
+        // TODO: add code here to dispatch live ticks
     }
 
 #ifdef __EMSCRIPTEN__
