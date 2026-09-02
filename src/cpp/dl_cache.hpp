@@ -327,7 +327,18 @@ protected:
                             }
                         }
                     }
-
+                }
+                else if (nd_action.action == EventType::etLiveRequest) {
+                    // we only need one other field with action:LiveRequest,
+                    // a cname reffing a StrVec of ticker symbols
+                    if (JContains(action_defn, Static::cname_cs)) {
+                        std::string ticker_list_key = JAsString(action_defn, Static::cname_cs);
+                        // This add_address should just find the addr cached by data keys
+                        // parsing earlier...
+                        nd_action.cname = add_address(ticker_list_key);
+                        // check that the sql cname refers to a cache data entry
+                        interned.cname = (char*)get_addr_value(nd_action.cname);
+                    }
                 }
                 else {  // Command|Query|BatchRequest
                     std::string query_id = JAsString(action_defn, Static::query_id_cs);
@@ -387,7 +398,7 @@ protected:
         }
         if (event_is_valid(action.action)) {
             if (prefix_comma) NDLogger::cout() << ", ";
-            NDLogger::cout() << "db_action(" << action.action << "/" << interned.action << ")";
+            NDLogger::cout() << "action(" << action.action << "/" << interned.action << ")";
             prefix_comma = true;
         }
         if (action.entity_id.is_valid()) {
@@ -1417,7 +1428,10 @@ private:
         Static::batch_request_cs,
         Static::batch_response_cs,
         Static::function_async_cs,
-        Static::function_result_cs
+        Static::function_result_cs,
+        Static::live_request_cs,
+        Static::live_response_cs,
+        Static::live_update_cs
     };
 
     inline static std::array<const char*, cs_end_cache_specs> cspec_names{
