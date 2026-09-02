@@ -1820,7 +1820,7 @@ public:
         int key_inx{ 0 };
         size_t actions_len = action_map.size();
         std::cout << "== report_action_map len:" << std::dec << actions_len << std::endl;
-        std::cout << "inx:ActnKey:EntityInx{0x0304,inx}:EventInx{0x0404,inx}:str(action)" << std::endl;
+        std::cout << "inx:ActnKey:EntityInx{0x0305,inx}:EventInx{0x0405,inx}:str(action)" << std::endl;
 
         for (auto cit = action_map.cbegin(); cit != action_map.cend(); ++cit) {
             const ActionKey& key{ cit->first };
@@ -1834,7 +1834,7 @@ public:
             action_intern_vec.resize(action_vec.size());
             std::cout << std::setfill('0') << std::setw(3) << std::hex << key_inx++ << ":";
             std::cout << key << ":EntityInx(" << key.entity_inx()
-                << "):EventInx(" << key.event_inx() << "):";
+                << "):EventInx(" << key.event_inx() << ")" << std::endl;
             for (int act_inx = 0; act_inx < action_vec.size(); act_inx++) {
                 print_parsed_action(action_vec[act_inx], action_intern_vec[act_inx]);
                 std::cout << std::endl;
