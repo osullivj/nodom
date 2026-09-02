@@ -140,6 +140,7 @@ const char* CriticalToString(Critical ec);
 
 static constexpr int STR_BUF_LEN{ 256 };
 static constexpr int FMT_BUF_LEN{ 16 };
+static constexpr int MAX_TICKERS_LEN{ 256 };
 
 // NDContext helpers
 void SetStyleColoring(int col);
