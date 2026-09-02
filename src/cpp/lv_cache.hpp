@@ -56,6 +56,18 @@ struct TiingoIEXRecords {
 		ask_sz		= (uint32_t*)malloc(rc * 4);
 		last_trade_sz = (uint32_t*)malloc(rc * 4);
 	}
+	~TiingoIEXRecords() {
+		free(last_trade_sz);
+		free(ask_sz);
+		free(bid_sz);
+		free(last_trade);
+		free(ask);
+		free(mid);
+		free(bid);
+		free(ticker);
+		free(tick_id);
+		free(time_stamp);
+	}
 };
 
 # 
@@ -63,7 +75,10 @@ struct TiingoIEXRecords {
 template <typename LIVE>
 class LiveCache {
 private:
+	LIVE	live_records;
 
 public:
-
+	LiveCache(uint32_t rc)
+		:live_records(rc) {
+	}
 };
