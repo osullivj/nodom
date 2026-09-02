@@ -1086,11 +1086,14 @@ protected:
         // Finally, do we have a DB or function op to handle?
         if (event_is_valid(action_defn.action)) {
             if (action_defn.action == EventType::etFunctionSync
-                || action_defn.action == EventType::etFunctionAsync) {
+                    || action_defn.action == EventType::etFunctionAsync) {
                 func_dispatch(action_defn);
             }
             else if (action_defn.action == EventType::etLiveRequest) {
                 live_dispatch(action_defn);
+            }
+            else {
+                db_dispatch(action_defn);
             }
             // We've dispatched a DB op from a sequence, so there's a 
             // continuation if this is not the last action.
