@@ -54,23 +54,23 @@ int main(int argc, char* argv[]) {
         NDLogger::get_instance().set_imgui_logging(imlogging);
     }
 
-    DuckDB_t server;
+    DuckDB_t bulk;
     // Static::empty_cs as 3rd parm causes NDContext::get_ini_path()
     // to return a null ptr in im_start, so io.IniFilename is NULL
     // preventing attempt to write to localFS, which is nulled out by
     // IMGUI_DISABLE_FILE_FUNCTIONS
-    NDContext_t ctx(server, app_key, Static::empty_cs, init_data.c_str(), init_layout.c_str());
-    NDWebSockClient<json_t, DuckDB_t> ws_client(server, ctx);
+    NDContext_t ctx(bulk, app_key, Static::empty_cs, init_data.c_str(), init_layout.c_str());
+    NDWebSockClient<json_t, DuckDB_t> ws_client(bulk, ctx);
 
     ctx.register_msg_pump([&ws_client]() {ws_client.pump_messages();});
     DBResultDispatcher& dbrd(DBResultDispatcher::get_instance());
-    dbrd.set_dispatcher([&server](emscripten::EM_VAL v)
-                                    {server.add_db_response(v); });
-    dbrd.set_async_dispatcher([&server](const emscripten::val& v)
-        {server.add_db_response(v); });
+    dbrd.set_dispatcher([&bulk](emscripten::EM_VAL v)
+                                    {bulk.add_db_response(v); });
+    dbrd.set_async_dispatcher([&bulk](const emscripten::val& v)
+        {bulk.add_db_response(v); });
 
-    dbrd.set_reg_chunk([&server](const std::string& qid, int sz, int addr)
-                                    {server.register_chunk(qid.c_str(), sz, addr); });
+    dbrd.set_reg_chunk([&bulk](const std::string& qid, int sz, int addr)
+                                    {bulk.register_chunk(qid.c_str(), sz, addr); });
     StringVec font_list;
     cfg.get_nested_str_list(Static::fonts_cs, font_list);
     IDBFileCache font_cache(
