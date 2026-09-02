@@ -283,7 +283,7 @@ protected:
                 // Command & Query need cname (for sql source) too
                 std::string action_s = JAsString(action_defn, Static::action_cs);
                 nd_action.action = EventTypeFromString(action_s);
-                interned.action = (char*)event_types[nd_action.action];
+                interned.action = (char*)EventTypeToString(nd_action.action);
                 // FunctionSync|FunctionAsync
                 if (nd_action.action == EventType::etFunctionSync
                         || nd_action.action == EventType::etFunctionAsync) {
@@ -338,6 +338,21 @@ protected:
                         nd_action.cname = add_address(ticker_list_key);
                         // check that the sql cname refers to a cache data entry
                         interned.cname = (char*)get_addr_value(nd_action.cname);
+                        auto amit = address_map.find(ticker_list_key);
+                        if (amit == address_map.end()) {
+                            std::stringstream ss;
+                            ss << "CACHE_KEY_NOT_FOUND(" << ticker_list_key << ")";
+                            std::string error{ ss.str() };
+                            errors.error_vec.push_back(error);
+                            errors.inx = inx;
+                            action_errors.push_back(error);
+                        }
+                        else {
+                            // create data_ref_map entry for the LiveRequest ticker_list
+                            // NB we assume a cdStrVec.
+                            DataRef data_ref = CreateDataRef(cdStrVec, nd_action.cname, data, Static::tickers_cs);
+                            data_ref_map[data_ref.addr_inx] = data_ref;
+                        }
                     }
                 }
                 else {  // Command|Query|BatchRequest
@@ -1418,20 +1433,6 @@ private:
         Static::rm_window_cs,
         Static::rm_shaded_plot_cs,
         Static::rm_memory_editor_cs
-    };
-
-    inline static std::array<const char*, etEndEventTypes> event_types{
-        Static::command_cs,
-        Static::command_result_cs,
-        Static::query_cs,
-        Static::query_result_cs,
-        Static::batch_request_cs,
-        Static::batch_response_cs,
-        Static::function_async_cs,
-        Static::function_result_cs,
-        Static::live_request_cs,
-        Static::live_response_cs,
-        Static::live_update_cs
     };
 
     inline static std::array<const char*, cs_end_cache_specs> cspec_names{
