@@ -171,6 +171,7 @@ struct Static {
 	inline static const char* func_id_cs{ "func_id" };
 	inline static const char* entity_id_cs{ "entity_id" };
 	inline static const char* offset_cs{ "offset" };
+	inline static const char* tickers_cs{ "tickers" };
 
 	// Events: possible values for nd_type
 	inline static const char* batch_request_cs{ "BatchRequest" };
