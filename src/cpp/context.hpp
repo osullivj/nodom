@@ -1079,8 +1079,8 @@ protected:
                 || action_defn.action == EventType::etFunctionAsync) {
                 func_dispatch(action_defn);
             }
-            else {
-                db_dispatch(action_defn);
+            else if (action_defn.action == EventType::etLiveRequest) {
+                live_dispatch(action_defn);
             }
             // We've dispatched a DB op from a sequence, so there's a 
             // continuation if this is not the last action.
@@ -1137,6 +1137,19 @@ protected:
             JSet(db_request, Static::sql_cs, sql);
         }
         bulk.db_dispatch(db_request);
+    }
+
+    void live_dispatch(const NDAction& action_defn) {
+        // const static char* method = "NDContext::live_dispatch: ";
+
+        auto lv_request = JNewObject();
+        JSet(lv_request, Static::nd_type_cs, EventTypeToString(action_defn.action));
+        assert(action_defn.cname.is_valid());
+        const char* cname_tickers = data_lay_cache.get_addr_value(action_defn.cname);
+        assert(cname_tickers != nullptr);
+        DataRef* ticker_list_data_ref = data_lay_cache.get_data_ref(action_defn.cname);
+        assert(ticker_list_data_ref != nullptr);
+        assert(ticker_list_data_ref->tipe == cdStrVec);
     }
 
     // Render functions
