@@ -199,6 +199,7 @@ private:
     SummaryTableContext smry_tbl_ctx;
     TableContext        tbl_ctx;
     TableMemEditContext mem_edit_ctx;
+    StringVec           ld_ticker_list;
 #ifdef __EMSCRIPTEN__
     IDBFileWriter       ini_writer;
     IDBFileCachePtr     ini_cache_ptr;
@@ -224,6 +225,9 @@ public:
         green{ 102, 153, 0 },
         amber{ 255, 153, 0 }
     {
+        // avoid firing std::string ctor in live_dispatch()
+        ld_ticker_list.reserve(MAX_TICKERS_LEN);
+
         // init status is not connected
         db_status_color = red;
 
@@ -1156,6 +1160,15 @@ protected:
         DataRef* ticker_list_data_ref = data_lay_cache.get_data_ref(action_defn.cname);
         assert(ticker_list_data_ref != nullptr);
         assert(ticker_list_data_ref->tipe == cdStrVec);
+
+        StrInx sinx{ ticker_list_data_ref->ref_inx };
+        uint32_t ticker_count = 0;
+        ld_ticker_list.clear();
+        for (; ticker_count < ticker_list_data_ref->size; ticker_count++) {
+            ld_ticker_list.push_back(data_lay_cache.get_string_value(sinx));
+            sinx++;
+        }
+        JSet(lv_request, Static::tickers_cs, JArray(ld_ticker_list));
     }
 
     // Render functions
