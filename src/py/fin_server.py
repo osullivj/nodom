@@ -141,7 +141,9 @@ class FinService(nd_utils.Service):
     # invoke base ctor and pass True for is_duck_app
     def __init__(self, app_name, layout, data):
         super().__init__(app_name, layout, data, True)
-        self.tiingo_websock = tornado.websocket.websocket_connect(options.turl,
+
+    async def connect_websock(self):
+        self.tiingo_websock = await tornado.websocket.websocket_connect(options.turl,
             on_message_callback=self.on_tick)
 
     def on_live_request(self, client_uuid, msg_dict):
@@ -151,9 +153,10 @@ class FinService(nd_utils.Service):
         sub_dict = dict(
             eventName='subscribe',
             authorization=options.auth,
-            eventData=dict(thresholdLevel=0, tickers=msg_dict['tickers'])
+            eventData=dict(thresholdLevel=5, tickers=msg_dict['tickers'])
         )
         self.tiingo_websock.write_message(json.dumps(sub_dict))
+        return []
 
     def on_tick(self, msg):
         print(msg)
@@ -161,8 +164,6 @@ class FinService(nd_utils.Service):
 
 # breadboard looks out for service at the module level
 service = FinService(NDAPP, FIN_LAYOUT, FIN_DATA)
-
-
 
 # wire up the PQ handler
 EXTRA_HANDLERS = [
@@ -177,6 +178,7 @@ async def http_main():
     app = nd_web.NDApp(service, EXTRA_HANDLERS)
     app.listen(options.port)
     logr.info(f"{NDAPP} port:{options.port}")
+    await service.connect_websock()
     await asyncio.Event().wait()
 
 
@@ -192,6 +194,7 @@ async def https_main():
     )
     https_server.listen(options.port)
     logr.info(f"{NDAPP} port:{options.port} cert_path:{cert_path}")
+    await service.connect_websock()
     await asyncio.Event().wait()
 
 
