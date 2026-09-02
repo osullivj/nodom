@@ -111,6 +111,7 @@ class Service(object):
             DataChange=self.on_data_change,
             DuckOp=self.on_duck_op,
             CacheRequest=self.on_cache_request,
+            LiveRequest=self.on_live_request,
         )
 
     def on_ws_open(self, ws):
@@ -212,3 +213,6 @@ class Service(object):
                     error="bad ckey",
                 )
             ]
+
+    def on_live_request(self, client_uuid, msg_dict):
+        pass
