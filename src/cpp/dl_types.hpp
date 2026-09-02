@@ -179,9 +179,9 @@ struct NDAction {
     EntityInx push_ui;
     RenderMethod pop_ui{ EndRenderMethod };
     EventType action{ etEndEventTypes };   // Query|Command|BatchRequest|FunctionSync|FunctionAsync
-    EntityInx entity_id;                         // func name if not DB op
+    EntityInx entity_id;                   // func_name|query_id|sub_id
     AddrInx cname;
-    CacheDataType ctype{ EndDataTypes };        // func param type
+    CacheDataType ctype{ EndDataTypes };   // sync func return type
 };
 
 struct NDActionInterned {
