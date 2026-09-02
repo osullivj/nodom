@@ -23,13 +23,39 @@
 #endif  // __EMSCRIPTEN__
 
 // LIVE should be a struct of arrays; each array is a field in a live record
-// For example, Tiingo IEX mkt data supplies these fields...
+// For example, Tiingo IEX mid mkt data supplies these fields...
+// 
+// type		timestamp	ticker		mid
+// char[1]	TS/int64	char[8]		double
+//
+// Tiingo IEX TOB mkt data supplies these fields...
 // 
 // type		timestamp	tickid	ticker		bidsz	bid		mid		ask		asksz	ltrade	ltradesz
 // char[1]	TS/int64	int64	char[8]		int32	double	double	double	int32	double	int32
 //
 // LiveCache RecordCount needs to be a config param
-struct TiingoIEXRecords {
+
+struct TiingoIEXMidRecords {
+	uint32_t	record_count{ 0 };
+	int64_t*	time_stamp{ nullptr };
+	char*		ticker{ nullptr };	// 8 char ticker, so this is 64 like int and dbl
+	double*		mid{ nullptr };
+
+	TiingoIEXMidRecords(uint32_t rc) :
+		record_count(rc) {
+		// 8 bytes per firld for the 64 bit fields
+		time_stamp = (int64_t*)malloc(rc * 8);
+		ticker = (char*)malloc(rc * 8);
+		mid = (double*)malloc(rc * 8);
+	}
+	~TiingoIEXMidRecords() {
+		free(mid);
+		free(ticker);
+		free(time_stamp);
+	}
+};
+
+struct TiingoIEXTopRecords {
 	uint32_t	record_count{ 0 };
 	int64_t*	time_stamp{ nullptr };
 	int64_t*	tick_id{ nullptr };
@@ -42,7 +68,7 @@ struct TiingoIEXRecords {
 	uint32_t*	ask_sz{ nullptr };
 	uint32_t*	last_trade_sz{ nullptr };
 
-	TiingoIEXRecords(uint32_t rc) :
+	TiingoIEXTopRecords(uint32_t rc) :
 					record_count(rc) {
 		// 8 bytes per firld for the 64 bit fields
 		time_stamp	= (int64_t*)malloc(rc * 8);
@@ -56,7 +82,7 @@ struct TiingoIEXRecords {
 		ask_sz		= (uint32_t*)malloc(rc * 4);
 		last_trade_sz = (uint32_t*)malloc(rc * 4);
 	}
-	~TiingoIEXRecords() {
+	~TiingoIEXTopRecords() {
 		free(last_trade_sz);
 		free(ask_sz);
 		free(bid_sz);
@@ -70,8 +96,7 @@ struct TiingoIEXRecords {
 	}
 };
 
-# 
-# 
+
 template <typename LIVE>
 class LiveCache {
 private:
