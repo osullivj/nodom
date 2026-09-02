@@ -123,7 +123,7 @@ INIT_SUB_REQ_ACTN = {
 FIN_DATA = {
     "rebld_inst_tbl_ckey":REBLD_INST_TBL_SQL,
     "query_inst_tbl_ckey":QUERY_INST_TBL_SQL,
-    "tickers":["spy", "vym"],
+    "tickers":["*"], # ["spy", "vym"],
     "loading_instruments_message":["Loading IEX instruments..."],
     "actions":{
         # GUI.CacheLoaded on BB, DuckDB.Online for wasm
@@ -141,25 +141,47 @@ class FinService(nd_utils.Service):
     # invoke base ctor and pass True for is_duck_app
     def __init__(self, app_name, layout, data):
         super().__init__(app_name, layout, data, True)
+        self.client_websocks = dict()
+
+    def on_ws_open(self, ws):
+        self.client_websocks[ws._uuid] = ws
+
+    def on_ws_close(self, ws):
+        self.client_websocks.pop(ws._uuid)
 
     async def connect_websock(self):
         self.tiingo_websock = await tornado.websocket.websocket_connect(options.turl,
             on_message_callback=self.on_tick)
 
     def on_live_request(self, client_uuid, msg_dict):
+        self.client_uuid = client_uuid
         # msg_dict will look like...
         # nd_type:LiveRequest
         # tickers:['spy','vym']
+        # thresholdLevel: 6:mid, 0 or 5 for TOB
         sub_dict = dict(
             eventName='subscribe',
             authorization=options.auth,
-            eventData=dict(thresholdLevel=5, tickers=msg_dict['tickers'])
+            eventData=dict(thresholdLevel=6, tickers=msg_dict['tickers'])
         )
         self.tiingo_websock.write_message(json.dumps(sub_dict))
         return []
 
     def on_tick(self, msg):
-        print(msg)
+        # we're invoked directly by the tiingo websock, so msg is str
+        # first figure out msg type I, H or A
+        msg_dict = json.loads(msg)
+        msg_type = msg_dict['messageType']
+        if msg_type == 'H':
+            print(msg)
+            return
+        if msg_type == 'I':
+            print(msg)
+            return
+        update_s = json.dumps({"nd_type":'LiveUpdate', "data":msg_dict['data']})
+        for ws in self.client_websocks.values():
+            ws.write_message(update_s)
+
 
 
 # breadboard looks out for service at the module level
