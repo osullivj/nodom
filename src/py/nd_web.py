@@ -251,3 +251,7 @@ class NDApp(tornado.web.Application):
         for uuid, ws in self.open_app_socks.items():
             logr.info(f"NDApp.on_inject: {mdict}->{uuid}")
             ws.write_message(mdict)
+
+    def ws_send(self, uuid, mgs_s):
+        if uuid in self.open_app_socks:
+            self.open_app_socks[uuid].write_message(msg_s)
