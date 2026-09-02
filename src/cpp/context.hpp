@@ -1172,6 +1172,9 @@ protected:
             sinx++;
         }
         JSet(lv_request, Static::tickers_cs, JArray(ld_ticker_list));
+        std::stringstream reqbuf;
+        reqbuf << lv_request;
+        ws_send(reqbuf.str());
     }
 
     // Render functions
@@ -1335,7 +1338,6 @@ protected:
         ImGui::InputInt(label, int_ptr, step, step_fast, flags);
         // int editting doesn't produce so much jitter as str
         if (*int_ptr != old_val) {
-            // notify_server(int_data_ref, old_val, int_ptr);
             w->old_int.push_back(old_val);
             w->changed = int_data_ref;
             changed.push_back(w);
@@ -1369,7 +1371,6 @@ protected:
         // TODO: refactor to pending action
         // copy local copy back into cache
         if (*dbl_ptr != old_val) {
-            // notify_server(dbl_data_ref, old_val, dbl_ptr);
             w->old_double.push_back(old_val);
             w->changed = dbl_data_ref;
             changed.push_back(w);
@@ -1500,9 +1501,7 @@ protected:
             int old_val = *combo_index;
             ImGui::Combo(label, combo_index, cs_combo_list, combo_count, combo_count);
             int new_val = *combo_index;
-            // TODO: refactor to pending_action
             if (old_val != new_val) {
-                // notify_server(combo_inx_data_ref, old_val, combo_index);
                 w->old_int.push_back(old_val);
                 w->changed = combo_inx_data_ref;
                 changed.push_back(w);
@@ -1523,7 +1522,6 @@ protected:
                 bool old_val = *bool_ptr;
                 ImGui::Checkbox(check_text, bool_ptr);
                 if (old_val != *bool_ptr) {
-                    // notify_server(bool_data_ref, old_val, bool_ptr);
                     w->old_bool.push_back(old_val);
                     w->changed = bool_data_ref;
                     changed.push_back(w);
@@ -1788,7 +1786,6 @@ protected:
         }
         // TODO: refactor to pending_actions
         if (dp_vars.new_date != dp_vars.old_date) {
-            // notify_server(ymd_data_ref, dp_vars.old_date, dp_vars.new_date);
             w->old_int.push_back(dp_vars.old_date[0]);
             w->old_int.push_back(dp_vars.old_date[1]);
             w->old_int.push_back(dp_vars.old_date[2]);
