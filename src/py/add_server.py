@@ -88,24 +88,24 @@ ADDITION_DATA = dict(
     functions=["FInc1", "FInc2", "FDec1", "FDec2"],
     actions={
         "Inc1.Menu": [dict(
-            db_action="FunctionSync",
-            query_id="FInc1",
-            sql_cname="op1",
+            action="FunctionSync",
+            func_id="FInc1",
+            cname="op1",
             ctype="cdInt")],
         "Inc2.Menu": [dict(
-            db_action="FunctionSync",
-            query_id="FInc2",
-            sql_cname="op1",
+            action="FunctionSync",
+            func_id="FInc2",
+            cname="op1",
             ctype="cdInt")],
         "Dec1.Menu": [dict(
-            db_action="FunctionAsync",
-            query_id="FDec1",
-            sql_cname="op1",
+            action="FunctionAsync",
+            func_id="FDec1",
+            cname="op1",
             ctype="cdInt")],
         "Dec2.Menu": [dict(
-            db_action="FunctionAsync",
-            query_id="FDec2",
-            sql_cname="op1",
+            action="FunctionAsync",
+            func_id="FDec2",
+            cname="op1",
             ctype="cdInt")],
     },
 )
