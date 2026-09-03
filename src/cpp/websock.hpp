@@ -256,7 +256,7 @@ public:
 
 // Not happy about hardwiring the param type inside the func, 
 // but they must have extern C style linkage
-using MktData_t = LiveCache<TiingoIEXMidRecords>;
+using MktData_t = LiveCache<emscripten::val, TiingoIEXMidRecords>;
 
 EM_BOOL sa_ems_on_open(int eventType, const EmscriptenWebSocketOpenEvent* websocketEvent, void* userData) {
     auto ws_client = reinterpret_cast<NDWebSockClient<emscripten::val, WebDuckDBCache, MktData_t>*>(userData);

@@ -23,7 +23,7 @@
 
 using json_t = emscripten::val;
 using DuckDB_t = WebDuckDBCache;
-using MktData_t = LiveCache<TiingoIEXMidRecords>;
+using MktData_t = LiveCache<json_t, TiingoIEXMidRecords>;
 using NDContext_t = NDContext<json_t, DuckDB_t, MktData_t>;
 using NDWebSockClient_t = NDWebSockClient<json_t, DuckDB_t, MktData_t>;
 

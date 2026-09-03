@@ -97,7 +97,7 @@ struct TiingoIEXTopRecords {
 };
 
 
-template <typename LIVE>
+template <typename JSON, typename LIVE>
 class LiveCache {
 private:
 	LIVE	live_records;
@@ -105,5 +105,13 @@ private:
 public:
 	LiveCache(uint32_t rc)
 		:live_records(rc) {
+	}
+	bool update(const JSON& upd) {
+		assert(JContains(upd, Static::ticker_cs));
+
+		// TODO: can we use structured bindings to
+		// address timestamp, ticker, mid with indices,
+		// but keep bindings?
+		return true;
 	}
 };
