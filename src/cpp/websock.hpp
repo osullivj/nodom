@@ -58,15 +58,14 @@ EM_BOOL sa_ems_on_close(int eventType, const EmscriptenWebSocketCloseEvent* webs
 EM_BOOL sa_ems_on_message(int eventType, const EmscriptenWebSocketMessageEvent* websocketEvent, void* userData);
 EM_BOOL sa_ems_on_error(int eventType, const EmscriptenWebSocketErrorEvent* websocketEvent, void* userData);
 #endif
-
-template<typename JSON, typename DB>
+template<typename JSON, typename DB, typename MKT>
 class NDWebSockClient {
 private:
-    std::string             uri;
-    NDContext<JSON, DB>&    ctx;
-    std::queue<JSON>        server_responses;
-    DB&                     bulk;
-    bool                    connected{ false };
+    std::string                 uri;
+    NDContext<JSON, DB, MKT>&   ctx;
+    std::queue<JSON>            server_responses;
+    DB&                         bulk;
+    bool                        connected{ false };
 
     // websock data members: diff impls for 
     // websockpp on win32, and emscripten's own
@@ -82,7 +81,7 @@ private:
 #endif
 
 public:
-    NDWebSockClient(DB& blk, NDContext<JSON, DB>& c)
+    NDWebSockClient(DB& blk, NDContext<JSON, DB, MKT>& c)
                                     :ctx(c), bulk(blk) {
         NDConfig<JSON>& cfg{ NDConfig<JSON>::get_instance() };
         cfg.get_value(Static::server_url_cs, uri);
@@ -254,21 +253,26 @@ public:
 #ifdef __EMSCRIPTEN__
 // standalone C style callbacks decls for ems websocket
 // NB they all redispatch to NDWebSockClient member funcs
+
+// Not happy about hardwiring the param type inside the func, 
+// but they must have extern C style linkage
+using MktData_t = LiveCache<TiingoIEXMidRecords>;
+
 EM_BOOL sa_ems_on_open(int eventType, const EmscriptenWebSocketOpenEvent* websocketEvent, void* userData) {
-    auto ws_client = reinterpret_cast<NDWebSockClient<emscripten::val, WebDuckDBCache>*>(userData);
+    auto ws_client = reinterpret_cast<NDWebSockClient<emscripten::val, WebDuckDBCache, MktData_t>*>(userData);
     ws_client->ems_on_open();
     return EM_TRUE;
 }
 
 EM_BOOL sa_ems_on_close(int eventType, const EmscriptenWebSocketCloseEvent* websocketEvent, void* userData) {
-    auto ws_client = reinterpret_cast<NDWebSockClient<emscripten::val, WebDuckDBCache>*>(userData);
+    auto ws_client = reinterpret_cast<NDWebSockClient<emscripten::val, WebDuckDBCache, MktData_t>*>(userData);
     ws_client->ems_on_close();
     return EM_TRUE;
 }
 
 EM_BOOL sa_ems_on_message(int event_type, const EmscriptenWebSocketMessageEvent* ws_event, void* user_data) {
     const static char* method = "sa_ems_on_message: ";
-    auto ws_client = reinterpret_cast<NDWebSockClient<emscripten::val, WebDuckDBCache>*>(user_data);
+    auto ws_client = reinterpret_cast<NDWebSockClient<emscripten::val, WebDuckDBCache, MktData_t>*>(user_data);
     if (ws_event->isText) {
         std::string payload((const char*)ws_event->data);
         NDLogger::cout() << method << payload << std::endl;
@@ -284,9 +288,10 @@ EM_BOOL sa_ems_on_error(int event_type, const EmscriptenWebSocketErrorEvent* ws_
     const static char* method = "sa_ems_on_error: ";
     // EmscriptenWebSocketErrorEvent struct only has a socket handle, 
     // and no further diagnostic info.
-    auto ws_client = reinterpret_cast<NDWebSockClient<emscripten::val, WebDuckDBCache>*>(user_data);
+    auto ws_client = reinterpret_cast<NDWebSockClient<emscripten::val, WebDuckDBCache, MktData_t>*>(user_data);
     NDLogger::cerr() << method << "event_type: " << event_type << std::endl;
     ws_client->ems_on_fail();
     return EM_TRUE;
 }
+
 #endif
