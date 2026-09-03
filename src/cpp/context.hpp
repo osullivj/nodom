@@ -53,10 +53,11 @@ EM_JS(void, exec_js_action_sync, (int raw_fn_inx, emscripten::EM_VAL data_handle
 // bad enough to make rendering impossible
 using CritArray = std::array<std::string, Critical::EndCritical>;
 
-template <typename JSON, typename DB>
+template <typename JSON, typename DB, typename MKT>
 class NDContext {
 private:
     DB&                     bulk;           // DB bulk cache
+    MKT&                    live;
     JSON                    layout;         // layout and data are fetched by websock
     JSON                    data;
     JSON                    return_value;   // return value from FunctionAsync
@@ -217,8 +218,8 @@ private:
         ~LocalFont() { pop_func(); }
     };
 public:
-    NDContext(DB& s, const std::string& app_key, const std::string& ipath, const char* idata = nullptr, const char* ilayout = nullptr)
-        :bulk(s), app_key_s(app_key), ini_path(ipath),
+    NDContext(DB& s, MKT& m, const std::string& app_key, const std::string& ipath, const char* idata = nullptr, const char* ilayout = nullptr)
+        :bulk(s), live(m), app_key_s(app_key), ini_path(ipath),
         init_data_s(idata?idata:Static::init_data_cs),
         init_layout_s(ilayout?ilayout:Static::init_layout_cs),
         red{ 255, 51, 0 },
