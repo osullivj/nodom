@@ -790,9 +790,10 @@ public:
                     }
                 }
             }
-            // Duck or Parquet event...
+            // Bulk or live event not handled above;
+            // often includes an action_dispatch.
             else {
-                on_db_event(resp);
+                on_event(resp);
             }
             events.pop();
         }
@@ -808,53 +809,61 @@ public:
         server_request(Static::layout_cs);
     }
 
-    void on_db_event(const JSON& db_msg) {
-        const static char* method = "NDContext::on_db_event: ";
+    void on_event(const JSON& evnt_msg) {
+        const static char* method = "NDContext::on_event: ";
 
-        if (!JContains(db_msg, Static::nd_type_cs)) {
-            NDLogger::cerr() << method << "no nd_type in " << db_msg << std::endl;
+        if (!JContains(evnt_msg, Static::nd_type_cs)) {
+            NDLogger::cerr() << method << "no nd_type in " << evnt_msg << std::endl;
             return;
         }
-        std::string nd_type = JAsString(db_msg, Static::nd_type_cs);
-        std::string qid = JAsString(db_msg, Static::query_id_cs);
-        NDLogger::cout() << method << nd_type << ", QID: " << qid << std::endl;
+        std::string nd_type = JAsString(evnt_msg, Static::nd_type_cs);
+        if (JContains(evnt_msg, Static::query_id_cs)) {
+            std::string qid = JAsString(evnt_msg, Static::query_id_cs);
+            NDLogger::cout() << method << nd_type << ", QID: " << qid << std::endl;
 
-        EntityInx ninx{data_lay_cache.template get_string_index<EntityID>(qid, CST::QueryID)};
-        EventInx einx_db{ data_lay_cache.template get_string_index<Event>(nd_type, CST::DBEvent) };
-        EventInx einx_ss{ data_lay_cache.template get_string_index<Event>(nd_type, CST::SubSysEvent) };
+            EntityInx ninx{ data_lay_cache.template get_string_index<EntityID>(qid, CST::QueryID) };
+            EventInx einx_db{ data_lay_cache.template get_string_index<Event>(nd_type, CST::DBEvent) };
+            EventInx einx_ss{ data_lay_cache.template get_string_index<Event>(nd_type, CST::SubSysEvent) };
 
-        // Remember, here we're invoked by pump_messages(), not by
-        // ctx.Render(), so we're not on the hot path and can dispatch
-        // actions directly here.
-        if (einx_db == einx_Command) {
-            db_status_color = amber;
+            // Remember, here we're invoked by pump_messages(), not by
+            // ctx.Render(), so we're not on the hot path and can dispatch
+            // actions directly here.
+            if (einx_db == einx_Command) {
+                db_status_color = amber;
+            }
+            else if (einx_db == einx_Query) {
+                db_status_color = amber;
+            }
+            else if (einx_db == einx_CommandResult) {
+                db_status_color = green;
+                action_dispatch(ninx, einx_db); // qid, nd_type);
+            }
+            else if (einx_db == einx_QueryResult) {
+                db_status_color = green;
+                // Typically, a QueryResult is followed by dispatch
+                // of a BatchRequest. 
+                action_dispatch(ninx, einx_db); // qid, nd_type);
+            }
+            else if (einx_db == einx_BatchResponse) {
+                db_status_color = green;
+                action_dispatch(ninx, einx_db); // qid, nd_type);
+            }
+            else if (einx_ss == einx_Online) {
+                // DB is online
+                // so we can just flip status button color here
+                db_status_color = amber;
+                // signal DuckDB online
+                action_dispatch(ninx_DuckDB, einx_Online);
+            }
+            else {
+                NDLogger::cerr() << method << JPrettyPrint(evnt_msg) << std::endl;
+            }
         }
-        else if (einx_db == einx_Query) {
-            db_status_color = amber;
-        }
-        else if (einx_db == einx_CommandResult) {
-            db_status_color = green;
-            action_dispatch(ninx, einx_db); // qid, nd_type);
-        }
-        else if (einx_db == einx_QueryResult) {
-            db_status_color = green;
-            // Typically, a QueryResult is followed by dispatch
-            // of a BatchRequest. 
-            action_dispatch(ninx, einx_db); // qid, nd_type);
-        }
-        else if (einx_db == einx_BatchResponse) {
-            db_status_color = green;
-            action_dispatch(ninx, einx_db); // qid, nd_type);
-        }
-        else if (einx_ss == einx_Online) {
-            // DB is online
-            // so we can just flip status button color here
-            db_status_color = amber;
-            // signal DuckDB online
-            action_dispatch(ninx_DuckDB, einx_Online);
-        }
-        else {
-            NDLogger::cerr() << method << JPrettyPrint(db_msg) << std::endl;
+        else if (JContains(evnt_msg, Static::tickers_cs)) {
+            assert(std::string_view(nd_type) == std::string_view(Static::live_response_cs));
+            if (JContains(evnt_msg, Static::error_cs)) {
+                NDLogger::cerr() << method << "SUB_FAIL: " << evnt_msg << std::endl;
+            }
         }
     }
 
