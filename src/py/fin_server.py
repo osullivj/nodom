@@ -123,7 +123,8 @@ INIT_SUB_REQ_ACTN = {
 FIN_DATA = {
     "rebld_inst_tbl_ckey":REBLD_INST_TBL_SQL,
     "query_inst_tbl_ckey":QUERY_INST_TBL_SQL,
-    "tickers":["*"], # ["spy", "vym"],
+    "tickers":["spy", "vym", "spwr", "chpt", "aren", "tanh",
+                    "rare", "dell", "curr", "dlll", "alms", "mgn"],
     "loading_instruments_message":["Loading IEX instruments..."],
     "actions":{
         # GUI.CacheLoaded on BB, DuckDB.Online for wasm
@@ -175,12 +176,9 @@ class FinService(nd_utils.Service):
         # first figure out msg type I, H or A
         if not msg:
             self.tiingo_websock = None
-            logr.info("on_tiingo: NULL msg")
             return
         update_s = None
         msg_dict = json.loads(msg)
-        logr.info(f"on_tiingo: {msg}")
-        logr.info(f"on_tiingo: {msg_dict}")
         msg_type = msg_dict['messageType']
         if msg_type == 'H':
             logr.info(f"on_tiingo: HB {msg}")
