@@ -18,11 +18,11 @@ inline void glfw_error_callback(int error, const char* description)
     fprintf(stderr, "Glfw Error %d: %s\n", error, description);
 }
 
-template <typename JSON, typename DB>
+template <typename JSON, typename DB, typename MKT>
 #ifdef __EMSCRIPTEN__
-GLFWwindow* im_start(NDContext<JSON, DB>& ctx, void* fc = nullptr)
+GLFWwindow* im_start(NDContext<JSON, DB, MKT>& ctx, void* fc = nullptr)
 #else
-GLFWwindow* im_start(NDContext<JSON, DB>& ctx)
+GLFWwindow* im_start(NDContext<JSON, DB, MKT>& ctx)
 #endif
 {
     // Setup window
@@ -129,8 +129,8 @@ GLFWwindow* im_start(NDContext<JSON, DB>& ctx)
 }
 
 
-template <typename JSON, typename DB>
-int im_render(NDContext<JSON, DB>& ctx)
+template <typename JSON, typename DB, typename MKT>
+int im_render(NDContext<JSON, DB, MKT>& ctx)
 {
     static ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
