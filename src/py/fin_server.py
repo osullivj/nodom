@@ -143,6 +143,7 @@ class FinService(nd_utils.Service):
         super().__init__(app_name, layout, data, True)
         self.client_websocks = dict()
         self.pending_subs = []
+        self.tiingo_websock = None
 
     def on_ws_open(self, ws):
         self.client_websocks[ws._uuid] = ws
@@ -152,7 +153,7 @@ class FinService(nd_utils.Service):
 
     async def connect_websock(self):
         self.tiingo_websock = await tornado.websocket.websocket_connect(options.turl,
-            on_message_callback=self.on_tiingo)
+                                                    on_message_callback=self.on_tiingo)
 
     def on_live_request(self, client_uuid, msg_dict):
         self.client_uuid = client_uuid
@@ -173,6 +174,7 @@ class FinService(nd_utils.Service):
         # we're invoked directly by the tiingo websock, so msg is str
         # first figure out msg type I, H or A
         if not msg:
+            self.tiingo_websock = None
             logr.info("on_tiingo: NULL msg")
             return
         update_s = None
@@ -216,6 +218,13 @@ class FinService(nd_utils.Service):
 # breadboard looks out for service at the module level
 service = FinService(NDAPP, FIN_LAYOUT, FIN_DATA)
 
+async def connect_tiingo(svc):
+    loop = tornado.ioloop.IOLoop.current()
+    while True:
+        if not svc.tiingo_websock:
+            await svc.connect_websock()
+        await asyncio.sleep(3)
+
 # wire up the PQ handler
 EXTRA_HANDLERS = [
     (
@@ -229,7 +238,7 @@ async def http_main():
     app = nd_web.NDApp(service, EXTRA_HANDLERS)
     app.listen(options.port)
     logr.info(f"{NDAPP} port:{options.port}")
-    await service.connect_websock()
+    asyncio.ensure_future(connect_tiingo(service))
     await asyncio.Event().wait()
 
 
@@ -245,12 +254,14 @@ async def https_main():
     )
     https_server.listen(options.port)
     logr.info(f"{NDAPP} port:{options.port} cert_path:{cert_path}")
-    await service.connect_websock()
+    # await service.connect_websock()
+    asyncio.ensure_future(connect_tiingo(service))
     await asyncio.Event().wait()
 
 
 if __name__ == "__main__":
     parse_command_line()
+
     if options.port == 443:
         asyncio.run(https_main())
     else:
