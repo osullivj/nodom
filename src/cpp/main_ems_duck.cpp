@@ -12,6 +12,7 @@
 #include "context.hpp"
 #include "im_render.hpp"
 #include "db_cache.hpp"
+#include "lv_cache.hpp"
 #include "websock.hpp"
 #include "emscripten.h"
 #include "emscripten_mainloop_stub.h"
@@ -22,7 +23,9 @@
 
 using json_t = emscripten::val;
 using DuckDB_t = WebDuckDBCache;
-using NDContext_t = NDContext<json_t, DuckDB_t>;
+using MktData_t = LiveCache<TiingoIEXMidRecords>;
+using NDContext_t = NDContext<json_t, DuckDB_t, MktData_t>;
+using NDWebSockClient_t = NDWebSockClient<json_t, DuckDB_t, MktData_t>;
 
 void im_loop_body(void* c) {
     auto ctx = reinterpret_cast<NDContext_t*>(c);
@@ -55,12 +58,14 @@ int main(int argc, char* argv[]) {
     }
 
     DuckDB_t bulk;
+    MktData_t live(32);
     // Static::empty_cs as 3rd parm causes NDContext::get_ini_path()
     // to return a null ptr in im_start, so io.IniFilename is NULL
     // preventing attempt to write to localFS, which is nulled out by
     // IMGUI_DISABLE_FILE_FUNCTIONS
-    NDContext_t ctx(bulk, app_key, Static::empty_cs, init_data.c_str(), init_layout.c_str());
-    NDWebSockClient<json_t, DuckDB_t> ws_client(bulk, ctx);
+    NDContext_t ctx(bulk, live, app_key, Static::empty_cs,
+                        init_data.c_str(), init_layout.c_str());
+    NDWebSockClient_t ws_client(bulk, ctx);
 
     ctx.register_msg_pump([&ws_client]() {ws_client.pump_messages();});
     DBResultDispatcher& dbrd(DBResultDispatcher::get_instance());
