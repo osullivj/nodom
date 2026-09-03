@@ -817,6 +817,7 @@ public:
             return;
         }
         std::string nd_type = JAsString(evnt_msg, Static::nd_type_cs);
+        // All bulk events have query_id
         if (JContains(evnt_msg, Static::query_id_cs)) {
             std::string qid = JAsString(evnt_msg, Static::query_id_cs);
             NDLogger::cout() << method << nd_type << ", QID: " << qid << std::endl;
@@ -859,11 +860,13 @@ public:
                 NDLogger::cerr() << method << JPrettyPrint(evnt_msg) << std::endl;
             }
         }
-        else if (JContains(evnt_msg, Static::tickers_cs)) {
-            assert(std::string_view(nd_type) == std::string_view(Static::live_response_cs));
+        else if (std::string_view(nd_type) == std::string_view(Static::live_response_cs)) {
+            assert(JContains(evnt_msg, Static::tickers_cs));
             if (JContains(evnt_msg, Static::error_cs)) {
                 NDLogger::cerr() << method << "SUB_FAIL: " << evnt_msg << std::endl;
             }
+        }
+        else if (std::string_view(nd_type) == std::string_view(Static::live_update_cs)) {
         }
     }
 
