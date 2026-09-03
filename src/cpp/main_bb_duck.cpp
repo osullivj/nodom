@@ -13,6 +13,7 @@
 #include "context.hpp"
 #include "im_render.hpp"
 #include "db_cache.hpp"
+#include "lv_cache.hpp"
 #include "websock.hpp"
 
 // NoDOM: this main.cpp is intended to stay as close as possible
@@ -28,7 +29,9 @@
 
 using json_t = nlohmann::json;
 using DuckDB_t = BBDuckDBCache;
-using NDContext_t = NDContext<json_t, DuckDB_t>;
+using MktData_t = LiveCache<TiingoIEXMidRecords>;
+using NDContext_t = NDContext<json_t, DuckDB_t, MktData_t>;
+using NDWebSockClient_t = NDWebSockClient<json_t, DuckDB_t, MktData_t>;
 
 int main(int argc, char* argv[]) {
     const static char* method = "main: ";
@@ -102,7 +105,8 @@ int main(int argc, char* argv[]) {
     }
 
     DuckDB_t bulk;
-    NDContext<json_t, DuckDB_t> ctx(bulk, app_key, ini_path,
+    MktData_t live(32);
+    NDContext_t ctx(bulk, live, app_key, ini_path,
             init_data.empty() ? nullptr : init_data.c_str(), 
             init_layout.empty() ? nullptr : init_layout.c_str());
 
@@ -112,7 +116,7 @@ int main(int argc, char* argv[]) {
         // now launch websock client with a boost::asio
         // event loop on the main thread to dispatch
         // the timeout and on_message callbacks
-        NDWebSockClient<json_t, DuckDB_t> ws_client(bulk, ctx);
+        NDWebSockClient_t ws_client(bulk, ctx);
         ws_client.run();
     }
     catch (websocketpp::exception const& ex) {
