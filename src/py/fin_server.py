@@ -142,6 +142,7 @@ class FinService(nd_utils.Service):
     def __init__(self, app_name, layout, data):
         super().__init__(app_name, layout, data, True)
         self.client_websocks = dict()
+        self.pending_subs = []
 
     def on_ws_open(self, ws):
         self.client_websocks[ws._uuid] = ws
@@ -151,7 +152,7 @@ class FinService(nd_utils.Service):
 
     async def connect_websock(self):
         self.tiingo_websock = await tornado.websocket.websocket_connect(options.turl,
-            on_message_callback=self.on_tick)
+            on_message_callback=self.on_tiingo)
 
     def on_live_request(self, client_uuid, msg_dict):
         self.client_uuid = client_uuid
@@ -165,23 +166,51 @@ class FinService(nd_utils.Service):
             eventData=dict(thresholdLevel=6, tickers=msg_dict['tickers'])
         )
         self.tiingo_websock.write_message(json.dumps(sub_dict))
+        self.pending_subs.insert(0, msg_dict['tickers'])
         return []
 
-    def on_tick(self, msg):
+    def on_tiingo(self, msg):
         # we're invoked directly by the tiingo websock, so msg is str
         # first figure out msg type I, H or A
+        if not msg:
+            logr.info("on_tiingo: NULL msg")
+            return
+        update_s = None
         msg_dict = json.loads(msg)
+        logr.info(f"on_tiingo: {msg}")
+        logr.info(f"on_tiingo: {msg_dict}")
         msg_type = msg_dict['messageType']
         if msg_type == 'H':
-            print(msg)
+            logr.info(f"on_tiingo: HB {msg}")
             return
         if msg_type == 'I':
-            print(msg)
-            return
-        update_s = json.dumps({"nd_type":'LiveUpdate', "data":msg_dict['data']})
+            if len(self.pending_subs) == 0:
+                logr.error(f"on_tiingo: I no pending subs {msg}")
+                return
+            ticker_list = self.pending_subs.pop()
+            update_s = json.dumps({"nd_type":'LiveResponse', "tickers":ticker_list})
+        elif msg_type == 'A':
+            data_list = msg_dict['data']
+            update_s = json.dumps({
+                "nd_type":'LiveUpdate',
+                "timestamp":data_list[0],
+                "ticker":data_list[1],
+                "mid":data_list[2]
+            })
+        elif msg_type == 'E':
+            if len(self.pending_subs) == 0:
+                logr.error(f"on_tiingo: E no pending subs {msg}")
+                return
+            ticker_list = self.pending_subs.pop()
+            resp_dict = msg_dict["response"]
+            update_s = json.dumps({
+                "nd_type":'LiveResponse',
+                "tickers":ticker_list,
+                "error":resp_dict["code"],
+                "message":resp_dict["message"]
+            })
         for ws in self.client_websocks.values():
             ws.write_message(update_s)
-
 
 
 # breadboard looks out for service at the module level
