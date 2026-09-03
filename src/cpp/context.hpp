@@ -868,6 +868,7 @@ public:
             }
         }
         else if (std::string_view(nd_type) == std::string_view(Static::live_update_cs)) {
+            live.update(evnt_msg);
         }
     }
 
