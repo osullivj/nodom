@@ -29,7 +29,8 @@
 
 using json_t = nlohmann::json;
 using DuckDB_t = BBDuckDBCache;
-using MktData_t = LiveCache<json_t, TiingoIEXMidRecords>;
+using Tiingo_t = TiingoIEXMidRecords<json_t>;
+using MktData_t = LiveCache<json_t, Tiingo_t>;
 using NDContext_t = NDContext<json_t, DuckDB_t, MktData_t>;
 using NDWebSockClient_t = NDWebSockClient<json_t, DuckDB_t, MktData_t>;
 
