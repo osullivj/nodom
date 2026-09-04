@@ -44,3 +44,14 @@ BOOST_FIXTURE_TEST_CASE(SubToTwoTicker, LiveCacheFixture)
     live.on_sub(update);
     BOOST_TEST(live.ticker_count() == 2);
 }
+
+BOOST_FIXTURE_TEST_CASE(SubToThreeTicker, LiveCacheFixture)
+{
+    live.init(2);
+    ticker_list.push_back("spy");
+    ticker_list.push_back("vym");
+    ticker_list.push_back("dell");
+    update[Static::tickers_cs] = JArray(ticker_list);
+    live.on_sub(update);
+    BOOST_TEST(live.ticker_count() == 2);
+}
