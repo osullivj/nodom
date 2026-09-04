@@ -76,7 +76,7 @@ struct TiingoIEXMidRecords {
 template <typename JSON, typename LIVE>
 class LiveCache {
 private:
-	LIVE		records;
+
 
 	// working storage
 	std::string ticker;
@@ -114,6 +114,8 @@ private:
 
 
 public:
+	LIVE records;
+
 	LiveCache( ) { }
 
 	void init(uint32_t rc) {
@@ -142,7 +144,7 @@ public:
 		return subbed_count;
 	}
 
-	bool update(const JSON& upd) {
+	bool on_update(const JSON& upd) {
 		assert(JContains(upd, Static::ticker_cs));
 		ticker = JAsString(upd, Static::ticker_cs);
 		if (find_ticker(ticker.c_str(), ticker_inx)) {
