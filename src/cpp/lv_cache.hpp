@@ -90,7 +90,7 @@ private:
 		ticker_ptr = records.ticker;
 		// wind fwd til we find a free slot
 		while (*ticker_ptr != 0 && inx < records.record_count) {
-			ticker_ptr = records.ticker + (inx * 8);
+			ticker_ptr += 8;
 			inx++;
 		}
 		if (inx >= records.record_count) {
