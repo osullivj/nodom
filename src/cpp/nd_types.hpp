@@ -14,14 +14,7 @@
 #include "fmt/base.h"
 #include "fmt/chrono.h"
 
-using StringVec = std::vector<std::string>;
-using IntVec = std::vector<int>;
-using FloatVec = std::vector<float>;
-using DoubleVec = std::vector<double>;
-using UintVec = std::vector<std::uint32_t>;
-using StringStringMap = std::map<std::string, std::string>;
-using StringIntMap = std::map<std::string, int>;
-using StringSet = std::set<std::string>;
+
 
 template <typename T>
 bool ptr_in_vec(const std::vector<T>& vec, const T* ptr) {
@@ -159,6 +152,7 @@ enum RenderMethod : uint32_t {
     Text,
     Button,
     Table,      // Compound widgets
+    LiveTable,
     Footer,
     DebugFooter,
     DatePicker,
@@ -252,6 +246,16 @@ inline bool event_is_valid(EventType ev) {
 using CIT = CacheItemType;
 using CST = CacheItemSubType;
 using CDT = CacheDataType;
+
+using StringVec = std::vector<std::string>;
+using IntVec = std::vector<int>;
+using FloatVec = std::vector<float>;
+using DoubleVec = std::vector<double>;
+using UintVec = std::vector<std::uint32_t>;
+using StringStringMap = std::map<std::string, std::string>;
+using StringIntMap = std::map<std::string, int>;
+using StringSet = std::set<std::string>;
+using CDTVec = std::vector<CacheDataType>;
 
 inline bool cache_data_type_is_valid(CDT cdt) {
     return cdt != EndDataTypes;
