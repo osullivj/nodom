@@ -18,6 +18,7 @@ struct Static {
 	inline static const char* rm_text_cs{ "Text" };
 	inline static const char* rm_button_cs{ "Button" };
 	inline static const char* rm_table_cs{ "Table" };
+	inline static const char* rm_live_table_cs{ "LiveTable" };
 	inline static const char* rm_footer_cs{ "Footer" };		// Compount
 	inline static const char* rm_debug_footer_cs{ "DebugFooter" };		// Compount
 	inline static const char* rm_date_picker_cs{ "DatePicker" };
