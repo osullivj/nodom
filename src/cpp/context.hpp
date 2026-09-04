@@ -195,6 +195,8 @@ private:
     SpinnerLocals       sp_vars;
     ShadedPlotLocals    sh_pl_vars;
     TextAreaLocals      txt_area_vars;
+    ComboLocals         combo_vars;
+    LiveTableLocals     lv_tbl_vars;
     BeginChildLocals    bg_ch_vars;
     EndRenderLocals     er_vars;
     SummaryTableContext smry_tbl_ctx;
@@ -1488,41 +1490,34 @@ protected:
 
     void render_combo(WidgetPtr w) {
         const static char* method = "NDContext::render_combo: ";
-        // Static storage for the combo list. NB single GUI thread!
-        // No malloc at runtime, but we will clear the array with a memset
-        // on each visit. JOS 2025-01-26
-        // TODO: refactor away from local static storage to
-        // widget->buffer. buffer_size attr will free us from
-        // ND_MAX_COMBO_LIST
-        static const char* cs_combo_list[ND_MAX_COMBO_LIST];
-        memset(cs_combo_list, 0, ND_MAX_COMBO_LIST * sizeof(char*));
 
-        int step = 1;
+        combo_vars.step = 1;
         const char* label = cspec_string(cs_label, w->cspec_str, method);
-        cspec_int(cs_step, w->cspec_int, &step);
+        cspec_int(cs_step, w->cspec_int, &combo_vars.step);
 
         DataRef* combo_list_data_ref = cspec_data_ref(cs_cname, w);
         DataRef* combo_inx_data_ref = cspec_data_ref(cs_cindex, w);
-        if (combo_list_data_ref != nullptr && combo_inx_data_ref != nullptr) {
+        assert(combo_list_data_ref != nullptr);
+        assert(combo_inx_data_ref != nullptr);
+        if (w->buffer_not_set()) {
             assert(combo_list_data_ref->tipe == cdStrVec);
             assert(combo_list_data_ref->size < ND_MAX_COMBO_LIST);
             StrInx sinx{ combo_list_data_ref->ref_inx };
-            uint32_t combo_count = 0;
-            for (; combo_count < combo_list_data_ref->size; combo_count++) {
-                cs_combo_list[combo_count] = data_lay_cache.get_string_value(sinx);
+            for (combo_vars.count = 0; combo_vars.count < combo_list_data_ref->size; combo_vars.count++) {
+                w->append_buffer(data_lay_cache.get_string_value(sinx));
                 sinx++;
             }
-            IntInx iinx{ combo_inx_data_ref->ref_inx };
-            int* combo_index = data_lay_cache.get_int_value(iinx);
-            assert(combo_index != nullptr);
-            int old_val = *combo_index;
-            ImGui::Combo(label, combo_index, cs_combo_list, combo_count, combo_count);
-            int new_val = *combo_index;
-            if (old_val != new_val) {
-                w->old_int.push_back(old_val);
-                w->changed = combo_inx_data_ref;
-                changed.push_back(w);
-            }
+        }
+        IntInx iinx{ combo_inx_data_ref->ref_inx };
+        combo_vars.index = data_lay_cache.get_int_value(iinx);
+        assert(combo_vars.index != nullptr);
+        combo_vars.old_val = *combo_vars.index;
+        ImGui::Combo(label, combo_vars.index, (const char**)w->buffer, combo_vars.count, combo_vars.count);
+        combo_vars.new_val = *combo_vars.index;
+        if (combo_vars.old_val != combo_vars.new_val) {
+            w->old_int.push_back(combo_vars.old_val);
+            w->changed = combo_inx_data_ref;
+            changed.push_back(w);
         }
     }
 
@@ -1593,7 +1588,8 @@ protected:
             static const char* cs_combo_list[3] = { Static::dark_cs, Static::light_cs, Static::classic_cs };
             int old_val = style_coloring;
             ImGui::Combo(Static::lb_footer_style_cs, &style_coloring, cs_combo_list, 3, 3);
-            if (style_coloring != old_val) SetStyleColoring(style_coloring);
+            if (style_coloring != old_val)
+                SetStyleColoring(style_coloring);
         }
         ImGui::EndGroup();
     }
@@ -2142,6 +2138,67 @@ protected:
         }
     }
 
+    void render_live_table(WidgetPtr w) {
+        const static char* method = "NDContext::render_live_table: ";
+
+        static int default_table_flags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY;
+
+        const char* title = cspec_string(cs_title, w->cspec_str, method);
+        lv_tbl_vars.table_flags = default_table_flags;
+        cspec_int(cs_table_flags, w->cspec_int, &lv_tbl_vars.table_flags);
+
+        DataRef* ticker_list_data_ref = cspec_data_ref(cs_cname, w);
+        assert(ticker_list_data_ref->tipe == cdStrVec);
+        assert(ticker_list_data_ref->size < live.records.record_count);
+
+        if (w->buffer_not_set()) {
+            StrInx sinx{ ticker_list_data_ref->ref_inx };
+            for (lv_tbl_vars.count = 0; lv_tbl_vars.count < ticker_list_data_ref->size; lv_tbl_vars.count++) {
+                w->append_buffer(data_lay_cache.get_string_value(sinx));
+                sinx++;
+            }
+            lv_tbl_vars.buffer = (char**)w->buffer;
+        }
+
+        lv_tbl_vars.row_inx = 0;
+        {
+            LocalFont body_font(w, cs_body_font, cs_body_font_size);
+            if (ImGui::BeginTable(title, (int)live.records.col_count, lv_tbl_vars.table_flags)) {
+                ImGui::TableSetupScrollFreeze(1, 1);
+                for (lv_tbl_vars.col_inx = 0; lv_tbl_vars.col_inx < live.records.col_count; lv_tbl_vars.col_inx++) {
+                    ImGui::TableSetupColumn(live.records.field_names[lv_tbl_vars.col_inx].c_str(), ImGuiTableColumnFlags_None);
+                }
+                ImGui::TableHeadersRow();
+                ImGuiListClipper clipper;
+                clipper.Begin((int)live.ticker_count(), -1.0f);
+                while (clipper.Step()) {
+                    for (lv_tbl_vars.row_inx = clipper.DisplayStart; lv_tbl_vars.row_inx < clipper.DisplayEnd; lv_tbl_vars.row_inx++) {
+                        ImGui::TableNextRow();
+                        lv_tbl_vars.ticker = lv_tbl_vars.buffer[lv_tbl_vars.row_inx];
+                        for (lv_tbl_vars.col_inx = 0; lv_tbl_vars.col_inx < live.records.col_count; lv_tbl_vars.col_inx++) {
+                            if (ImGui::TableSetColumnIndex(lv_tbl_vars.col_inx)) {
+                                switch (live.records.field_types[lv_tbl_vars.col_inx]) {
+                                case cdStr:
+                                    lv_tbl_vars.string_fields = (char*)live.records.get_field(lv_tbl_vars.tkr_inx);
+                                    ImGui::TextUnformatted(lv_tbl_vars.string_fields + (8 * lv_tbl_vars.tkr_inx));
+                                    break;
+                                case cdDouble:
+                                    lv_tbl_vars.double_fields = (double*)live.records.get_field(lv_tbl_vars.tkr_inx);
+                                    lv_tbl_vars.fmt_result = fmt::format_to_n(lv_tbl_vars.string_buffer, STR_BUF_LEN,
+                                                                "{}", lv_tbl_vars.double_fields[lv_tbl_vars.tkr_inx]);
+                                    ImGui::TextUnformatted(lv_tbl_vars.string_buffer, lv_tbl_vars.string_buffer +
+                                        lv_tbl_vars.fmt_result.size);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                ImGui::EndTable();
+            }
+        }
+    }
+
     void render_memory_editor(WidgetPtr w) {
         const static char* method = "NDContext::render_memory_editor: ";
 
@@ -2280,7 +2337,8 @@ protected:
         const char* font_name = cspec_string(cs_font_name, w->cspec_str, Static::default_cs);
         if (font_name != nullptr) {
             auto font_it = font_map.find(font_name);
-            if (font_it != font_map.end()) font = font_it->second;
+            if (font_it != font_map.end())
+                font = font_it->second;
         }
 
         ImGui::PushFont(font, (float)font_size_base);
@@ -2293,5 +2351,4 @@ protected:
         font_pop_count++;
     }
 };
-
 
