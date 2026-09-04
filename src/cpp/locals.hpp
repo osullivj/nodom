@@ -67,6 +67,28 @@ struct BeginChildLocals {
     ImVec2  size{ 0.0, 0.0 };
 };
 
+struct ComboLocals {
+    int         step{ 1 };
+    int         count{ 0 };
+    int*        index{ nullptr };
+    int         old_val{ 0 };
+    int         new_val{ 0 };
+};
+
+struct LiveTableLocals {
+    int         table_flags{ 0 };
+    uint32_t    count{ 0 };
+    uint32_t    col_inx{ 0 };
+    uint32_t    row_inx{ 0 };
+    uint32_t    tkr_inx{ 0 };
+    char*       string_fields{ nullptr };
+    double*     double_fields{ nullptr };
+    char**      buffer{ nullptr };
+    char*       ticker{ nullptr };
+    char        string_buffer[STR_BUF_LEN];
+    fmt::format_to_n_result<char*> fmt_result;
+};
+
 struct EndRenderLocals {
     int     old_int{ 0 };
     int*    new_int{ nullptr };
