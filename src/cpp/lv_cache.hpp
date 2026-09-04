@@ -38,27 +38,37 @@
 template <typename JSON>
 struct TiingoIEXMidRecords {
 	uint32_t	record_count{ 0 };
-	int64_t*	time_stamp{ nullptr };
+	uint32_t	col_count{ 3 };
 	char*		ticker{ nullptr };	// 8 char ticker, so this is 64 like int and dbl
+	double*		timestamp{ nullptr };
 	double*		mid{ nullptr };
+	StringVec	field_names;
+	CDTVec		field_types;
 
 	TiingoIEXMidRecords() { }
 
 	~TiingoIEXMidRecords() {
 		free(mid);
 		free(ticker);
-		free(time_stamp);
+		free(timestamp);
 	}
 
 	void init(uint32_t rc) {
 		record_count = rc;
 		// 8 bytes per firld for the 64 bit fields
-		time_stamp = (int64_t*)malloc(rc * 8);
+		timestamp = (double*)malloc(rc * 8);
 		ticker = (char*)malloc(rc * 8);
 		mid = (double*)malloc(rc * 8);
-		memset(time_stamp, 0, rc * 8);
+		memset(timestamp, 0, rc * 8);
 		memset(ticker, 0, rc * 8);
 		memset(mid, 0, rc * 8);
+
+		field_names.push_back(Static::ticker_cs);
+		field_names.push_back(Static::timestamp_cs);
+		field_names.push_back(Static::mid_cs);
+		field_types.push_back(CDT::cdStr);
+		field_types.push_back(CDT::cdDouble);
+		field_types.push_back(CDT::cdDouble);
 	}
 
 	bool update(uint32_t inx, const std::string& tckr, const JSON& upd) {
@@ -66,8 +76,19 @@ struct TiingoIEXMidRecords {
 			return false;
 		assert(JContains(upd, Static::mid_cs));
 		mid[inx] = JAsDouble(upd, Static::mid_cs);
-		time_stamp[inx] = JAsDouble(upd, Static::timestamp_cs);
+		timestamp[inx] = JAsDouble(upd, Static::timestamp_cs);
 		return true;
+	}
+
+	void* get_field(uint32_t inx) {
+		switch (inx) {
+		case 0:
+			return ticker;
+		case 1:
+			return timestamp
+		case 2:
+			return mid;
+		}
 	}
 };
 
@@ -76,8 +97,6 @@ struct TiingoIEXMidRecords {
 template <typename JSON, typename LIVE>
 class LiveCache {
 private:
-
-
 	// working storage
 	std::string ticker;
 	StringVec	ticker_list;
