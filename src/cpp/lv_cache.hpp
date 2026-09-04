@@ -42,8 +42,16 @@ struct TiingoIEXMidRecords {
 	char*		ticker{ nullptr };	// 8 char ticker, so this is 64 like int and dbl
 	double*		mid{ nullptr };
 
-	TiingoIEXMidRecords(uint32_t rc) :
-		record_count(rc) {
+	TiingoIEXMidRecords() { }
+
+	~TiingoIEXMidRecords() {
+		free(mid);
+		free(ticker);
+		free(time_stamp);
+	}
+
+	void init(uint32_t rc) {
+		record_count = rc;
 		// 8 bytes per firld for the 64 bit fields
 		time_stamp = (int64_t*)malloc(rc * 8);
 		ticker = (char*)malloc(rc * 8);
@@ -51,12 +59,6 @@ struct TiingoIEXMidRecords {
 		memset(time_stamp, 0, rc * 8);
 		memset(ticker, 0, rc * 8);
 		memset(mid, 0, rc * 8);
-	}
-
-	~TiingoIEXMidRecords() {
-		free(mid);
-		free(ticker);
-		free(time_stamp);
 	}
 
 	bool update(uint32_t inx, const std::string& tckr, const JSON& upd) {
@@ -69,58 +71,6 @@ struct TiingoIEXMidRecords {
 	}
 };
 
-struct TiingoIEXTopRecords {
-	uint32_t	record_count{ 0 };
-	int64_t*	time_stamp{ nullptr };
-	int64_t*	tick_id{ nullptr };
-	char*		ticker{ nullptr };	// 8 char ticker, so this is 64 like int and dbl
-	double*		bid{ nullptr };
-	double*		mid{ nullptr };
-	double*		ask{ nullptr };
-	double*		last_trade{ nullptr };
-	uint32_t*	bid_sz{ nullptr };
-	uint32_t*	ask_sz{ nullptr };
-	uint32_t*	last_trade_sz{ nullptr };
-
-	TiingoIEXTopRecords(uint32_t rc) :
-					record_count(rc) {
-		// 8 bytes per firld for the 64 bit fields
-		time_stamp	= (int64_t*)malloc(rc * 8);
-		tick_id		= (int64_t*)malloc(rc * 8);
-		ticker		= (char*)malloc(rc * 8);
-		bid			= (double*)malloc(rc * 8);
-		mid			= (double*)malloc(rc * 8);
-		ask			= (double*)malloc(rc * 8);
-		last_trade	= (double*)malloc(rc * 8);
-		bid_sz		= (uint32_t*)malloc(rc * 4);
-		ask_sz		= (uint32_t*)malloc(rc * 4);
-		last_trade_sz = (uint32_t*)malloc(rc * 4);
-
-		memset(time_stamp, 0, rc * 8);
-		memset(tick_id, 0, rc * 8);
-		memset(ticker, 0, rc * 8);
-		memset(bid, 0, rc * 8);
-		memset(mid, 0, rc * 8);
-		memset(ask, 0, rc * 8);
-		memset(last_trade, 0, rc * 8);
-		memset(bid_sz, 0, rc * 8);
-		memset(ask_sz, 0, rc * 8);
-		memset(last_trade_sz, 0, rc * 8);
-	}
-
-	~TiingoIEXTopRecords() {
-		free(last_trade_sz);
-		free(ask_sz);
-		free(bid_sz);
-		free(last_trade);
-		free(ask);
-		free(mid);
-		free(bid);
-		free(ticker);
-		free(tick_id);
-		free(time_stamp);
-	}
-};
 
 
 template <typename JSON, typename LIVE>
@@ -161,11 +111,15 @@ private:
 		return false;
 	}
 
+
+
 public:
-	LiveCache(uint32_t rc):records(rc) {
+	LiveCache( ) { }
+
+	void init(uint32_t rc) {
+		records.init(rc);
 	}
-	// TODO: add on_sub() to push tickers into 
-	// TiingoIEXMidRecords::ticker
+
 	uint32_t on_sub(const JSON& resp) {
 		assert(JContains(resp, Static::tickers_cs));
 		ticker_list.clear();
@@ -181,7 +135,7 @@ public:
 			if (ticker_ptr == nullptr || ticker_inx >= records.record_count)
 				return subbed_count;
 			assert(strlen(ticker_list[subbed_count].c_str()) < 8);
-			if (*ticker_ptr != 0) {	// found a free slot
+			if (ticker_ptr != nullptr) {	// found a free slot
 				strncpy(ticker_ptr, ticker_list[subbed_count++].c_str(), 8);
 			}
 		}
@@ -195,5 +149,72 @@ public:
 			return records.update(ticker_inx, ticker, upd);
 		}
 		return false;
+	}
+
+	uint32_t ticker_count() {
+		subbed_count = 0;
+		ticker_ptr = records.ticker;
+		// wind fwd counting busy slots
+		for (ticker_inx = 0; ticker_inx < records.record_count; ticker_inx++) {
+			if (*ticker_ptr != 0)
+				subbed_count++;
+			ticker_ptr += 8;
+		}
+		return subbed_count;
+	}
+};
+
+// TODO: impl Tiingo TOB
+struct TiingoIEXTopRecords {
+	uint32_t	record_count{ 0 };
+	int64_t* time_stamp{ nullptr };
+	int64_t* tick_id{ nullptr };
+	char* ticker{ nullptr };	// 8 char ticker, so this is 64 like int and dbl
+	double* bid{ nullptr };
+	double* mid{ nullptr };
+	double* ask{ nullptr };
+	double* last_trade{ nullptr };
+	uint32_t* bid_sz{ nullptr };
+	uint32_t* ask_sz{ nullptr };
+	uint32_t* last_trade_sz{ nullptr };
+
+	void init(uint32_t rc) {
+		record_count = rc;
+		// 8 bytes per firld for the 64 bit fields
+		time_stamp = (int64_t*)malloc(rc * 8);
+		tick_id = (int64_t*)malloc(rc * 8);
+		ticker = (char*)malloc(rc * 8);
+		bid = (double*)malloc(rc * 8);
+		mid = (double*)malloc(rc * 8);
+		ask = (double*)malloc(rc * 8);
+		last_trade = (double*)malloc(rc * 8);
+		bid_sz = (uint32_t*)malloc(rc * 4);
+		ask_sz = (uint32_t*)malloc(rc * 4);
+		last_trade_sz = (uint32_t*)malloc(rc * 4);
+
+		memset(time_stamp, 0, rc * 8);
+		memset(tick_id, 0, rc * 8);
+		memset(ticker, 0, rc * 8);
+		memset(bid, 0, rc * 8);
+		memset(mid, 0, rc * 8);
+		memset(ask, 0, rc * 8);
+		memset(last_trade, 0, rc * 8);
+		memset(bid_sz, 0, rc * 8);
+		memset(ask_sz, 0, rc * 8);
+		memset(last_trade_sz, 0, rc * 8);
+	}
+	TiingoIEXTopRecords() {}
+
+	~TiingoIEXTopRecords() {
+		free(last_trade_sz);
+		free(ask_sz);
+		free(bid_sz);
+		free(last_trade);
+		free(ask);
+		free(mid);
+		free(bid);
+		free(ticker);
+		free(tick_id);
+		free(time_stamp);
 	}
 };

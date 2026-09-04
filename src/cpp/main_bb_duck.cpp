@@ -106,7 +106,8 @@ int main(int argc, char* argv[]) {
     }
 
     DuckDB_t bulk;
-    MktData_t live(32);
+    MktData_t live;
+    live.init(32);
     NDContext_t ctx(bulk, live, app_key, ini_path,
             init_data.empty() ? nullptr : init_data.c_str(), 
             init_layout.empty() ? nullptr : init_layout.c_str());
