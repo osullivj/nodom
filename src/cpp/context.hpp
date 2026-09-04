@@ -866,6 +866,10 @@ public:
             if (JContains(evnt_msg, Static::error_cs)) {
                 NDLogger::cerr() << method << "SUB_FAIL: " << evnt_msg << std::endl;
             }
+            else {
+                // TODO: call LiveCache::on_sub
+                live.on_sub(evnt_msg);
+            }
         }
         else if (std::string_view(nd_type) == std::string_view(Static::live_update_cs)) {
             live.update(evnt_msg);
