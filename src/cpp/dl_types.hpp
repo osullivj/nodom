@@ -60,6 +60,14 @@ struct NDWidget {
             strncpy(old_buffer, v, buffer_size);
     }
 
+    inline void append_buffer(const char* v) {
+        buffer_ptr = reinterpret_cast<char**>(buffer);
+        while (*buffer_ptr != 0)
+            buffer_ptr++;
+        if (buffer_ptr - reinterpret_cast<char**>(buffer) < buffer_size)
+            *buffer_ptr = (char*)v;
+    }
+
     // return true if there is a buffer and it's not init
     inline bool buffer_not_set() {
         if (buffer == nullptr)
@@ -81,8 +89,9 @@ struct NDWidget {
     ForthMap        ndf_result_addr_map;    // DataRef::addr_inx value matching ndf_result_map
     ForthMap        ndf_result_offset_map;  // array offsets
     DataRefMap      forth_result_data_refs;
-    char*           buffer{ nullptr }; // eg render_input_string
+    char*           buffer{ nullptr };      // eg render_input_string
     int             buffer_size{ 0 };
+    char**          buffer_ptr{ nullptr };  // append_buffer() working storage
 
     // validity window for deferred notify_server(): these members
     // may be set intra render, and will be cleared post render
@@ -166,6 +175,8 @@ inline RenderMethod RenderMethodFromString(const std::string& method) {
         return RenderMethod::Button;
     if (method == Static::rm_table_cs)
         return RenderMethod::Table;
+    if (method == Static::rm_live_table_cs)
+        return RenderMethod::LiveTable;
     // Compound
     if (method == Static::rm_footer_cs)
         return RenderMethod::Footer;
