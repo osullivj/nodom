@@ -13,6 +13,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ndcc", "ndcc.vcxproj", "{31
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bulk_cache", "..\..\test\unit\cpp\bulk_cache.vcxproj", "{7B18D5E5-9ED4-4CC1-ABDE-EF3E306C4697}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "live_cache", "..\..\test\unit\cpp\live_cache.vcxproj", "{683FA796-A71C-4BBB-BF68-AD28E2ABDDC3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -61,6 +63,14 @@ Global
 		{7B18D5E5-9ED4-4CC1-ABDE-EF3E306C4697}.Release|x64.Build.0 = Release|x64
 		{7B18D5E5-9ED4-4CC1-ABDE-EF3E306C4697}.Release|x86.ActiveCfg = Release|Win32
 		{7B18D5E5-9ED4-4CC1-ABDE-EF3E306C4697}.Release|x86.Build.0 = Release|Win32
+		{683FA796-A71C-4BBB-BF68-AD28E2ABDDC3}.Debug|x64.ActiveCfg = Debug|x64
+		{683FA796-A71C-4BBB-BF68-AD28E2ABDDC3}.Debug|x64.Build.0 = Debug|x64
+		{683FA796-A71C-4BBB-BF68-AD28E2ABDDC3}.Debug|x86.ActiveCfg = Debug|Win32
+		{683FA796-A71C-4BBB-BF68-AD28E2ABDDC3}.Debug|x86.Build.0 = Debug|Win32
+		{683FA796-A71C-4BBB-BF68-AD28E2ABDDC3}.Release|x64.ActiveCfg = Release|x64
+		{683FA796-A71C-4BBB-BF68-AD28E2ABDDC3}.Release|x64.Build.0 = Release|x64
+		{683FA796-A71C-4BBB-BF68-AD28E2ABDDC3}.Release|x86.ActiveCfg = Release|Win32
+		{683FA796-A71C-4BBB-BF68-AD28E2ABDDC3}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
