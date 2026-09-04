@@ -1324,6 +1324,8 @@ public:
         switch (w->rname) {
         case InputString:
         case InputTextArea:
+        case Combo:
+        case LiveTable:
             pbuf = cspec_int(cs_buffer_size, w->cspec_int, &buffer_size);
             if (pbuf != nullptr) {  // cspec:cs_buffer_size value supplied
                 w->alloc_buffer(buffer_size);
@@ -1414,6 +1416,7 @@ private:
         Static::rm_text_cs,
         Static::rm_button_cs,
         Static::rm_table_cs,
+        Static::rm_live_table_cs,
         Static::rm_footer_cs,
         Static::rm_debug_footer_cs,
         Static::rm_date_picker_cs,
@@ -1556,6 +1559,9 @@ private:
         {Table, {cs_title, cs_title_font, cs_title_font_size,
                     cs_body_font, cs_body_font_size,
                     cs_table_flags, cs_window_flags, cs_column_flags}},
+        {LiveTable, {cs_title, cs_title_font, cs_title_font_size,
+                    cs_body_font, cs_body_font_size,
+                    cs_table_flags, cs_window_flags, cs_column_flags}},
         {Footer, {cs_show_footer_db, cs_show_footer_fps, cs_show_footer_demo, 
                     cs_show_footer_id_stack, cs_show_footer_font_scale, 
                         cs_show_footer_style, cs_show_footer_dlc}},
@@ -1601,6 +1607,10 @@ private:
             {cs_query_id, cdResultSet}
         }},
         {Table, {
+            {cs_query_id, cdResultSet},
+            {cs_menu_pop, cdStrVec}
+        }},
+        {LiveTable, {
             {cs_query_id, cdResultSet},
             {cs_menu_pop, cdStrVec}
         }},
