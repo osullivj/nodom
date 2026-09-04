@@ -173,6 +173,8 @@ struct Static {
 	inline static const char* offset_cs{ "offset" };
 	inline static const char* tickers_cs{ "tickers" };
 	inline static const char* ticker_cs{ "ticker" };
+	inline static const char* timestamp_cs{ "timestamp" };
+	inline static const char* mid_cs{ "mid" };
 
 	// Events: possible values for nd_type
 	inline static const char* batch_request_cs{ "BatchRequest" };
