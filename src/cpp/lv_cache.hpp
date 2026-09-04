@@ -35,6 +35,7 @@
 //
 // LiveCache RecordCount needs to be a config param
 
+template <typename JSON>
 struct TiingoIEXMidRecords {
 	uint32_t	record_count{ 0 };
 	int64_t*	time_stamp{ nullptr };
@@ -47,11 +48,24 @@ struct TiingoIEXMidRecords {
 		time_stamp = (int64_t*)malloc(rc * 8);
 		ticker = (char*)malloc(rc * 8);
 		mid = (double*)malloc(rc * 8);
+		memset(time_stamp, 0, rc * 8);
+		memset(ticker, 0, rc * 8);
+		memset(mid, 0, rc * 8);
 	}
+
 	~TiingoIEXMidRecords() {
 		free(mid);
 		free(ticker);
 		free(time_stamp);
+	}
+
+	bool update(uint32_t inx, const std::string& tckr, const JSON& upd) {
+		if (inx >= record_count)
+			return false;
+		assert(JContains(upd, Static::mid_cs));
+		mid[inx] = JAsDouble(upd, Static::mid_cs);
+		time_stamp[inx] = JAsDouble(upd, Static::timestamp_cs);
+		return true;
 	}
 };
 
@@ -81,7 +95,19 @@ struct TiingoIEXTopRecords {
 		bid_sz		= (uint32_t*)malloc(rc * 4);
 		ask_sz		= (uint32_t*)malloc(rc * 4);
 		last_trade_sz = (uint32_t*)malloc(rc * 4);
+
+		memset(time_stamp, 0, rc * 8);
+		memset(tick_id, 0, rc * 8);
+		memset(ticker, 0, rc * 8);
+		memset(bid, 0, rc * 8);
+		memset(mid, 0, rc * 8);
+		memset(ask, 0, rc * 8);
+		memset(last_trade, 0, rc * 8);
+		memset(bid_sz, 0, rc * 8);
+		memset(ask_sz, 0, rc * 8);
+		memset(last_trade_sz, 0, rc * 8);
 	}
+
 	~TiingoIEXTopRecords() {
 		free(last_trade_sz);
 		free(ask_sz);
@@ -100,18 +126,74 @@ struct TiingoIEXTopRecords {
 template <typename JSON, typename LIVE>
 class LiveCache {
 private:
-	LIVE	live_records;
+	LIVE		records;
+
+	// working storage
+	std::string ticker;
+	StringVec	ticker_list;
+	char*		ticker_ptr{ nullptr };
+	uint32_t	subbed_count{ 0 };
+	uint32_t	ticker_inx{ 0 };
+
+	char* find_free_ticker(uint32_t& inx) {
+		inx = 0;
+		ticker_ptr = records.ticker;
+		// wind fwd til we find a free slot
+		while (*ticker_ptr != 0 && inx < records.record_count) {
+			ticker_ptr = records.ticker + (inx * 8);
+			inx++;
+		}
+		if (inx >= records.record_count) {
+			return nullptr;
+		}
+		return ticker_ptr;
+	}
+
+	bool find_ticker(const char* t, uint32_t& inx) {
+		inx = 0;
+		// wind fwd til we find a match
+		while (inx < records.record_count) {
+			ticker_ptr = records.ticker + (inx * 8);
+			if (std::string_view(ticker_ptr) == std::string_view(t))
+				return true;
+			inx++;
+		}
+		return false;
+	}
 
 public:
-	LiveCache(uint32_t rc)
-		:live_records(rc) {
+	LiveCache(uint32_t rc):records(rc) {
 	}
+	// TODO: add on_sub() to push tickers into 
+	// TiingoIEXMidRecords::ticker
+	uint32_t on_sub(const JSON& resp) {
+		assert(JContains(resp, Static::tickers_cs));
+		ticker_list.clear();
+		JAsStringVec(resp, Static::tickers_cs, ticker_list);
+		ticker_inx = 0;
+		subbed_count = 0;
+		if (ticker_list.empty())
+			return subbed_count;
+		// TODO: this will not work for unsub/resub
+		// NB only good for init one shot sub
+		while (subbed_count < ticker_list.size()) {
+			ticker_ptr = find_free_ticker(ticker_inx);
+			if (ticker_ptr == nullptr || ticker_inx >= records.record_count)
+				return subbed_count;
+			assert(strlen(ticker_list[subbed_count].c_str()) < 8);
+			if (*ticker_ptr != 0) {	// found a free slot
+				strncpy(ticker_ptr, ticker_list[subbed_count++].c_str(), 8);
+			}
+		}
+		return subbed_count;
+	}
+
 	bool update(const JSON& upd) {
 		assert(JContains(upd, Static::ticker_cs));
-
-		// TODO: can we use structured bindings to
-		// address timestamp, ticker, mid with indices,
-		// but keep bindings?
-		return true;
+		ticker = JAsString(upd, Static::ticker_cs);
+		if (find_ticker(ticker.c_str(), ticker_inx)) {
+			return records.update(ticker_inx, ticker, upd);
+		}
+		return false;
 	}
 };
