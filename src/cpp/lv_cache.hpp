@@ -85,9 +85,11 @@ struct TiingoIEXMidRecords {
 		case 0:
 			return ticker;
 		case 1:
-			return timestamp
+			return timestamp;
 		case 2:
 			return mid;
+		default:
+			return nullptr;
 		}
 	}
 };
