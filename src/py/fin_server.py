@@ -61,6 +61,24 @@ FIN_LAYOUT = [
             ),
             dict(rname="EndChild"),
             dict(rname="Separator", cspec=dict()),
+            dict(rname="BeginChild", cspec=dict(height=200)),
+            dict(
+                rname="LiveTable",
+                cspec=dict(
+                    title="Market data",
+                    cname="tickers",
+                    buffer_size=256,
+                    table_flags=TableFlags.SCROLL_Y
+                    | TableFlags.ROW_BG
+                    | TableFlags.BORDERS_OUTER
+                    | TableFlags.BORDERS_V
+                    | TableFlags.RESIZABLE
+                    | TableFlags.HIDEABLE
+                    | TableFlags.CONTEXT_MENU_IN_BODY
+                ),
+            ),
+            dict(rname="EndChild"),
+            dict(rname="Separator", cspec=dict()),
             dict(rname="PopFont"),
             dict(rname="PushFont", cspec=dict(font="Arial", font_size=8)),
             dict(
@@ -161,7 +179,6 @@ class FinService(nd_utils.Service):
         self.pending_subs = []
         self.tiingo_websock = None
         self.emu_tickers = dict()
-        self.ioloop = IOLoop.current()
 
     def on_ws_open(self, ws):
         self.client_websocks[ws._uuid] = ws
