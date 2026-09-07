@@ -945,6 +945,9 @@ protected:
         case RenderMethod::Table:
             render_table(w);
             break;
+        case RenderMethod::LiveTable:
+            render_live_table(w);
+            break;
         case RenderMethod::Footer:
             render_footer(w);
             break;
@@ -2164,7 +2167,7 @@ protected:
         {
             LocalFont body_font(w, cs_body_font, cs_body_font_size);
             if (ImGui::BeginTable(title, (int)live.records.col_count, lv_tbl_vars.table_flags)) {
-                ImGui::TableSetupScrollFreeze(1, 1);
+                // ImGui::TableSetupScrollFreeze(1, 1);
                 for (lv_tbl_vars.col_inx = 0; lv_tbl_vars.col_inx < live.records.col_count; lv_tbl_vars.col_inx++) {
                     ImGui::TableSetupColumn(live.records.field_names[lv_tbl_vars.col_inx].c_str(), ImGuiTableColumnFlags_None);
                 }
