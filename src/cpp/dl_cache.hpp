@@ -1561,7 +1561,8 @@ private:
                     cs_table_flags, cs_window_flags, cs_column_flags}},
         {LiveTable, {cs_title, cs_title_font, cs_title_font_size,
                     cs_body_font, cs_body_font_size,
-                    cs_table_flags, cs_window_flags, cs_column_flags}},
+                    cs_table_flags, cs_window_flags, cs_column_flags,
+                    cs_buffer_size /*, cs_line_height*/}},
         {Footer, {cs_show_footer_db, cs_show_footer_fps, cs_show_footer_demo, 
                     cs_show_footer_id_stack, cs_show_footer_font_scale, 
                         cs_show_footer_style, cs_show_footer_dlc}},
@@ -1611,7 +1612,7 @@ private:
             {cs_menu_pop, cdStrVec}
         }},
         {LiveTable, {
-            {cs_query_id, cdResultSet},
+            {cs_cname, cdStrVec},
             {cs_menu_pop, cdStrVec}
         }},
         {ShadedPlot, {
