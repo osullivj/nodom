@@ -826,14 +826,13 @@ protected:
                 break;
             case cs_cname:
             case cs_cindex:
+            case cs_xname:
+            case cs_yname:
+            case cs_formats:
                 data_ref = CreateDataRef(ref_type, amit->second(), data, addr_or_qid);
                 break;
             case cs_query_id:   // cdResultSet
                 data_ref = CreateDataRef(ref_type, query_inx(), data, addr_or_qid);
-                break;
-            case cs_xname:
-            case cs_yname:
-                data_ref = CreateDataRef(ref_type, amit->second(), data, addr_or_qid);
                 break;
             }
             // sanity check the DataRef
@@ -857,6 +856,7 @@ protected:
                 case cs_query_id:
                 case cs_xname:
                 case cs_yname:
+                case cs_formats:
                     data_ref_map[data_ref.addr_inx] = data_ref;
                     break;
                 default:
@@ -1565,7 +1565,7 @@ private:
         {LiveTable, {cs_title, cs_title_font, cs_title_font_size,
                     cs_body_font, cs_body_font_size,
                     cs_table_flags, cs_window_flags, cs_column_flags,
-                    cs_buffer_size, cs_line_height, cs_formats}},
+                    cs_buffer_size, cs_line_height}},
         {Footer, {cs_show_footer_db, cs_show_footer_fps, cs_show_footer_demo, 
                     cs_show_footer_id_stack, cs_show_footer_font_scale, 
                         cs_show_footer_style, cs_show_footer_dlc}},
@@ -1616,7 +1616,8 @@ private:
         }},
         {LiveTable, {
             {cs_cname, cdStrVec},
-            {cs_menu_pop, cdStrVec}
+            {cs_menu_pop, cdStrVec},
+            {cs_formats, cdStrVec}
         }},
         {ShadedPlot, {
             {cs_query_id, cdResultSet},
