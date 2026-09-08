@@ -76,8 +76,9 @@ FIN_LAYOUT = [
                 rname="LiveTable",
                 cspec=dict(
                     title="Market data",
-                    cname="tickers",
-                    formats="formats",
+                    cname="ticker_symbols",
+                    formats="ticker_formats",
+                    xforms="ticker_xforms",
                     buffer_size=256,
                     line_height=8,
                     table_flags=TableFlags.SCROLL_Y
@@ -158,10 +159,13 @@ INIT_SUB_REQ_ACTN = {
 FIN_DATA = {
     "rebld_inst_tbl_ckey":REBLD_INST_TBL_SQL,
     "query_inst_tbl_ckey":QUERY_INST_TBL_SQL,
-    "tickers":["spy", "vym", "spwr", "chpt", "aren", "tanh",
+    "ticker_symbols":["spy", "vym", "spwr", "chpt", "aren", "tanh",
                     "rare", "dell", "curr", "dlll", "alms", "mgn"],
     # fmtlib for the live fields ticker,timestamp,mid
-    "formats":["{}","{}","{:>6.2f}"],
+    "ticker_formats":["{}","{:%F %T}","{:>6.2f}"],
+    # some fields need a transform: '' for no xform
+    # timestamps need an xform: secs, milli, micro, nano
+    "ticker_xforms":['', 'micro', ''],
     "loading_instruments_message":["Loading IEX instruments..."],
     "actions":{
         # GUI.CacheLoaded on BB, DuckDB.Online for wasm
