@@ -2144,11 +2144,20 @@ protected:
     void render_live_table(WidgetPtr w) {
         const static char* method = "NDContext::render_live_table: ";
 
+
+
+
+
         static int default_table_flags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY;
 
         const char* title = cspec_string(cs_title, w->cspec_str, method);
         lv_tbl_vars.table_flags = default_table_flags;
         cspec_int(cs_table_flags, w->cspec_int, &lv_tbl_vars.table_flags);
+
+        lv_tbl_vars.line_height = 4;
+        cspec_int(cs_line_height, w->cspec_int, &lv_tbl_vars.line_height);
+
+        lv_tbl_vars.size[1] = ImGui::GetTextLineHeight() * lv_tbl_vars.line_height;
 
         DataRef* ticker_list_data_ref = cspec_data_ref(cs_cname, w);
         assert(ticker_list_data_ref->tipe == cdStrVec);
@@ -2163,10 +2172,9 @@ protected:
             lv_tbl_vars.buffer = (char**)w->buffer;
         }
 
-        lv_tbl_vars.row_inx = 0;
-        {
+        lv_tbl_vars.row_inx = 0; {
             LocalFont body_font(w, cs_body_font, cs_body_font_size);
-            if (ImGui::BeginTable(title, (int)live.records.col_count, lv_tbl_vars.table_flags)) {
+            if (ImGui::BeginTable(title, (int)live.records.col_count, lv_tbl_vars.table_flags, lv_tbl_vars.size)) {
                 // ImGui::TableSetupScrollFreeze(1, 1);
                 for (lv_tbl_vars.col_inx = 0; lv_tbl_vars.col_inx < live.records.col_count; lv_tbl_vars.col_inx++) {
                     ImGui::TableSetupColumn(live.records.field_names[lv_tbl_vars.col_inx].c_str(), ImGuiTableColumnFlags_None);
