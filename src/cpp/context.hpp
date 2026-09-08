@@ -1375,7 +1375,7 @@ protected:
         cspec_double(cs_step_fast, w->cspec_double, &step_fast);
         int flags = 0;
         cspec_int(cs_flags, w->cspec_int, &flags);
-        const char* fmt = cspec_string(cs_format, w->cspec_str, Static::default_format_cs);
+        const char* fmt = cspec_string(cs_format, w->cspec_str, Static::default_input_double_format_cs);
 
         DataRef* dbl_data_ref = cspec_data_ref(cs_cname, w);
         assert(dbl_data_ref != nullptr);
@@ -2160,12 +2160,24 @@ protected:
         assert(ticker_list_data_ref->size < live.records.record_count);
 
         if (w->buffer_not_set()) {
-            StrInx sinx{ ticker_list_data_ref->ref_inx };
+            // cp tickers from data into widget local buffer
+            StrInx tinx{ ticker_list_data_ref->ref_inx };
             for (lv_tbl_vars.count = 0; lv_tbl_vars.count < ticker_list_data_ref->size; lv_tbl_vars.count++) {
-                w->append_buffer(data_lay_cache.get_string_value(sinx));
-                sinx++;
+                w->append_buffer(data_lay_cache.get_string_value(tinx));
+                tinx++;
             }
             lv_tbl_vars.ticker_list_cs = (char**)w->buffer;
+            lv_tbl_vars.format_list_cs = nullptr;
+            // did we get a cspec:formats? If so, cp fmts into buffer
+            DataRef* formats_list_data_ref = cspec_data_ref(cs_formats, w);
+            if (formats_list_data_ref != nullptr) {
+                lv_tbl_vars.format_list_cs = w->next_free();
+                StrInx finx{ formats_list_data_ref->ref_inx };
+                for (lv_tbl_vars.count = 0; lv_tbl_vars.count < formats_list_data_ref->size; lv_tbl_vars.count++) {
+                    w->append_buffer(data_lay_cache.get_string_value(finx));
+                    finx++;
+                }
+            }
         }
 
         lv_tbl_vars.row_inx = 0; {
@@ -2185,6 +2197,12 @@ protected:
                         assert(lv_tbl_vars.ticker != nullptr);
                         live.find_ticker(lv_tbl_vars.ticker, lv_tbl_vars.tkr_inx);
                         for (lv_tbl_vars.col_inx = 0; lv_tbl_vars.col_inx < live.records.col_count; lv_tbl_vars.col_inx++) {
+                            if (lv_tbl_vars.format_list_cs == nullptr) {
+                                lv_tbl_vars.format = (char*)Static::default_format_cs;
+                            }
+                            else {
+                                lv_tbl_vars.format = lv_tbl_vars.format_list_cs[lv_tbl_vars.col_inx];
+                            }
                             if (ImGui::TableSetColumnIndex(lv_tbl_vars.col_inx)) {
                                 switch (live.records.field_types[lv_tbl_vars.col_inx]) {
                                 case cdStr:
@@ -2194,7 +2212,7 @@ protected:
                                 case cdDouble:
                                     lv_tbl_vars.double_fields = (double*)live.records.get_field(lv_tbl_vars.col_inx);
                                     lv_tbl_vars.fmt_result = fmt::format_to_n(lv_tbl_vars.string_buffer, STR_BUF_LEN,
-                                                                "{}", lv_tbl_vars.double_fields[lv_tbl_vars.tkr_inx]);
+                                                        lv_tbl_vars.format, lv_tbl_vars.double_fields[lv_tbl_vars.tkr_inx]);
                                     ImGui::TextUnformatted(lv_tbl_vars.string_buffer, lv_tbl_vars.string_buffer +
                                         lv_tbl_vars.fmt_result.size);
                                     break;
