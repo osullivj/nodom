@@ -227,7 +227,8 @@ struct Static {
 	inline static const char* config_dir_cs{ "config_dir" };
 	inline static const char* name_cs{ "name" };
 	inline static const char* length_cs{ "length" };
-	inline static const char* default_format_cs{ "%.3f" };
+	inline static const char* default_input_double_format_cs{ "%.3f" };		// C style fmt spec
+	inline static const char* default_format_cs{ "{}" };					// fmtlib fmt spec
 	inline static const char* err_format_cs{ "NDE:%s\n" };
 	inline static const char* info_format_cs{ "NDE:%s\n" };
 	inline static const char* imlog_cs{ "imlog" };
