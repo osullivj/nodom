@@ -68,6 +68,7 @@ FIN_LAYOUT = [
                     title="Market data",
                     cname="tickers",
                     buffer_size=256,
+                    line_height=8,
                     table_flags=TableFlags.SCROLL_Y
                     | TableFlags.ROW_BG
                     | TableFlags.BORDERS_OUTER
