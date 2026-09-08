@@ -53,6 +53,8 @@ struct NDWidget {
             memset(old_buffer, 0, buffer_size);
     }
 
+    // use this one for caching a whole single
+    // string eg for InputTextArea
     inline void set_buffer(const char* v) {
         if (buffer != nullptr)
             strncpy(buffer, v, buffer_size);
@@ -60,12 +62,21 @@ struct NDWidget {
             strncpy(old_buffer, v, buffer_size);
     }
 
+    // use this when we're memoing DLC str ptrs
+    // eg for LiveTable tickers
     inline void append_buffer(const char* v) {
+        buffer_ptr = next_free();
+        if (buffer_ptr - reinterpret_cast<char**>(buffer) < buffer_size)
+            *buffer_ptr = (char*)v;
+    }
+
+    // if LiveTable:cspec:formats is provided, we use next_free()
+    // to memo the DLC str ptrs for fmt strings
+    inline char** next_free() {
         buffer_ptr = reinterpret_cast<char**>(buffer);
         while (*buffer_ptr != 0)
             buffer_ptr++;
-        if (buffer_ptr - reinterpret_cast<char**>(buffer) < buffer_size)
-            *buffer_ptr = (char*)v;
+        return buffer_ptr;
     }
 
     // return true if there is a buffer and it's not init
@@ -91,7 +102,7 @@ struct NDWidget {
     DataRefMap      forth_result_data_refs;
     char*           buffer{ nullptr };      // eg render_input_string
     int             buffer_size{ 0 };
-    char**          buffer_ptr{ nullptr };  // append_buffer() working storage
+    char**          buffer_ptr{ nullptr };  // working storage for buffer manipulation
 
     // validity window for deferred notify_server(): these members
     // may be set intra render, and will be cleared post render
