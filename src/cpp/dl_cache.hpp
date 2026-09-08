@@ -1461,6 +1461,7 @@ private:
         Static::spinner_thickness_cs,      // cs_spinner_thickness
         Static::format_cs,
         Static::formats_cs,
+        Static::xforms_cs,
         Static::flags_cs,      // cs_flags
         Static::table_flags_cs,      // cs_table_flags
         Static::combo_flags_cs,      // cs_combo_flags
@@ -1516,6 +1517,7 @@ private:
         cdInt,      // cs_spinner_thickness
         cdStr,      // cs_format
         cdStrVec,   // cs_formats
+        cdStrVec,   // cs_xforms
         cdInt,      // cs_flags
         cdInt,      // cs_table_flags
         cdInt,      // cs_combo_flags
@@ -1617,7 +1619,8 @@ private:
         {LiveTable, {
             {cs_cname, cdStrVec},
             {cs_menu_pop, cdStrVec},
-            {cs_formats, cdStrVec}
+            {cs_formats, cdStrVec},
+            {cs_xforms, cdStrVec}
         }},
         {ShadedPlot, {
             {cs_query_id, cdResultSet},
