@@ -48,6 +48,8 @@ int main(int argc, char* argv[]) {
     std::string init_layout;
     std::string ini_path;
     std::string app_key{ argv[1] };
+    int live_cache_row_count{ 32 };
+
     try {
         std::string config_dir{ argv[2] };
         std::string config_file{ app_key };
@@ -67,6 +69,10 @@ int main(int argc, char* argv[]) {
         bool imlogging{ false };
         if (cfg.get_value(Static::imlog_cs, imlogging)) {
             NDLogger::get_instance().set_imgui_logging(imlogging);
+        }
+        // how many rows in the LiveCache?
+        if (cfg.get_value(Static::live_cache_row_count_cs, live_cache_row_count)) {
+            std::cout << method << "live_cache_row_count_cs:" << live_cache_row_count << std::endl;
         }
 
         // specify the ini path
@@ -107,7 +113,7 @@ int main(int argc, char* argv[]) {
 
     DuckDB_t bulk;
     MktData_t live;
-    live.init(32);
+    live.init(live_cache_row_count);
     NDContext_t ctx(bulk, live, app_key, ini_path,
             init_data.empty() ? nullptr : init_data.c_str(), 
             init_layout.empty() ? nullptr : init_layout.c_str());
