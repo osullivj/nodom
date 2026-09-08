@@ -120,6 +120,15 @@ private:
 		return ticker_ptr;
 	}
 
+public:
+	LIVE records;
+
+	LiveCache() {}
+
+	void init(uint32_t rc) {
+		records.init(rc);
+	}
+
 	bool find_ticker(const char* t, uint32_t& inx) {
 		inx = 0;
 		// wind fwd til we find a match
@@ -130,17 +139,6 @@ private:
 			inx++;
 		}
 		return false;
-	}
-
-
-
-public:
-	LIVE records;
-
-	LiveCache( ) { }
-
-	void init(uint32_t rc) {
-		records.init(rc);
 	}
 
 	uint32_t on_sub(const JSON& resp) {
