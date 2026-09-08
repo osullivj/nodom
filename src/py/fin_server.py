@@ -161,7 +161,7 @@ FIN_DATA = {
     "tickers":["spy", "vym", "spwr", "chpt", "aren", "tanh",
                     "rare", "dell", "curr", "dlll", "alms", "mgn"],
     # fmtlib for the live fields ticker,timestamp,mid
-    "formats":["{}","{:.2f}","{:.2f}"],
+    "formats":["{}","{}","{:>6.2f}"],
     "loading_instruments_message":["Loading IEX instruments..."],
     "actions":{
         # GUI.CacheLoaded on BB, DuckDB.Online for wasm
