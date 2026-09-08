@@ -43,7 +43,12 @@ FIN_LAYOUT = [
         ),
         children=[
             dict(rname="PushFont", cspec=dict(font="CourierNew")),
-            dict(rname="BeginChild", cspec=dict(height=200)),
+            dict(rname="BeginChild",
+                cspec=dict(
+                    height=200,
+                    title='InstrumentsParent'
+                )
+            ),
             dict(
                 rname="Table",
                 cspec=dict(
@@ -61,7 +66,12 @@ FIN_LAYOUT = [
             ),
             dict(rname="EndChild"),
             dict(rname="Separator", cspec=dict()),
-            dict(rname="BeginChild", cspec=dict(height=200)),
+            dict(rname="BeginChild",
+                cspec=dict(
+                    height=200,
+                    title='MarketParent'
+                )
+            ),
             dict(
                 rname="LiveTable",
                 cspec=dict(
