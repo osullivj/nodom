@@ -77,6 +77,8 @@ struct ComboLocals {
 
 struct LiveTableLocals {
     int         table_flags{ 0 };
+    int         line_height{ 0 };
+    ImVec2      size{ -FLT_MIN, 0.0 };
     uint32_t    count{ 0 };
     uint32_t    col_inx{ 0 };
     uint32_t    row_inx{ 0 };
