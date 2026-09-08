@@ -225,6 +225,7 @@ struct Static {
 	inline static const char* fonts_cs{ "fonts" };
 	inline static const char* funcs_cs{ "funcs" };
 	inline static const char* config_dir_cs{ "config_dir" };
+	inline static const char* live_cache_row_count_cs{ "live_cache_row_count" };
 	inline static const char* name_cs{ "name" };
 	inline static const char* length_cs{ "length" };
 	inline static const char* default_input_double_format_cs{ "%.3f" };		// C style fmt spec
