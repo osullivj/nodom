@@ -468,7 +468,8 @@ enum CacheSpecifier : uint32_t {
     cs_spinner_radius,
     cs_spinner_thickness,
     cs_format,              // render_input_double
-    cs_formats,             // render_live_table
+    cs_formats,             // render_live_table fmtlib fmts
+    cs_xforms,              // render_live_table transforms
     cs_flags,
     cs_table_flags,
     cs_combo_flags,
