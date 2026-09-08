@@ -64,6 +64,7 @@ struct Static {
 	inline static const char* spinner_radius_cs{ "spinner_radius" };
 	inline static const char* spinner_thickness_cs{ "spinner_thickness" };
 	inline static const char* format_cs{ "format" };
+	inline static const char* formats_cs{ "formats" };
 	inline static const char* flags_cs{ "flags" };
 	inline static const char* table_flags_cs{ "table_flags" };
 	inline static const char* combo_flags_cs{ "combo_flags" };
