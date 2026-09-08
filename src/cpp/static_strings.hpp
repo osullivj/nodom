@@ -65,6 +65,7 @@ struct Static {
 	inline static const char* spinner_thickness_cs{ "spinner_thickness" };
 	inline static const char* format_cs{ "format" };
 	inline static const char* formats_cs{ "formats" };
+	inline static const char* xforms_cs{ "xforms" };
 	inline static const char* flags_cs{ "flags" };
 	inline static const char* table_flags_cs{ "table_flags" };
 	inline static const char* combo_flags_cs{ "combo_flags" };
@@ -233,6 +234,12 @@ struct Static {
 	inline static const char* err_format_cs{ "NDE:%s\n" };
 	inline static const char* info_format_cs{ "NDE:%s\n" };
 	inline static const char* imlog_cs{ "imlog" };
+
+	// LiveTable timestamp transforms
+	inline static const char* secs_cs{ "secs" };
+	inline static const char* milli_cs{ "milli" };
+	inline static const char* micro_cs{ "micro" };
+	inline static const char* nano_cs{ "nano" };
 
 	// DatePicker
 	inline static const char* double_hash_cs{ "##" };
