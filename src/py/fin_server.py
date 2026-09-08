@@ -77,6 +77,7 @@ FIN_LAYOUT = [
                 cspec=dict(
                     title="Market data",
                     cname="tickers",
+                    formats="formats",
                     buffer_size=256,
                     line_height=8,
                     table_flags=TableFlags.SCROLL_Y
@@ -159,6 +160,8 @@ FIN_DATA = {
     "query_inst_tbl_ckey":QUERY_INST_TBL_SQL,
     "tickers":["spy", "vym", "spwr", "chpt", "aren", "tanh",
                     "rare", "dell", "curr", "dlll", "alms", "mgn"],
+    # fmtlib for the live fields ticker,timestamp,mid
+    "formats":["{}","{:.2f}","{:.2f}"],
     "loading_instruments_message":["Loading IEX instruments..."],
     "actions":{
         # GUI.CacheLoaded on BB, DuckDB.Online for wasm
