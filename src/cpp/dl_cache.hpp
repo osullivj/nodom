@@ -1460,6 +1460,7 @@ private:
         Static::spinner_radius_cs,      // cs_spinner_radius
         Static::spinner_thickness_cs,      // cs_spinner_thickness
         Static::format_cs,
+        Static::formats_cs,
         Static::flags_cs,      // cs_flags
         Static::table_flags_cs,      // cs_table_flags
         Static::combo_flags_cs,      // cs_combo_flags
@@ -1514,6 +1515,7 @@ private:
         cdInt,      // cs_spinner_radius
         cdInt,      // cs_spinner_thickness
         cdStr,      // cs_format
+        cdStrVec,   // cs_formats
         cdInt,      // cs_flags
         cdInt,      // cs_table_flags
         cdInt,      // cs_combo_flags
@@ -1563,7 +1565,7 @@ private:
         {LiveTable, {cs_title, cs_title_font, cs_title_font_size,
                     cs_body_font, cs_body_font_size,
                     cs_table_flags, cs_window_flags, cs_column_flags,
-                    cs_buffer_size, cs_line_height}},
+                    cs_buffer_size, cs_line_height, cs_formats}},
         {Footer, {cs_show_footer_db, cs_show_footer_fps, cs_show_footer_demo, 
                     cs_show_footer_id_stack, cs_show_footer_font_scale, 
                         cs_show_footer_style, cs_show_footer_dlc}},
