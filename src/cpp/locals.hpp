@@ -85,7 +85,7 @@ struct LiveTableLocals {
     uint32_t    tkr_inx{ 0 };
     char*       string_fields{ nullptr };
     double*     double_fields{ nullptr };
-    char**      buffer{ nullptr };
+    char**      ticker_list_cs{ nullptr };
     char*       ticker{ nullptr };
     char        string_buffer[STR_BUF_LEN];
     fmt::format_to_n_result<char*> fmt_result;
