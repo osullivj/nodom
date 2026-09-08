@@ -2144,10 +2144,6 @@ protected:
     void render_live_table(WidgetPtr w) {
         const static char* method = "NDContext::render_live_table: ";
 
-
-
-
-
         static int default_table_flags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY;
 
         const char* title = cspec_string(cs_title, w->cspec_str, method);
@@ -2169,7 +2165,7 @@ protected:
                 w->append_buffer(data_lay_cache.get_string_value(sinx));
                 sinx++;
             }
-            lv_tbl_vars.buffer = (char**)w->buffer;
+            lv_tbl_vars.ticker_list_cs = (char**)w->buffer;
         }
 
         lv_tbl_vars.row_inx = 0; {
@@ -2185,16 +2181,18 @@ protected:
                 while (clipper.Step()) {
                     for (lv_tbl_vars.row_inx = clipper.DisplayStart; lv_tbl_vars.row_inx < clipper.DisplayEnd; lv_tbl_vars.row_inx++) {
                         ImGui::TableNextRow();
-                        lv_tbl_vars.ticker = lv_tbl_vars.buffer[lv_tbl_vars.row_inx];
+                        lv_tbl_vars.ticker = lv_tbl_vars.ticker_list_cs[lv_tbl_vars.row_inx];
+                        assert(lv_tbl_vars.ticker != nullptr);
+                        live.find_ticker(lv_tbl_vars.ticker, lv_tbl_vars.tkr_inx);
                         for (lv_tbl_vars.col_inx = 0; lv_tbl_vars.col_inx < live.records.col_count; lv_tbl_vars.col_inx++) {
                             if (ImGui::TableSetColumnIndex(lv_tbl_vars.col_inx)) {
                                 switch (live.records.field_types[lv_tbl_vars.col_inx]) {
                                 case cdStr:
-                                    lv_tbl_vars.string_fields = (char*)live.records.get_field(lv_tbl_vars.tkr_inx);
+                                    lv_tbl_vars.string_fields = (char*)live.records.get_field(lv_tbl_vars.col_inx);
                                     ImGui::TextUnformatted(lv_tbl_vars.string_fields + (8 * lv_tbl_vars.tkr_inx));
                                     break;
                                 case cdDouble:
-                                    lv_tbl_vars.double_fields = (double*)live.records.get_field(lv_tbl_vars.tkr_inx);
+                                    lv_tbl_vars.double_fields = (double*)live.records.get_field(lv_tbl_vars.col_inx);
                                     lv_tbl_vars.fmt_result = fmt::format_to_n(lv_tbl_vars.string_buffer, STR_BUF_LEN,
                                                                 "{}", lv_tbl_vars.double_fields[lv_tbl_vars.tkr_inx]);
                                     ImGui::TextUnformatted(lv_tbl_vars.string_buffer, lv_tbl_vars.string_buffer +
@@ -2203,6 +2201,7 @@ protected:
                                 }
                             }
                         }
+                        lv_tbl_vars.tkr_inx++;
                     }
                 }
                 ImGui::EndTable();
