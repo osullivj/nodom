@@ -89,7 +89,9 @@ struct LiveTableLocals {
     char**      format_list_cs{ nullptr };
     char*       ticker{ nullptr };  // current element in ticker_list_cs
     char*       format{ nullptr };  // current element in format_list_cs
+    DblXform    dbl_xform{ DblXform::Null };
     char        string_buffer[STR_BUF_LEN];
+    DblXformVec dbl_xform_vec;
     fmt::format_to_n_result<char*> fmt_result;
 };
 
