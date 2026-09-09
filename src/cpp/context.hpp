@@ -2178,13 +2178,21 @@ protected:
                     finx++;
                 }
             }
-            // TODO: transforms
+            // did data supply xforms?
+            DataRef* xforms_list_data_ref = cspec_data_ref(cs_xforms, w);
+            if (xforms_list_data_ref != nullptr) {
+                StrInx xinx{ xforms_list_data_ref->ref_inx };
+                for (lv_tbl_vars.count = 0; lv_tbl_vars.count < xforms_list_data_ref->size; lv_tbl_vars.count++) {
+                    const char* xform = data_lay_cache.get_string_value(xinx);
+                    lv_tbl_vars.dbl_xform_vec.push_back(DblXformFromString(xform));
+                    xinx++;
+                }
+            }
         }
 
         lv_tbl_vars.row_inx = 0; {
             LocalFont body_font(w, cs_body_font, cs_body_font_size);
             if (ImGui::BeginTable(title, (int)live.records.col_count, lv_tbl_vars.table_flags, lv_tbl_vars.size)) {
-                // ImGui::TableSetupScrollFreeze(1, 1);
                 for (lv_tbl_vars.col_inx = 0; lv_tbl_vars.col_inx < live.records.col_count; lv_tbl_vars.col_inx++) {
                     ImGui::TableSetupColumn(live.records.field_names[lv_tbl_vars.col_inx].c_str(), ImGuiTableColumnFlags_None);
                 }
@@ -2204,6 +2212,12 @@ protected:
                             else {
                                 lv_tbl_vars.format = lv_tbl_vars.format_list_cs[lv_tbl_vars.col_inx];
                             }
+                            if (lv_tbl_vars.dbl_xform_vec.empty()) {
+                                lv_tbl_vars.dbl_xform = Null;
+                            }
+                            else {
+                                lv_tbl_vars.dbl_xform = lv_tbl_vars.dbl_xform_vec[lv_tbl_vars.col_inx];
+                            }
                             if (ImGui::TableSetColumnIndex(lv_tbl_vars.col_inx)) {
                                 switch (live.records.field_types[lv_tbl_vars.col_inx]) {
                                 case cdStr:
@@ -2212,8 +2226,30 @@ protected:
                                     break;
                                 case cdDouble:
                                     lv_tbl_vars.double_fields = (double*)live.records.get_field(lv_tbl_vars.col_inx);
-                                    lv_tbl_vars.fmt_result = fmt::format_to_n(lv_tbl_vars.string_buffer, STR_BUF_LEN,
-                                                        lv_tbl_vars.format, lv_tbl_vars.double_fields[lv_tbl_vars.tkr_inx]);
+                                    switch (lv_tbl_vars.dbl_xform) {
+                                    case Secs:
+                                        lv_tbl_vars.fmt_result = fmt::format_to_n(lv_tbl_vars.string_buffer, STR_BUF_LEN,
+                                            lv_tbl_vars.format, TPSecs{ std::chrono::seconds{ (uint32_t)lv_tbl_vars.double_fields[lv_tbl_vars.tkr_inx] }});
+                                        break;
+                                    case Milli:
+                                        lv_tbl_vars.fmt_result = fmt::format_to_n(lv_tbl_vars.string_buffer, STR_BUF_LEN,
+                                            lv_tbl_vars.format, TPMilli{ std::chrono::milliseconds{ (uint32_t)lv_tbl_vars.double_fields[lv_tbl_vars.tkr_inx]} });
+                                        break;
+                                    case Micro:
+                                        lv_tbl_vars.fmt_result = fmt::format_to_n(lv_tbl_vars.string_buffer, STR_BUF_LEN,
+                                            lv_tbl_vars.format, TPMicro{ std::chrono::microseconds{ (uint32_t)lv_tbl_vars.double_fields[lv_tbl_vars.tkr_inx]} });
+                                        break;
+                                    case Nano:
+                                        lv_tbl_vars.fmt_result = fmt::format_to_n(lv_tbl_vars.string_buffer, STR_BUF_LEN,
+                                            lv_tbl_vars.format, TPNano{ std::chrono::nanoseconds{ (uint32_t)lv_tbl_vars.double_fields[lv_tbl_vars.tkr_inx]} });
+                                        break;
+                                    case None:
+                                    case EndDblXform:
+                                    default:
+                                        lv_tbl_vars.fmt_result = fmt::format_to_n(lv_tbl_vars.string_buffer, STR_BUF_LEN,
+                                            lv_tbl_vars.format, lv_tbl_vars.double_fields[lv_tbl_vars.tkr_inx]);
+                                        break;
+                                    }
                                     ImGui::TextUnformatted(lv_tbl_vars.string_buffer, lv_tbl_vars.string_buffer +
                                         lv_tbl_vars.fmt_result.size);
                                     break;
