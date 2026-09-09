@@ -339,7 +339,7 @@ protected:
                         // check that the sql cname refers to a cache data entry
                         interned.cname = (char*)get_addr_value(nd_action.cname);
                         auto amit = address_map.find(ticker_list_key);
-                        if (amit == address_map.end()) {
+                        if (amit == address_map.end() || !JContains(data, ticker_list_key.c_str())) {
                             std::stringstream ss;
                             ss << "CACHE_KEY_NOT_FOUND(" << ticker_list_key << ")";
                             std::string error{ ss.str() };
@@ -350,7 +350,7 @@ protected:
                         else {
                             // create data_ref_map entry for the LiveRequest ticker_list
                             // NB we assume a cdStrVec.
-                            DataRef data_ref = CreateDataRef(cdStrVec, nd_action.cname, data, Static::tickers_cs);
+                            DataRef data_ref = CreateDataRef(cdStrVec, nd_action.cname, data, ticker_list_key);
                             data_ref_map[data_ref.addr_inx] = data_ref;
                         }
                     }
@@ -512,7 +512,14 @@ protected:
         }
     }
 
+    bool is_forth(const std::string& forth_source) {
+        // if eg a cname RHS has no space, it's a direct ref
+        if (forth_source.find(Static::space_c) == std::string::npos)
+            return false;
+    }
+
     bool compile_forth(WidgetPtr w, CacheSpecifier spec, CDT result_type, const std::string& forth_source) {
+        // no space in the source means it's a direct reference
         std::stringstream forth_stream{ forth_source };
         std::string stoken;
         // yes, we're creating a new ForthLambda
@@ -717,10 +724,10 @@ protected:
                 }
             }
             else {
-                if (is_mandatory(spec)) {
+                if (is_mandatory_value(spec)) {
                     bad_data_refs.push_back(value_name);
                     std::stringstream ss;
-                    ss << "MISSING_CSPEC(" << value_name << ") in cspec:"
+                    ss << "MISSING_VAL_CSPEC(" << value_name << ") in cspec:"
                         << cspec << ", for " << render_names[widget->rname];
                     layout_errors.push_back(ss.str());
                     continue;
@@ -737,7 +744,7 @@ protected:
             std::string ref_name = cspec_names[spec];   // [cindex|cname|query_id|menubar]
             if (!JContains(cspec, ref_name.c_str())) {
                 // menubar & menupop both optional in the Home and Window cspec
-                if (is_optional(spec))
+                if (is_optional_addr(spec))
                     continue;
                 bad_data_refs.push_back(ref_name);
                 std::stringstream ss;
@@ -745,7 +752,7 @@ protected:
                 layout_errors.push_back(ss.str());
                 continue;
             }
-            // cname|cindex: ref_name resolves as data[addr] and is represented
+            // cname|cindex|formats|xforms: ref_name resolves as data[addr] and is represented
             //      as an AddrInx in address_map value and data_ref_map key
             // menubar|menupop: ref_name resolves as data["menus"][menu_name]
             // query_id: ref_name will be an EntityInx
@@ -775,11 +782,11 @@ protected:
                         // into forth_result_data_ref, and cspec_data_ref()
                         // will return &forth_result_data_ref. Obv we
                         // want NDF to be a 0alloc 0cp uforth.
-                        if (compile_forth(widget, spec, ref_type, addr_or_qid))
+                        if (is_forth(addr_or_qid) && compile_forth(widget, spec, ref_type, addr_or_qid))
                             continue;
                         bad_data_refs.push_back(ref_name);
                         std::stringstream ss;
-                        ss << "BAD_FORTH_REF(" << ref_name << "/" << addr_or_qid << ") compilation failure in cspec:";
+                        ss << "BAD_REF(" << ref_name << "/" << addr_or_qid << ") compilation failure in cspec:";
                         ss << cspec;
                         layout_errors.push_back(ss.str());
                         continue;
@@ -829,6 +836,7 @@ protected:
             case cs_xname:
             case cs_yname:
             case cs_formats:
+            case cs_xforms:
                 data_ref = CreateDataRef(ref_type, amit->second(), data, addr_or_qid);
                 break;
             case cs_query_id:   // cdResultSet
@@ -857,6 +865,7 @@ protected:
                 case cs_xname:
                 case cs_yname:
                 case cs_formats:
+                case cs_xforms:
                     data_ref_map[data_ref.addr_inx] = data_ref;
                     break;
                 default:
@@ -1297,7 +1306,7 @@ public:
     // A set is nothing more than a truth function for set membership :)
     // I guess that's function/set duality! Per Quine:"to be is to be the
     // value of a bound variable"
-    bool is_optional(CacheSpecifier spec) {
+    bool is_optional_addr(CacheSpecifier spec) {
         switch (spec) {
         case cs_menu_bar:
         case cs_menu_pop:
@@ -1308,7 +1317,7 @@ public:
         }
     }
 
-    bool is_mandatory(CacheSpecifier spec) {
+    bool is_mandatory_value(CacheSpecifier spec) {
         switch (spec) {
         case cs_title:          // critical to imgui ID sys
         case cs_buffer_size:    // how could we guess buffer size?
