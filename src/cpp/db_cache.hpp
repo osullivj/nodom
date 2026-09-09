@@ -600,7 +600,7 @@ public:
                 return buffer + fmt_result.size;
             case DUCKDB_TYPE_TIMESTAMP_NS:
                 ts_nano = (duckdb_timestamp_ns*)duckdb_vector_get_data(colm);
-                fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F %T}", TPNano{ std::chrono::microseconds{ ts_nano->nanos } });
+                fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F %T}", TPNano{ std::chrono::nanoseconds{ ts_nano->nanos } });
                 return buffer + fmt_result.size;
             case DUCKDB_TYPE_DECIMAL:
                 decimal_width = duckdb_decimal_width(colm_type_l);
