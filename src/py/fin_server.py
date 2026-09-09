@@ -152,7 +152,7 @@ BATCH_INST_TBL_ACTN = {
 
 INIT_SUB_REQ_ACTN = {
     "action":"LiveRequest",
-    "cname":"tickers"
+    "cname":"ticker_symbols"
 }
 
 
