@@ -339,3 +339,34 @@ inline CacheDataType CDTFromString(const std::string& ctype) {
         return cdResultSet;
     return EndDataTypes;
 }
+
+inline const char* DblXformToString(DblXform dx) {
+    switch (dx) {
+    case Null:
+        return Static::empty_cs;
+    case Secs:
+        return Static::secs_cs;
+    case Milli:
+        return Static::milli_cs;
+    case Micro:
+        return Static::micro_cs;
+    case Nano:
+        return Static::nano_cs;
+    default:
+        return nullptr;
+    }
+}
+
+inline DblXform DblXformFromString(const std::string& dx) {
+    if (dx == Static::empty_cs)
+        return Null;
+    if (dx == Static::secs_cs)
+        return Secs;
+    if (dx == Static::milli_cs)
+        return Milli;
+    if (dx == Static::micro_cs)
+        return Micro;
+    if (dx == Static::nano_cs)
+        return Nano;
+    return EndDblXform;
+}
