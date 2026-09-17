@@ -203,6 +203,8 @@ struct Static {
 
 	// NDF (NoDOM Forth) operands
 	inline static const char* ndfop_index_cs{ "[]" };
+	inline static const char  ndfop_store_c{ '>' };
+	inline static const char  ndfop_fetch_cs{ '<' };
 
 	inline static const char* gui_cs{ "GUI" };
 	inline static const char* websock_cs{ "WebSock" };
