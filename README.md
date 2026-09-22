@@ -1,5 +1,5 @@
 # nodom
-NoDOM High Performance Web GUI
+NoDOM Scrapeproof High Performance Web GUI
 
 - Implemented in Data Oriented Modern C++
 - Builds on highly performant GameDev tech
@@ -7,7 +7,7 @@ NoDOM High Performance Web GUI
 - Integrates with DuckDB WASM for bulk data
 - Declarative GUI specified in JSON served to WASM client by websocket
 - - GUI specification JSON designed for AI generation
-- WebGL based GUI uses GPU rendering
+- Scrapeproof: WebGL based GUI uses GPU rendering
 - No emscripten::val roundtrips on the render hotpath
 - Designed for the trading floor: performance over presentation
 
