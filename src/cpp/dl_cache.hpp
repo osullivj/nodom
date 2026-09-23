@@ -526,6 +526,12 @@ protected:
         // ND not on a hotpath
         ForthLambda& lambda{ w->ndf_lambda_map[spec] };
         while (std::getline(forth_stream, stoken, Static::space_c)) {
+            // special case for scope stack push
+            if (stoken[0] == Static::ndfop_push_scope_c) {
+
+            }
+            // if not store/fetch, each token must be DLC addr,
+            // or an operand
             if (operand_map.find(stoken) != operand_map.end()) {
                 lambda.push_back(operand_map[stoken]);
             }
@@ -607,7 +613,6 @@ protected:
         if (op == ainx_OpIndex)
             return forth_index_op(result, result_addr, result_offset);
         return false;
-
     }
 
     bool execute_forth(WidgetPtr w, CacheSpecifier spec) {
@@ -641,6 +646,11 @@ protected:
         while (dispatch_forth(result, result_addr, result_offset)) {
         }
         DataRef& result_data_ref{ w->forth_result_data_refs[spec] };
+        // when an NDF result is atomic Str or Int, it may
+        // be an array element. And if that element has changed
+        // we don't want to resent the whole array to the server
+        // side. We just send an atomic with same name as the 
+        // containing array, and offset gives us the index.
         switch (result_data_ref.tipe) {
         case cdStr:
             result_data_ref.addr_inx = result_addr.back()();

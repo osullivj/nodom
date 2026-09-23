@@ -2116,6 +2116,7 @@ protected:
                 // TableOpenContextMenu(), and we have a cspec:menupop, then
                 // go ahead and render the popup menu
                 if (tbl_ctx.menupop_data_ref != nullptr && ImGui::GetCurrentTable()->IsContextPopupOpen) {
+                    // TODO: add scope push cspec:push_scope=BulkRowColCross
                     render_menu_pop_item(w);
                 }
                 ImGuiListClipper clipper;

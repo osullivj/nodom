@@ -95,10 +95,12 @@ struct NDWidget {
     StrValMap       cspec_str;
     DataRefMap      data_refs;
     ForthMap        ndf_lambda_map;         // compiled lambda source keyed on addr cspec
+                                            //  NB ForthMap = std::map<CacheSpec,std::deque<AddrInx>>
     ForthMap        ndf_result_map;         // result of lambda exec keyed same: typically a single
                                             //  DataRef::ref_inx value
     ForthMap        ndf_result_addr_map;    // DataRef::addr_inx value matching ndf_result_map
-    ForthMap        ndf_result_offset_map;  // array offsets
+    ForthMap        ndf_result_offset_map;  // array offsets enable array elem change to be
+                                            // represented as atomic in notify_server()
     DataRefMap      forth_result_data_refs;
     char*           buffer{ nullptr };      // eg render_input_string
     int             buffer_size{ 0 };
