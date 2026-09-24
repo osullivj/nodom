@@ -150,7 +150,7 @@ enum RenderMethod : uint32_t {
     Checkbox,
     Text,
     Button,
-    Table,      // Compound widgets
+    BulkTable,      // Compound widgets
     LiveTable,
     Footer,
     DebugFooter,
