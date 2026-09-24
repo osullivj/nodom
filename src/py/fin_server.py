@@ -50,7 +50,7 @@ FIN_LAYOUT = [
                 )
             ),
             dict(
-                rname="Table",
+                rname="BulkTable",
                 cspec=dict(
                     title="Instruments",
                     query_id="query_inst_tbl_qid",

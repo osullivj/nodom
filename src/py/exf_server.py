@@ -147,7 +147,7 @@ EXF_LAYOUT = [
             dict(rname="Separator", cspec=dict()),
             # The DepthGrid table shows one row of depth at a time with 5 bids and asks
             dict(
-                rname="Table",
+                rname="BulkTable",
                 cspec=dict(
                     title="Depth grid",
                     query_id=SELECT_QID,
