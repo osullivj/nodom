@@ -1350,8 +1350,9 @@ public:
             if (pbuf != nullptr) {  // cspec:cs_buffer_size value supplied
                 w->alloc_buffer(buffer_size);
                 w->clear_buffer();
+                return true;
             }
-            return true;
+            return false;
         default:
             return false;
         }
@@ -1435,7 +1436,7 @@ private:
         Static::rm_checkbox_cs,
         Static::rm_text_cs,
         Static::rm_button_cs,
-        Static::rm_table_cs,
+        Static::rm_bulk_table_cs,
         Static::rm_live_table_cs,
         Static::rm_footer_cs,
         Static::rm_debug_footer_cs,
@@ -1580,7 +1581,7 @@ private:
         {Checkbox, {cs_label, cs_tooltip}},
         {Text, {cs_text}},
         {Button, {cs_text, cs_tooltip}},
-        {Table, {cs_title, cs_title_font, cs_title_font_size,
+        {BulkTable, {cs_title, cs_title_font, cs_title_font_size,
                     cs_body_font, cs_body_font_size,
                     cs_table_flags, cs_window_flags, cs_column_flags}},
         {LiveTable, {cs_title, cs_title_font, cs_title_font_size,
@@ -1631,7 +1632,7 @@ private:
         {DuckTableSummaryModal, {
             {cs_query_id, cdResultSet}
         }},
-        {Table, {
+        {BulkTable, {
             {cs_query_id, cdResultSet},
             {cs_menu_pop, cdStrVec}
         }},
