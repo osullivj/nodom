@@ -1499,6 +1499,7 @@ private:
         Static::menu_pop_cs,
         Static::buffer_size_cs,
         Static::line_height_cs,
+        Static::rclick_col_cs,
         Static::height_cs,
         Static::width_cs,
         Static::db_cs,     // cs_db,
@@ -1555,6 +1556,7 @@ private:
         cdStr,      // cs_menu_pop
         cdInt,      // cs_buffer_size
         cdInt,      // cs_line_height
+        cdInt,      // cs_rclick_col
         cdFloat,    // cs_height: NB ImVec2::x and ::y are float
         cdFloat,    // cs_width: 
         cdBool,     // cs_show_footer_db
