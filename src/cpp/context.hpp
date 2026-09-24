@@ -942,8 +942,8 @@ protected:
         case RenderMethod::Button:
             render_button(w);
             break;
-        case RenderMethod::Table:
-            render_table(w);
+        case RenderMethod::BulkTable:
+            render_bulk_table(w);
             break;
         case RenderMethod::LiveTable:
             render_live_table(w);
@@ -1260,7 +1260,7 @@ protected:
         assert(tbl_ctx.menupop_data_ref);
 
         switch (parent->rname) {
-        case Table: // prep TableMemEditContext for subsequent render_memory_editor()
+        case BulkTable: // prep TableMemEditContext for subsequent render_memory_editor()
             // prep for render_memory_editor() bulk.init_range() invocation
 
             if ((ImGui::GetCurrentTable() != nullptr)
@@ -2068,7 +2068,7 @@ protected:
         }
     }
 
-    void render_table(WidgetPtr w) {
+    void render_bulk_table(WidgetPtr w) {
         const static char* method = "NDContext::render_table: ";
 
         static int default_table_flags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY;
