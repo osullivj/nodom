@@ -186,8 +186,8 @@ inline RenderMethod RenderMethodFromString(const std::string& method) {
         return RenderMethod::Text;
     if (method == Static::rm_button_cs)
         return RenderMethod::Button;
-    if (method == Static::rm_table_cs)
-        return RenderMethod::Table;
+    if (method == Static::rm_bulk_table_cs)
+        return RenderMethod::BulkTable;
     if (method == Static::rm_live_table_cs)
         return RenderMethod::LiveTable;
     // Compound
