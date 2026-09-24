@@ -108,19 +108,20 @@ struct EndRenderLocals {
     // for strings we must invoke w->clear_buffer();
 };
 
-struct SummaryTableContext {
+struct SummaryTableLocals {
     DataRef*    menupop_data_ref{ nullptr };
     RSHandle    smry_handle{ 0 };   // uint64_t on win32, uint32_t on ems
     uint32_t    row_inx{ 0 };
 };
 
-struct TableContext {
+struct BulkTableLocals {
     DataRef*    menupop_data_ref{ nullptr };
     RSHandle    handle{ 0 };   // uint64_t on win32, uint32_t on ems
     uint32_t    col_inx{ 0 };
     uint32_t    row_inx{ 0 };
 };
 
+// TODO: refactor
 struct TableMemEditContext {
     // primed by render_table if,
     // and only if, the table has a menupop,
