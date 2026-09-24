@@ -90,6 +90,7 @@ struct Static {
 	inline static const char* menu_pop_cs{ "menupop" };
 	inline static const char* buffer_size_cs{ "buffer_size" };
 	inline static const char* line_height_cs{ "line_height" };
+	inline static const char* rclick_col_cs{ "rclick_col" };
 	inline static const char* height_cs{ "height" };
 	inline static const char* width_cs{ "width" };
 	inline static const char* cspec_cs{ "cspec" };
