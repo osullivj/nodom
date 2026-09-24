@@ -196,11 +196,11 @@ private:
     ShadedPlotLocals    sh_pl_vars;
     TextAreaLocals      txt_area_vars;
     ComboLocals         combo_vars;
-    LiveTableLocals     lv_tbl_vars;
+    LiveTableLocals     live_tbl_vars;
     BeginChildLocals    bg_ch_vars;
     EndRenderLocals     er_vars;
-    SummaryTableContext smry_tbl_ctx;
-    TableContext        tbl_ctx;
+    SummaryTableLocals  smry_tbl_vars;
+    BulkTableLocals     bulk_tbl_vars;
     TableMemEditContext mem_edit_ctx;
     StringVec           ld_ticker_list;
 #ifdef __EMSCRIPTEN__
@@ -1257,7 +1257,7 @@ protected:
         // event flow; we'd have to make the parent window of
         // the summary table non modal for rclicks to get
         // dispatched here. 
-        assert(tbl_ctx.menupop_data_ref);
+        assert(bulk_tbl_vars.menupop_data_ref);
 
         switch (parent->rname) {
         case BulkTable: // prep TableMemEditContext for subsequent render_memory_editor()
@@ -1276,8 +1276,8 @@ protected:
                 mem_edit_ctx.col_inx = ImGui::GetCurrentTable()->ContextPopupColumn;
                 if (ImGui::TableBeginContextMenuPopup(ImGui::GetCurrentTable())) {
 
-                    StrInx mpop_inx{ tbl_ctx.menupop_data_ref->ref_inx };
-                    for (uint32_t i = 0; i < tbl_ctx.menupop_data_ref->size; i++) {
+                    StrInx mpop_inx{ bulk_tbl_vars.menupop_data_ref->ref_inx };
+                    for (uint32_t i = 0; i < bulk_tbl_vars.menupop_data_ref->size; i++) {
                         const char* menu_pop_item = data_lay_cache.get_string_value(mpop_inx);
                         if (menu_pop_item != nullptr && ImGui::MenuItem(menu_pop_item)) {
                             pending_actions.push_back({ mpop_inx(), einx_Menu });
@@ -1855,7 +1855,7 @@ protected:
         const char* query_id = data_lay_cache.get_string_value(result_set_data_ref->addr_inx);
 
         // menupop is an optional cspec, so possibly nullptr here
-        smry_tbl_ctx.menupop_data_ref = cspec_data_ref(cs_menu_pop, w);
+        smry_tbl_vars.menupop_data_ref = cspec_data_ref(cs_menu_pop, w);
 
         if (title) {    // scope to fire title_font dtor and pop before body
             LocalFont title_font(w, cs_title_font, cs_title_font_size);
@@ -1875,8 +1875,8 @@ protected:
         std::uint32_t col_inx = 0;
         if (ImGui::BeginPopupModal(title, nullptr, window_flags)) {
             LocalFont body_font(w, cs_body_font, cs_body_font_size);
-            smry_tbl_ctx.smry_handle = bulk.get_handle(query_id);
-            if (smry_tbl_ctx.smry_handle == 0) {
+            smry_tbl_vars.smry_handle = bulk.get_handle(query_id);
+            if (smry_tbl_vars.smry_handle == 0) {
                 auto [iter, inserted] = bad_handle_map.insert(std::make_pair(query_id, 1));
                 if (!inserted) iter->second++;
                 return;
@@ -1886,17 +1886,17 @@ protected:
                     ImGui::TableSetupColumn(Static::duck_table_summary_colm_names[col_inx]);
                 }
                 /* TODO: possible reenable: would only work if this window non modal
-                if (smry_tbl_ctx.menupop_data_ref)
+                if (smry_tbl_vars.menupop_data_ref)
                     render_menu_pop_item(w); */
 
                 ImGui::TableHeadersRow();
                 std::uint32_t row_count{ 0 };
-                bulk.get_meta_data(smry_tbl_ctx.smry_handle, colm_count, row_count);
-                for (smry_tbl_ctx.row_inx = 0; smry_tbl_ctx.row_inx < row_count; smry_tbl_ctx.row_inx++) {
+                bulk.get_meta_data(smry_tbl_vars.smry_handle, colm_count, row_count);
+                for (smry_tbl_vars.row_inx = 0; smry_tbl_vars.row_inx < row_count; smry_tbl_vars.row_inx++) {
                     ImGui::TableNextRow();
                     for (col_inx = 0; col_inx < colm_count; col_inx++) {
                         ImGui::TableSetColumnIndex(col_inx);
-                        const char* endchar = bulk.get_datum(smry_tbl_ctx.smry_handle, col_inx, smry_tbl_ctx.row_inx);
+                        const char* endchar = bulk.get_datum(smry_tbl_vars.smry_handle, col_inx, smry_tbl_vars.row_inx);
                         if (endchar) {
                             ImGui::TextUnformatted(bulk.buffer, endchar);
                         }
@@ -2082,51 +2082,51 @@ protected:
         const char* query_id = data_lay_cache.get_string_value(result_set_data_ref->addr_inx);
 
         /// NB cspec:menupop is optional
-        tbl_ctx.menupop_data_ref = cspec_data_ref(cs_menu_pop, w);
+        bulk_tbl_vars.menupop_data_ref = cspec_data_ref(cs_menu_pop, w);
 
         // TODO: recode bulk.get_meta_data() to lazy load and report geom.
         // API wise it's a bit clunky and needs a refactor.
         std::uint32_t colm_count = 0;
         std::uint32_t row_count = 0;
-        tbl_ctx.col_inx = 0;
-        tbl_ctx.row_inx = 0;
+        bulk_tbl_vars.col_inx = 0;
+        bulk_tbl_vars.row_inx = 0;
         {
             LocalFont body_font(w, cs_body_font, cs_body_font_size);
-            tbl_ctx.handle = bulk.get_handle(query_id);
-            if (tbl_ctx.handle == 0) {
+            bulk_tbl_vars.handle = bulk.get_handle(query_id);
+            if (bulk_tbl_vars.handle == 0) {
                 auto [iter, inserted] = bad_handle_map.insert(std::make_pair(query_id, 1));
                 if (!inserted) iter->second++;
                 return;
             }
-            if (!bulk.get_meta_data(tbl_ctx.handle, colm_count, row_count)) {
+            if (!bulk.get_meta_data(bulk_tbl_vars.handle, colm_count, row_count)) {
                 NDLogger::cout() << method << "GET_META_DATA_FAIL for QID: " << query_id << std::endl;
                 return;
             }
-            StringVec& colm_names = bulk.get_col_names(tbl_ctx.handle);
+            StringVec& colm_names = bulk.get_col_names(bulk_tbl_vars.handle);
             if (ImGui::BeginTable(title, (int)colm_count, table_flags)) {
-                if (tbl_ctx.menupop_data_ref != nullptr && ImGui::GetCurrentTable() != nullptr) {
+                if (bulk_tbl_vars.menupop_data_ref != nullptr && ImGui::GetCurrentTable() != nullptr) {
                     ImGui::GetCurrentTable()->DisableDefaultContextMenu = true;
                 }
                 ImGui::TableSetupScrollFreeze(1, 1);
-                for (tbl_ctx.col_inx = 0; tbl_ctx.col_inx < colm_count; tbl_ctx.col_inx++) {
-                    ImGui::TableSetupColumn(colm_names[tbl_ctx.col_inx].c_str(), ImGuiTableColumnFlags_None);
+                for (bulk_tbl_vars.col_inx = 0; bulk_tbl_vars.col_inx < colm_count; bulk_tbl_vars.col_inx++) {
+                    ImGui::TableSetupColumn(colm_names[bulk_tbl_vars.col_inx].c_str(), ImGuiTableColumnFlags_None);
                 }
                 ImGui::TableHeadersRow();
                 // If any of the table header logic invoked above has invoked 
                 // TableOpenContextMenu(), and we have a cspec:menupop, then
                 // go ahead and render the popup menu
-                if (tbl_ctx.menupop_data_ref != nullptr && ImGui::GetCurrentTable()->IsContextPopupOpen) {
+                if (bulk_tbl_vars.menupop_data_ref != nullptr && ImGui::GetCurrentTable()->IsContextPopupOpen) {
                     // TODO: add scope push cspec:push_scope=BulkRowColCross
                     render_menu_pop_item(w);
                 }
                 ImGuiListClipper clipper;
                 clipper.Begin((int)row_count, -1.0f);
                 while (clipper.Step()) {
-                    for (tbl_ctx.row_inx = clipper.DisplayStart; tbl_ctx.row_inx < clipper.DisplayEnd; tbl_ctx.row_inx++) {
+                    for (bulk_tbl_vars.row_inx = clipper.DisplayStart; bulk_tbl_vars.row_inx < clipper.DisplayEnd; bulk_tbl_vars.row_inx++) {
                         ImGui::TableNextRow();
-                        for (tbl_ctx.col_inx = 0; tbl_ctx.col_inx < colm_count; tbl_ctx.col_inx++) {
-                            if (ImGui::TableSetColumnIndex(tbl_ctx.col_inx)) {
-                                const char* endchar = bulk.get_datum(tbl_ctx.handle, tbl_ctx.col_inx, tbl_ctx.row_inx);
+                        for (bulk_tbl_vars.col_inx = 0; bulk_tbl_vars.col_inx < colm_count; bulk_tbl_vars.col_inx++) {
+                            if (ImGui::TableSetColumnIndex(bulk_tbl_vars.col_inx)) {
+                                const char* endchar = bulk.get_datum(bulk_tbl_vars.handle, bulk_tbl_vars.col_inx, bulk_tbl_vars.row_inx);
                                 if (endchar) {
                                     ImGui::TextUnformatted(bulk.buffer, endchar);
                                 }
@@ -2148,13 +2148,13 @@ protected:
         static int default_table_flags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY;
 
         const char* title = cspec_string(cs_title, w->cspec_str, method);
-        lv_tbl_vars.table_flags = default_table_flags;
-        cspec_int(cs_table_flags, w->cspec_int, &lv_tbl_vars.table_flags);
+        live_tbl_vars.table_flags = default_table_flags;
+        cspec_int(cs_table_flags, w->cspec_int, &live_tbl_vars.table_flags);
 
-        lv_tbl_vars.line_height = 4;
-        cspec_int(cs_line_height, w->cspec_int, &lv_tbl_vars.line_height);
+        live_tbl_vars.line_height = 4;
+        cspec_int(cs_line_height, w->cspec_int, &live_tbl_vars.line_height);
 
-        lv_tbl_vars.size[1] = ImGui::GetTextLineHeight() * lv_tbl_vars.line_height;
+        live_tbl_vars.size[1] = ImGui::GetTextLineHeight() * live_tbl_vars.line_height;
 
         DataRef* ticker_list_data_ref = cspec_data_ref(cs_cname, w);
         assert(ticker_list_data_ref->tipe == cdStrVec);
@@ -2163,18 +2163,18 @@ protected:
         if (w->buffer_not_set()) {
             // cp tickers from data into widget local buffer
             StrInx tinx{ ticker_list_data_ref->ref_inx };
-            for (lv_tbl_vars.count = 0; lv_tbl_vars.count < ticker_list_data_ref->size; lv_tbl_vars.count++) {
+            for (live_tbl_vars.count = 0; live_tbl_vars.count < ticker_list_data_ref->size; live_tbl_vars.count++) {
                 w->append_buffer(data_lay_cache.get_string_value(tinx));
                 tinx++;
             }
-            lv_tbl_vars.ticker_list_cs = (char**)w->buffer;
-            lv_tbl_vars.format_list_cs = nullptr;
+            live_tbl_vars.ticker_list_cs = (char**)w->buffer;
+            live_tbl_vars.format_list_cs = nullptr;
             // did we get a cspec:formats? If so, cp fmts into buffer
             DataRef* formats_list_data_ref = cspec_data_ref(cs_formats, w);
             if (formats_list_data_ref != nullptr) {
-                lv_tbl_vars.format_list_cs = w->next_free();
+                live_tbl_vars.format_list_cs = w->next_free();
                 StrInx finx{ formats_list_data_ref->ref_inx };
-                for (lv_tbl_vars.count = 0; lv_tbl_vars.count < formats_list_data_ref->size; lv_tbl_vars.count++) {
+                for (live_tbl_vars.count = 0; live_tbl_vars.count < formats_list_data_ref->size; live_tbl_vars.count++) {
                     w->append_buffer(data_lay_cache.get_string_value(finx));
                     finx++;
                 }
@@ -2183,81 +2183,81 @@ protected:
             DataRef* xforms_list_data_ref = cspec_data_ref(cs_xforms, w);
             if (xforms_list_data_ref != nullptr) {
                 StrInx xinx{ xforms_list_data_ref->ref_inx };
-                for (lv_tbl_vars.count = 0; lv_tbl_vars.count < xforms_list_data_ref->size; lv_tbl_vars.count++) {
+                for (live_tbl_vars.count = 0; live_tbl_vars.count < xforms_list_data_ref->size; live_tbl_vars.count++) {
                     const char* xform = data_lay_cache.get_string_value(xinx);
-                    lv_tbl_vars.dbl_xform_vec.push_back(DblXformFromString(xform));
+                    live_tbl_vars.dbl_xform_vec.push_back(DblXformFromString(xform));
                     xinx++;
                 }
             }
         }
 
-        lv_tbl_vars.row_inx = 0; {
+        live_tbl_vars.row_inx = 0; {
             LocalFont body_font(w, cs_body_font, cs_body_font_size);
-            if (ImGui::BeginTable(title, (int)live.records.col_count, lv_tbl_vars.table_flags, lv_tbl_vars.size)) {
-                for (lv_tbl_vars.col_inx = 0; lv_tbl_vars.col_inx < live.records.col_count; lv_tbl_vars.col_inx++) {
-                    ImGui::TableSetupColumn(live.records.field_names[lv_tbl_vars.col_inx].c_str(), ImGuiTableColumnFlags_None);
+            if (ImGui::BeginTable(title, (int)live.records.col_count, live_tbl_vars.table_flags, live_tbl_vars.size)) {
+                for (live_tbl_vars.col_inx = 0; live_tbl_vars.col_inx < live.records.col_count; live_tbl_vars.col_inx++) {
+                    ImGui::TableSetupColumn(live.records.field_names[live_tbl_vars.col_inx].c_str(), ImGuiTableColumnFlags_None);
                 }
                 ImGui::TableHeadersRow();
                 ImGuiListClipper clipper;
                 clipper.Begin((int)live.ticker_count(), -1.0f);
                 while (clipper.Step()) {
-                    for (lv_tbl_vars.row_inx = clipper.DisplayStart; lv_tbl_vars.row_inx < clipper.DisplayEnd; lv_tbl_vars.row_inx++) {
+                    for (live_tbl_vars.row_inx = clipper.DisplayStart; live_tbl_vars.row_inx < clipper.DisplayEnd; live_tbl_vars.row_inx++) {
                         ImGui::TableNextRow();
-                        lv_tbl_vars.ticker = lv_tbl_vars.ticker_list_cs[lv_tbl_vars.row_inx];
-                        assert(lv_tbl_vars.ticker != nullptr);
-                        live.find_ticker(lv_tbl_vars.ticker, lv_tbl_vars.tkr_inx);
-                        for (lv_tbl_vars.col_inx = 0; lv_tbl_vars.col_inx < live.records.col_count; lv_tbl_vars.col_inx++) {
-                            if (lv_tbl_vars.format_list_cs == nullptr) {
-                                lv_tbl_vars.format = (char*)Static::default_format_cs;
+                        live_tbl_vars.ticker = live_tbl_vars.ticker_list_cs[live_tbl_vars.row_inx];
+                        assert(live_tbl_vars.ticker != nullptr);
+                        live.find_ticker(live_tbl_vars.ticker, live_tbl_vars.tkr_inx);
+                        for (live_tbl_vars.col_inx = 0; live_tbl_vars.col_inx < live.records.col_count; live_tbl_vars.col_inx++) {
+                            if (live_tbl_vars.format_list_cs == nullptr) {
+                                live_tbl_vars.format = (char*)Static::default_format_cs;
                             }
                             else {
-                                lv_tbl_vars.format = lv_tbl_vars.format_list_cs[lv_tbl_vars.col_inx];
+                                live_tbl_vars.format = live_tbl_vars.format_list_cs[live_tbl_vars.col_inx];
                             }
-                            if (lv_tbl_vars.dbl_xform_vec.empty()) {
-                                lv_tbl_vars.dbl_xform = Null;
+                            if (live_tbl_vars.dbl_xform_vec.empty()) {
+                                live_tbl_vars.dbl_xform = Null;
                             }
                             else {
-                                lv_tbl_vars.dbl_xform = lv_tbl_vars.dbl_xform_vec[lv_tbl_vars.col_inx];
+                                live_tbl_vars.dbl_xform = live_tbl_vars.dbl_xform_vec[live_tbl_vars.col_inx];
                             }
-                            if (ImGui::TableSetColumnIndex(lv_tbl_vars.col_inx)) {
-                                switch (live.records.field_types[lv_tbl_vars.col_inx]) {
+                            if (ImGui::TableSetColumnIndex(live_tbl_vars.col_inx)) {
+                                switch (live.records.field_types[live_tbl_vars.col_inx]) {
                                 case cdStr:
-                                    lv_tbl_vars.string_fields = (char*)live.records.get_field(lv_tbl_vars.col_inx);
-                                    ImGui::TextUnformatted(lv_tbl_vars.string_fields + (8 * lv_tbl_vars.tkr_inx));
+                                    live_tbl_vars.string_fields = (char*)live.records.get_field(live_tbl_vars.col_inx);
+                                    ImGui::TextUnformatted(live_tbl_vars.string_fields + (8 * live_tbl_vars.tkr_inx));
                                     break;
                                 case cdDouble:
-                                    lv_tbl_vars.double_fields = (double*)live.records.get_field(lv_tbl_vars.col_inx);
-                                    switch (lv_tbl_vars.dbl_xform) {
+                                    live_tbl_vars.double_fields = (double*)live.records.get_field(live_tbl_vars.col_inx);
+                                    switch (live_tbl_vars.dbl_xform) {
                                     case Secs:
-                                        lv_tbl_vars.fmt_result = fmt::format_to_n(lv_tbl_vars.string_buffer, STR_BUF_LEN,
-                                            lv_tbl_vars.format, TPSecs{ std::chrono::seconds{ (uint32_t)lv_tbl_vars.double_fields[lv_tbl_vars.tkr_inx] }});
+                                        live_tbl_vars.fmt_result = fmt::format_to_n(live_tbl_vars.string_buffer, STR_BUF_LEN,
+                                            live_tbl_vars.format, TPSecs{ std::chrono::seconds{ (uint32_t)live_tbl_vars.double_fields[live_tbl_vars.tkr_inx] }});
                                         break;
                                     case Milli:
-                                        lv_tbl_vars.fmt_result = fmt::format_to_n(lv_tbl_vars.string_buffer, STR_BUF_LEN,
-                                            lv_tbl_vars.format, TPMilli{ std::chrono::milliseconds{ (uint32_t)lv_tbl_vars.double_fields[lv_tbl_vars.tkr_inx]} });
+                                        live_tbl_vars.fmt_result = fmt::format_to_n(live_tbl_vars.string_buffer, STR_BUF_LEN,
+                                            live_tbl_vars.format, TPMilli{ std::chrono::milliseconds{ (uint32_t)live_tbl_vars.double_fields[live_tbl_vars.tkr_inx]} });
                                         break;
                                     case Micro:
-                                        lv_tbl_vars.fmt_result = fmt::format_to_n(lv_tbl_vars.string_buffer, STR_BUF_LEN,
-                                            lv_tbl_vars.format, TPMicro{ std::chrono::microseconds{ (uint32_t)lv_tbl_vars.double_fields[lv_tbl_vars.tkr_inx]} });
+                                        live_tbl_vars.fmt_result = fmt::format_to_n(live_tbl_vars.string_buffer, STR_BUF_LEN,
+                                            live_tbl_vars.format, TPMicro{ std::chrono::microseconds{ (uint32_t)live_tbl_vars.double_fields[live_tbl_vars.tkr_inx]} });
                                         break;
                                     case Nano:
-                                        lv_tbl_vars.fmt_result = fmt::format_to_n(lv_tbl_vars.string_buffer, STR_BUF_LEN,
-                                            lv_tbl_vars.format, TPNano{ std::chrono::nanoseconds{ (uint32_t)lv_tbl_vars.double_fields[lv_tbl_vars.tkr_inx]} });
+                                        live_tbl_vars.fmt_result = fmt::format_to_n(live_tbl_vars.string_buffer, STR_BUF_LEN,
+                                            live_tbl_vars.format, TPNano{ std::chrono::nanoseconds{ (uint32_t)live_tbl_vars.double_fields[live_tbl_vars.tkr_inx]} });
                                         break;
                                     case None:
                                     case EndDblXform:
                                     default:
-                                        lv_tbl_vars.fmt_result = fmt::format_to_n(lv_tbl_vars.string_buffer, STR_BUF_LEN,
-                                            lv_tbl_vars.format, lv_tbl_vars.double_fields[lv_tbl_vars.tkr_inx]);
+                                        live_tbl_vars.fmt_result = fmt::format_to_n(live_tbl_vars.string_buffer, STR_BUF_LEN,
+                                            live_tbl_vars.format, live_tbl_vars.double_fields[live_tbl_vars.tkr_inx]);
                                         break;
                                     }
-                                    ImGui::TextUnformatted(lv_tbl_vars.string_buffer, lv_tbl_vars.string_buffer +
-                                        lv_tbl_vars.fmt_result.size);
+                                    ImGui::TextUnformatted(live_tbl_vars.string_buffer, live_tbl_vars.string_buffer +
+                                        live_tbl_vars.fmt_result.size);
                                     break;
                                 }
                             }
                         }
-                        lv_tbl_vars.tkr_inx++;
+                        live_tbl_vars.tkr_inx++;
                     }
                 }
                 ImGui::EndTable();
@@ -2286,16 +2286,16 @@ protected:
         if (query_id != nullptr) {
             // expensive lookup op that we'd typically do in
             // a bulk cache based render method. We don't need
-            // to do that here a tbl_ctx should have the correct
-            // handle. So we'll assert tbl_ctx.handle does
+            // to do that here a bulk_tbl_vars should have the correct
+            // handle. So we'll assert bulk_tbl_vars.handle does
             // match our query_id in debug builds as a sanity check.
-            assert(bulk.get_handle(query_id) == tbl_ctx.handle);
-            StringVec& colm_names = bulk.get_col_names(tbl_ctx.handle);
+            assert(bulk.get_handle(query_id) == bulk_tbl_vars.handle);
+            StringVec& colm_names = bulk.get_col_names(bulk_tbl_vars.handle);
             assert(colm_names.size() > mem_edit_ctx.col_inx);
             const std::string& col_name = colm_names[mem_edit_ctx.col_inx];
 
-            bulk.get_meta_data(tbl_ctx.handle, mem_edit_ctx.col_count, mem_edit_ctx.row_count);
-            Range* range = bulk.init_range(tbl_ctx.handle, col_name.c_str(), mem_edit_ctx.offset, mem_edit_ctx.row_count);
+            bulk.get_meta_data(bulk_tbl_vars.handle, mem_edit_ctx.col_count, mem_edit_ctx.row_count);
+            Range* range = bulk.init_range(bulk_tbl_vars.handle, col_name.c_str(), mem_edit_ctx.offset, mem_edit_ctx.row_count);
 
             // next_range will give us a nullptr if the col isn't int or double
             // unlike Wasm, we cannot get "inside" the chunk, so we just show the raw
