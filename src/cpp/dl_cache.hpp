@@ -617,6 +617,12 @@ protected:
         return true;
     }
 
+    bool forth_pop_data_op(ForthLambda& result, ForthLambda& result_addr, ForthLambda& result_offset) {
+        assert(result.size() >= 1);
+        result.pop_back();  // pop the top operand
+        return true;
+    }
+
     bool dispatch_forth(ForthLambda& result, ForthLambda& result_addr, ForthLambda& result_offset) {
         if (result.empty()) {
             // no more computation possible
