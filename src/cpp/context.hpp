@@ -1800,7 +1800,6 @@ protected:
             }
             ImGui::EndCombo();
         }
-        // TODO: refactor to pending_actions
         if (dp_vars.new_date != dp_vars.old_date) {
             w->old_int.push_back(dp_vars.old_date[0]);
             w->old_int.push_back(dp_vars.old_date[1]);
@@ -2079,7 +2078,7 @@ protected:
 
         // have we specified a selectable col? 
         bulk_tbl_vars.selectable_col_inx = -1;
-        cspec_int(cs_rclick_col, w->cspec_int, &bulk_tbl_vars.selectable_col_inx);
+        cspec_int(cs_selectable_col, w->cspec_int, &bulk_tbl_vars.selectable_col_inx);
 
         DataRef* result_set_data_ref = cspec_data_ref(cs_query_id, w);
         assert(result_set_data_ref != nullptr);
