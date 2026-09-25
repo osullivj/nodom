@@ -94,6 +94,13 @@ protected:
 
     // NoDOM Forth
     AddrInx         ainx_OpIndex;
+    AddrInx         ainx_OpPopData;
+    AddrInx         ainx_OpPopScope;
+    AddrInx         ainx_OpNot;
+    AddrInx         ainx_OpAnd;
+    AddrInx         ainx_OpOr;
+    AddrInx         ainx_OpIn;
+
     // TODO: InxWidgetVecMap & InxCspecVecMap instances
     // to back map from raw AddrInxs to (widget,cspec) pairs
     // NB recall that at most one thing can change in the cache
@@ -243,6 +250,12 @@ protected:
 
     void init() {
         ainx_OpIndex = add_operand(Static::ndfop_index_cs);
+        ainx_OpPopData = add_operand(Static::ndfop_pop_data_cs);
+        ainx_OpPopScope = add_operand(Static::ndfop_pop_scope_cs);
+        ainx_OpNot = add_operand(Static::ndfop_not_cs);
+        ainx_OpAnd = add_operand(Static::ndfop_and_cs);
+        ainx_OpOr = add_operand(Static::ndfop_or_cs);
+        ainx_OpIn = add_operand(Static::ndfop_in_cs);
     }
 
     void parse_actions(const JSON& data, const JSON& action_seq, ActionVec& nd_action_vec, ActionInternVec& act_intern_vec, ActionErrorVec& act_error_vec) {
