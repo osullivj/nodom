@@ -1513,7 +1513,8 @@ private:
         Static::cindex_cs,
         Static::query_id_cs,
         Static::xname_cs,
-        Static::yname_cs
+        Static::yname_cs,
+        Static::disabled_cs
     };
 
     inline static std::array<CacheDataType, cs_end_cache_specs> cspec_types{
@@ -1570,7 +1571,8 @@ private:
         cdAny,      // cs_cindex
         cdResultSet,// cs_query_id
         cdStr,      // cs_xname
-        cdStr       // cs_yname
+        cdStr,      // cs_yname
+        cdBool      // cs_disabled
     };
 
     inline static  std::map<RenderMethod, CacheSpecVec> value_cspecs{
