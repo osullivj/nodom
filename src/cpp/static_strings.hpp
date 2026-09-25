@@ -100,6 +100,7 @@ struct Static {
 	inline static const char* xname_cs{ "xname" };
 	inline static const char* yname_cs{ "yname" };
 	inline static const char* cindex_cs{ "cindex" };
+	inline static const char* disabled_cs{ "disabled" };
 
 	inline static const char* sql_cs{ "sql" };
 
@@ -204,9 +205,13 @@ struct Static {
 
 	// NDF (NoDOM Forth) operands
 	inline static const char* ndfop_index_cs{ "[]" };
-	inline static const char* ndfop_pop_log_ref_cs{ "." };
-	inline static const char* ndfop_pop_log_scope_cs{ "^" };
+	inline static const char* ndfop_pop_data_cs{ "." };
+	inline static const char* ndfop_pop_scopecs{ "$." };
 	inline static const char  ndfop_push_scope_c{ '$' };
+	inline static const char* ndfop_not_cs{ "not" };
+	inline static const char* ndfop_and_cs{ "and" };
+	inline static const char* ndfop_or_cs{ "or" };
+	inline static const char* ndfop_in_cs{ "in" };
 
 	inline static const char* gui_cs{ "GUI" };
 	inline static const char* websock_cs{ "WebSock" };
