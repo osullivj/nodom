@@ -119,6 +119,10 @@ struct BulkTableLocals {
     RSHandle    handle{ 0 };   // uint64_t on win32, uint32_t on ems
     uint32_t    col_inx{ 0 };
     uint32_t    row_inx{ 0 };
+    int32_t     selectable_col_inx{ -1 };
+    int32_t     selected_row{ -1 };
+    char        string_buffer[STR_BUF_LEN]; // used for ImGui::Selectable() IDs
+    fmt::format_to_n_result<char*> fmt_result;
 };
 
 // TODO: refactor
