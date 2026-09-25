@@ -2071,17 +2071,21 @@ protected:
     void render_bulk_table(WidgetPtr w) {
         const static char* method = "NDContext::render_table: ";
 
-        static int default_table_flags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY;
+        static int default_table_flags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY;
 
         const char* title = cspec_string(cs_title, w->cspec_str, method);
         int table_flags = default_table_flags;
         cspec_int(cs_table_flags, w->cspec_int, &table_flags);
 
+        // have we specified a selectable col? 
+        bulk_tbl_vars.selectable_col_inx = -1;
+        cspec_int(cs_rclick_col, w->cspec_int, &bulk_tbl_vars.selectable_col_inx);
+
         DataRef* result_set_data_ref = cspec_data_ref(cs_query_id, w);
         assert(result_set_data_ref != nullptr);
         const char* query_id = data_lay_cache.get_string_value(result_set_data_ref->addr_inx);
 
-        /// NB cspec:menupop is optional
+        // NB cspec:menupop is optional
         bulk_tbl_vars.menupop_data_ref = cspec_data_ref(cs_menu_pop, w);
 
         // TODO: recode bulk.get_meta_data() to lazy load and report geom.
@@ -2098,10 +2102,15 @@ protected:
                 if (!inserted) iter->second++;
                 return;
             }
+            // bulk.get_meta_data() populates the metadata on first invoke
+            // TODO: mv metadata population off the hotpath
             if (!bulk.get_meta_data(bulk_tbl_vars.handle, colm_count, row_count)) {
                 NDLogger::cout() << method << "GET_META_DATA_FAIL for QID: " << query_id << std::endl;
                 return;
             }
+            // is there a selected row ?
+            bulk_tbl_vars.selected_row = bulk.get_selection(bulk_tbl_vars.handle);
+
             StringVec& colm_names = bulk.get_col_names(bulk_tbl_vars.handle);
             if (ImGui::BeginTable(title, (int)colm_count, table_flags)) {
                 if (bulk_tbl_vars.menupop_data_ref != nullptr && ImGui::GetCurrentTable() != nullptr) {
@@ -2127,11 +2136,30 @@ protected:
                         for (bulk_tbl_vars.col_inx = 0; bulk_tbl_vars.col_inx < colm_count; bulk_tbl_vars.col_inx++) {
                             if (ImGui::TableSetColumnIndex(bulk_tbl_vars.col_inx)) {
                                 const char* endchar = bulk.get_datum(bulk_tbl_vars.handle, bulk_tbl_vars.col_inx, bulk_tbl_vars.row_inx);
-                                if (endchar) {
-                                    ImGui::TextUnformatted(bulk.buffer, endchar);
+                                // Use am ImGui::Selectable in the cell as this is selection col
+                                if (bulk_tbl_vars.col_inx == bulk_tbl_vars.selectable_col_inx) {
+                                    if (endchar != nullptr) {
+                                        std::string_view view(bulk.buffer, endchar - bulk.buffer);
+                                        bulk_tbl_vars.fmt_result = fmt::format_to_n(bulk_tbl_vars.string_buffer, STR_BUF_LEN, Static::selectable_col_fmt_cs,
+                                            view, bulk_tbl_vars.col_inx, bulk_tbl_vars.row_inx);
+                                    }
+                                    else {
+                                        bulk_tbl_vars.fmt_result = fmt::format_to_n(bulk_tbl_vars.string_buffer, STR_BUF_LEN, Static::selectable_col_fmt_cs,
+                                            bulk.buffer, bulk_tbl_vars.col_inx, bulk_tbl_vars.row_inx);
+                                    }
+                                    if (ImGui::Selectable(bulk_tbl_vars.string_buffer, 
+                                                            (bulk_tbl_vars.row_inx == bulk_tbl_vars.selected_row),
+                                                                            ImGuiSelectableFlags_SpanAllColumns)) {
+                                        bulk.set_selection(bulk_tbl_vars.handle, bulk_tbl_vars.row_inx);
+                                    }
                                 }
-                                else {
-                                    ImGui::TextUnformatted(bulk.buffer);
+                                else {  // not selectable col, so use ImGui::TextUnformatted
+                                    if (endchar != nullptr) {
+                                        ImGui::TextUnformatted(bulk.buffer, endchar);
+                                    }
+                                    else {
+                                        ImGui::TextUnformatted(bulk.buffer);
+                                    }
                                 }
                             }
                         }
