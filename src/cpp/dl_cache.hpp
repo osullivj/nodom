@@ -1321,6 +1321,7 @@ public:
         case cs_menu_bar:
         case cs_menu_pop:
         case cs_tooltip:
+        case cs_disabled:
             return true;
         default:
             return false;
@@ -1631,6 +1632,7 @@ private:
             {cs_cname, cdStrVec}
         }},
         {Checkbox, {{cs_cname, cdBool}}},
+        {Button, {{cs_disabled, cdBool}}},
         {DatePicker, {{cs_cname, cdIntVec}}},
         {LoadingModal, {{cs_cname, cdStrVec}}},
         {DuckTableSummaryModal, {
