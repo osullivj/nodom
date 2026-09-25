@@ -163,7 +163,8 @@ private:
     std::unordered_map<RSHandle, std::vector<duckdb_logical_type>> logical_type_map;
     // data
     std::unordered_map<std::string, duckdb_result>  result_map;
-    std::unordered_map<RSHandle, Bobbin>        bobbin_map;
+    std::unordered_map<RSHandle, Bobbin>            bobbin_map;
+    std::unordered_map<RSHandle, int>               selection_map;  // only 1 selected tow per RS
     // working storage
     int16_t* sidata = nullptr;
     int32_t* idata = nullptr;
@@ -494,6 +495,14 @@ public:
         return rv;
     }
 
+    std::int32_t get_selection(RSHandle handle) {
+        return selection_map.at(handle);
+    }
+
+    void set_selection(RSHandle handle, std::int32_t sel) {
+        selection_map[handle] = sel;
+    }
+
     bool get_meta_data(RSHandle h, std::uint32_t& column_count, std::uint32_t& row_count) {
         duckdb_result* result_ptr = reinterpret_cast<duckdb_result*>(h);
 
@@ -517,6 +526,7 @@ public:
                 types.push_back(duckdb_get_type_id(type_l));
                 col_names.push_back(duckdb_column_name(result_ptr, index));
             }
+            selection_map[h] = -1;
         }
         return true;
     }
