@@ -237,6 +237,8 @@ struct Static {
 	inline static const char* default_format_cs{ "{}" };					// fmtlib fmt spec
 	inline static const char* err_format_cs{ "NDE:%s\n" };
 	inline static const char* info_format_cs{ "NDE:%s\n" };
+	inline static const char* selectable_col_fmt_cs{"{}##col{}_row{}"};
+	inline static const char* context_menupop_id{"##menupop"};
 	inline static const char* imlog_cs{ "imlog" };
 
 	// LiveTable timestamp transforms
