@@ -493,6 +493,7 @@ enum CacheSpecifier : uint32_t {
     cs_query_id,
     cs_xname,
     cs_yname,
+    cs_disabled,
     cs_end_cache_specs
 };
 
