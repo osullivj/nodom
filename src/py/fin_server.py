@@ -55,13 +55,16 @@ FIN_LAYOUT = [
                     title="Instruments",
                     query_id="query_inst_tbl_qid",
                     menupop="instruments_rclick_menupop",
+                    rclick_col=0,
                     table_flags=TableFlags.SCROLL_Y
                     | TableFlags.ROW_BG
                     | TableFlags.BORDERS_OUTER
                     | TableFlags.BORDERS_V
                     | TableFlags.RESIZABLE
                     | TableFlags.HIDEABLE
-                    | TableFlags.CONTEXT_MENU_IN_BODY
+                    # we want to control selection inside the table
+                    # so we don't allow context menu pop ups...
+                    # | TableFlags.CONTEXT_MENU_IN_BODY
                 ),
             ),
             dict(rname="EndChild"),
