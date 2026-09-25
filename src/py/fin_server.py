@@ -69,6 +69,18 @@ FIN_LAYOUT = [
             ),
             dict(rname="EndChild"),
             dict(rname="Separator", cspec=dict()),
+            dict(
+                rname="Button",
+                widget_id="i_am_sub_button",
+                cspec=dict(text="Sub")
+            ),
+            dict(rname="SameLine", cspec=dict()),
+            dict(
+                rname="Button",
+                widget_id="i_am_unsub_button",
+                cspec=dict(text="Unsub")
+            ),
+            dict(rname="Separator", cspec=dict()),
             dict(rname="BeginChild",
                 cspec=dict(
                     height=200,
