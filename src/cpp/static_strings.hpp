@@ -206,7 +206,7 @@ struct Static {
 	// NDF (NoDOM Forth) operands
 	inline static const char* ndfop_index_cs{ "[]" };
 	inline static const char* ndfop_pop_data_cs{ "." };
-	inline static const char* ndfop_pop_scopecs{ "$." };
+	inline static const char* ndfop_pop_scope_cs{ "$." };
 	inline static const char  ndfop_push_scope_c{ '$' };
 	inline static const char* ndfop_not_cs{ "not" };
 	inline static const char* ndfop_and_cs{ "and" };
