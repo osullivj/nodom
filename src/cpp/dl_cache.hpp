@@ -100,6 +100,10 @@ protected:
     AddrInx         ainx_OpAnd;
     AddrInx         ainx_OpOr;
     AddrInx         ainx_OpIn;
+    BoolInx         ainx_ConstFalse;
+    BoolInx         ainx_ConstTrue;
+    IntInx          ainx_ConstIntOne;
+    IntInx          ainx_ConstIntZero;
 
     // TODO: InxWidgetVecMap & InxCspecVecMap instances
     // to back map from raw AddrInxs to (widget,cspec) pairs
@@ -249,13 +253,18 @@ protected:
     }
 
     void init() {
-        ainx_OpIndex = add_operand(Static::ndfop_index_cs);
-        ainx_OpPopData = add_operand(Static::ndfop_pop_data_cs);
-        ainx_OpPopScope = add_operand(Static::ndfop_pop_scope_cs);
-        ainx_OpNot = add_operand(Static::ndfop_not_cs);
-        ainx_OpAnd = add_operand(Static::ndfop_and_cs);
-        ainx_OpOr = add_operand(Static::ndfop_or_cs);
-        ainx_OpIn = add_operand(Static::ndfop_in_cs);
+        ainx_OpIndex = add_operator(Static::ndfop_index_cs);
+        ainx_OpPopData = add_operator(Static::ndfop_pop_data_cs);
+        ainx_OpPopScope = add_operator(Static::ndfop_pop_scope_cs);
+        ainx_OpNot = add_operator(Static::ndfop_not_cs);
+        ainx_OpAnd = add_operator(Static::ndfop_and_cs);
+        ainx_OpOr = add_operator(Static::ndfop_or_cs);
+        ainx_OpIn = add_operator(Static::ndfop_in_cs);
+
+        ainx_ConstFalse = get_bool_index(false);
+        ainx_ConstTrue = get_bool_index(true);
+        ainx_ConstIntOne = get_int_index(1);
+        ainx_ConstIntZero = get_int_index(0);
     }
 
     void parse_actions(const JSON& data, const JSON& action_seq, ActionVec& nd_action_vec, ActionInternVec& act_intern_vec, ActionErrorVec& act_error_vec) {
@@ -586,7 +595,7 @@ protected:
 
     bool forth_index_op(ForthLambda& result, ForthLambda& result_addr, ForthLambda& result_offset) {
         assert(result.size() >= 3);
-        result.pop_back();  // pop the [] operand
+        result.pop_back();  // pop the [] operator
         AddrInx index_inx{result.back()};
         result.pop_back();
         AddrInx list_inx{ result.back() };
@@ -619,9 +628,45 @@ protected:
 
     bool forth_pop_data_op(ForthLambda& result, ForthLambda& result_addr, ForthLambda& result_offset) {
         assert(result.size() >= 1);
+        // TODO: add code to log popped val
         result.pop_back();  // pop the top operand
         return true;
     }
+
+    bool forth_pop_scope_op(ForthLambda& result, ForthLambda& result_addr, ForthLambda& result_offset) {
+        // TODO: add forth_pop_scope_op when we've added the scope stack
+        return false;
+    }
+
+    bool forth_not_op(ForthLambda& result, ForthLambda& result_addr, ForthLambda& result_offset) {
+        assert(result.size() >= 2);
+        result.pop_back();                  // pop the not operator
+        AddrInx data_inx{ result.back() };  // get the single operand
+        result.pop_back();                  // pop single operand
+        assert(data_ref_map.find(data_inx) != data_ref_map.end());
+        DataRef& operand_data_ref{ data_ref_map[data_inx] };
+
+        switch (operand_data_ref.tipe) {
+        case cdBool:
+            result.push_back(*index_ptr + list_data_ref.ref_inx);
+            result_addr.push_back(list_data_ref.addr_inx);
+            result_offset.push_back(*index_ptr);
+            break;
+        case cdInt:
+            result.push_back(*index_ptr + list_data_ref.ref_inx);
+            result_addr.push_back(list_data_ref.addr_inx);
+            result_offset.push_back(*index_ptr);
+            break;
+        default:
+            assert(false);
+            break;
+        }
+        return true;
+
+        // TODO: add forth_pop_scope_op when we've added the scope stack
+        return false;
+    }
+
 
     bool dispatch_forth(ForthLambda& result, ForthLambda& result_addr, ForthLambda& result_offset) {
         if (result.empty()) {
@@ -1205,7 +1250,7 @@ public:
         return ainx;
     }
 
-    AddrInx add_operand(const std::string& op) {
+    AddrInx add_operator(const std::string& op) {
         AddrInx ainx = get_string_index<CIT::Address>(op);
         operand_map[op] = ainx;
         return ainx;
