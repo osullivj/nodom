@@ -254,21 +254,25 @@ BOOST_FIXTURE_TEST_CASE(AddDouble, DataCacheFixture)
 
 BOOST_FIXTURE_TEST_CASE(AddString, DataCacheFixture)
 {
+    dc.ut_init();
+
     const static std::string _server_url{ "_server_url" };
     AddrInx addr_inx = dc.add_address(_server_url);
-    // DataCacheFixture::server_url is a standin for Proxy::server_url
-    // _server_url is the special cache ref that's not in data
     StrInx str_inx = dc.get_string_index<CIT::Value>(server_url.c_str());
-    str_count = 3;
-    int_count = 2;
+
+    str_count = 10;
+
     BOOST_TEST(StrInx::item_type == CIT::Value);
     BOOST_TEST(StrInx::data_type == CDT::cdStr);
-    BOOST_TEST(str_inx.magic_index == uint32_t(0x02050002));
-    BOOST_TEST(str_inx() == uint32_t(2));
+
+    BOOST_TEST(str_inx.magic_index == uint32_t(0x02050009));
+    BOOST_TEST(str_inx() == uint32_t(9));
+
     BOOST_TEST(AddrInx::item_type == CIT::Address);
     BOOST_TEST(AddrInx::data_type == CDT::cdStr);
-    BOOST_TEST(addr_inx.magic_index == uint32_t(0x01050001));
-    BOOST_TEST(addr_inx() == uint32_t(1));
+
+    BOOST_TEST(addr_inx.magic_index == uint32_t(0x01050008));
+    BOOST_TEST(addr_inx() == uint32_t(8));
     assert_cache_state();
 }
 
