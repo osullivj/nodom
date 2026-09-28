@@ -1073,6 +1073,8 @@ public:
     size_t menu_data_ref_map_size() { return menu_data_ref_map.size(); }
     size_t error_count() { return action_errors.size() + layout_errors.size(); }
 
+    void    ut_init() { init(); }   // for use by unit tests only
+
     void on_json(const JSON& data, const JSON& layout, VVFunc on_init) {
         clear();
         init();
