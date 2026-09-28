@@ -204,12 +204,15 @@ BOOST_FIXTURE_TEST_CASE(AddBool, DataCacheFixture)
 
     std::string addr_str{ "show_footer_db" };
     AddrInx addr_inx = dc.add_address(addr_str);
-    str_count = 2;
-    BoolInx bool_inx = dc.extern_bool(&show_footer_db);   // not backed
+    str_count = 9;
+
+    BoolInx bool_inx = dc.extern_bool(&show_footer_db);
+
     BOOST_TEST(IntInx::item_type == CIT::Value);
     BOOST_TEST(IntInx::data_type == CDT::cdInt);
-    BOOST_TEST(bool_inx.magic_index == uint32_t(0x02040000));
-    BOOST_TEST(bool_inx() == uint32_t(0));
+
+    BOOST_TEST(bool_inx.magic_index == uint32_t(0x02040002));
+    BOOST_TEST(bool_inx() == uint32_t(2));
     assert_cache_state();
 }
 
