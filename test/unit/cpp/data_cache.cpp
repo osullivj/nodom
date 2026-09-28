@@ -179,20 +179,29 @@ BOOST_FIXTURE_TEST_CASE(AddAddr, DataCacheFixture)
 
 BOOST_FIXTURE_TEST_CASE(AddInt, DataCacheFixture)
 {
+    dc.ut_init();
+
     std::string addr_str{ "style_coloring" };
     AddrInx addr_inx = dc.add_address(addr_str);
-    str_count = 2;
+    str_count = 9;
+
+    // NB init() creates ConstIntOne and ConstIntZero DLC ints
     IntInx int_inx = dc.extern_int(&style_coloring);
-    extern_int_count = int_count = 1;
+    int_count = 3;
+
+    // constexpr asserts
     BOOST_TEST(IntInx::item_type == CIT::Value);
     BOOST_TEST(IntInx::data_type == CDT::cdInt);
-    BOOST_TEST(int_inx.magic_index == uint32_t(0x02010000));
-    BOOST_TEST(int_inx() == uint32_t(0));
+
+    BOOST_TEST(int_inx.magic_index == uint32_t(0x02010002));
+    BOOST_TEST(int_inx() == uint32_t(2));
     assert_cache_state();
 }
 
 BOOST_FIXTURE_TEST_CASE(AddBool, DataCacheFixture)
 {
+    dc.ut_init();
+
     std::string addr_str{ "show_footer_db" };
     AddrInx addr_inx = dc.add_address(addr_str);
     str_count = 2;
