@@ -152,17 +152,28 @@ BOOST_FIXTURE_TEST_CASE(EventTypeRoundTrips, DataCacheFixture)
     }
 }
 
+// DLC unit tests that don't invoke DLC.on_json()
+// must invoke DLC.init() themselves to give us a 
+// common base line on str_count/int_count across
+// the test suite. The init required being...
+// dc.init();
 BOOST_FIXTURE_TEST_CASE(AddAddr, DataCacheFixture)
 {
+    // init creates the NDF constants and operator
+    // names in DLC
+    dc.ut_init();
     std::string addr_str{ "integer_address" };
     AddrInx addr_inx = dc.add_address(std::string{"integer_address"});
 
-    str_count = 2;  // addr_str & i_am_noop
+    str_count = 9;  // "integer_address", i_am_noop, NDF ops
 
+    // constexpr, so not a runtime assertion
     BOOST_TEST(AddrInx::item_type == CIT::Address);
     BOOST_TEST(AddrInx::data_type == CDT::cdStr);
-    BOOST_TEST(addr_inx.magic_index == uint32_t(0x01050001));
-    BOOST_TEST(addr_inx() == uint32_t(1));
+
+    // str_count nine means highest inx is 8
+    BOOST_TEST(addr_inx.magic_index == uint32_t(0x01050008));
+    BOOST_TEST(addr_inx() == uint32_t(8));
     assert_cache_state();
 }
 
