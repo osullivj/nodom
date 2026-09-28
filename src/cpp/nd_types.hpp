@@ -509,13 +509,6 @@ using DoubleValMap = std::map<CacheSpecifier, DoubleInx>;
 using ValOverMap = std::map<CacheSpecifier, CDT>;
 using CspecValOverMap = std::map<RenderMethod, ValOverMap>;
 
-// For NDF: each deque of int32 will capture a NoDOM Forth
-// lambda. For example "queries selected_query []"
-// Each int32 is an OpInx or AddrInx
-// constants should be added to data to enable pushing
-using ForthLambda = std::deque<AddrInx>;
-using ForthMap = std::map<CacheSpecifier, ForthLambda>;
-
 // YMD, WEEK and their index enums for DatePicker
 using YMD = std::array<int, 3>;
 enum eYMD { Year = 0, Month, Day};

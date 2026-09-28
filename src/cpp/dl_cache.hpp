@@ -544,40 +544,47 @@ protected:
         // no space in the source means it's a direct reference
         std::stringstream forth_stream{ forth_source };
         std::string stoken;
-        // yes, we're creating a new ForthLambda
-        // ND not on a hotpath
-        ForthLambda& lambda{ w->ndf_lambda_map[spec] };
+        // yes, we're creating a new ForthLambda/NDFMachine. NB not on a hotpath
+        // ForthLambda& lambda{ w->ndf_lambda_map[spec] };
+        NDFMachine& lambda{w->lambda_map[spec] };
         while (std::getline(forth_stream, stoken, Static::space_c)) {
             // special case for scope stack push
             if (stoken[0] == Static::ndfop_push_scope_c) {
 
             }
-            // if not store/fetch, each token must be DLC addr,
-            // or an operand
+            // each token must an operand...
             if (operand_map.find(stoken) != operand_map.end()) {
-                lambda.push_back(operand_map[stoken]);
+                lambda.ndf_bin.push_back(operand_map[stoken]);
             }
+            // ...or a DLC/bulk/live addr
             else if (address_map.find(stoken) != address_map.end()) {
-                AddrInx ainx{ address_map[stoken] };
-                DataRef& data_ref{ data_ref_map[ainx] };
-                lambda.push_back(ainx());
-                // memo token as a driver for this NDF
-                // AddrInx is data_ref_map key; sao here we connect
-                // the changed data AddrInx key with the widget:addr_cspec
-                // key to the lambda that NDF that will need recomputing
-                // when it's source data changes
-                switch (data_ref.tipe) {
+                // put the addr token in the tokenised code, using
+                // "global" DLC wide adress_map and data_ref_map
+                AddrInx addr_map_inx{ address_map[stoken] };
+                DataRef& global_data_ref{ data_ref_map[addr_map_inx] };
+                lambda.ndf_bin.push_back(addr_map_inx());
+                // create DLC wide memo of this w:cspec pair as driven by
+                // AddrInx ainx, so we can invoke recompute on_dirty()
+                switch (global_data_ref.tipe) {
                 case cdInt:
                 case cdIntVec:
-                    int_driven_widget_vecs[ainx()].push_back(w);
-                    int_driven_cspec_vecs[ainx()].push_back(spec);
+                    int_driven_widget_vecs[addr_map_inx()].push_back(w);
+                    int_driven_cspec_vecs[addr_map_inx()].push_back(spec);
                     break;
                 case cdStr:
                 case cdStrVec:
-                    str_driven_widget_vecs[ainx()].push_back(w);
-                    str_driven_cspec_vecs[ainx()].push_back(spec);
+                    str_driven_widget_vecs[addr_map_inx()].push_back(w);
+                    str_driven_cspec_vecs[addr_map_inx()].push_back(spec);
                     break;
                 }
+                // add DataRef in lambda.ndf_result_data_refs
+                // keyed by ainx() to hold the result cache ref
+                // this is not a DLC wide global; instead its an
+                // NDFMachine local result that refs into DLC caches
+                DataRef& local_data_ref{ lambda.ndf_result_data_refs[addr_map_inx] };
+                // TODO: logic to populate local_data_ref with correct
+                // tipe,addr_inx,ref_inx,size,offset
+
             }
             else {
                 bad_data_refs.push_back(stoken);
@@ -593,31 +600,35 @@ protected:
         return true;
     }
 
-    bool forth_index_op(ForthLambda& result, ForthLambda& result_addr, ForthLambda& result_offset) {
-        assert(result.size() >= 3);
-        result.pop_back();  // pop the [] operator
-        AddrInx index_inx{result.back()};
-        result.pop_back();
-        AddrInx list_inx{ result.back() };
-        result.pop_back();
-        assert(data_ref_map.find(index_inx) != data_ref_map.end());
-        assert(data_ref_map.find(list_inx) != data_ref_map.end());
-        DataRef& list_data_ref{ data_ref_map[list_inx] };
-        DataRef& index_data_ref{ data_ref_map[index_inx] };
+    bool forth_index_op(NDFMachine& forth) {
+        // stack: array index []
+        assert(forth.ndf_result_refs.size() >= 3);
+        forth.ndf_result_refs.pop_back();  // pop the [] operator
+        AddrInx index_inx{ forth.ndf_result_refs.back()};
+        forth.ndf_result_refs.pop_back();
+        AddrInx list_inx{ forth.ndf_result_refs.back() };
+        forth.ndf_result_refs.pop_back();
+
+        // assert we have DataRefs for both list_ and index_inx
+        // so we can avoid op[] and use .at()
+        assert(forth.ndf_result_data_refs.find(index_inx) != forth.ndf_result_data_refs.end());
+        assert(forth.ndf_result_data_refs.find(list_inx) != forth.ndf_result_data_refs.end());
+        DataRef& list_data_ref{ forth.ndf_result_data_refs.at(list_inx) };
+        DataRef& index_data_ref{ forth.ndf_result_data_refs.at(index_inx) };
         IntInx iinx{ index_data_ref.ref_inx };
         int* index_ptr = get_int_value(iinx);
         assert(index_ptr != nullptr);
         assert(*index_ptr < list_data_ref.size);
         switch (list_data_ref.tipe) {
         case cdIntVec:
-            result.push_back(*index_ptr + list_data_ref.ref_inx);
-            result_addr.push_back(list_data_ref.addr_inx);
-            result_offset.push_back(*index_ptr);
+            forth.ndf_result_refs.push_back(*index_ptr + list_data_ref.ref_inx);
+            forth.ndf_result_addrs.push_back(list_data_ref.addr_inx);
+            forth.ndf_result_offsets.push_back(*index_ptr);
             break;
         case cdStrVec:
-            result.push_back(*index_ptr + list_data_ref.ref_inx);
-            result_addr.push_back(list_data_ref.addr_inx);
-            result_offset.push_back(*index_ptr);
+            forth.ndf_result_refs.push_back(*index_ptr + list_data_ref.ref_inx);
+            forth.ndf_result_addrs.push_back(list_data_ref.addr_inx);
+            forth.ndf_result_offsets.push_back(*index_ptr);
             break;
         default:
             assert(false);
@@ -626,25 +637,28 @@ protected:
         return true;
     }
 
-    bool forth_pop_data_op(ForthLambda& result, ForthLambda& result_addr, ForthLambda& result_offset) {
-        assert(result.size() >= 1);
+    bool forth_pop_data_op(NDFMachine& forth) {
+        // pop data stack only needs one operand to succeed
+        // stack: operand
+        assert(forth.ndf_result_refs.size() >= 1);
         // TODO: add code to log popped val
-        result.pop_back();  // pop the top operand
+        forth.ndf_result_refs.result.pop_back();  // pop the top operand
         return true;
     }
 
-    bool forth_pop_scope_op(ForthLambda& result, ForthLambda& result_addr, ForthLambda& result_offset) {
+    bool forth_pop_scope_op(NDFMachine& forth) {
         // TODO: add forth_pop_scope_op when we've added the scope stack
         return false;
     }
 
-    bool forth_not_op(ForthLambda& result, ForthLambda& result_addr, ForthLambda& result_offset) {
-        assert(result.size() >= 2);
-        result.pop_back();                  // pop the not operator
-        AddrInx data_inx{ result.back() };  // get the single operand
-        result.pop_back();                  // pop single operand
-        assert(data_ref_map.find(data_inx) != data_ref_map.end());
-        DataRef& operand_data_ref{ data_ref_map[data_inx] };
+    bool forth_not_op(NDFMachine& forth) {
+        // stack: operand not
+        assert(forth.ndf_result_refs.size() >= 2);
+        forth.ndf_result_refs.pop_back();                  // pop the not operator
+        AddrInx data_inx{ forth.ndf_result_refs.back() };  // get the single operand
+        forth.ndf_result_refs.pop_back();                  // pop single operand
+        assert(forth.ndf_result_data_refs.find(data_inx) != forth.ndf_result_data_refs.data_ref_map.end());
+        DataRef& operand_data_ref{ forth.ndf_result_addrs.data_refs[data_inx] };
 
         switch (operand_data_ref.tipe) {
         case cdBool:
@@ -662,54 +676,52 @@ protected:
             break;
         }
         return true;
-
-        // TODO: add forth_pop_scope_op when we've added the scope stack
-        return false;
     }
 
 
-    bool dispatch_forth(ForthLambda& result, ForthLambda& result_addr, ForthLambda& result_offset) {
-        if (result.empty()) {
+    bool dispatch_forth(NDFMachine& forth) {
+        if (forth.ndf_result_refs.empty()) {
             // no more computation possible
             return false;
         }
-        AddrInx op{ result.back() };
+        AddrInx op{ forth.ndf_result_refs.back() };
         if (op == ainx_OpIndex)
-            return forth_index_op(result, result_addr, result_offset);
+            return forth_index_op(forth);
         return false;
     }
 
     bool execute_forth(WidgetPtr w, CacheSpecifier spec) {
         // check that compile_forth() created a ForthLambda
-        if (w->ndf_lambda_map.find(spec) == w->ndf_lambda_map.end()) {
+        if (w->lambda_map.find(spec) == w->lambda_map.end()) {
             return false;
         }
-        ForthLambda& lambda{ w->ndf_lambda_map[spec] };
-        if (lambda.empty()) {
+        NDFMachine& lambda{ w->lambda_map[spec] };
+        if (lambda.ndf_bin.empty()) {
             return false;
         }
         // result stack will be empty on first exec,
         // but not subsequently
-        ForthLambda& result{ w->ndf_result_map[spec] };
-        if (!result.empty()) {
-            result.clear();
+        if (!lambda.ndf_result_refs.empty()) {
+            lambda.ndf_result_refs.clear();
         }
-        ForthLambda& result_addr{ w->ndf_result_addr_map[spec] };
-        if (!result_addr.empty()) {
-            result_addr.clear();
+        if (!lambda.ndf_result_addrs.empty()) {
+            lambda.ndf_result_addrs.clear();
         }
-        ForthLambda& result_offset{ w->ndf_result_offset_map[spec] };
-        if (!result_offset.empty()) {
-            result_offset.clear();
+        if (!lambda.ndf_result_offsets.empty()) {
+            lambda.ndf_result_offsets.clear();
         }
         // load the result stack
-        for (const auto op_or_addr : lambda) {
-            result.push_back(op_or_addr);
+        for (const auto op_or_addr : lambda.ndf_bin) {
+            lambda.ndf_result_refs.push_back(op_or_addr);
         }
         // compute
-        while (dispatch_forth(result, result_addr, result_offset)) {
+        while (dispatch_forth(lambda)) {
         }
-        DataRef& result_data_ref{ w->forth_result_data_refs[spec] };
+        // TODO: really not sure about this...
+        // we'll populate to resolve the result
+        AddrInx ainx{ lambda.ndf_result_refs.back() };
+        DataRef& result_data_ref{ lambda.ndf_result_data_refs[ainx]};
+            
         // when an NDF result is atomic Str or Int, it may
         // be an array element. And if that element has changed
         // we don't want to resent the whole array to the server
@@ -717,21 +729,21 @@ protected:
         // containing array, and offset gives us the index.
         switch (result_data_ref.tipe) {
         case cdStr:
-            result_data_ref.addr_inx = result_addr.back()();
-            result_data_ref.ref_inx = result.back()();
+            result_data_ref.addr_inx = lambda.ndf_result_addrs.back()();
+            result_data_ref.ref_inx = lambda.ndf_result_refs.back()();
             result_data_ref.size = 1;
             result_data_ref.offset = -1;
-            if (!result_offset.empty()) {
-                result_data_ref.offset = result_offset.back()();
+            if (!lambda.ndf_result_offsets.empty()) {
+                result_data_ref.offset = lambda.ndf_result_offsets.back()();
             }
             break;
         case cdInt:
-            result_data_ref.addr_inx = result_addr.back()();
-            result_data_ref.ref_inx = result.back()();
+            result_data_ref.addr_inx = lambda.ndf_result_addrs.back()();
+            result_data_ref.ref_inx = lambda.ndf_result_refs.back()();
             result_data_ref.size = 1;
             result_data_ref.offset = -1;
-            if (!result_offset.empty()) {
-                result_data_ref.offset = result_offset.back()();
+            if (!lambda.ndf_result_offsets.empty()) {
+                result_data_ref.offset = lambda.ndf_result_offsets.back()();
             }
             break;
         default:
@@ -754,7 +766,7 @@ protected:
         WidgetVec* wvec = (wv == nullptr) ? &widget_vec : wv;
         for (auto wvit = wvec->begin(); wvit != wvec->end(); ++wvit) {
             WidgetPtr w{ *wvit };
-            for (auto fmit = w->ndf_lambda_map.begin(); fmit != w->ndf_lambda_map.end(); ++fmit) {
+            for (auto fmit = w->lambda_map.begin(); fmit != w->lambda_map.end(); ++fmit) {
                 execute_forth(w, fmit->first);
             }
             if (!w->children.empty()) {
@@ -1485,9 +1497,10 @@ public:
         // no direct mapping via data key: the render_method that invoked
         // us could be asking for any addr cspec here, so we may need to
         // return an NDF lambda result.
-        auto cs_ndfref_iter = w->forth_result_data_refs.find(spec);
-        if (cs_ndfref_iter != w->forth_result_data_refs.end())
-            return &(cs_ndfref_iter->second);
+        auto cs_ndfref_iter = w->lambda_map.find(spec);
+        if (cs_ndfref_iter != w->lambda_map.end())
+            return nullptr;
+            // return &(w->lambda_map->second);
         return nullptr;
     }
 private:

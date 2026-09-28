@@ -7,7 +7,7 @@
 #include "nd_types.hpp"
 
 // WASM cache types that capture the data and layout
-// JSON, and applies constraints. Think of it as an
+// JSON, and apply constraints. Think of it as an
 // encapsulation of data denoted by data[key]
 struct DataRef {
     CDT         tipe{ EndDataTypes };   // cdInt, cdFloat, cdBool, cdStr
@@ -16,12 +16,54 @@ struct DataRef {
     uint32_t    size{ 1 };              // scalars have size:1, arrays size:N
     int32_t     offset{ -1 };           // only used in NDWidget::forth_result_data_refs
 };                                      //   instances by notify_server() for array element
-                                        //   DataChanges
+                                        //   DataChanges to "atomicise" the change
 
 
-using DataRefMap = std::map<CacheSpecifier, DataRef>;
+// using DataRefMap = std::map<CacheSpecifier, DataRef>;
+using DataRefMap = std::map<AddrInx, DataRef>;
 using DataRefVec = std::vector<DataRef>;
 using MenuMap = std::map<AddrInx, DataRef>;
+
+// NDFMachine is NoDOM Forth Machine. NDF is a micro forth
+// dialect designed for embedding in Widgets, Menus etc
+// where "data adapters" are needed to transform data to
+// appropriate micro format. Such a language has to be
+// efficient enough to operate on the render hotpath,
+// even if we try to arrange for it to run on the main
+// thread intra render. So NDF needs to be 0alloc & 0cp
+// as far as possible. We acheive that with radically simple
+// syntax. Per usual for Forth it is RPN. However, NDF does
+// not admit constants. Every symbol is either a name or
+// an operator. Typically a name is a DLC name for something
+// supplied in init JSON "data". But it could be a bulk or
+// live cache reference too. Taken as a whole those name
+// mechanisms should be thought of as Kripkean Rigid Designators.
+// Or maybe I should say Kripkensteinian Rigid designators :)
+// The practical end is the same: no alloc, no cp on NDF "edge
+// computations" that resolve geometry mismatches between different
+// canned elements of C++ finctionality in play to render the GUI.
+
+// NB everything in the NDF token universe is an AddrInx
+// Because it is an address in data, or its an operator,
+// which DLC::init() creates as an AddrInx. Which makes
+// this convenient: ForthLambda = std::deque<AddrInx>;
+
+// For NDF: each deque of int32 will capture a NoDOM Forth
+// lambda. For example "queries selected_query []"
+// Each int32 is an OpInx or AddrInx
+// constants should be added to data to enable pushing
+using ForthTokens = std::deque<AddrInx>;
+// using ForthMap = std::map<CacheSpecifier, ForthLambda>;
+
+struct NDFMachine {
+    ForthTokens ndf_bin;            // tokenised Forth eg "arrary index []" reduced to 3 32bit tokens
+    ForthTokens ndf_result_refs;    // post computation stack: should be all refs and not ops
+    ForthTokens ndf_result_addrs;   // address to match the refs
+    ForthTokens ndf_result_offsets; // if result is an array and we need to atomicse a change
+    DataRefMap  ndf_result_data_refs;
+};
+
+using ForthMap = std::map<CacheSpecifier, NDFMachine>;
 
 struct NDWidget {
     NDWidget() = default;
@@ -94,14 +136,8 @@ struct NDWidget {
     DoubleValMap    cspec_double;
     StrValMap       cspec_str;
     DataRefMap      data_refs;
-    ForthMap        ndf_lambda_map;         // compiled lambda source keyed on addr cspec
-                                            //  NB ForthMap = std::map<CacheSpec,std::deque<AddrInx>>
-    ForthMap        ndf_result_map;         // result of lambda exec keyed same: typically a single
-                                            //  DataRef::ref_inx value
-    ForthMap        ndf_result_addr_map;    // DataRef::addr_inx value matching ndf_result_map
-    ForthMap        ndf_result_offset_map;  // array offsets enable array elem change to be
-                                            // represented as atomic in notify_server()
-    DataRefMap      forth_result_data_refs;
+    ForthMap        lambda_map;
+
     char*           buffer{ nullptr };      // eg render_input_string
     int             buffer_size{ 0 };
     char**          buffer_ptr{ nullptr };  // working storage for buffer manipulation
@@ -114,6 +150,7 @@ struct NDWidget {
     DoubleVec       old_double;
     char*           old_buffer{ nullptr };
     DataRef*        changed{ nullptr };
+    
     std::vector<std::shared_ptr<NDWidget>>  children;
 };
 using WidgetPtr = std::shared_ptr<NDWidget>;
