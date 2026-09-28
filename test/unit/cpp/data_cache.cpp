@@ -284,18 +284,18 @@ BOOST_FIXTURE_TEST_CASE(BadIndex, DataCacheFixture)
 
 BOOST_FIXTURE_TEST_CASE(MinMenuBarDataAndLayout, DataCacheFixture)
 {
-#ifdef __EMSCRIPTEN__
-    // TODO: load from ems FS
-    auto layout = JParse<emscripten::val>(add_server_layout);
-#else
+    // NB on_json() invokes init(), so no need for dc.ut_init()
+    // in the data and layout unit tests.
     auto data = JParse<nlohmann::json>(min_menu_bar_data_cs);
     auto layout = JParse<nlohmann::json>(min_menu_bar_layout_cs);
-#endif
+
     str_count = 17;
-    int_count = 2;
+
     dc.on_json(data, layout, [&]() { dc.on_init(); });
+
     // dump cache state before assertions...
     dc.report_cache_state();
+
     BOOST_TEST(dc.widget_vec_size() == 1);
     BOOST_TEST(dc.pushables_size() == 0);
     BOOST_TEST(dc.error_count() == 0);
