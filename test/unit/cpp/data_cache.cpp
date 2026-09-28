@@ -236,13 +236,17 @@ BOOST_FIXTURE_TEST_CASE(AddFloat, DataCacheFixture)
 
 BOOST_FIXTURE_TEST_CASE(AddDouble, DataCacheFixture)
 {
+    dc.ut_init();
+
     AddrInx addr_inx = dc.add_address(std::string{ "input_double_step" });
+    str_count = 9;
+
     double step{ 0.25 };
-    str_count = 2;  // also i_am_noop
-    int_count = 2;
-    DoubleInx double_inx = dc.intern_double(step);    // not backed
+    DoubleInx double_inx = dc.intern_double(step);
+
     BOOST_TEST(DoubleInx::item_type == CIT::Value);
     BOOST_TEST(DoubleInx::data_type == CDT::cdDouble);
+
     BOOST_TEST(double_inx.magic_index == uint32_t(0x02030000));
     BOOST_TEST(double_inx() == uint32_t(0));
     assert_cache_state();
