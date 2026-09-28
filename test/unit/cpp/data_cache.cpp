@@ -218,12 +218,17 @@ BOOST_FIXTURE_TEST_CASE(AddBool, DataCacheFixture)
 
 BOOST_FIXTURE_TEST_CASE(AddFloat, DataCacheFixture)
 {
+    dc.ut_init();
+
     AddrInx addr_inx = dc.add_address(std::string{ "font_scale_main" });
-    str_count = 2;  // also i_am_noop
-    FloatInx float_inx = dc.extern_float(&font_scale_main);    // not backed
-    extern_float_count = float_count = 1;
+    str_count = 9;
+
+    FloatInx float_inx = dc.extern_float(&font_scale_main);
+    float_count = 1;
+
     BOOST_TEST(FloatInx::item_type == CIT::Value);
     BOOST_TEST(FloatInx::data_type == CDT::cdFloat);
+
     BOOST_TEST(float_inx.magic_index == uint32_t(0x02020000));
     BOOST_TEST(float_inx() == uint32_t(0));
     assert_cache_state();
