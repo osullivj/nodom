@@ -213,11 +213,17 @@ struct Static {
 	inline static const char* ndfop_or_cs{ "or" };
 	inline static const char* ndfop_in_cs{ "in" };
 
+	// NDF const names used for const addrs
+	inline static const char* true_cs{ "true" };
+	inline static const char* false_cs{ "false" };
+	inline static const char* zero_cs{ "0" };
+	inline static const char* one_cs{ "1" };
+
 	inline static const char* gui_cs{ "GUI" };
 	inline static const char* websock_cs{ "WebSock" };
 	inline static const char* duck_db_cs{ "DuckDB" };
 
-	// Fake QIDs
+		// Fake QIDs
 	inline static const char* cache_loaded_cs{ "CacheLoaded" };// GUI.CacheLoaded
 
 	// Critical strings
