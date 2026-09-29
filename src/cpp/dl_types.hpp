@@ -52,15 +52,27 @@ using MenuMap = std::map<AddrInx, DataRef>;
 // lambda. For example "queries selected_query []"
 // Each int32 is an OpInx or AddrInx
 // constants should be added to data to enable pushing
-using ForthTokens = std::deque<AddrInx>;
-// using ForthMap = std::map<CacheSpecifier, ForthLambda>;
+using ForthTokens = std::vector<AddrInx>;
+using ForthStack = std::vector<DataRef*>;
 
 struct NDFMachine {
-    ForthTokens ndf_bin;            // tokenised Forth eg "arrary index []" reduced to 3 32bit tokens
-    ForthTokens ndf_result_refs;    // post computation stack: should be all refs and not ops
-    ForthTokens ndf_result_addrs;   // address to match the refs
-    ForthTokens ndf_result_offsets; // if result is an array and we need to atomicse a change
-    DataRefMap  ndf_result_data_refs;
+    ForthTokens ndf_bin;        // tokenised Forth eg "arrary index []" reduced to 3 32bit tokens
+                                // token: addr or op.
+                                // op: AddrInx for op. 
+                                // addr: address_map entry that resolves to global 
+    size_t      next{ 0 };
+    CDT         result_type{ EndDataTypes };
+    DataRefVec  locals;
+    ForthStack  stack;
+
+    void pre_exec() {
+        next = 0;
+        stack.clear();
+    }
+
+    bool unfinished() {
+        return next < ndf_bin.size();
+    }
 };
 
 using ForthMap = std::map<CacheSpecifier, NDFMachine>;
