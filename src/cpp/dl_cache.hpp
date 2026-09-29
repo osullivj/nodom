@@ -581,10 +581,10 @@ protected:
                 // keyed by ainx() to hold the result cache ref
                 // this is not a DLC wide global; instead its an
                 // NDFMachine local result that refs into DLC caches
-                DataRef& local_data_ref{ lambda.ndf_result_data_refs[addr_map_inx] };
+                DataRef& local_result_data_ref{ lambda.ndf_result_data_refs[addr_map_inx] };
                 // TODO: logic to populate local_data_ref with correct
                 // tipe,addr_inx,ref_inx,size,offset
-
+                local_result_data_ref.tipe = result_type;
             }
             else {
                 bad_data_refs.push_back(stoken);
@@ -595,8 +595,8 @@ protected:
                 return false;
             }
         }
-        DataRef& result_data_ref{ w->forth_result_data_refs[spec] };
-        result_data_ref.tipe = result_type;
+        // DataRef& result_data_ref{ w->lambda_map[spec].ndf_result_data_refs[spec] };
+        // result_data_ref.tipe = result_type;
         return true;
     }
 
