@@ -219,6 +219,7 @@ enum CacheDataType : uint32_t {
     cdStrVec = 0x70000,
     cdAny = 0x80000,
     cdResultSet = 0x90000,
+    cdOperator = 0xA0000,   // NDF operator
     EndDataTypes = 0xF0000
 };
 
