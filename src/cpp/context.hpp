@@ -561,7 +561,13 @@ public:
             dirty_str_addr_vec.clear();
             dirty_str_ref_vec.clear();
         }
-
+        if (!dirty_bool_ref_vec.empty()) {
+            data_lay_cache.on_dirty(dirty_bool_addr_vec, dirty_bool_ref_vec,
+                data_lay_cache.get_bool_driven_widget_vecs(),
+                data_lay_cache.get_bool_driven_cspec_vecs());
+            dirty_bool_addr_vec.clear();
+            dirty_bool_ref_vec.clear();
+        }
         if (!pending_actions.empty()) {
             PendingAction pa{ pending_actions.front() };
             pending_actions.pop_front();
