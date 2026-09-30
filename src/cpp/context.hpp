@@ -1829,12 +1829,23 @@ protected:
         const char* button_text = cspec_string(cs_text, w->cspec_str, method);
         const char* tooltip = cspec_string(cs_tooltip, w->cspec_str, nullptr);
 
+        DataRef* disabled_data_ref = cspec_data_ref(cs_disabled, w);
+        bool* bool_ptr{ nullptr };
+        if (disabled_data_ref != nullptr) {
+            BoolInx binx(disabled_data_ref->ref_inx);
+            bool_ptr = data_lay_cache.get_bool_value(BoolInx(disabled_data_ref->ref_inx));
+            ImGui::BeginDisabled(*bool_ptr);
+        }
+
         bool clicked = ImGui::Button(button_text);
         if (tooltip != nullptr) {
             ImGui::SetItemTooltip("%s", tooltip);
         }
         if (clicked) {
             pending_actions.push_back({ w->widget_inx, einx_Click });
+        }
+        if (bool_ptr != nullptr) {
+            ImGui::EndDisabled();
         }
     }
 
