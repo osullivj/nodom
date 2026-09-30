@@ -654,6 +654,42 @@ protected:
         return true;
     }
 
+    bool forth_in_op(NDFMachine& forth) {
+        // asert stack has operands, and pop them
+        assert(forth.stack.size() >= 2);
+        DataRef* elem_ref = forth.stack.back();
+        forth.stack.pop_back();
+        DataRef* list_ref = forth.stack.back();
+        forth.stack.pop_back();
+
+        // assert list and index types
+        assert(elem_ref != nullptr);
+        assert(elem_ref->tipe == cdStr);
+        assert(list_ref != nullptr);
+        assert(list_ref->tipe == cdStrVec);
+
+        StrInx sinx_elem(elem_ref->ref_inx);
+        const char* elem_c = get_string_value(sinx_elem)
+        StrInx sinx_list{ list_ref->ref_inx };
+        bool in{ false };
+        for (uint32_t count = 0; count < list_ref->size; count++) {
+            const char* s = get_string_value(sinx_list);
+            if (std::string_view(s) == std::string_view(elem_c)) {
+                in = true;
+                break;
+            }
+            sinx_list++;
+        }
+
+        if (in) {
+            forth.stack.push_back(&data_ref_True);
+        }
+        else {
+            forth.stack.push_back(&data_ref_False);
+        }
+        return true;
+    }
+
     bool forth_pop_data_op(NDFMachine& forth) {
         // asert stack has one operand, and pop it
         assert(forth.stack.size() >= 1);

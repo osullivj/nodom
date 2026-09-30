@@ -1177,7 +1177,6 @@ public:
         return range;
     }
 
-
     StringVec& get_col_names(RSHandle handle) {
         // First 3 32 bit words are done, ncols, nrows
         StringVec& colm_names = column_map[handle];
