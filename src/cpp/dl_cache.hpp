@@ -1135,9 +1135,7 @@ public:
         for (auto inx = 0; inx < sz; inx++) {
             // raw AddrInx is the key to int_driven_[widget|cspec]_vecs
             dirty_addr_inx = dirty_addr_vec[inx];
-            if ( (int_driven_widget_vecs.find(dirty_addr_inx) != int_driven_widget_vecs.end()) ||
-                (bool_driven_widget_vecs.find(dirty_addr_inx) != bool_driven_widget_vecs.end()) ||
-                (str_driven_widget_vecs.find(dirty_addr_inx) != str_driven_widget_vecs.end()) ) {
+            if ( driven_widget_vecs.find(dirty_addr_inx) != driven_widget_vecs.end() ) {
                 dirty_ref_inx = dirty_ref_vec[inx];
                 WidgetVec& wvec{ driven_widget_vecs.at(dirty_addr_inx) };
                 CacheSpecVec& csvec{ driven_cspec_vecs.at(dirty_addr_inx) };
