@@ -1,0 +1,156 @@
+#include <stdlib.h>
+#include "dl_cache.hpp"
+#define BOOST_TEST_MODULE Data_Cache_Tests
+#include <boost/test/unit_test.hpp>
+#include <math.h>
+#include <filesystem>
+
+
+#if defined(_MSC_VER) && (_MSC_VER >= 1900) && !defined(IMGUI_DISABLE_WIN32_FUNCTIONS)
+#pragma comment(lib, "legacy_stdio_definitions")
+#endif
+
+template <typename JSON>
+struct TestDLC : public DataLayCache<JSON> {
+    void on_init() {
+        // create same inx consts that NDContext would 
+        // use for eg ActionKey matching
+    }
+};
+
+struct DataCacheFixture { 
+    TestDLC<nlohmann::json>     dc;
+
+    // cf NDContext::style_coloring
+    int style_coloring{ StyleColor::Dark };
+    // cf ImGuiStyle::FontScaleMain
+    float font_scale_main{ 1.0 };
+    // cf proxy.get_server_url()
+    bool show_footer_db{ false };
+    std::string server_url{ "wss://localhost/api/websock" };
+    // for test data paths
+    std::string nd_home;
+    std::string test_json_dir;
+
+    // reset these at the top of your test method
+    // for the dtor asserts
+    int str_count{ 0 };
+    int int_count{ 2 };     // consts 0 and 1
+    int float_count{ 0 };
+
+    int extern_str_count{ 0 };
+    int extern_int_count{ 0 };
+    int extern_float_count{ 0 };
+
+    DataCacheFixture()
+        :nd_home(getenv("ND_HOME"))
+    {
+        std::stringstream buf;
+        buf << nd_home << "\\cfg\\";
+        test_json_dir = buf.str();
+        std::cout << "==== " << boost::unit_test::framework::current_test_case().p_name << std::endl;
+    }
+
+    void assert_cache_state() {
+        dc.report_sanity_check();
+        dc.report_cache_errors();
+
+        int sc = dc.report_cache_strings(extern_str_count);
+        BOOST_TEST(str_count == sc);
+
+        int ic = dc.report_cache_ints(extern_int_count);
+        BOOST_TEST(int_count == ic);
+
+        int fc = dc.report_cache_floats(extern_float_count);
+        BOOST_TEST(float_count == fc);
+
+        dc.report_address_map();
+        dc.report_data_refs();
+        dc.report_func_maps();
+        dc.report_actions();
+        std::cout << std::endl;
+    }
+
+    ~DataCacheFixture() { }
+};
+
+
+BOOST_FIXTURE_TEST_CASE(NDFNotForth, DataCacheFixture)
+{
+    std::string data_json_path = test_json_dir + "test_ndf_not_data.json";
+    std::string data_json = load_json(data_json_path.c_str());
+    auto data = JParse<nlohmann::json>(data_json);
+
+    std::string layout_json_path = test_json_dir + "test_ndf_not_layout.json";
+    std::string layout_json = load_json(layout_json_path.c_str());
+    auto layout = JParse<nlohmann::json>(layout_json);
+
+    str_count = 24;
+    int_count = 6;
+    dc.on_json(data, layout, [&]() { dc.on_init(); });
+
+    BOOST_TEST(dc.widget_vec_size() == 2);
+    BOOST_TEST(dc.pushables_size() == 1);
+
+    // find the Button Widgets
+    WidgetVec matches;
+    dc.find_widget(RenderMethod::Button, matches);
+    BOOST_TEST(matches.size() == 2);
+    WidgetPtr button_widget1{ matches[0] };
+    WidgetPtr button_widget2{ matches[1] };
+
+    // check the result of the NDF computation, which
+    // should be queries[0]. NB NDWidget validity window
+    // comments re: changed. We cannot use changed here
+    // in the absence of NDContext change mgmt.
+    nlohmann::json save_enabled = data["save_enabled"];
+    nlohmann::json discard_enabled = data["discard_enabled"];
+
+    // "save_enabled not" should give us true as save_enabled==false
+    DataRef* ndf_save_bool_data_ref = dc.cspec_data_ref(CacheSpecifier::cs_disabled, button_widget1);
+    BOOST_TEST(ndf_save_bool_data_ref != nullptr);
+    BoolInx binx1(ndf_save_bool_data_ref->ref_inx);
+    bool* bool_ptr1 = dc.get_bool_value(binx1);
+    BOOST_TEST(bool_ptr1 != nullptr);
+    BOOST_TEST(*bool_ptr1 == true);
+
+    // "discard_enabled not" should give us false as discard_enabled==true
+    DataRef* ndf_discard_bool_data_ref = dc.cspec_data_ref(CacheSpecifier::cs_disabled, button_widget2);
+    BOOST_TEST(ndf_discard_bool_data_ref != nullptr);
+    BoolInx binx2(ndf_discard_bool_data_ref->ref_inx);
+    bool* bool_ptr2 = dc.get_bool_value(binx2);
+    BOOST_TEST(bool_ptr2 != nullptr);
+    BOOST_TEST(*bool_ptr2 == false);
+
+    // change underlying values and recalc
+    *bool_ptr1 = false;
+    *bool_ptr2 = true;
+
+    // To trigger the recalc we repro some of the
+    // NDContext::end_render_cycle() dirty vec impl
+    UintVec dirty_bool_addr_vec;
+    UintVec dirty_bool_ref_vec;
+    dirty_bool_addr_vec.push_back(ndf_save_bool_data_ref->addr_inx());
+    dirty_bool_ref_vec.push_back(binx1());
+    dirty_bool_addr_vec.push_back(ndf_discard_bool_data_ref->addr_inx());
+    dirty_bool_ref_vec.push_back(binx2());
+
+    dc.on_dirty(dirty_bool_addr_vec, dirty_bool_ref_vec,
+        dc.get_bool_driven_widget_vecs(), dc.get_bool_driven_cspec_vecs());
+
+    // "save_enabled not" should give us true as save_enabled==false
+    ndf_save_bool_data_ref = dc.cspec_data_ref(CacheSpecifier::cs_disabled, button_widget1);
+    BoolInx binx3(ndf_save_bool_data_ref->ref_inx);
+    bool_ptr1 = dc.get_bool_value(binx3);
+    BOOST_TEST(bool_ptr1 != nullptr);
+    BOOST_TEST(*bool_ptr1 == false);
+
+    // "discard_enabled not" should give us false as discard_enabled==true
+    ndf_discard_bool_data_ref = dc.cspec_data_ref(CacheSpecifier::cs_disabled, button_widget2);
+    BoolInx binx4(ndf_discard_bool_data_ref->ref_inx);
+    bool_ptr2 = dc.get_bool_value(binx4);
+    BOOST_TEST(bool_ptr2 != nullptr);
+    BOOST_TEST(*bool_ptr2 == true);
+
+    assert_cache_state();
+}
