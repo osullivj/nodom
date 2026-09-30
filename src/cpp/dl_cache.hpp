@@ -1568,7 +1568,7 @@ private:
         Static::menu_pop_cs,
         Static::buffer_size_cs,
         Static::line_height_cs,
-        Static::rclick_col_cs,
+        Static::selectable_col_cs,
         Static::height_cs,
         Static::width_cs,
         Static::db_cs,     // cs_db,
