@@ -22,15 +22,15 @@
             "disabled": "save_enabled not"
           },
           "rname": "Button",
-          "widget_id":"i_am_save_button"
+          "widget_id": "i_am_save_button"
         },
         {
           "cspec": {
-            "text":"Save",
+            "text": "Save",
             "disabled": "discard_enabled not"
           },
           "rname": "Button",
-          "widget_id":"i_am_discard_button"
+          "widget_id": "i_am_discard_button"
         }
       ],
       "cspec": {
