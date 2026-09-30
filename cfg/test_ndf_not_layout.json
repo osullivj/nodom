@@ -1,0 +1,53 @@
+ [
+    {
+      "children": [
+       {
+          "cspec": {
+            "cname": "queries",
+            "cindex": "selected_query",
+            "label": "Query"
+          },
+          "rname": "Combo"
+        },
+        {
+          "cspec": {
+            "cname": "queries selected_query []",
+            "buffer_size":64
+          },
+          "rname": "InputTextArea"
+        },
+        {
+          "cspec": {
+            "text":"Save",
+            "disabled": "save_enabled not"
+          },
+          "rname": "Button",
+          "widget_id":"i_am_save_button"
+        },
+        {
+          "cspec": {
+            "text":"Save",
+            "disabled": "discard_enabled not"
+          },
+          "rname": "Button",
+          "widget_id":"i_am_discard_button"
+        }
+      ],
+      "cspec": {
+        "title": "Query Editor"
+      },
+      "rname": "Home"
+    },
+    {
+      "cspec": {
+        "body_font": "CourierNew",
+        "cname": "loading_message",
+        "spinner_radius": 20,
+        "spinner_thickness": 4,
+        "title": "Loading...",
+        "title_font": "Arial"
+      },
+      "rname": "LoadingModal",
+      "widget_id": "i_am_loading_modal"
+    }
+  ]
