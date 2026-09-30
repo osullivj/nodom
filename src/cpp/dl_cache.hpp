@@ -122,6 +122,8 @@ protected:
     InxCspecVecMap  int_driven_cspec_vecs;
     InxWidgetVecMap str_driven_widget_vecs;
     InxCspecVecMap  str_driven_cspec_vecs;
+    InxWidgetVecMap bool_driven_widget_vecs;
+    InxCspecVecMap  bool_driven_cspec_vecs;
     uint32_t        dirty_addr_inx{ 0 };
     uint32_t        dirty_ref_inx{ 0 };
     size_t          vec_inx{ 0 };
@@ -129,8 +131,10 @@ protected:
 public:
     InxWidgetVecMap& get_int_driven_widget_vecs() { return int_driven_widget_vecs; }
     InxWidgetVecMap& get_str_driven_widget_vecs() { return str_driven_widget_vecs; }
+    InxWidgetVecMap& get_bool_driven_widget_vecs() { return bool_driven_widget_vecs; }
     InxCspecVecMap& get_int_driven_cspec_vecs() { return int_driven_cspec_vecs; }
     InxCspecVecMap& get_str_driven_cspec_vecs() { return str_driven_cspec_vecs; }
+    InxCspecVecMap& get_bool_driven_cspec_vecs() { return bool_driven_cspec_vecs; }
 
     template <CIT itype>
     auto get_string_index(const std::string& s, CST stype = CST::None) {
@@ -583,6 +587,10 @@ protected:
                 case cdStrVec:
                     str_driven_widget_vecs[addr_map_inx()].push_back(w);
                     str_driven_cspec_vecs[addr_map_inx()].push_back(spec);
+                    break;
+                case cdBool:
+                    bool_driven_widget_vecs[addr_map_inx()].push_back(w);
+                    bool_driven_cspec_vecs[addr_map_inx()].push_back(spec);
                     break;
                 }
             }
@@ -1127,7 +1135,9 @@ public:
         for (auto inx = 0; inx < sz; inx++) {
             // raw AddrInx is the key to int_driven_[widget|cspec]_vecs
             dirty_addr_inx = dirty_addr_vec[inx];
-            if (int_driven_widget_vecs.find(dirty_addr_inx) != int_driven_widget_vecs.end()) {
+            if ( (int_driven_widget_vecs.find(dirty_addr_inx) != int_driven_widget_vecs.end()) ||
+                (bool_driven_widget_vecs.find(dirty_addr_inx) != bool_driven_widget_vecs.end()) ||
+                (str_driven_widget_vecs.find(dirty_addr_inx) != str_driven_widget_vecs.end()) ) {
                 dirty_ref_inx = dirty_ref_vec[inx];
                 WidgetVec& wvec{ driven_widget_vecs.at(dirty_addr_inx) };
                 CacheSpecVec& csvec{ driven_cspec_vecs.at(dirty_addr_inx) };
