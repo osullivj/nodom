@@ -55,7 +55,7 @@ FIN_LAYOUT = [
                     title="Instruments",
                     query_id="query_inst_tbl_qid",
                     menupop="instruments_rclick_menupop",
-                    rclick_col=0,
+                    selectable_col=0,
                     table_flags=TableFlags.SCROLL_Y
                     | TableFlags.ROW_BG
                     | TableFlags.BORDERS_OUTER
