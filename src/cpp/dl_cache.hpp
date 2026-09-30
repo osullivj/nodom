@@ -679,19 +679,19 @@ protected:
             bool_ptr = get_bool_value(op_ref->ref_inx);
             assert(bool_ptr != nullptr);
             if (*bool_ptr == true) {
-                forth.stack.push_back(&data_ref_True);
+                forth.stack.push_back(&data_ref_False);
             }
             else {
-                forth.stack.push_back(&data_ref_False);
+                forth.stack.push_back(&data_ref_True);
             }
             break;
         case cdInt:
             int_ptr = get_int_value(op_ref->ref_inx);
             if (*int_ptr == 0) {
-                forth.stack.push_back(&data_ref_False);
+                forth.stack.push_back(&data_ref_True);
             }
             else {
-                forth.stack.push_back(&data_ref_True);
+                forth.stack.push_back(&data_ref_False);
             }
             break;
         default:
