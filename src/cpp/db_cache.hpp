@@ -496,7 +496,10 @@ public:
     }
 
     std::int32_t get_selection(RSHandle handle) {
-        return selection_map.at(handle);
+        if (selection_map.find(handle) != selection_map.end()) {
+            return selection_map.at(handle);
+        }
+        return -1;
     }
 
     void set_selection(RSHandle handle, std::int32_t sel) {
@@ -880,6 +883,7 @@ private:
     // data
     WasmChunkMap                        chunk_map;
     uint32_t                            duck_chunk_size{ CHUNK_SIZE };
+    std::unordered_map<RSHandle, int>   selection_map;  // only 1 selected tow per RS
     // working storage
     char                                string_buffer[STR_BUF_LEN];
     fmt::format_to_n_result<char*>      fmt_result;
@@ -1193,6 +1197,17 @@ public:
     IntVec& get_col_types(RSHandle handle) {
         IntVec& colm_types = type_map[handle];
         return colm_types;
+    }
+
+    std::int32_t get_selection(RSHandle handle) {
+        if (selection_map.find(handle) != selection_map.end()) {
+            return selection_map.at(handle);
+        }
+        return -1;
+    }
+
+    void set_selection(RSHandle handle, std::int32_t sel) {
+        selection_map[handle] = sel;
     }
 
     bool get_meta_data(RSHandle handle, std::uint32_t& colm_count, std::uint32_t& row_count) {
