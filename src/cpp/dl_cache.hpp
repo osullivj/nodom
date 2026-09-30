@@ -547,11 +547,13 @@ protected:
 
     bool is_forth(const std::string& forth_source) {
         // if eg a cname RHS has no space, it's a direct ref
-        if (forth_source.find(Static::space_c) == std::string::npos)
+        if (forth_source.find(Static::space_c) == std::string::npos) {
             return false;
+        }
+        return true;
     }
 
-    bool compile_forth(WidgetPtr w, CacheSpecifier spec, CDT result_type, const std::string& forth_source) {
+    bool compile_forth(WidgetPtr w, CacheSpecifier spec, CDT result_type, const std::string& forth_source, const JSON& data) {
         // no space in the source means it's a direct reference
         std::stringstream forth_stream{ forth_source };
         std::string stoken;
@@ -572,7 +574,14 @@ protected:
             else if (address_map.find(stoken) != address_map.end()) {
                 // put the addr token in the tokenised code, using
                 // "global" DLC wide adress_map and data_ref_map
+                // .at() cos we checked the address_map above...
                 AddrInx addr_map_inx{ address_map.at(stoken) };
+                // if the data_ref doesn't exist because no other widget
+                // has referred to it we create...
+                if (data_ref_map.find(addr_map_inx) == data_ref_map.end()) {
+                    DataRef data_ref = CreateDataRef(result_type, addr_map_inx, data, stoken);
+                    data_ref_map[data_ref.addr_inx] = data_ref;
+                }
                 DataRef& global_data_ref{ data_ref_map.at(addr_map_inx) };
                 lambda.ndf_bin.push_back(addr_map_inx);
                 // create DLC wide memo of this w:cspec pair as driven by
@@ -836,16 +845,17 @@ protected:
                 if (ref_name == Static::cname_cs || 
                     ref_name == Static::cindex_cs||
                     ref_name == Static::xname_cs ||
-                    ref_name == Static::yname_cs) {
+                    ref_name == Static::yname_cs ||
+                    ref_name == Static::disabled_cs) {
                     // before we error check it's not an NDF Lambda
-                    if (ref_name == Static::cname_cs) {
+                    if (ref_name == Static::cname_cs || ref_name == Static::disabled_cs) {
                         // Yes, sharp eyed reader! This means the widget
                         // will not have a DataRefMap entry for cname.
                         // Instead the forth result will get loaded
                         // into forth_result_data_ref, and cspec_data_ref()
                         // will return &forth_result_data_ref. Obv we
                         // want NDF to be a 0alloc 0cp uforth.
-                        if (is_forth(addr_or_qid) && compile_forth(widget, spec, ref_type, addr_or_qid))
+                        if (is_forth(addr_or_qid) && compile_forth(widget, spec, ref_type, addr_or_qid, data))
                             continue;
                         bad_data_refs.push_back(ref_name);
                         std::stringstream ss;
@@ -900,6 +910,7 @@ protected:
             case cs_yname:
             case cs_formats:
             case cs_xforms:
+            case cs_disabled:
                 data_ref = CreateDataRef(ref_type, amit->second(), data, addr_or_qid);
                 break;
             case cs_query_id:   // cdResultSet
@@ -929,6 +940,7 @@ protected:
                 case cs_yname:
                 case cs_formats:
                 case cs_xforms:
+                case cs_disabled:
                     data_ref_map[data_ref.addr_inx] = data_ref;
                     break;
                 default:
@@ -972,7 +984,7 @@ protected:
             data_ref.ref_inx = get_double_index(JAsDouble(data, addr.c_str()))();
             break;
         case cdBool:
-            data_ref.ref_inx = get_bool_index(JAsInt(data, addr))();
+            data_ref.ref_inx = get_bool_index(JAsBool(data, addr.c_str()))();
             break;
         case cdIntVec:
             jvec = data[addr];
