@@ -85,7 +85,7 @@ BOOST_FIXTURE_TEST_CASE(NDFNotForth, DataCacheFixture)
     std::string layout_json = load_json(layout_json_path.c_str());
     auto layout = JParse<nlohmann::json>(layout_json);
 
-    str_count = 24;
+    str_count = 29;
     int_count = 6;
     dc.on_json(data, layout, [&]() { dc.on_init(); });
 
@@ -123,34 +123,56 @@ BOOST_FIXTURE_TEST_CASE(NDFNotForth, DataCacheFixture)
     BOOST_TEST(*bool_ptr2 == false);
 
     // change underlying values and recalc
-    *bool_ptr1 = false;
-    *bool_ptr2 = true;
+    std::string save_enabled_cs{ "save_enabled" };
+    AddrInx save_enabled_inx = dc.get_addr_inx(save_enabled_cs);
+    DataRef* save_enabled_data_ref = dc.get_data_ref(save_enabled_inx);
+    BOOST_TEST(save_enabled_data_ref != nullptr);
+    BoolInx binx1a(save_enabled_data_ref->ref_inx);
+    bool* bool_ptr1a = dc.get_bool_value(binx1a);
+    BOOST_TEST(bool_ptr1a != nullptr);
+    // check underlying val of save_enabled is still false
+    BOOST_TEST(*bool_ptr1a == false);
+
+    std::string discard_enabled_cs{ "discard_enabled" };
+    AddrInx discard_enabled_inx = dc.get_addr_inx(discard_enabled_cs);
+    DataRef* discard_enabled_data_ref = dc.get_data_ref(discard_enabled_inx);
+    BOOST_TEST(discard_enabled_data_ref != nullptr);
+    BoolInx binx2a(discard_enabled_data_ref->ref_inx);
+    bool* bool_ptr2a = dc.get_bool_value(binx2a);
+    BOOST_TEST(bool_ptr2a != nullptr);
+    // check underlying val of discard_enabled is still true
+    BOOST_TEST(*bool_ptr2a == true);
+
+    // Now change the underlying val and force a recalc
+    *bool_ptr1a = true;
+    *bool_ptr2a = false;
 
     // To trigger the recalc we repro some of the
     // NDContext::end_render_cycle() dirty vec impl
     UintVec dirty_bool_addr_vec;
     UintVec dirty_bool_ref_vec;
-    dirty_bool_addr_vec.push_back(ndf_save_bool_data_ref->addr_inx());
-    dirty_bool_ref_vec.push_back(binx1());
-    dirty_bool_addr_vec.push_back(ndf_discard_bool_data_ref->addr_inx());
-    dirty_bool_ref_vec.push_back(binx2());
-
+    dirty_bool_addr_vec.push_back(save_enabled_data_ref->addr_inx());
+    dirty_bool_ref_vec.push_back(save_enabled_data_ref->ref_inx);
+    dirty_bool_addr_vec.push_back(discard_enabled_data_ref->addr_inx());
+    dirty_bool_ref_vec.push_back(discard_enabled_data_ref->ref_inx);
     dc.on_dirty(dirty_bool_addr_vec, dirty_bool_ref_vec,
         dc.get_bool_driven_widget_vecs(), dc.get_bool_driven_cspec_vecs());
 
-    // "save_enabled not" should give us true as save_enabled==false
+    // and now "save_enabled not" should give us false as save_enabled==true
     ndf_save_bool_data_ref = dc.cspec_data_ref(CacheSpecifier::cs_disabled, button_widget1);
-    BoolInx binx3(ndf_save_bool_data_ref->ref_inx);
-    bool_ptr1 = dc.get_bool_value(binx3);
-    BOOST_TEST(bool_ptr1 != nullptr);
-    BOOST_TEST(*bool_ptr1 == false);
+    BOOST_TEST(ndf_save_bool_data_ref != nullptr);
+    BoolInx binx1b(ndf_save_bool_data_ref->ref_inx);
+    bool* bool_ptr1b = dc.get_bool_value(binx1b);
+    BOOST_TEST(bool_ptr1b != nullptr);
+    BOOST_TEST(*bool_ptr1b == false);
 
-    // "discard_enabled not" should give us false as discard_enabled==true
+    // and now "discard_enabled not" should give us true as discard_enabled==false
     ndf_discard_bool_data_ref = dc.cspec_data_ref(CacheSpecifier::cs_disabled, button_widget2);
-    BoolInx binx4(ndf_discard_bool_data_ref->ref_inx);
-    bool_ptr2 = dc.get_bool_value(binx4);
-    BOOST_TEST(bool_ptr2 != nullptr);
-    BOOST_TEST(*bool_ptr2 == true);
+    BOOST_TEST(ndf_discard_bool_data_ref != nullptr);
+    BoolInx binx2b(ndf_discard_bool_data_ref->ref_inx);
+    bool* bool_ptr2b = dc.get_bool_value(binx2b);
+    BOOST_TEST(bool_ptr2b != nullptr);
+    BOOST_TEST(*bool_ptr2b == true);
 
     assert_cache_state();
 }
