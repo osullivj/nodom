@@ -23,7 +23,8 @@
 
 using json_t = emscripten::val;
 using DuckDB_t = WebDuckDBCache;
-using MktData_t = LiveCache<json_t, TiingoIEXMidRecords>;
+using Tiingo_t = TiingoIEXMidRecords<json_t>;
+using MktData_t = LiveCache<json_t, Tiingo_t>;
 using NDContext_t = NDContext<json_t, DuckDB_t, MktData_t>;
 using NDWebSockClient_t = NDWebSockClient<json_t, DuckDB_t, MktData_t>;
 
@@ -47,6 +48,7 @@ int main(int argc, char* argv[]) {
     std::string init_data(argc > 2 ? argv[2] : Static::init_data_cs);
     std::string init_layout(argc > 3 ? argv[3] : Static::init_layout_cs);
     std::string init_config(argc > 4 ? argv[4] : Static::empty_obj_cs);
+    int live_cache_row_count{ 32 };
 
     NDConfig<json_t>& cfg{ NDConfig<json_t>::get_instance() };
     cfg.initialize(init_config.c_str());
@@ -58,7 +60,8 @@ int main(int argc, char* argv[]) {
     }
 
     DuckDB_t bulk;
-    MktData_t live(32);
+    MktData_t live;
+    live.init(live_cache_row_count);
     // Static::empty_cs as 3rd parm causes NDContext::get_ini_path()
     // to return a null ptr in im_start, so io.IniFilename is NULL
     // preventing attempt to write to localFS, which is nulled out by
