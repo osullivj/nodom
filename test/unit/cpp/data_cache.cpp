@@ -52,11 +52,8 @@ struct TestDLC : public DataLayCache<JSON> {
 };
 
 struct DataCacheFixture { 
-#ifdef __EMSCRIPTEN__
-    TestDLC<emscripten::val>    dc;
-#else
     TestDLC<nlohmann::json>     dc;
-#endif
+
     // cf NDContext::style_coloring
     int style_coloring{ StyleColor::Dark };
     // cf ImGuiStyle::FontScaleMain
