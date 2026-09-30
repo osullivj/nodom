@@ -10,12 +10,11 @@
 #pragma comment(lib, "legacy_stdio_definitions")
 #endif
 
+using dbl_nanosecs = std::chrono::duration<double, std::nano>;
+
 using json_t = nlohmann::json;
 using Tiingo_t = TiingoIEXMidRecords<json_t>;
 using MktData_t = LiveCache<json_t, Tiingo_t>;
-
-using dbl_nanosecs = std::chrono::duration<double, std::nano>;
-
 
 struct LiveCacheFixture {
     MktData_t       live;
@@ -79,5 +78,5 @@ BOOST_FIXTURE_TEST_CASE(UpdateOneTicker, LiveCacheFixture)
     update[Static::timestamp_cs] = ts;
     live.on_update(update);
     BOOST_TEST(live.records.mid[0] == mid);
-    BOOST_TEST(live.records.time_stamp[0] == ts);
+    BOOST_TEST(live.records.timestamp[0] == ts);
 }
