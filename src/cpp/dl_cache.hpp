@@ -624,6 +624,7 @@ protected:
         std::stringstream forth_stream{ forth_source };
         std::string stoken;
         lambda.result_type = result_type;
+        lambda.ndf_bin.clear();
         while (std::getline(forth_stream, stoken, Static::space_c)) {
             // special case for scope stack push
             if (stoken[0] == Static::ndfop_push_scope_c) {
@@ -821,6 +822,8 @@ protected:
             return forth_index_op(forth);
         if (op == ainx_OpNot)
             return forth_not_op(forth);
+        if (op == ainx_OpIn)
+            return forth_in_op(forth);
         return forth_push_data(forth, op);
     }
 
@@ -1191,6 +1194,10 @@ public:
 
     bool ut_compile_forth(NDFMachine& lambda, CDT result_type, const std::string& forth_source, const JSON& data) {
         return compile_forth(lambda, result_type, forth_source, data);
+    }
+
+    bool ut_execute_forth(NDFMachine& lambda) {
+        return execute_forth(lambda);
     }
 
     void on_json(const JSON& data, const JSON& layout, VVFunc on_init) {
