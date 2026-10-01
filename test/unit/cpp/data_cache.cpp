@@ -73,6 +73,7 @@ struct DataCacheFixture {
     int extern_str_count{ 0 };
     int extern_int_count{ 0 };
     int extern_float_count{ 0 };
+    int unmapped{ 0 };
 
     DataCacheFixture()
         :nd_home(getenv("ND_HOME"))
@@ -96,7 +97,7 @@ struct DataCacheFixture {
         int fc = dc.report_cache_floats(extern_float_count);
         BOOST_TEST(float_count == fc);
 
-        dc.report_address_map();
+        dc.report_address_map(unmapped);
         dc.report_data_refs();
         dc.report_func_maps();
         dc.report_actions();
