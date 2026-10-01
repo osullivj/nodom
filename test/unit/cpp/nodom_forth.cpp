@@ -190,9 +190,43 @@ BOOST_FIXTURE_TEST_CASE(NDFInForth, DataCacheFixture)
     BOOST_TEST(dc.widget_vec_size() == 2);
     BOOST_TEST(dc.pushables_size() == 1);
 
+    // check for true result
     std::string source1{ "queries query2 in" };
     bool compiled = dc.ut_compile_forth(forth, cdBool, source1, data);
     BOOST_TEST(compiled == true);
+    bool execed = dc.ut_execute_forth(forth);
+    BOOST_TEST(execed == true);
+
+    // check the result
+    BOOST_TEST(forth.result_type == cdBool);
+    BOOST_TEST(forth.stack.size() == 1);
+
+    DataRef* result_data_ref = forth.stack.back();
+    BOOST_TEST(result_data_ref != nullptr);
+    BOOST_TEST(result_data_ref->tipe == cdBool);
+
+    bool* query2_in_queries = dc.get_bool_value(result_data_ref->ref_inx);
+    BOOST_TEST(query2_in_queries != nullptr);
+    BOOST_TEST(*query2_in_queries == true);
+
+    // check for false result
+    std::string source2{ "queries query3 in" };
+    compiled = dc.ut_compile_forth(forth, cdBool, source2, data);
+    BOOST_TEST(compiled == true);
+    execed = dc.ut_execute_forth(forth);
+    BOOST_TEST(execed == true);
+
+    // check the result
+    BOOST_TEST(forth.result_type == cdBool);
+    BOOST_TEST(forth.stack.size() == 1);
+
+    result_data_ref = forth.stack.back();
+    BOOST_TEST(result_data_ref != nullptr);
+    BOOST_TEST(result_data_ref->tipe == cdBool);
+
+    bool* query3_in_queries = dc.get_bool_value(result_data_ref->ref_inx);
+    BOOST_TEST(query3_in_queries != nullptr);
+    BOOST_TEST(*query3_in_queries == false);
 
     assert_cache_state();
 }
