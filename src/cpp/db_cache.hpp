@@ -883,7 +883,7 @@ private:
     // data
     WasmChunkMap                        chunk_map;
     uint32_t                            duck_chunk_size{ CHUNK_SIZE };
-    std::unordered_map<RSHandle, int>   selection_map;  // only 1 selected tow per RS
+    std::unordered_map<RSHandle, int>   selection_map;  // only 1 selected row per RS
     // working storage
     char                                string_buffer[STR_BUF_LEN];
     fmt::format_to_n_result<char*>      fmt_result;
@@ -1248,6 +1248,7 @@ public:
 
     const char* get_datum(RSHandle handle, std::uint32_t colm_index, std::uint32_t row_index) {
         const static char* method = "DuckDBWebCache::get_datum: ";
+        /*
         static std::map<WasmDuckType, int64_t>  timestamp_scale_map{
             {wdtTimestamp_s, 1},
             {wdtTimestamp_ms, 1e3},
@@ -1259,7 +1260,7 @@ public:
             {wdtTimestamp_ms, "%03.3f"},
             {wdtTimestamp_us, "%06.6f"},
             {wdtTimestamp_ns, "%09.9f"}
-        };
+        }; */
         static int error_count{ 0 };
 
         WasmChunkVec* wcv = reinterpret_cast<WasmChunkVec*>(handle);
@@ -1332,6 +1333,10 @@ public:
             return 0;
         case WasmDuckType::wdtUtf8:    // null term trunc to 8 bytes
             sprintf(string_buffer, "%s", (char*)&(i64data[rel_index]));
+            return 0;
+        case WasmDuckType::wdtDate:     // TODO: this isn't right...
+            fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F}", TPSecs{ std::chrono::seconds{ i32data[rel_index] * 3600 } });
+            string_buffer[fmt_result.size] = 0;
             return 0;
         default:
             sprintf(string_buffer, "%s", "UNK");
