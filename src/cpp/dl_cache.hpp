@@ -669,7 +669,7 @@ protected:
         assert(list_ref->tipe == cdStrVec);
 
         StrInx sinx_elem(elem_ref->ref_inx);
-        const char* elem_c = get_string_value(sinx_elem)
+        const char* elem_c = get_string_value(sinx_elem);
         StrInx sinx_list{ list_ref->ref_inx };
         bool in{ false };
         for (uint32_t count = 0; count < list_ref->size; count++) {
