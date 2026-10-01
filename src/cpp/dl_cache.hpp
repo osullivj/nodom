@@ -54,11 +54,12 @@ protected:
     std::map<std::string, AddrInx>      address_map;
     std::map<AddrInx, DataRef>          data_ref_map;
 
-    StringVec                           bad_addrs;
     StringVec                           bad_data_refs;
     StringVec                           layout_errors;
+    StringVec                           type_errors;
 
     std::map<std::string, AddrInx>      operand_map;
+    StringVec                           forth_errors;
 
     // EntityIDs created as QueryIDs.
     std::map<std::string, EntityInx>    query_map;
@@ -72,9 +73,18 @@ protected:
     StringSet                           special_keys{
                                             Static::actions_cs, 
                                             Static::menus_cs,
-                                            Static::functions_cs
+                                            Static::functions_cs,
+                                            Static::types_cs
     };
-
+    StringSet                           type_names{
+                                            Static::cdt_int_cs,
+                                            Static::cdt_float_cs,
+                                            Static::cdt_double_cs,
+                                            Static::cdt_bool_cs,
+                                            Static::cdt_str_cs,
+                                            Static::cdt_int_vec_cs,
+                                            Static::cdt_str_vec_cs
+    };
     // menuitems: RHS list entries under data.menus are reified as
     // entities so they can appear in an ActionKey{EntityInx,EventInx}
     // LHS of data.menus entries are not addresses, they are entities
@@ -239,7 +249,6 @@ protected:
         address_map.clear();
         data_ref_map.clear();
 
-        bad_addrs.clear();
         bad_data_refs.clear();
         layout_errors.clear();
 
@@ -495,7 +504,7 @@ protected:
             add_func_ids(func_names);
         }
         
-        // Create a StrVec DataRef for each menu. Each Str in the StrVec is a menu_item
+        // Menus: create a StrVec DataRef for each menu. Each Str in the StrVec is a menu_item
         if (special_keys_found.find(Static::menus_cs) != special_keys_found.end()) {
             const JSON& jmenus(data[Static::menus_cs]);
             StringVec menu_name_vec;
@@ -507,7 +516,8 @@ protected:
                 menu_data_ref_map[menu_ainx] = menu_data_ref;
             }
         }
-
+        
+        // Actions
         if (special_keys_found.find(Static::actions_cs) != special_keys_found.end()) {
             const JSON& jactions(data[Static::actions_cs]);
             StringVec action_key_vec;
@@ -543,6 +553,41 @@ protected:
                 action_error_map[action_key] = action_error_vec;
             }
         }
+
+        // Types
+        if (special_keys_found.find(Static::types_cs) != special_keys_found.end()) {
+            const JSON& jtypes(data[Static::types_cs]);
+            StringVec type_name_vec;
+            JKeys(jtypes, type_name_vec);
+            for (auto tnit = type_name_vec.begin(); tnit != type_name_vec.end(); ++tnit) {
+                std::string ctype{ *tnit };
+                if (type_names.find(ctype) != type_names.end()) {
+                    CDT ref_type{ CDTFromString(*tnit) };
+                    StringVec var_name_vec;
+                    JAsStringVec(jtypes, tnit->c_str(), var_name_vec);
+                    for (auto vnit = var_name_vec.begin(); vnit != var_name_vec.end(); ++vnit) {
+                        // address_map[*vnit] should have been created by add_address()
+                        // invocation at the top of this method...
+                        AddrInx ainx{ address_map[*vnit] };
+                        DataRef data_ref = CreateDataRef(ref_type, ainx, data, *vnit);
+                        if (data_ref_map.find(ainx) == data_ref_map.end()) {
+                            data_ref_map[ainx] = data_ref;
+                        }
+                        else {
+                            std::stringstream ss;
+                            ss << "BAD_TYPE(" << *vnit << ") in data.types." << *tnit;
+                            type_errors.push_back(ss.str());
+                        }
+                    }
+                }
+                else {
+                    std::stringstream ss;
+                    ss << "BAD_TYPE(" << *tnit << ") in data.types.";
+                    type_errors.push_back(ss.str());
+                }
+            }
+        }
+
     }
 
     bool is_forth(const std::string& forth_source) {
@@ -553,13 +598,31 @@ protected:
         return true;
     }
 
-    bool compile_forth(WidgetPtr w, CacheSpecifier spec, CDT result_type, const std::string& forth_source, const JSON& data) {
+    void memo_forth_driver(CDT tipe, AddrInx addr, WidgetPtr w, CacheSpecifier spec) {
+        // create DLC wide memo of this w:cspec pair as driven by
+        // AddrInx ainx, so we can invoke recompute on_dirty()
+        switch (tipe) {
+        case cdInt:
+        case cdIntVec:
+            int_driven_widget_vecs[addr()].push_back(w);
+            int_driven_cspec_vecs[addr()].push_back(spec);
+            break;
+        case cdStr:
+        case cdStrVec:
+            str_driven_widget_vecs[addr()].push_back(w);
+            str_driven_cspec_vecs[addr()].push_back(spec);
+            break;
+        case cdBool:
+            bool_driven_widget_vecs[addr()].push_back(w);
+            bool_driven_cspec_vecs[addr()].push_back(spec);
+            break;
+        }
+    }
+
+    bool compile_forth(NDFMachine& lambda, CDT result_type, const std::string& forth_source, const JSON& data) {
         // no space in the source means it's a direct reference
         std::stringstream forth_stream{ forth_source };
         std::string stoken;
-        // yes, we're creating a new ForthLambda/NDFMachine. NB not on a hotpath
-        // ForthLambda& lambda{ w->ndf_lambda_map[spec] };
-        NDFMachine& lambda{w->lambda_map[spec] };
         lambda.result_type = result_type;
         while (std::getline(forth_stream, stoken, Static::space_c)) {
             // special case for scope stack push
@@ -579,38 +642,46 @@ protected:
                 // if the data_ref doesn't exist because no other widget
                 // has referred to it we create...
                 if (data_ref_map.find(addr_map_inx) == data_ref_map.end()) {
-                    DataRef data_ref = CreateDataRef(result_type, addr_map_inx, data, stoken);
-                    data_ref_map[data_ref.addr_inx] = data_ref;
+                    bad_data_refs.push_back(stoken);
+                    std::stringstream ss;
+                    ss << "FORTH_TOKEN(" << stoken << ") in NDF:["
+                        << forth_source << "], is unmapped.";
+                    forth_errors.push_back(ss.str());
+                    return false;
                 }
                 DataRef& global_data_ref{ data_ref_map.at(addr_map_inx) };
                 lambda.ndf_bin.push_back(addr_map_inx);
-                // create DLC wide memo of this w:cspec pair as driven by
-                // AddrInx ainx, so we can invoke recompute on_dirty()
-                switch (global_data_ref.tipe) {
-                case cdInt:
-                case cdIntVec:
-                    int_driven_widget_vecs[addr_map_inx()].push_back(w);
-                    int_driven_cspec_vecs[addr_map_inx()].push_back(spec);
-                    break;
-                case cdStr:
-                case cdStrVec:
-                    str_driven_widget_vecs[addr_map_inx()].push_back(w);
-                    str_driven_cspec_vecs[addr_map_inx()].push_back(spec);
-                    break;
-                case cdBool:
-                    bool_driven_widget_vecs[addr_map_inx()].push_back(w);
-                    bool_driven_cspec_vecs[addr_map_inx()].push_back(spec);
-                    break;
-                }
+                lambda.driver_addrs.push_back(addr_map_inx);
+                lambda.driver_types.push_back(global_data_ref.tipe);
             }
             else {
                 bad_data_refs.push_back(stoken);
                 std::stringstream ss;
-                ss << "FORTH_CSPEC(" << stoken << ") in cspec:"
-                    << forth_source << ", does not compile for " << render_names[w->rname];
-                layout_errors.push_back(ss.str());
+                ss << "FORTH_CSPEC(" << stoken << ") in NDF:["
+                    << forth_source << "], does not compile.";
+                forth_errors.push_back(ss.str());
                 return false;
             }
+        }
+        return true;
+    }
+
+    bool compile_forth(WidgetPtr w, CacheSpecifier spec, CDT result_type, const std::string& forth_source, const JSON& data) {
+        // no space in the source means it's a direct reference
+        // std::stringstream forth_stream{ forth_source };
+        // std::string stoken;
+        // yes, we're creating a new ForthLambda/NDFMachine. NB not on a hotpath
+        // ForthLambda& lambda{ w->ndf_lambda_map[spec] };
+        NDFMachine& lambda{w->lambda_map[spec] };
+        if (!compile_forth(lambda, result_type, forth_source, data)) {
+            std::stringstream ss;
+            ss << "FORTH_CSPEC(" << get_cspec_name(spec) << ") in NDF:["
+                << forth_source << "], does not compile for " << render_names[w->rname];
+            forth_errors.push_back(ss.str());
+            return false;
+        }
+        for (int i = 0; i < lambda.driver_addrs.size(); i++) {
+            memo_forth_driver(lambda.driver_types[i], lambda.driver_addrs[i], w, spec);
         }
         return true;
     }
@@ -750,16 +821,10 @@ protected:
             return forth_index_op(forth);
         if (op == ainx_OpNot)
             return forth_not_op(forth);
-
         return forth_push_data(forth, op);
     }
 
-    bool execute_forth(WidgetPtr w, CacheSpecifier spec) {
-        // check that compile_forth() created a ForthLambda
-        if (w->lambda_map.find(spec) == w->lambda_map.end()) {
-            return false;
-        }
-        NDFMachine& lambda{ w->lambda_map.at(spec) };
+    bool execute_forth(NDFMachine& lambda) {
         if (lambda.ndf_bin.empty()) {
             return false;
         }
@@ -770,7 +835,17 @@ protected:
         assert(!lambda.stack.empty());
         DataRef* result_data_ref = lambda.stack.back();
         assert(result_data_ref->tipe == lambda.result_type);
+        return true;
+    }
 
+    bool execute_forth(WidgetPtr w, CacheSpecifier spec) {
+        // check that compile_forth() created a ForthLambda
+        if (w->lambda_map.find(spec) == w->lambda_map.end()) {
+            return false;
+        }
+        NDFMachine& lambda{ w->lambda_map.at(spec) };
+        if (!execute_forth(lambda))
+            return false;
         switch (w->rname) {
         case InputString:
         case InputTextArea:
@@ -1108,9 +1183,15 @@ public:
     size_t action_map_size() { return action_map.size(); }
     size_t data_ref_map_size() { return data_ref_map.size(); }
     size_t menu_data_ref_map_size() { return menu_data_ref_map.size(); }
-    size_t error_count() { return action_errors.size() + layout_errors.size(); }
+    size_t error_count() { return action_errors.size() + layout_errors.size() 
+        + forth_errors.size() + bad_data_refs.size(); }
 
-    void    ut_init() { init(); }   // for use by unit tests only
+    // public access to internal methods for use by unit tests only
+    void ut_init() { init(); }   
+
+    bool ut_compile_forth(NDFMachine& lambda, CDT result_type, const std::string& forth_source, const JSON& data) {
+        return compile_forth(lambda, result_type, forth_source, data);
+    }
 
     void on_json(const JSON& data, const JSON& layout, VVFunc on_init) {
         clear();
@@ -1847,6 +1928,35 @@ public:
         return (int)cs_len;
     }
 
+    int report_cache_bools(int& externals) {
+        size_t fp_len = fp_bool_ptrs.size();
+        size_t cs_len = cache_bools.size();
+        std::cout << "== report_cache_bools ptrs:"
+            << std::dec << fp_len << ", cached:" << std::dec << cs_len << std::endl;
+        std::cout << "inx:val:cptr:fptr" << std::endl;
+        externals = 0;
+        for (int inx = 0; inx < fp_len; inx++) {
+            bool* cache_ptr = &(cache_bools[inx]);
+            bool* fast_ptr = fp_bool_ptrs[inx];
+            size_t cp_val = (size_t)cache_ptr;
+            size_t fp_val = (size_t)fast_ptr;
+
+            std::cout << std::hex << std::setfill('0');
+            std::cout << std::setw(3) << inx << ":" << cache_bools[inx] << ":";
+            std::cout << cp_val << ":";
+            if (cp_val != fp_val) {
+                std::cout << fp_val << std::endl;
+                externals++;
+            }
+            else {
+                std::cout << "====" << std::endl;
+            }
+        }
+        std::cout << "count:" << fp_len << ", externals:" << externals << std::endl;
+        std::cout << std::endl;
+        return (int)fp_len;
+    }
+
     int report_cache_floats(int& externals) {
         size_t fp_len = fp_float_ptrs.size();
         size_t cs_len = cache_floats.size();
@@ -1876,14 +1986,50 @@ public:
         return (int)cs_len;
     }
 
-    void report_address_map() {
+    int report_cache_doubles(int& externals) {
+        size_t fp_len = fp_double_ptrs.size();
+        size_t cs_len = cache_doubles.size();
+        std::cout << "== report_cache_doubles ptrs:"
+            << std::dec << fp_len << ", cached:" << std::dec << cs_len << std::endl;
+        std::cout << "inx:val:cptr:fptr" << std::endl;
+        externals = 0;
+        for (int inx = 0; inx < cs_len; inx++) {
+            double* cache_ptr = &(cache_doubles[inx]);
+            double* fast_ptr = fp_double_ptrs[inx];
+            size_t cp_val = (size_t)cache_ptr;
+            size_t fp_val = (size_t)fast_ptr;
+
+            std::cout << std::hex << std::setfill('0');
+            std::cout << std::setw(3) << inx << ":" << cache_doubles[inx] << ":";
+            std::cout << cp_val << ":";
+            if (cp_val != fp_val) {
+                std::cout << fp_val << std::endl;
+                externals++;
+            }
+            else {
+                std::cout << "====" << std::endl;
+            }
+        }
+        std::cout << "count:" << cs_len << ", externals:" << externals << std::endl;
+        std::cout << std::endl;
+        return (int)cs_len;
+    }
+
+    void report_address_map(int& unmapped) {
         size_t len = address_map.size();
         int inx{ 0 };
+        unmapped = 0;
         std::cout << "== report_address_map len:" << std::dec << len << std::endl;
-        std::cout << "inx:addr:AddrInx{0x0104,inx}:AddrVal" << std::endl;
+        std::cout << "inx:addr:AddrInx{0x0105,inx}:AddrVal:UnMapped" << std::endl;
         for (auto cit = address_map.cbegin(); cit != address_map.cend(); ++cit) {
             std::cout << std::setfill('0') << std::setw(3) << std::hex << inx++ << ":";
-            std::cout << cit->first << ":" << cit->second << ":" << get_addr_value(cit->second) << std::endl;
+            std::cout << cit->first << ":" << cit->second << ":";
+            std::cout << get_addr_value(cit->second) << ":";
+            if (data_ref_map.find(cit->second) == data_ref_map.end()) {
+                std::cout << "*";
+                unmapped++;
+            }
+            std::cout << std::endl;
         }
         std::cout << std::dec << std::endl;
     }
@@ -1960,7 +2106,6 @@ public:
             std::cout << std::setfill('0') << std::setw(3) << std::hex << inx++ << ":";
             std::cout << cit->first << ":" << cit->second << std::endl;
         }
-
         std::cout << std::dec << std::endl;
     }
 
@@ -1988,20 +2133,23 @@ public:
                 std::cout << std::endl;
             }
         }
+        std::cout << std::dec << std::endl;
     }
 
     void report_cache_state() {
-        int esc, eic, efc;
+        int esc, eic, efc, ebc, edc, unmppd;
         report_sanity_check();
-        report_cache_errors();
         report_cache_strings(esc);
+        report_cache_bools(ebc);
         report_cache_ints(eic);
         report_cache_floats(efc);
-        report_address_map();
+        report_cache_doubles(efc);
+        report_address_map(unmppd);
         report_menu_address_map();
         report_data_refs();
         report_func_maps();
         report_actions();
+        report_cache_errors();
         std::cout << std::endl;
     }
 
@@ -2016,5 +2164,14 @@ public:
         for (const auto& error : action_errors) {
             std::cout << error << std::endl;
         }
+        std::cout << "== forth errors" << std::endl;
+        for (const auto& error : forth_errors) {
+            std::cout << error << std::endl;
+        }
+        std::cout << "== type errors" << std::endl;
+        for (const auto& error : type_errors) {
+            std::cout << error << std::endl;
+        }
+
     }
 };
