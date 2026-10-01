@@ -21,13 +21,8 @@ struct TestDLC : public DataLayCache<JSON> {
 struct DataCacheFixture { 
     TestDLC<nlohmann::json>     dc;
 
-    // cf NDContext::style_coloring
-    int style_coloring{ StyleColor::Dark };
-    // cf ImGuiStyle::FontScaleMain
-    float font_scale_main{ 1.0 };
-    // cf proxy.get_server_url()
-    bool show_footer_db{ false };
-    std::string server_url{ "wss://localhost/api/websock" };
+    NDFMachine forth;
+
     // for test data paths
     std::string nd_home;
     std::string test_json_dir;
@@ -41,6 +36,7 @@ struct DataCacheFixture {
     int extern_str_count{ 0 };
     int extern_int_count{ 0 };
     int extern_float_count{ 0 };
+    int unmapped{ 0 };
 
     DataCacheFixture()
         :nd_home(getenv("ND_HOME"))
@@ -64,7 +60,7 @@ struct DataCacheFixture {
         int fc = dc.report_cache_floats(extern_float_count);
         BOOST_TEST(float_count == fc);
 
-        dc.report_address_map();
+        dc.report_address_map(unmapped);
         dc.report_data_refs();
         dc.report_func_maps();
         dc.report_actions();
@@ -85,7 +81,7 @@ BOOST_FIXTURE_TEST_CASE(NDFNotForth, DataCacheFixture)
     std::string layout_json = load_json(layout_json_path.c_str());
     auto layout = JParse<nlohmann::json>(layout_json);
 
-    str_count = 29;
+    str_count = 33;
     int_count = 6;
     dc.on_json(data, layout, [&]() { dc.on_init(); });
 
@@ -173,6 +169,30 @@ BOOST_FIXTURE_TEST_CASE(NDFNotForth, DataCacheFixture)
     bool* bool_ptr2b = dc.get_bool_value(binx2b);
     BOOST_TEST(bool_ptr2b != nullptr);
     BOOST_TEST(*bool_ptr2b == true);
+
+    assert_cache_state();
+}
+
+BOOST_FIXTURE_TEST_CASE(NDFInForth, DataCacheFixture)
+{
+    std::string data_json_path = test_json_dir + "test_ndf_not_data.json";
+    std::string data_json = load_json(data_json_path.c_str());
+    auto data = JParse<nlohmann::json>(data_json);
+
+    std::string layout_json_path = test_json_dir + "test_ndf_not_layout.json";
+    std::string layout_json = load_json(layout_json_path.c_str());
+    auto layout = JParse<nlohmann::json>(layout_json);
+
+    str_count = 33;
+    int_count = 6;
+    dc.on_json(data, layout, [&]() { dc.on_init(); });
+
+    BOOST_TEST(dc.widget_vec_size() == 2);
+    BOOST_TEST(dc.pushables_size() == 1);
+
+    std::string source1{ "queries query2 in" };
+    bool compiled = dc.ut_compile_forth(forth, cdBool, source1, data);
+    BOOST_TEST(compiled == true);
 
     assert_cache_state();
 }
