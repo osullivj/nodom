@@ -159,6 +159,9 @@ struct Static {
 	// type of DataRef, so we check ctype 
 	inline static const char* ctype_cs{ "ctype" };
 
+	// data.types
+	inline static const char* types_cs{ "types" };
+
 	// Menus: data.[menu_bars|menus|menu_items]
 	inline static const char* menus_cs{ "menus" };
 	inline static const char* menu_bars_cs{ "menu_bars" };
