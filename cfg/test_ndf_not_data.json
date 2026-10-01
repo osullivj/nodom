@@ -7,5 +7,11 @@
  "selected_query" : 0,
  "save_enabled" : false,
  "discard_enabled": true,
- "loading_message":["Loading QueryEditor..."]
+ "loading_message":["Loading QueryEditor..."],
+ "query2":"summarize select * from depth;",
+ "query3":"no_such_query",
+ "types":{
+   "cdBool":["save_enabled","discard_enabled"],
+   "cdStr":["query2","query3"]
+ }
 }
