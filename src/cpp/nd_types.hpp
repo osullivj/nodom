@@ -55,6 +55,7 @@ enum WasmDuckType : int32_t {
     wdtInt = 2,
     wdtFloat = 3,
     wdtUtf8 = 5,
+    wdtDate = 8,        // Date<32>
     wdtTimestamp = 10,
     wdtTimestamp_s = -15,
     wdtTimestamp_ms = -16,
