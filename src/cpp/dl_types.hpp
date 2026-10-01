@@ -62,8 +62,11 @@ struct NDFMachine {
                                 // addr: address_map entry that resolves to global 
     size_t      next{ 0 };
     CDT         result_type{ EndDataTypes };
-    DataRefVec  locals;
+
+    DataRefVec  locals;         // search "working_data_ref"; operators may create DataRefs here
     ForthStack  stack;
+    ForthTokens driver_addrs;
+    CDTVec      driver_types;
 
     void pre_exec() {
         next = 0;
