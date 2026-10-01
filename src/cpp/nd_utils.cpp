@@ -39,6 +39,8 @@ const char* WasmDuckTypeToString(WasmDuckType dt) {
         return "TS_ns";
     case WasmDuckType::wdtUtf8:
         return "Utf8";
+    case WasmDuckType::wdtDate:
+        return "Date";
     }
     return "Unknown";
 }
