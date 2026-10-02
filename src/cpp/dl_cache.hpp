@@ -63,6 +63,8 @@ protected:
 
     // EntityIDs created as QueryIDs.
     std::map<std::string, EntityInx>    query_map;
+    std::map<std::string, CEMap>        export_map;
+
     std::map<std::string, EntityInx>    widget_map;
     EntityInx                           invalid_entity;
 
@@ -74,7 +76,8 @@ protected:
                                             Static::actions_cs, 
                                             Static::menus_cs,
                                             Static::functions_cs,
-                                            Static::types_cs
+                                            Static::types_cs,
+                                            Static::imports_cs
     };
     StringSet                           type_names{
                                             Static::cdt_int_cs,
@@ -118,7 +121,7 @@ protected:
     int*            int_ptr{ nullptr };
     bool*           bool_ptr{ nullptr };
 
-    // TODO: InxWidgetVecMap & InxCspecVecMap instances
+    // InxWidgetVecMap & InxCspecVecMap instances
     // to back map from raw AddrInxs to (widget,cspec) pairs
     // NB recall that at most one thing can change in the cache
     // as a result of an NDF comp. For example, if a StrVec changes,
@@ -158,7 +161,6 @@ public:
         uint32_t inx = (uint32_t)std::distance(cache_strings.begin(), iter);
         return DataCacheIndex<itype, CDT::cdStr>(inx, stype);
     }
-
 
     template <CIT itype>
     auto contiguous_string_index(const std::string& s, CST stype = CST::None) {
@@ -587,7 +589,40 @@ protected:
                 }
             }
         }
+        // Imports; NB all query_ids will be known at this point as they're handled
+        // above in data.actions
+        if (special_keys_found.find(Static::imports_cs) != special_keys_found.end()) {
+            const JSON& imports(data[Static::imports_cs]);
+            if (JContains(imports, Static::live_cs)) {
+                const JSON& live_imports(imports[Static::live_cs]);
+                StringVec quote_id_vec;
+                JKeys(live_imports, quote_id_vec);
+                for (auto qidit = quote_id_vec.begin(); qidit != quote_id_vec.end(); ++qidit) {
+                    std::string qid{ *qidit };
+                    const JSON& quote_imports(live_imports[qid]);
+                    StringVec import_vec;
+                    JKeys(quote_imports, import_vec);
+                    for (auto ivit = import_vec.begin(); ivit != import_vec.end(); ++ivit) {
+                        std::string export_key_name{ *ivit };
+                        CacheExport cekey = CacheExportFromString(export_key_name);
+                        std::string dlc_name = JAsString(quote_imports, ivit->c_str());
+                        if (cekey == ce_end_exports) {
+                            std::stringstream ss;
+                            ss << "BAD_IMPORT_KEY(" << export_key_name << ") in data.imports.";
+                            type_errors.push_back(ss.str());
+                        }
+                        else {
+                            CEMap& exports{ export_map[qid] };
+                            exports[cekey] = dlc_name;
+                        }
+                    }
+                }
 
+            }
+            if (JContains(imports, Static::bulk_cs)) {
+                const JSON& bulk_imports(imports[Static::bulk_cs]);
+            }
+        }
     }
 
     bool is_forth(const std::string& forth_source) {
@@ -1156,7 +1191,8 @@ protected:
             }
         }
         // If we've finished recursing, build the PushableMap
-        if (wv != nullptr) return;
+        if (wv != nullptr)
+            return;
 
         for (auto citer = widget_vec.cbegin(); citer != widget_vec.cend(); ++citer) {
             bool valid_inx = (*citer)->widget_inx.is_valid();
@@ -1187,7 +1223,7 @@ public:
     size_t data_ref_map_size() { return data_ref_map.size(); }
     size_t menu_data_ref_map_size() { return menu_data_ref_map.size(); }
     size_t error_count() { return action_errors.size() + layout_errors.size() 
-        + forth_errors.size() + bad_data_refs.size(); }
+                                    + forth_errors.size() + bad_data_refs.size() + type_errors.size(); }
 
     // public access to internal methods for use by unit tests only
     void ut_init() { init(); }   
@@ -1407,7 +1443,7 @@ public:
 
     // unit test facilitator method: this should only be invoked
     // by test/unit/cpp code, and never by any core impl in src/cpp
-    void find_widget(RenderMethod rm, WidgetVec& matches, WidgetVec* wv = nullptr) {
+    void ut_find_widget(RenderMethod rm, WidgetVec& matches, WidgetVec* wv = nullptr) {
         WidgetVec* wvec = (wv == nullptr) ? &widget_vec : wv;
         for (auto wvit = wvec->begin(); wvit != wvec->end(); ++wvit) {
             WidgetPtr w{ *wvit };
@@ -1445,6 +1481,17 @@ public:
         return invalid_entity;
     }
 
+    CEMap& get_exports(const std::string& qid) {
+        return export_map[qid];
+    }
+
+    void get_query_ids(StringVec& sv) {
+        sv.clear();
+        for (auto qmit = query_map.begin(); qmit != query_map.end(); ++qmit) {
+            sv.push_back(qmit->first);
+        }
+    }
+
     IntInx extern_int(int* v) {
         cache_ints.push_back(*v);
         fp_int_ptrs.push_back(v);
@@ -1464,10 +1511,18 @@ public:
         return binx;
     }
 
+    // If you register an external string with this method
+    // you must never call update_string().
+    StrInx extern_char_star(const char* v) {
+        // take a copy which will go stale...
+        cache_strings.push_back(v);
+        fp_char_ptrs.push_back(v);
+        return DataCacheIndex<itype, CDT::cdStr>((uint32_t)cache_strings.size() - 1, External);
+    }
+
     DoubleInx intern_double(double v) {
         return get_double_index(v);
     }
-
 
     const char* get_render_name(RenderMethod rm) {
         return render_names[rm];
@@ -2179,6 +2234,5 @@ public:
         for (const auto& error : type_errors) {
             std::cout << error << std::endl;
         }
-
     }
 };
