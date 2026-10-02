@@ -207,6 +207,7 @@ enum CacheItemSubType : uint32_t {
     MenuID = 0x800000,
     MenuItemID = 0x900000,
     JSFuncID = 0xA00000,
+    External = 0xB00000,
     EndSubItemTypes = 0xF00000
 };
 
@@ -536,6 +537,13 @@ enum DblXform {
     EndDblXform
 };
 
+enum CacheExport : uint32_t {
+    ce_selected_row,
+    ce_selection_col,
+    ce_selected_key,
+    ce_end_exports
+};
+
 using StringVec = std::vector<std::string>;
 using IntVec = std::vector<int>;
 using FloatVec = std::vector<float>;
@@ -546,3 +554,6 @@ using StringIntMap = std::map<std::string, int>;
 using StringSet = std::set<std::string>;
 using CDTVec = std::vector<CacheDataType>;
 using DblXformVec = std::vector<DblXform>;
+using CEVec = std::vector<CacheExport>;
+using CEMap = std::map<CacheExport, std::string>;
+
