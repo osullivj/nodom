@@ -162,7 +162,16 @@ struct Static {
 	// data.types
 	inline static const char* types_cs{ "types" };
 
-	// Menus: data.[menu_bars|menus|menu_items]
+	// data.imports has live and bulk sections
+	inline static const char* imports_cs{ "imports" };
+	inline static const char* live_cs{ "live" };
+	inline static const char* bulk_cs{ "bulk" };
+	// bulk export keys
+	inline static const char* ce_selected_row_cs{ "selected_row" };
+	inline static const char* ce_selection_col_cs{ "selection_col" };
+	inline static const char* ce_selected_key_cs{ "selected_key" };
+
+		// Menus: data.[menu_bars|menus|menu_items]
 	inline static const char* menus_cs{ "menus" };
 	inline static const char* menu_bars_cs{ "menu_bars" };
 	inline static const char* menu_items_cs{ "menu_items" };
