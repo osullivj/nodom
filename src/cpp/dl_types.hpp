@@ -19,7 +19,6 @@ struct DataRef {
                                         //   DataChanges to "atomicise" the change
 
 
-// using DataRefMap = std::map<CacheSpecifier, DataRef>;
 using DataRefMap = std::map<AddrInx, DataRef>;
 using DataRefVec = std::vector<DataRef>;
 using MenuMap = std::map<AddrInx, DataRef>;
@@ -423,4 +422,27 @@ inline DblXform DblXformFromString(const std::string& dx) {
     if (dx == Static::nano_cs)
         return Nano;
     return EndDblXform;
+}
+
+inline const char* CacheExportToString(CacheExport ce) {
+    switch (ce) {
+    case ce_selected_row:
+        return Static::ce_selected_row_cs;
+    case ce_selection_col:
+        return Static::ce_selection_col_cs;
+    case ce_selected_key:
+        return Static::ce_selected_key_cs;
+    default:
+        return nullptr;
+    }
+}
+
+inline CacheExport CacheExportFromString(const std::string& dx) {
+    if (dx == Static::ce_selected_row_cs)
+        return ce_selected_row;
+    if (dx == Static::ce_selection_col_cs)
+        return ce_selection_col;
+    if (dx == Static::ce_selected_key_cs)
+        return ce_selected_key;
+    return ce_end_exports;
 }
