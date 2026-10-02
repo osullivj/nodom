@@ -164,7 +164,10 @@ private:
     // data
     std::unordered_map<std::string, duckdb_result>  result_map;
     std::unordered_map<RSHandle, Bobbin>            bobbin_map;
-    std::unordered_map<RSHandle, int>               selection_map;  // only 1 selected tow per RS
+    std::unordered_map<RSHandle, int32_t>           selected_row_map;  // only 1 selected row per RS
+    std::unordered_map<RSHandle, int32_t>           selection_col_map;  // only 1 selection col per RS
+    std::unordered_map<RSHandle, const char*>       selected_key_map;
+
     // working storage
     int16_t* sidata = nullptr;
     int32_t* idata = nullptr;
@@ -495,15 +498,75 @@ public:
         return rv;
     }
 
-    std::int32_t get_selection(RSHandle handle) {
-        if (selection_map.find(handle) != selection_map.end()) {
-            return selection_map.at(handle);
+    std::int32_t* get_selected_row(RSHandle handle) {
+        if (selected_row_map.find(handle) != selected_row_map.end()) {
+            return &(selected_row_map[handle]);
         }
-        return -1;
+        return nullptr;
     }
 
-    void set_selection(RSHandle handle, std::int32_t sel) {
-        selection_map[handle] = sel;
+    void set_selected_row(RSHandle handle, std::int32_t sel) {
+        selected_row_map[handle] = sel;
+        set_selected_key(handle);
+    }
+
+    std::int32_t* get_selection_col(RSHandle handle) {
+        if (selection_col_map.find(handle) != selection_col_map.end()) {
+            return &(selection_col_map[handle]);
+        }
+        return nullptr;
+    }
+
+    void set_selection_col(RSHandle handle, std::int32_t sel) {
+        selection_col_map[handle] = sel;
+    }
+
+    const char* get_selected_key(RSHandle handle) {
+        if (selected_key_map.find(handle) != selected_key_map.end()) {
+            return selected_key_map.at(handle);
+        }
+        return nullptr;
+    }
+
+    void set_selected_key(RSHandle handle) {
+        std::int32_t* row = get_selected_row(handle);
+        std::int32_t* col = get_selection_col(handle);
+
+        if (row != nullptr && col != nullptr) {
+            char* selected_key_buf = (char*)selected_key_map.at(handle);
+            const char* endchar = get_datum(handle, *col, *row);
+            if (endchar != nullptr) {
+                int slen = buffer - endchar;
+                // no zero terminator, possible DuckDB packed string
+                strncpy(selected_key_buf, buffer, slen);
+                selected_key_buf[slen] = 0;
+            }
+            else {
+                strcpy(selected_key_buf, buffer);
+            }
+        }
+    }
+
+    std::int32_t* get_exported_int(RSHandle h, CacheExport ce) {
+        switch (ce) {
+        case ce_selected_row:
+            return get_selected_row(h);
+        case ce_selection_col:
+            return get_selection_col(h);
+        default:
+            return nullptr;
+        }
+        return nullptr;
+    }
+
+    const char* get_exported_str(RSHandle h, CacheExport ce) {
+        switch (ce) {
+        case ce_selected_key:
+            return get_selected_key(h);
+        default:
+            return nullptr;
+        }
+        return nullptr;
     }
 
     bool get_meta_data(RSHandle h, std::uint32_t& column_count, std::uint32_t& row_count) {
@@ -529,7 +592,6 @@ public:
                 types.push_back(duckdb_get_type_id(type_l));
                 col_names.push_back(duckdb_column_name(result_ptr, index));
             }
-            selection_map[h] = -1;
         }
         return true;
     }
@@ -679,6 +741,22 @@ public:
 
     void set_done(bool d) { done = d; }
 
+    void add_result_set(const std::string& query_id, duckdb_result dbresult) {
+        result_map[query_id] = dbresult;
+        RSHandle h = get_handle(query_id);
+        selected_row_map[h] = -1;
+        selection_col_map[h] = -1;
+        // LEAK: no free for this malloc, so we'll leak STR_BUF_LEN
+        // bytes for each query
+        char* buf = (char*)malloc(STR_BUF_LEN);
+        buf[0] = 0;
+        selected_key_map[h] = buf;
+
+        // TODO: a registered lambda mechanism to callback when
+        // add_result_set() fires. This will enable use to call
+        // an NDContext method to wire up the exports
+    }
+
 public:
     // db_init, db_fnls, db_loop: these three methods exec 
     // on the DB thread
@@ -815,7 +893,7 @@ public:
                         db_response[Static::error_cs] = 1;
                     }
                     else {
-                        result_map[qid] = dbresult;
+                        add_result_set(qid, dbresult);
                         pix_report(DBQuery, static_cast<float>(query_count++));
                     }
                 }
@@ -858,8 +936,6 @@ public:
     void start_db_thread() {
         db_thread = boost::thread(&BBDuckDBCache::db_loop, this);
     }
-
-
 };
 
 #else   // __EMSCRIPTEN__
@@ -1198,14 +1274,14 @@ public:
         return colm_types;
     }
 
-    std::int32_t get_selection(RSHandle handle) {
+    std::int32_t get_selected_row(RSHandle handle) {
         if (selection_map.find(handle) != selection_map.end()) {
             return selection_map.at(handle);
         }
         return -1;
     }
 
-    void set_selection(RSHandle handle, std::int32_t sel) {
+    void set_selected_row(RSHandle handle, std::int32_t sel) {
         selection_map[handle] = sel;
     }
 
