@@ -203,6 +203,7 @@ private:
     BulkTableLocals     bulk_tbl_vars;
     TableMemEditContext mem_edit_ctx;
     StringVec           ld_ticker_list;
+    StringVec           query_id_list;
 #ifdef __EMSCRIPTEN__
     IDBFileWriter       ini_writer;
     IDBFileCachePtr     ini_cache_ptr;
@@ -327,6 +328,16 @@ public:
         einx_LiveResponse = data_lay_cache.template get_string_index<CIT::Event>(Static::live_response_cs, CST::SubSysEvent);
         einx_LiveUpdate = data_lay_cache.template get_string_index<CIT::Event>(Static::live_update_cs, CST::SubSysEvent);
 
+        // Had data.imports specified any bulk exports?
+        data_lay_cache.get_query_ids(query_id_list);
+        for (auto qidit = query_id_list.begin(); qidit != query_id_list.end(); ++qidit) {
+            CEMap& export_map{ data_lay_cache.get_exports(*qidit) };
+            for (auto emit = export_map.begin(); emit != export_map.end(); ++emit) {
+                CacheExport ce{ emit->first };
+                std::string dlc_name{ emit->second };
+
+            }
+        }
         data_lay_cache.report_cache_state();
         size_t dlc_error_count = data_lay_cache.error_count();
         if (dlc_error_count > 0) {
@@ -2094,8 +2105,9 @@ protected:
         cspec_int(cs_table_flags, w->cspec_int, &table_flags);
 
         // have we specified a selectable col? 
-        bulk_tbl_vars.selectable_col_inx = -1;
-        cspec_int(cs_selectable_col, w->cspec_int, &bulk_tbl_vars.selectable_col_inx);
+        bulk_tbl_vars.selection_col_inx = -1;
+        cspec_int(cs_selectable_col, w->cspec_int, &bulk_tbl_vars.selection_col_inx);
+
 
         DataRef* result_set_data_ref = cspec_data_ref(cs_query_id, w);
         assert(result_set_data_ref != nullptr);
@@ -2118,6 +2130,10 @@ protected:
                 if (!inserted) iter->second++;
                 return;
             }
+            if (bulk_tbl_vars.selection_col_inx != -1) {
+                bulk.set_selection_col(bulk_tbl_vars.handle, bulk_tbl_vars.selection_col_inx);
+            }
+
             // bulk.get_meta_data() populates the metadata on first invoke
             // TODO: mv metadata population off the hotpath
             if (!bulk.get_meta_data(bulk_tbl_vars.handle, colm_count, row_count)) {
@@ -2125,7 +2141,13 @@ protected:
                 return;
             }
             // is there a selected row ?
-            bulk_tbl_vars.selected_row = bulk.get_selection(bulk_tbl_vars.handle);
+            bulk_tbl_vars.selected_row_ptr = bulk.get_selected_row(bulk_tbl_vars.handle);
+            if (bulk_tbl_vars.selected_row_ptr != nullptr) {
+                bulk_tbl_vars.selected_row = *bulk_tbl_vars.selected_row_ptr;
+            }
+            else {
+                bulk_tbl_vars.selected_row = -1;
+            }
 
             StringVec& colm_names = bulk.get_col_names(bulk_tbl_vars.handle);
             if (ImGui::BeginTable(title, (int)colm_count, table_flags)) {
@@ -2153,7 +2175,7 @@ protected:
                             if (ImGui::TableSetColumnIndex(bulk_tbl_vars.col_inx)) {
                                 const char* endchar = bulk.get_datum(bulk_tbl_vars.handle, bulk_tbl_vars.col_inx, bulk_tbl_vars.row_inx);
                                 // Use am ImGui::Selectable in the cell as this is selection col
-                                if (bulk_tbl_vars.col_inx == bulk_tbl_vars.selectable_col_inx) {
+                                if (bulk_tbl_vars.col_inx == bulk_tbl_vars.selection_col_inx) {
                                     if (endchar != nullptr) {
                                         std::string_view view(bulk.buffer, endchar - bulk.buffer);
                                         bulk_tbl_vars.fmt_result = fmt::format_to_n(bulk_tbl_vars.string_buffer, STR_BUF_LEN, Static::selectable_col_fmt_cs,
@@ -2166,7 +2188,7 @@ protected:
                                     if (ImGui::Selectable(bulk_tbl_vars.string_buffer, 
                                                             (bulk_tbl_vars.row_inx == bulk_tbl_vars.selected_row),
                                                                             ImGuiSelectableFlags_SpanAllColumns)) {
-                                        bulk.set_selection(bulk_tbl_vars.handle, bulk_tbl_vars.row_inx);
+                                        bulk.set_selected_row(bulk_tbl_vars.handle, bulk_tbl_vars.row_inx);
                                     }
                                 }
                                 else {  // not selectable col, so use ImGui::TextUnformatted
