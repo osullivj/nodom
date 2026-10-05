@@ -562,7 +562,7 @@ public:
         }
         // check bulk queries that may have stale export data
         // eg selected_row, selection_col, selected_key
-        int32_t* int_ptr{ nullptr };
+        uint32_t* uint_ptr{ nullptr };
         char* str_ptr{ nullptr };
         for (auto qeit = query_export_map.begin(); qeit != query_export_map.end(); ++qeit) {
             if (bulk.is_dirty(qeit->first)) {
@@ -574,8 +574,8 @@ public:
                     switch (ce) {
                     case ce_selection_col:
                     case ce_selected_row:
-                        int_ptr = bulk.get_exported_int(h, ce);
-                        data_lay_cache.update_int(ce_inx_map[ce](), *int_ptr);
+                        uint_ptr = bulk.get_exported_int(h, ce);
+                        data_lay_cache.update_int(ce_inx_map[ce](), *uint_ptr);
                         break;
                     case ce_selected_key:
                         str_ptr = (char*)bulk.get_exported_str(h, ce);
@@ -2136,8 +2136,8 @@ protected:
         cspec_int(cs_table_flags, w->cspec_int, &table_flags);
 
         // have we specified a selectable col in cspec? 
-        bulk_tbl_vars.selection_col_inx = -1;
-        cspec_int(cs_selectable_col, w->cspec_int, &bulk_tbl_vars.selection_col_inx);
+        bulk_tbl_vars.selection_col = -1;
+        cspec_int(cs_selectable_col, w->cspec_int, &bulk_tbl_vars.selection_col);
 
         DataRef* result_set_data_ref = cspec_data_ref(cs_query_id, w);
         assert(result_set_data_ref != nullptr);
@@ -2160,13 +2160,17 @@ protected:
                 if (!inserted) iter->second++;
                 return;
             }
-            if (bulk_tbl_vars.selection_col_inx != -1) {
+            if (bulk_tbl_vars.selection_col != -1) {
                 // cspec:selectable_col was supplied, but have we set it in the bulk table?
                 // NB we only want to set it once as it's a cspec val that won't change,
                 // unlike selected_row and selected_key
                 bulk_tbl_vars.selection_col_ptr = bulk.get_selection_col(bulk_tbl_vars.handle);
-                if (bulk_tbl_vars.selection_col_ptr == nullptr) {
-                    bulk.set_selection_col(bulk_tbl_vars.handle, bulk_tbl_vars.selection_col_inx);
+                // bulk_tbl_vars.selection_col_ptr != nullptr; # bulk has handle ergo col storage
+                // *bulk_tbl_vars.selection_col_ptr != bulk_tbl_vars.selection_col_inx;
+                //      # cspec and bulk have diff values
+                if (bulk_tbl_vars.selection_col_ptr != nullptr &&
+                                *bulk_tbl_vars.selection_col_ptr != bulk_tbl_vars.selection_col) {
+                    bulk.set_selection_col(bulk_tbl_vars.handle, *bulk_tbl_vars.selection_col_ptr);
                 }
             }
 
@@ -2211,7 +2215,7 @@ protected:
                             if (ImGui::TableSetColumnIndex(bulk_tbl_vars.col_inx)) {
                                 const char* endchar = bulk.get_datum(bulk_tbl_vars.handle, bulk_tbl_vars.col_inx, bulk_tbl_vars.row_inx);
                                 // Use am ImGui::Selectable in the cell as this is selection col
-                                if (bulk_tbl_vars.col_inx == bulk_tbl_vars.selection_col_inx) {
+                                if (bulk_tbl_vars.col_inx == bulk_tbl_vars.selection_col) {
                                     if (endchar != nullptr) {
                                         std::string_view view(bulk.buffer, endchar - bulk.buffer);
                                         bulk_tbl_vars.fmt_result = fmt::format_to_n(bulk_tbl_vars.string_buffer, STR_BUF_LEN, Static::selectable_col_fmt_cs,
