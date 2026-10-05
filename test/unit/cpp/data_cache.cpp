@@ -464,7 +464,7 @@ BOOST_FIXTURE_TEST_CASE(QedServerForth, DataCacheFixture)
 
     // find the InputTextArea Widget
     WidgetVec matches;
-    dc.find_widget(RenderMethod::InputTextArea, matches);
+    dc.ut_find_widget(RenderMethod::InputTextArea, matches);
     BOOST_TEST(matches.size() == 1);
     WidgetPtr text_area_widget{ matches[0] };
 
