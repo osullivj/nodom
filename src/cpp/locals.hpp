@@ -120,6 +120,7 @@ struct BulkTableLocals {
     uint32_t    col_inx{ 0 };
     uint32_t    row_inx{ 0 };
     int32_t     selection_col_inx{ -1 };
+    int32_t*    selection_col_ptr{ nullptr };
     int32_t     selected_row{ -1 };
     int32_t*    selected_row_ptr{ nullptr };
     char        string_buffer[STR_BUF_LEN]; // used for ImGui::Selectable() IDs
