@@ -63,7 +63,7 @@ protected:
 
     // EntityIDs created as QueryIDs.
     std::map<std::string, EntityInx>    query_map;
-    std::map<std::string, CEMap>        export_map;
+    std::map<std::string, CENameMap>    export_map;
 
     std::map<std::string, EntityInx>    widget_map;
     EntityInx                           invalid_entity;
@@ -178,12 +178,13 @@ public:
         fp_char_ptrs[inx] = cache_strings[inx].c_str();
     }
 
-protected:
-    IntInx get_int_index(int value) {
-        // create storage for an int value, and FP ptr too
-        cache_ints.push_back(value);
-        fp_int_ptrs.push_back(&(cache_ints.back()));
-        return IntInx((uint32_t)fp_int_ptrs.size() - 1);
+    // update_extern_string: only use this for bulk exports
+    StrInx update_extern_string(uint32_t inx, const char* val) {
+        if (inx >= cache_strings.size())
+            throw std::runtime_error("NoDOM BAD_ADDR:update_string:"
+                + std::to_string(inx) + ":" + std::string(val));
+        // we're not setting cache_strings[inx];
+        fp_char_ptrs[inx] = val;
     }
 
     void update_int(uint32_t inx, int val) {
@@ -193,6 +194,14 @@ protected:
             throw std::runtime_error("NoDOM BAD_ADDR:update_int");
         *(fp_int_ptrs[inx]) = val;
         cache_ints[inx] = val;
+    }
+
+protected:
+    IntInx get_int_index(int value) {
+        // create storage for an int value, and FP ptr too
+        cache_ints.push_back(value);
+        fp_int_ptrs.push_back(&(cache_ints.back()));
+        return IntInx((uint32_t)fp_int_ptrs.size() - 1);
     }
 
     BoolInx get_bool_index(bool val) {
@@ -619,15 +628,15 @@ protected:
                             type_errors.push_back(ss.str());
                         }
                         else {
-                            CEMap& exports{ export_map[qid] };
+                            CENameMap& exports{ export_map[qid] };
                             exports[cekey] = dlc_name;
                         }
                     }
                 }
 
             }
-            if (JContains(imports, Static::bulk_cs)) {
-                const JSON& bulk_imports(imports[Static::bulk_cs]);
+            if (JContains(imports, Static::live_cs)) {
+                const JSON& live_imports(imports[Static::live_cs]);
             }
         }
     }
@@ -1319,7 +1328,7 @@ public:
             // raw AddrInx is the key to int_driven_[widget|cspec]_vecs
             dirty_addr_inx = dirty_addr_vec[inx];
             if ( driven_widget_vecs.find(dirty_addr_inx) != driven_widget_vecs.end() ) {
-                dirty_ref_inx = dirty_ref_vec[inx];
+                // dirty_ref_inx = dirty_ref_vec[inx];
                 WidgetVec& wvec{ driven_widget_vecs.at(dirty_addr_inx) };
                 CacheSpecVec& csvec{ driven_cspec_vecs.at(dirty_addr_inx) };
                 for (vec_inx = 0; vec_inx < wvec.size(); vec_inx++) {
@@ -1492,7 +1501,7 @@ public:
         return invalid_entity;
     }
 
-    CEMap& get_exports(const std::string& qid) {
+    CENameMap& get_exports(const std::string& qid) {
         return export_map[qid];
     }
 
@@ -1522,14 +1531,7 @@ public:
         return binx;
     }
 
-    // If you register an external string with this method
-    // you must never call update_string().
-    StrInx extern_char_star(const char* v) {
-        // take a copy which will go stale...
-        cache_strings.push_back(v);
-        fp_char_ptrs.push_back(v);
-        return DataCacheIndex<itype, CDT::cdStr>((uint32_t)cache_strings.size() - 1, External);
-    }
+
 
     DoubleInx intern_double(double v) {
         return get_double_index(v);
@@ -2209,6 +2211,24 @@ public:
         std::cout << std::dec << std::endl;
     }
 
+    void report_export_maps() {
+        // using CEMap = std::map<CacheExport, std::string>;
+        // std::map<std::string, CEMap>    export_map;
+        size_t len = export_map.size();
+        int inx{ 0 };
+        std::cout << "== report_export_map len:" << std::dec << len << std::endl;
+        std::cout << "quote_id:CacheExport:export_name" << std::endl;
+        for (auto emit = export_map.begin(); emit != export_map.end(); ++emit) {
+            CENameMap& import_map{ emit->second };
+            for (auto imit = import_map.begin(); imit != import_map.end(); ++imit) {
+                CacheExport ce{ imit->first };
+                std::string export_name{ imit->second };
+                std::cout << emit->first << ":" << CacheExportToString(ce) << ":" << export_name << std::endl;
+            }
+        }
+        std::cout << std::dec << std::endl;
+    }
+
     void report_cache_state() {
         int esc, eic, efc, ebc, edc, unmppd;
         report_sanity_check();
@@ -2222,6 +2242,7 @@ public:
         report_data_refs();
         report_func_maps();
         report_actions();
+        report_export_maps();
         report_cache_errors();
         std::cout << std::endl;
     }
