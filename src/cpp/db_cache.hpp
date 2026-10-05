@@ -166,8 +166,8 @@ private:
     std::unordered_map<std::string, CESet>          export_map;
     std::unordered_map<RSHandle, CESet>             dirty_map;
     std::unordered_map<RSHandle, Bobbin>            bobbin_map;
-    std::unordered_map<RSHandle, int32_t>           selected_row_map;  // only 1 selected row per RS
-    std::unordered_map<RSHandle, int32_t>           selection_col_map;  // only 1 selection col per RS
+    std::unordered_map<RSHandle, uint32_t>          selected_row_map;  // only 1 selected row per RS
+    std::unordered_map<RSHandle, uint32_t>          selection_col_map;  // only 1 selection col per RS
     std::unordered_map<RSHandle, const char*>       selected_key_map;
 
     // working storage
@@ -500,27 +500,27 @@ public:
         return rv;
     }
 
-    std::int32_t* get_selected_row(RSHandle handle) {
+    std::uint32_t* get_selected_row(RSHandle handle) {
         if (selected_row_map.find(handle) != selected_row_map.end()) {
             return &(selected_row_map[handle]);
         }
         return nullptr;
     }
 
-    void set_selected_row(RSHandle handle, std::int32_t sel) {
+    void set_selected_row(RSHandle handle, std::uint32_t sel) {
         selected_row_map[handle] = sel;
         dirty_map[handle].insert(ce_selected_row);
         set_selected_key(handle);
     }
 
-    std::int32_t* get_selection_col(RSHandle handle) {
+    std::uint32_t* get_selection_col(RSHandle handle) {
         if (selection_col_map.find(handle) != selection_col_map.end()) {
             return &(selection_col_map[handle]);
         }
         return nullptr;
     }
 
-    void set_selection_col(RSHandle handle, std::int32_t sel) {
+    void set_selection_col(RSHandle handle, std::uint32_t sel) {
         selection_col_map[handle] = sel;
         dirty_map[handle].insert(ce_selection_col);
     }
@@ -533,8 +533,8 @@ public:
     }
 
     void set_selected_key(RSHandle handle) {
-        std::int32_t* row = get_selected_row(handle);
-        std::int32_t* col = get_selection_col(handle);
+        std::uint32_t* row = get_selected_row(handle);
+        std::uint32_t* col = get_selection_col(handle);
 
         if (row != nullptr && col != nullptr) {
             char* selected_key_buf = (char*)selected_key_map.at(handle);
@@ -552,7 +552,7 @@ public:
         }
     }
 
-    std::int32_t* get_exported_int(RSHandle h, CacheExport ce) {
+    std::uint32_t* get_exported_int(RSHandle h, CacheExport ce) {
         switch (ce) {
         case ce_selected_row:
             return get_selected_row(h);
