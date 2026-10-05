@@ -1,0 +1,43 @@
+{
+    "rebld_inst_tbl_ckey":"BEGIN;DROP TABLE IF EXISTS instrument;CREATE TABLE instrument as select * from read_parquet('https://localhost:443/api/parquet/iex_instruments.parquet');COMMIT;",
+    "query_inst_tbl_ckey":"select * from instrument;",
+    "ticker_symbols":["spy", "vym", "spwr", "chpt", "aren", "tanh", "rare", "dell", "curr", "dlll", "alms", "mgn"],
+    "ticker_formats":["{}","{:%F %T}","{:>6.2f}"],
+    "ticker_xforms":["", "micro", ""],
+    "loading_instruments_message":["Loading IEX instruments..."],
+    "sub_enabled":true,
+    "unsub_enabled":false,
+    "inst_sel_col":0,
+    "inst_sel_row":0,
+    "inst_sel_key":"",
+    "actions":{
+        "DuckDB.Online":[
+          {
+            "ui_push":"instrument_loading_modal",
+            "action":"Command",
+            "query_id":"rebld_inst_tbl_qid",
+            "cname":"rebld_inst_tbl_ckey"
+          },
+          {
+            "ui_pop":"LoadingModal",
+            "action":"Query",
+            "query_id":"query_inst_tbl_qid",
+            "cname":"query_inst_tbl_ckey"
+          }
+        ]
+    },
+    "types": {
+        "cdBool":["sub_enabled","unsub_enabled"],
+        "cdInt":["inst_sel_col","inst_sel_row"],
+        "cdStr":["inst_sel_key"]
+    },
+    "imports":{
+        "bulk":{
+            "query_inst_tbl_qid":{
+                "selection_col": "inst_sel_col",
+                "selected_row": "inst_sel_row",
+                "selected_key": "inst_sel_key"
+            }
+        }
+    }
+}

@@ -1,0 +1,57 @@
+ [
+    {
+      "children":[
+        {
+          "rname":"BulkTable",
+          "cspec":{
+             "title":"Instruments",
+             "query_id":"query_inst_tbl_qid",
+             "selectable_col":0
+          }
+        },
+        {
+          "rname":"Button",
+          "widget_id":"i_am_sub_button",
+          "cspec":{
+            "text":"Sub",
+            "disabled":"sub_enabled"
+          }
+        },
+        {
+          "rname":"Button",
+          "widget_id":"i_am_unsub_button",
+          "cspec":{
+            "text":"Unsub",
+            "disabled":"unsub_enabled"
+          }
+        },
+        {
+          "rname":"LiveTable",
+          "cspec":{
+            "title":"Market data",
+            "cname":"ticker_symbols",
+            "formats":"ticker_formats",
+            "xforms":"ticker_xforms",
+            "buffer_size":256,
+            "line_height":8
+          }
+        }
+      ],
+      "cspec": {
+        "title": "NoDOM Trader"
+      },
+      "rname": "Home"
+    },
+    {
+      "cspec": {
+        "body_font": "CourierNew",
+        "cname": "loading_instruments_message",
+        "spinner_radius": 20,
+        "spinner_thickness": 4,
+        "title": "Loading...",
+        "title_font": "Arial"
+      },
+      "rname": "LoadingModal",
+      "widget_id": "instrument_loading_modal"
+    }
+  ]
