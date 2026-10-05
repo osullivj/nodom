@@ -555,5 +555,8 @@ using StringSet = std::set<std::string>;
 using CDTVec = std::vector<CacheDataType>;
 using DblXformVec = std::vector<DblXform>;
 using CEVec = std::vector<CacheExport>;
-using CEMap = std::map<CacheExport, std::string>;
+using CESet = std::set<CacheExport>;
+using CENameMap = std::map<CacheExport, std::string>;
+using CEInxMap = std::map<CacheExport, AddrInx>;
+using QueryCEInxMap = std::map<std::string, CEInxMap>;
 
