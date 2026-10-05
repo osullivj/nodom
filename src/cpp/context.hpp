@@ -204,6 +204,7 @@ private:
     TableMemEditContext mem_edit_ctx;
     StringVec           ld_ticker_list;
     StringVec           query_id_list;
+    QueryCEInxMap       query_export_map;
 #ifdef __EMSCRIPTEN__
     IDBFileWriter       ini_writer;
     IDBFileCachePtr     ini_cache_ptr;
@@ -328,14 +329,18 @@ public:
         einx_LiveResponse = data_lay_cache.template get_string_index<CIT::Event>(Static::live_response_cs, CST::SubSysEvent);
         einx_LiveUpdate = data_lay_cache.template get_string_index<CIT::Event>(Static::live_update_cs, CST::SubSysEvent);
 
-        // Had data.imports specified any bulk exports?
+        // Has data.imports specified any bulk exports?
         data_lay_cache.get_query_ids(query_id_list);
         for (auto qidit = query_id_list.begin(); qidit != query_id_list.end(); ++qidit) {
-            CEMap& export_map{ data_lay_cache.get_exports(*qidit) };
+            std::string query_id{ *qidit };
+            CENameMap& export_map{ data_lay_cache.get_exports(query_id) };
             for (auto emit = export_map.begin(); emit != export_map.end(); ++emit) {
                 CacheExport ce{ emit->first };
                 std::string dlc_name{ emit->second };
+                bulk.add_export(*qidit, emit->first);
 
+                CEInxMap ce_inx_map{ query_export_map[query_id] };
+                ce_inx_map[ce] = data_lay_cache.get_addr_inx(dlc_name);
             }
         }
         data_lay_cache.report_cache_state();
@@ -554,6 +559,32 @@ public:
                 }
             }
             changed.clear();
+        }
+        // check bulk queries that may have stale export data
+        // eg selected_row, selection_col, selected_key
+        int32_t* int_ptr{ nullptr };
+        char* str_ptr{ nullptr };
+        for (auto qeit = query_export_map.begin(); qeit != query_export_map.end(); ++qeit) {
+            if (bulk.is_dirty(qeit->first)) {
+                RSHandle h = bulk.get_handle(qeit->first);
+                CESet* dirty_set_ptr = bulk.get_dirty(h);
+                CEInxMap& ce_inx_map{ qeit->second };
+                for (auto dsit = dirty_set_ptr->begin(); dsit != dirty_set_ptr->end(); ++dsit) {
+                    CacheExport ce{ *dsit };
+                    switch (ce) {
+                    case ce_selection_col:
+                    case ce_selected_row:
+                        int_ptr = bulk.get_exported_int(h, ce);
+                        data_lay_cache.update_int(ce_inx_map[ce](), *int_ptr);
+                        break;
+                    case ce_selected_key:
+                        str_ptr = (char*)bulk.get_exported_str(h, ce);
+                        data_lay_cache.update_extern_string(ce_inx_map[ce](), (const char*)str_ptr);
+                        break;
+                    }
+                }
+                bulk.clear_dirty(h);
+            }
         }
 
         // Check the dirty_<type>_vec vectors for changes in DataRef addressables
@@ -2104,10 +2135,9 @@ protected:
         int table_flags = default_table_flags;
         cspec_int(cs_table_flags, w->cspec_int, &table_flags);
 
-        // have we specified a selectable col? 
+        // have we specified a selectable col in cspec? 
         bulk_tbl_vars.selection_col_inx = -1;
         cspec_int(cs_selectable_col, w->cspec_int, &bulk_tbl_vars.selection_col_inx);
-
 
         DataRef* result_set_data_ref = cspec_data_ref(cs_query_id, w);
         assert(result_set_data_ref != nullptr);
@@ -2131,7 +2161,13 @@ protected:
                 return;
             }
             if (bulk_tbl_vars.selection_col_inx != -1) {
-                bulk.set_selection_col(bulk_tbl_vars.handle, bulk_tbl_vars.selection_col_inx);
+                // cspec:selectable_col was supplied, but have we set it in the bulk table?
+                // NB we only want to set it once as it's a cspec val that won't change,
+                // unlike selected_row and selected_key
+                bulk_tbl_vars.selection_col_ptr = bulk.get_selection_col(bulk_tbl_vars.handle);
+                if (bulk_tbl_vars.selection_col_ptr == nullptr) {
+                    bulk.set_selection_col(bulk_tbl_vars.handle, bulk_tbl_vars.selection_col_inx);
+                }
             }
 
             // bulk.get_meta_data() populates the metadata on first invoke
