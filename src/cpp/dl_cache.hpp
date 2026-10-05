@@ -593,19 +593,19 @@ protected:
         // above in data.actions
         if (special_keys_found.find(Static::imports_cs) != special_keys_found.end()) {
             const JSON& imports(data[Static::imports_cs]);
-            if (JContains(imports, Static::live_cs)) {
-                const JSON& live_imports(imports[Static::live_cs]);
+            if (JContains(imports, Static::bulk_cs)) {
+                const JSON& bulk_imports(imports[Static::bulk_cs]);
                 StringVec quote_id_vec;
-                JKeys(live_imports, quote_id_vec);
+                JKeys(bulk_imports, quote_id_vec);
                 for (auto qidit = quote_id_vec.begin(); qidit != quote_id_vec.end(); ++qidit) {
                     std::string qid{ *qidit };
-                    const JSON& quote_imports(live_imports[qid]);
-                    StringVec import_vec;
-                    JKeys(quote_imports, import_vec);
-                    for (auto ivit = import_vec.begin(); ivit != import_vec.end(); ++ivit) {
+                    const JSON& qid_imports(bulk_imports[qid]);
+                    StringVec qid_import_vec;
+                    JKeys(qid_imports, qid_import_vec);
+                    for (auto ivit = qid_import_vec.begin(); ivit != qid_import_vec.end(); ++ivit) {
                         std::string export_key_name{ *ivit };
                         CacheExport cekey = CacheExportFromString(export_key_name);
-                        std::string dlc_name = JAsString(quote_imports, ivit->c_str());
+                        std::string dlc_name = JAsString(qid_imports, export_key_name.c_str());
                         if (cekey == ce_end_exports) {
                             std::stringstream ss;
                             ss << "BAD_IMPORT_KEY(" << export_key_name << ") in data.imports.";
@@ -1236,6 +1236,10 @@ public:
         return execute_forth(lambda);
     }
 
+    void ut_find_widget(RenderMethod rm, WidgetVec& matches, WidgetVec* wv = nullptr) {
+        return find_widget(rm, matches, wv);
+    }
+
     void on_json(const JSON& data, const JSON& layout, VVFunc on_init) {
         clear();
         init();
@@ -1443,7 +1447,7 @@ public:
 
     // unit test facilitator method: this should only be invoked
     // by test/unit/cpp code, and never by any core impl in src/cpp
-    void ut_find_widget(RenderMethod rm, WidgetVec& matches, WidgetVec* wv = nullptr) {
+    void find_widget(RenderMethod rm, WidgetVec& matches, WidgetVec* wv = nullptr) {
         WidgetVec* wvec = (wv == nullptr) ? &widget_vec : wv;
         for (auto wvit = wvec->begin(); wvit != wvec->end(); ++wvit) {
             WidgetPtr w{ *wvit };
