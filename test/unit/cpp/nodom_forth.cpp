@@ -230,3 +230,21 @@ BOOST_FIXTURE_TEST_CASE(NDFInForth, DataCacheFixture)
 
     assert_cache_state();
 }
+
+BOOST_FIXTURE_TEST_CASE(NDFImportForth, DataCacheFixture)
+{
+    std::string data_json_path = test_json_dir + "test_ndf_import_data.json";
+    std::string data_json = load_json(data_json_path.c_str());
+    auto data = JParse<nlohmann::json>(data_json);
+
+    std::string layout_json_path = test_json_dir + "test_ndf_import_layout.json";
+    std::string layout_json = load_json(layout_json_path.c_str());
+    auto layout = JParse<nlohmann::json>(layout_json);
+
+    str_count = 33;
+    int_count = 6;
+    dc.on_json(data, layout, [&]() { dc.on_init(); });
+
+    BOOST_TEST(dc.widget_vec_size() == 2);
+    BOOST_TEST(dc.pushables_size() == 1);
+}
