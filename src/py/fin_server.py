@@ -72,13 +72,19 @@ FIN_LAYOUT = [
             dict(
                 rname="Button",
                 widget_id="i_am_sub_button",
-                cspec=dict(text="Sub")
+                cspec=dict(
+                    text="Sub",
+                    disabled="sub_disabled"
+                )
             ),
             dict(rname="SameLine", cspec=dict()),
             dict(
                 rname="Button",
                 widget_id="i_am_unsub_button",
-                cspec=dict(text="Unsub")
+                cspec=dict(
+                    text="Unsub",
+                    disabled="unsub_disabled"
+                )
             ),
             dict(rname="Separator", cspec=dict()),
             dict(rname="BeginChild",
@@ -182,6 +188,11 @@ FIN_DATA = {
     # timestamps need an xform: secs, milli, micro, nano
     "ticker_xforms":['', 'micro', ''],
     "loading_instruments_message":["Loading IEX instruments..."],
+    "sub_disabled":True,
+    "unsub_disabled":False,
+    "inst_sel_col":0,
+    "inst_sel_row":0,
+    "inst_sel_key":"_dummy_selection",
     "actions":{
         # GUI.CacheLoaded on BB, DuckDB.Online for wasm
         # TODO: gate implementation
@@ -190,6 +201,20 @@ FIN_DATA = {
     },
     "menus": {
         "instruments_rclick_menupop":["Subscribe"]
+    },
+    "types": {
+        "cdBool":["sub_disabled","unsub_disabled"],
+        "cdInt":["inst_sel_col","inst_sel_row"],
+        "cdStr":["inst_sel_key"]
+    },
+    "imports":{
+        "bulk":{
+            "query_inst_tbl_qid":{
+                "selection_col": "inst_sel_col",
+                "selected_row": "inst_sel_row",
+                "selected_key": "inst_sel_key"
+            }
+        }
     }
 }
 
