@@ -194,6 +194,7 @@ BOOST_FIXTURE_TEST_CASE(NDFInForth, DataCacheFixture)
     std::string source1{ "queries query2 in" };
     bool compiled = dc.ut_compile_forth(forth, cdBool, source1, data);
     BOOST_TEST(compiled == true);
+
     bool execed = dc.ut_execute_forth(forth);
     BOOST_TEST(execed == true);
 
