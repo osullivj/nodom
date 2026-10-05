@@ -163,6 +163,8 @@ private:
     std::unordered_map<RSHandle, std::vector<duckdb_logical_type>> logical_type_map;
     // data
     std::unordered_map<std::string, duckdb_result>  result_map;
+    std::unordered_map<std::string, CESet>          export_map;
+    std::unordered_map<RSHandle, CESet>             dirty_map;
     std::unordered_map<RSHandle, Bobbin>            bobbin_map;
     std::unordered_map<RSHandle, int32_t>           selected_row_map;  // only 1 selected row per RS
     std::unordered_map<RSHandle, int32_t>           selection_col_map;  // only 1 selection col per RS
@@ -507,6 +509,7 @@ public:
 
     void set_selected_row(RSHandle handle, std::int32_t sel) {
         selected_row_map[handle] = sel;
+        dirty_map[handle].insert(ce_selected_row);
         set_selected_key(handle);
     }
 
@@ -519,6 +522,7 @@ public:
 
     void set_selection_col(RSHandle handle, std::int32_t sel) {
         selection_col_map[handle] = sel;
+        dirty_map[handle].insert(ce_selection_col);
     }
 
     const char* get_selected_key(RSHandle handle) {
@@ -544,6 +548,7 @@ public:
             else {
                 strcpy(selected_key_buf, buffer);
             }
+            dirty_map[handle].insert(ce_selected_key);
         }
     }
 
@@ -567,6 +572,33 @@ public:
             return nullptr;
         }
         return nullptr;
+    }
+
+    void add_export(const std::string& qid, CacheExport ce) {
+        export_map[qid].insert(ce);
+    }
+
+    bool is_dirty(const std::string& qid) {
+        if (result_map.find(qid) != result_map.end()) {
+            RSHandle h{ get_handle(qid) };
+            if (dirty_map.find(h) != dirty_map.end()) {
+                return !dirty_map[h].empty();
+            }
+        }
+        return false;
+    }
+
+    CESet* get_dirty(RSHandle h) {
+        if (dirty_map.find(h) != dirty_map.end()) {
+            return &(dirty_map[h]);
+        }
+        return nullptr;
+    }
+
+    void clear_dirty(RSHandle h) {
+        if (dirty_map.find(h) != dirty_map.end()) {
+            dirty_map[h].clear();
+        }
     }
 
     bool get_meta_data(RSHandle h, std::uint32_t& column_count, std::uint32_t& row_count) {
