@@ -334,12 +334,13 @@ public:
         for (auto qidit = query_id_list.begin(); qidit != query_id_list.end(); ++qidit) {
             std::string query_id{ *qidit };
             CENameMap& export_map{ data_lay_cache.get_exports(query_id) };
+            CEInxMap& ce_inx_map{ query_export_map[query_id] };
+
             for (auto emit = export_map.begin(); emit != export_map.end(); ++emit) {
                 CacheExport ce{ emit->first };
                 std::string dlc_name{ emit->second };
                 bulk.add_export(*qidit, emit->first);
 
-                CEInxMap ce_inx_map{ query_export_map[query_id] };
                 ce_inx_map[ce] = data_lay_cache.get_addr_inx(dlc_name);
             }
         }
@@ -2170,7 +2171,7 @@ protected:
                 //      # cspec and bulk have diff values
                 if (bulk_tbl_vars.selection_col_ptr != nullptr &&
                                 *bulk_tbl_vars.selection_col_ptr != bulk_tbl_vars.selection_col) {
-                    bulk.set_selection_col(bulk_tbl_vars.handle, *bulk_tbl_vars.selection_col_ptr);
+                    bulk.set_selection_col(bulk_tbl_vars.handle, bulk_tbl_vars.selection_col);
                 }
             }
 
