@@ -570,6 +570,13 @@ protected:
                     for (auto vnit = var_name_vec.begin(); vnit != var_name_vec.end(); ++vnit) {
                         // address_map[*vnit] should have been created by add_address()
                         // invocation at the top of this method...
+                        std::string var_name{ *vnit };
+                        if (address_map.find(var_name) == address_map.end()) {
+                            std::stringstream ss;
+                            ss << "BAD_REF(" << var_name << ") not in in data";
+                            type_errors.push_back(ss.str());
+                            continue;
+                        }
                         AddrInx ainx{ address_map[*vnit] };
                         DataRef data_ref = CreateDataRef(ref_type, ainx, data, *vnit);
                         if (data_ref_map.find(ainx) == data_ref_map.end()) {
