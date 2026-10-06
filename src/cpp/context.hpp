@@ -204,7 +204,8 @@ private:
     TableMemEditContext mem_edit_ctx;
     StringVec           ld_ticker_list;
     StringVec           query_id_list;
-    QueryCEInxMap       query_export_map;
+    QueryCEDataRefMap   query_export_map;
+    // QueryCEInxMap       query_export_addr_map;
 #ifdef __EMSCRIPTEN__
     IDBFileWriter       ini_writer;
     IDBFileCachePtr     ini_cache_ptr;
@@ -334,17 +335,20 @@ public:
         for (auto qidit = query_id_list.begin(); qidit != query_id_list.end(); ++qidit) {
             std::string query_id{ *qidit };
             CENameMap& export_map{ data_lay_cache.get_exports(query_id) };
-            CEInxMap& ce_inx_map{ query_export_map[query_id] };
-
+            CEDataRefMap& ce_data_ref_map{ query_export_map[query_id] };
             for (auto emit = export_map.begin(); emit != export_map.end(); ++emit) {
                 CacheExport ce{ emit->first };
                 std::string dlc_name{ emit->second };
                 bulk.add_export(*qidit, emit->first);
 
+                // Yes, we're memoizing raw DataRef ptrs here. That's
+                // OK as they're not NDF stack local transitories, they've
+                // all been created by DLC::on_data() or on_layout()
+                // so have process lifetime.
                 AddrInx ainx = data_lay_cache.get_addr_inx(dlc_name);
                 DataRef* data_ref = data_lay_cache.get_data_ref(ainx);
                 assert(data_ref != nullptr);
-                ce_inx_map[ce] = data_ref->ref_inx;
+                ce_data_ref_map[ce] = data_ref;
             }
         }
         data_lay_cache.report_cache_state();
@@ -570,24 +574,30 @@ public:
         char* str_ptr{ nullptr };
         for (auto qeit = query_export_map.begin(); qeit != query_export_map.end(); ++qeit) {
             if (bulk.is_dirty(qeit->first)) {
-                RSHandle h = bulk.get_handle(qeit->first);
-                CESet* dirty_set_ptr = bulk.get_dirty(h);
-                CEInxMap& ce_inx_map{ qeit->second };
-                for (auto dsit = dirty_set_ptr->begin(); dsit != dirty_set_ptr->end(); ++dsit) {
+                er_vars.ce_handle = bulk.get_handle(qeit->first);
+                er_vars.ce_dirty_set_ptr = bulk.get_dirty(er_vars.ce_handle);
+                CEDataRefMap& ce_data_ref_map{ qeit->second };
+                for (auto dsit = er_vars.ce_dirty_set_ptr->begin(); 
+                                dsit != er_vars.ce_dirty_set_ptr->end(); ++dsit) {
                     CacheExport ce{ *dsit };
+                    DataRef* data_ref{ ce_data_ref_map[ce] };
                     switch (ce) {
                     case ce_selection_col:
                     case ce_selected_row:
-                        uint_ptr = bulk.get_exported_int(h, ce);
-                        data_lay_cache.update_int(ce_inx_map[ce](), *uint_ptr);
+                        uint_ptr = bulk.get_exported_int(er_vars.ce_handle, ce);
+                        data_lay_cache.update_int(data_ref->ref_inx, *uint_ptr);
+                        dirty_int_ref_vec.push_back(data_ref->ref_inx);
+                        dirty_int_addr_vec.push_back(data_ref->addr_inx());
                         break;
                     case ce_selected_key:
-                        str_ptr = (char*)bulk.get_exported_str(h, ce);
-                        data_lay_cache.update_extern_string(ce_inx_map[ce](), (const char*)str_ptr);
+                        str_ptr = (char*)bulk.get_exported_str(er_vars.ce_handle, ce);
+                        data_lay_cache.update_extern_string(data_ref->ref_inx, (const char*)str_ptr);
+                        dirty_str_ref_vec.push_back(data_ref->ref_inx);
+                        dirty_str_addr_vec.push_back(data_ref->addr_inx());
                         break;
                     }
                 }
-                bulk.clear_dirty(h);
+                bulk.clear_dirty(er_vars.ce_handle);
             }
         }
 
