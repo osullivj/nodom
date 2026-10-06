@@ -106,6 +106,10 @@ struct EndRenderLocals {
     int*    new_date{ nullptr };
     // no old_string/new_string: see render_input_string comment 
     // for strings we must invoke w->clear_buffer();
+    uint32_t*   ce_int_ptr{ nullptr };
+    char*       ce_str_ptr{ nullptr };
+    CESet*      ce_dirty_set_ptr{ nullptr };
+    RSHandle    ce_handle{ 0 };
 };
 
 struct SummaryTableLocals {
