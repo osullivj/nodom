@@ -884,6 +884,10 @@ protected:
     }
 
     bool execute_forth(NDFMachine& lambda) {
+        const char* method = "DataLayCache::execute_forth: ";
+
+        std::cout << method << lambda.ndf_src << std::endl;
+
         if (lambda.ndf_bin.empty()) {
             return false;
         }
@@ -894,6 +898,10 @@ protected:
         assert(!lambda.stack.empty());
         DataRef* result_data_ref = lambda.stack.back();
         assert(result_data_ref->tipe == lambda.result_type);
+
+        std::cout << method;
+        log_data_ref(result_data_ref);
+
         return true;
     }
 
@@ -1563,7 +1571,6 @@ public:
                 return cs;
             }
         }
-        
     }
 
     CDT get_cspec_type(CacheSpecifier cs, RenderMethod rm) {
@@ -1686,7 +1693,6 @@ public:
         auto cs_ndfref_iter = w->lambda_map.find(spec);
         if (cs_ndfref_iter != w->lambda_map.end())
             return cs_ndfref_iter->second.stack.back();
-            // return &(w->lambda_map->second);
         return nullptr;
     }
 private:
@@ -2158,15 +2164,24 @@ public:
             << std::dec << data_ref->size << ":";
         switch (data_ref->tipe) {
         case cdInt:
+            ndf_int_ptr = get_int_value(IntInx(data_ref->ref_inx));
+            assert(ndf_int_ptr != nullptr);
+            std::cout << *ndf_int_ptr << std::endl;
             break;
         case cdBool:
+            ndf_bool_ptr = get_bool_value(BoolInx(data_ref->ref_inx));
+            assert(ndf_bool_ptr != nullptr);
+            std::cout << *ndf_bool_ptr << std::endl;
             break;
         case cdStr:
+            ndf_str_ptr = (char*)get_string_value(BoolInx(data_ref->ref_inx));
+            assert(ndf_str_ptr != nullptr);
+            std::cout << ndf_str_ptr << std::endl;
             break;
         default:
+            std::cout << Static::unk_cs << std::endl;
             break;
         }
-        std::endl;
     }
 
     void report_menu_data_refs() {
