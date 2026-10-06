@@ -341,7 +341,10 @@ public:
                 std::string dlc_name{ emit->second };
                 bulk.add_export(*qidit, emit->first);
 
-                ce_inx_map[ce] = data_lay_cache.get_addr_inx(dlc_name);
+                AddrInx ainx = data_lay_cache.get_addr_inx(dlc_name);
+                DataRef* data_ref = data_lay_cache.get_data_ref(ainx);
+                assert(data_ref != nullptr);
+                ce_inx_map[ce] = data_ref->ref_inx;
             }
         }
         data_lay_cache.report_cache_state();
