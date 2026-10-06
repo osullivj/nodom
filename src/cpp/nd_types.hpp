@@ -557,6 +557,3 @@ using DblXformVec = std::vector<DblXform>;
 using CEVec = std::vector<CacheExport>;
 using CESet = std::set<CacheExport>;
 using CENameMap = std::map<CacheExport, std::string>;
-using CEInxMap = std::map<CacheExport, AddrInx>;
-using QueryCEInxMap = std::map<std::string, CEInxMap>;
-
