@@ -1024,6 +1024,7 @@ protected:
                     ref_name == Static::cindex_cs||
                     ref_name == Static::xname_cs ||
                     ref_name == Static::yname_cs ||
+                    ref_name == Static::text_cs  ||
                     ref_name == Static::disabled_cs) {
                     // before we error check it's not an NDF Lambda
                     if (ref_name == Static::cname_cs || ref_name == Static::disabled_cs) {
@@ -1088,6 +1089,7 @@ protected:
             case cs_yname:
             case cs_formats:
             case cs_xforms:
+            case cs_text:
             case cs_disabled:
                 data_ref = CreateDataRef(ref_type, amit->second(), data, addr_or_qid);
                 break;
@@ -1118,6 +1120,7 @@ protected:
                 case cs_yname:
                 case cs_formats:
                 case cs_xforms:
+                case cs_text:
                 case cs_disabled:
                     data_ref_map[data_ref.addr_inx] = data_ref;
                     break;
@@ -1854,9 +1857,9 @@ private:
         {InputString, {cs_label, cs_text_flags, cs_tooltip, cs_buffer_size}},
         {InputTextArea, {cs_label, cs_text_flags, cs_tooltip, cs_buffer_size, cs_line_height}},
         {Combo, {cs_label, cs_step, cs_tooltip}},
-        {Checkbox, {cs_label, cs_tooltip}},
-        {Text, {cs_text}},
-        {Button, {cs_text, cs_tooltip}},
+        {Checkbox, {cs_tooltip}},
+        {Text, {}},
+        {Button, {cs_tooltip}},
         {BulkTable, {cs_title, cs_title_font, cs_title_font_size,
                     cs_body_font, cs_body_font_size,
                     cs_table_flags, cs_window_flags, cs_column_flags, cs_selectable_col}},
@@ -1902,8 +1905,15 @@ private:
             {cs_cindex, cdInt},
             {cs_cname, cdStrVec}
         }},
-        {Checkbox, {{cs_cname, cdBool}}},
-        {Button, {{cs_disabled, cdBool}}},
+        {Checkbox, {
+            {cs_cname, cdBool},
+            { cs_text, cdStr}
+        }},
+        {Text, {{cs_text, cdStr}}},
+        {Button, {
+            {cs_text, cdStr},
+            {cs_disabled, cdBool}
+        }},
         {DatePicker, {{cs_cname, cdIntVec}}},
         {LoadingModal, {{cs_cname, cdStrVec}}},
         {DuckTableSummaryModal, {
