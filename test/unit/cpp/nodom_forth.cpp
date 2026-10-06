@@ -81,7 +81,7 @@ BOOST_FIXTURE_TEST_CASE(NDFNotForth, DataCacheFixture)
     std::string layout_json = load_json(layout_json_path.c_str());
     auto layout = JParse<nlohmann::json>(layout_json);
 
-    str_count = 33;
+    str_count = 32;
     int_count = 6;
     dc.on_json(data, layout, [&]() { dc.on_init(); });
 
@@ -183,7 +183,7 @@ BOOST_FIXTURE_TEST_CASE(NDFInForth, DataCacheFixture)
     std::string layout_json = load_json(layout_json_path.c_str());
     auto layout = JParse<nlohmann::json>(layout_json);
 
-    str_count = 33;
+    str_count = 32;
     int_count = 6;
     dc.on_json(data, layout, [&]() { dc.on_init(); });
 
