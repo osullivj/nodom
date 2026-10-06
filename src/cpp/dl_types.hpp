@@ -23,6 +23,10 @@ using DataRefMap = std::map<AddrInx, DataRef>;
 using DataRefVec = std::vector<DataRef>;
 using MenuMap = std::map<AddrInx, DataRef>;
 
+using CEDataRefMap = std::map<CacheExport, DataRef*>;
+using QueryCEDataRefMap = std::map<std::string, CEDataRefMap>;
+
+
 // NDFMachine is NoDOM Forth Machine. NDF is a micro forth
 // dialect designed for embedding in Widgets, Menus etc
 // where "data adapters" are needed to transform data to
