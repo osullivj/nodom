@@ -20,6 +20,11 @@
   "enable_logging_sql": "",
   "xaxis":"SeqNo",
   "yaxis":"AskPrice1",
+  "start_date_text":"Start date",
+  "end_date_text":"End date",
+  "scan_text":"Scan",
+  "summary_text":"Summary",
+  "chart_text":"Chart",
   "menus":{
     "summary_rclick_menupop":["Memory Editor"],
     "main_menu_bar": ["Queries", "Caches"],
