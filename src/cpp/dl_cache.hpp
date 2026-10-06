@@ -117,9 +117,15 @@ protected:
     DataRef         data_ref_True{ cdBool };
     DataRef         data_ref_Zero{ cdInt };
     DataRef         data_ref_One{ cdInt };
-    DataRef         working_data_ref;
-    int*            int_ptr{ nullptr };
-    bool*           bool_ptr{ nullptr };
+
+    // Working storage for NDF methods
+    DataRef         ndf_working_data_ref;
+    int*            ndf_int_ptr{ nullptr };
+    bool*           ndf_bool_ptr{ nullptr };
+    char*           ndf_str_ptr{ nullptr };
+    DataRef*        ndf_index_ref{ nullptr };
+    DataRef*        ndf_list_ref{ nullptr };
+    DataRef*        ndf_elem_ref{ nullptr };
 
     // InxWidgetVecMap & InxCspecVecMap instances
     // to back map from raw AddrInxs to (widget,cspec) pairs
@@ -179,7 +185,7 @@ public:
     }
 
     // update_extern_string: only use this for bulk exports
-    StrInx update_extern_string(uint32_t inx, const char* val) {
+    void update_extern_string(uint32_t inx, const char* val) {
         if (inx >= cache_strings.size())
             throw std::runtime_error("NoDOM BAD_ADDR:update_string:"
                 + std::to_string(inx) + ":" + std::string(val));
@@ -674,6 +680,7 @@ protected:
         // no space in the source means it's a direct reference
         std::stringstream forth_stream{ forth_source };
         std::string stoken;
+        lambda.ndf_src = forth_source;
         lambda.result_type = result_type;
         lambda.ndf_bin.clear();
         while (std::getline(forth_stream, stoken, Static::space_c)) {
@@ -741,36 +748,35 @@ protected:
     bool forth_index_op(NDFMachine& forth) {
         // asert stack has operands, and pop them
         assert(forth.stack.size() >= 2);
-        DataRef* index_ref = forth.stack.back();
+        ndf_index_ref = forth.stack.back();
         forth.stack.pop_back();
-        DataRef* list_ref = forth.stack.back();
+        ndf_list_ref = forth.stack.back();
         forth.stack.pop_back();
 
         // assert list and index types
-        assert(index_ref != nullptr);
-        assert(index_ref->tipe == cdInt);
-        assert(list_ref != nullptr);
-        assert(list_ref->tipe == cdIntVec || list_ref->tipe == cdStrVec);
+        assert(ndf_index_ref != nullptr);
+        assert(ndf_index_ref->tipe == cdInt);
+        assert(ndf_list_ref != nullptr);
+        assert(ndf_list_ref->tipe == cdIntVec || ndf_list_ref->tipe == cdStrVec);
 
         // the real index op
-        IntInx iinx{ index_ref->ref_inx };
-        int* index_ptr = get_int_value(iinx);
-        assert(index_ptr != nullptr);
-        assert(*index_ptr < list_ref->size);
+        int* ndf_int_ptr = get_int_value(IntInx(ndf_index_ref->ref_inx));
+        assert(ndf_int_ptr != nullptr);
+        assert(*ndf_int_ptr < ndf_list_ref->size);
 
-        switch (list_ref->tipe) {
+        switch (ndf_list_ref->tipe) {
         case cdIntVec:
-            working_data_ref.tipe = cdInt;
+            ndf_working_data_ref.tipe = cdInt;
             break;
         case cdStrVec:
-            working_data_ref.tipe = cdStr;
+            ndf_working_data_ref.tipe = cdStr;
             break;
         }
-        working_data_ref.addr_inx = list_ref->addr_inx;
-        working_data_ref.ref_inx = list_ref->ref_inx + *index_ptr;
-        working_data_ref.size = 1;
-        working_data_ref.offset = *index_ptr;
-        forth.locals.push_back(working_data_ref);
+        ndf_working_data_ref.addr_inx = ndf_list_ref->addr_inx;
+        ndf_working_data_ref.ref_inx = ndf_list_ref->ref_inx + *ndf_int_ptr;
+        ndf_working_data_ref.size = 1;
+        ndf_working_data_ref.offset = *ndf_int_ptr;
+        forth.locals.push_back(ndf_working_data_ref);
 
         // stack a pointer to the local data_ref
         forth.stack.push_back( &( forth.locals.back()));
@@ -780,22 +786,21 @@ protected:
     bool forth_in_op(NDFMachine& forth) {
         // asert stack has operands, and pop them
         assert(forth.stack.size() >= 2);
-        DataRef* elem_ref = forth.stack.back();
+        ndf_elem_ref = forth.stack.back();
         forth.stack.pop_back();
-        DataRef* list_ref = forth.stack.back();
+        ndf_list_ref = forth.stack.back();
         forth.stack.pop_back();
 
         // assert list and index types
-        assert(elem_ref != nullptr);
-        assert(elem_ref->tipe == cdStr);
-        assert(list_ref != nullptr);
-        assert(list_ref->tipe == cdStrVec);
+        assert(ndf_elem_ref != nullptr);
+        assert(ndf_elem_ref->tipe == cdStr);
+        assert(ndf_list_ref != nullptr);
+        assert(ndf_list_ref->tipe == cdStrVec);
 
-        StrInx sinx_elem(elem_ref->ref_inx);
-        const char* elem_c = get_string_value(sinx_elem);
-        StrInx sinx_list{ list_ref->ref_inx };
+        const char* elem_c = get_string_value(StrInx(ndf_elem_ref->ref_inx));
+        StrInx sinx_list{ ndf_list_ref->ref_inx };
         bool in{ false };
-        for (uint32_t count = 0; count < list_ref->size; count++) {
+        for (uint32_t count = 0; count < ndf_list_ref->size; count++) {
             const char* s = get_string_value(sinx_list);
             if (std::string_view(s) == std::string_view(elem_c)) {
                 in = true;
@@ -816,7 +821,7 @@ protected:
     bool forth_pop_data_op(NDFMachine& forth) {
         // asert stack has one operand, and pop it
         assert(forth.stack.size() >= 1);
-        DataRef* op_ref = forth.stack.back();
+        ndf_elem_ref = forth.stack.back();
         // TODO: add printf(op_ref)
         forth.stack.pop_back();
         return true;
@@ -830,14 +835,14 @@ protected:
     bool forth_not_op(NDFMachine& forth) {
         // asert stack has one operand, and pop it
         assert(forth.stack.size() >= 1);
-        DataRef* op_ref = forth.stack.back();
+        ndf_elem_ref = forth.stack.back();
         forth.stack.pop_back();
 
-        switch (op_ref->tipe) {
+        switch (ndf_elem_ref->tipe) {
         case cdBool:
-            bool_ptr = get_bool_value(op_ref->ref_inx);
-            assert(bool_ptr != nullptr);
-            if (*bool_ptr == true) {
+            ndf_bool_ptr = get_bool_value(ndf_elem_ref->ref_inx);
+            assert(ndf_bool_ptr != nullptr);
+            if (*ndf_bool_ptr == true) {
                 forth.stack.push_back(&data_ref_False);
             }
             else {
@@ -845,8 +850,8 @@ protected:
             }
             break;
         case cdInt:
-            int_ptr = get_int_value(op_ref->ref_inx);
-            if (*int_ptr == 0) {
+            ndf_int_ptr = get_int_value(ndf_elem_ref->ref_inx);
+            if (*ndf_int_ptr == 0) {
                 forth.stack.push_back(&data_ref_True);
             }
             else {
@@ -861,9 +866,9 @@ protected:
     }
 
     bool forth_push_data(NDFMachine& forth, AddrInx operand) {
-        DataRef* op_ref = get_data_ref(operand);
-        assert(op_ref != nullptr);
-        forth.stack.push_back(op_ref);
+        ndf_elem_ref = get_data_ref(operand);
+        assert(ndf_elem_ref != nullptr);
+        forth.stack.push_back(ndf_elem_ref);
         return true;
     }
 
@@ -2144,6 +2149,24 @@ public:
             }
         }
         std::cout << std::dec << std::endl;
+    }
+
+    void log_data_ref(DataRef* data_ref) {
+        std::cout << CDTToString(data_ref->tipe) << ":"
+            << get_addr_value(data_ref->addr_inx) << ":"
+            << std::hex << data_ref->ref_inx << ":"
+            << std::dec << data_ref->size << ":";
+        switch (data_ref->tipe) {
+        case cdInt:
+            break;
+        case cdBool:
+            break;
+        case cdStr:
+            break;
+        default:
+            break;
+        }
+        std::endl;
     }
 
     void report_menu_data_refs() {
