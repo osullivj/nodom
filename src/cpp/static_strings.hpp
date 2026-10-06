@@ -263,6 +263,7 @@ struct Static {
 	inline static const char* selectable_col_fmt_cs{"{}##col{}_row{}"};
 	inline static const char* context_menupop_id{"##menupop"};
 	inline static const char* imlog_cs{ "imlog" };
+	inline static const char* unk_cs{ "unk" };
 
 	// LiveTable timestamp transforms
 	inline static const char* secs_cs{ "secs" };
