@@ -59,6 +59,7 @@ using ForthTokens = std::vector<AddrInx>;
 using ForthStack = std::vector<DataRef*>;
 
 struct NDFMachine {
+    std::string ndf_src;        // source for debugging
     ForthTokens ndf_bin;        // tokenised Forth eg "arrary index []" reduced to 3 32bit tokens
                                 // token: addr or op.
                                 // op: AddrInx for op. 
