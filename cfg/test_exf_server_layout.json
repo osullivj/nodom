@@ -26,7 +26,7 @@
         }
       },
       { "rname": "SameLine" },
-      { "rname": "Text", "cspec": { "text": "Start date" } },
+      { "rname": "Text", "cspec": { "text": "start_date_text" } },
       {
         "rname": "DatePicker",
         "cspec": {
@@ -38,23 +38,23 @@
         }
       },
       { "rname": "SameLine" },
-      { "rname": "Text", "cspec": { "text": "End date" } },
+      { "rname": "Text", "cspec": { "text": "end_date_text" } },
       { "rname": "Separator" },
       {
         "rname": "Button",
         "widget_id": "i_am_the_scan_button",
-        "cspec": { "text": "Scan" }
+        "cspec": { "text": "scan_text" }
       },
       { "rname": "SameLine" },
       {
         "rname": "Button",
         "widget_id": "i_am_the_summary_button",
-        "cspec": { "text": "Summary" }
+        "cspec": { "text": "summary_text" }
       },
       {
         "rname": "Button",
         "widget_id": "i_am_the_chart_button",
-        "cspec": { "text": "Chart" }
+        "cspec": { "text": "chart_text" }
       },
       {
         "rname": "Footer",
