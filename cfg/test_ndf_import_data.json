@@ -5,8 +5,8 @@
     "ticker_formats":["{}","{:%F %T}","{:>6.2f}"],
     "ticker_xforms":["", "micro", ""],
     "loading_instruments_message":["Loading IEX instruments..."],
-    "sub_enabled":true,
-    "unsub_enabled":false,
+    "sub_disabled":true,
+    "unsub_disabled":false,
     "inst_sel_col":0,
     "inst_sel_row":0,
     "inst_sel_key":"",
@@ -27,7 +27,7 @@
         ]
     },
     "types": {
-        "cdBool":["sub_enabled","unsub_enabled"],
+        "cdBool":["sub_disabled","unsub_disabled"],
         "cdInt":["inst_sel_col","inst_sel_row"],
         "cdStr":["inst_sel_key"]
     },
