@@ -561,7 +561,6 @@ public:
         default:
             return nullptr;
         }
-        return nullptr;
     }
 
     const char* get_exported_str(RSHandle h, CacheExport ce) {
@@ -571,7 +570,6 @@ public:
         default:
             return nullptr;
         }
-        return nullptr;
     }
 
     void add_export(const std::string& qid, CacheExport ce) {
