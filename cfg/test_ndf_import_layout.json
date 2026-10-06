@@ -14,7 +14,7 @@
           "widget_id":"i_am_sub_button",
           "cspec":{
             "text":"Sub",
-            "disabled":"sub_enabled"
+            "disabled":"sub_disabled"
           }
         },
         {
@@ -22,7 +22,7 @@
           "widget_id":"i_am_unsub_button",
           "cspec":{
             "text":"Unsub",
-            "disabled":"unsub_enabled"
+            "disabled":"unsub_disabled"
           }
         },
         {
