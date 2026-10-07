@@ -2376,7 +2376,13 @@ protected:
 
                         // get hold of the ticker symbol from the live cache
                         live_tbl_vars.ticker = live_tbl_vars.ticker_list[live_tbl_vars.row_inx];
-                        assert(live_tbl_vars.ticker != nullptr);
+
+                        // if we've exhausted all the tickers, bail out of the loop
+                        // NB ImGuiListClipper cannot know exactly how many rows can be
+                        // shown due to styling effects, and the fact that imgui does not
+                        // "look ahead" in the interests of efficiency
+                        if (live_tbl_vars.ticker == nullptr)
+                            continue;
 
                         // use the ticker symbol to get the index into the live records
                         live.find_ticker(live_tbl_vars.ticker, live_tbl_vars.tkr_inx);
