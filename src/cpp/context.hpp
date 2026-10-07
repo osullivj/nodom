@@ -2332,8 +2332,6 @@ protected:
                 w->append_buffer(data_lay_cache.get_string_value(tinx));
                 tinx++;
             }
-            // live_tbl_vars.ticker_list_cs = (char**)w->buffer;
-            // live_tbl_vars.format_list_cs = nullptr;
         }
         // NB we're doing ptr arithmetic here, and all ptrs are the same size!
         live_tbl_vars.format_list = (char**)w->buffer;
@@ -2356,22 +2354,8 @@ protected:
                         assert(live_tbl_vars.ticker != nullptr);
                         live.find_ticker(live_tbl_vars.ticker, live_tbl_vars.tkr_inx);
                         for (live_tbl_vars.col_inx = 0; live_tbl_vars.col_inx < live.records.col_count; live_tbl_vars.col_inx++) {
-                            /*
-                            if (live_tbl_vars.format_list_cs == nullptr) {
-                                live_tbl_vars.format = (char*)Static::default_format_cs;
-                            }
-                            else {
-                                live_tbl_vars.format = live_tbl_vars.format_list_cs[live_tbl_vars.col_inx];
-                            } */
 
                             live_tbl_vars.format = live_tbl_vars.format_list[live_tbl_vars.col_inx];
-                            /*
-                            if (live_tbl_vars.dbl_xform_vec.empty()) {
-                                live_tbl_vars.dbl_xform = Null;
-                            }
-                            else {
-                                live_tbl_vars.dbl_xform = live_tbl_vars.dbl_xform_vec[live_tbl_vars.col_inx];
-                            }*/
                             live_tbl_vars.dbl_xform = DblXformFromString(live_tbl_vars.xform_list[live_tbl_vars.col_inx]);
 
                             if (ImGui::TableSetColumnIndex(live_tbl_vars.col_inx)) {
