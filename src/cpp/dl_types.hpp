@@ -107,6 +107,13 @@ struct NDWidget {
         memset(old_buffer, 0, buffer_size);
     }
 
+    // return true if there is a buffer and it's not init
+    inline bool buffer_not_set() {
+        if (buffer == nullptr)
+            return false;
+        return buffer[0] == 0;
+    }
+
     inline void clear_buffer() {
         if (buffer != nullptr)
             memset(buffer, 0, buffer_size);
@@ -124,27 +131,21 @@ struct NDWidget {
     }
 
     // use this when we're memoing DLC str ptrs
-    // eg for LiveTable tickers
+    // eg for LiveTable tickers. NB we're not
+    // copying whole strings here, just pointers
     inline void append_buffer(const char* v) {
-        buffer_ptr = next_free();
+        buffer_ptr = next_free_ptr();
         if (buffer_ptr - reinterpret_cast<char**>(buffer) < buffer_size)
-            *buffer_ptr = (char*)v;
+            *buffer_ptr = (char*)v; // cp ptr into buf
     }
 
     // if LiveTable:cspec:formats is provided, we use next_free()
-    // to memo the DLC str ptrs for fmt strings
-    inline char** next_free() {
+    // to find the next free pointer slot
+    inline char** next_free_ptr() {
         buffer_ptr = reinterpret_cast<char**>(buffer);
         while (*buffer_ptr != 0)
             buffer_ptr++;
         return buffer_ptr;
-    }
-
-    // return true if there is a buffer and it's not init
-    inline bool buffer_not_set() {
-        if (buffer == nullptr)
-            return false;
-        return buffer[0] == 0;
     }
 
     RenderMethod    rname{ EndRenderMethod };
