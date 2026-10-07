@@ -1589,8 +1589,13 @@ protected:
     void render_checkbox(WidgetPtr w) {
         const static char* method = "NDContext::render_checkbox: ";
 
-        const char* check_text = cspec_string(cs_text, w->cspec_str, method);
+        DataRef* text_data_ref = cspec_data_ref(cs_text, w);
+        assert(text_data_ref != nullptr);
+        const char* check_text = data_lay_cache.get_string_value(StrInx(text_data_ref->ref_inx));
+
+        // const char* check_text = cspec_string(cs_text, w->cspec_str, method);
         DataRef* bool_data_ref = cspec_data_ref(cs_cname, w);
+        assert(bool_data_ref != nullptr);
 
         if (bool_data_ref != nullptr && bool_data_ref->tipe == cdBool) {
             BoolInx binx{ bool_data_ref->ref_inx };
@@ -1875,20 +1880,23 @@ protected:
     void render_text(WidgetPtr w) {
         const static char* method = "NDContext::render_text: ";
 
-        const char* rtext = cspec_string(cs_text, w->cspec_str, method);
+        DataRef* text_data_ref = cspec_data_ref(cs_text, w);
+        const char* rtext = data_lay_cache.get_string_value(StrInx(text_data_ref->ref_inx));
+
         ImGui::TextUnformatted(rtext);
     }
 
     void render_button(WidgetPtr w) {
         const static char* method = "NDContext::render_button: ";
 
-        const char* button_text = cspec_string(cs_text, w->cspec_str, method);
+        DataRef* text_data_ref = cspec_data_ref(cs_text, w);
+        const char* button_text = data_lay_cache.get_string_value(StrInx(text_data_ref->ref_inx));
+
         const char* tooltip = cspec_string(cs_tooltip, w->cspec_str, nullptr);
 
         DataRef* disabled_data_ref = cspec_data_ref(cs_disabled, w);
         bool* bool_ptr{ nullptr };
         if (disabled_data_ref != nullptr) {
-            BoolInx binx(disabled_data_ref->ref_inx);
             bool_ptr = data_lay_cache.get_bool_value(BoolInx(disabled_data_ref->ref_inx));
             ImGui::BeginDisabled(*bool_ptr);
         }
