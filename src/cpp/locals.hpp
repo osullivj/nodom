@@ -85,11 +85,13 @@ struct LiveTableLocals {
     uint32_t    tkr_inx{ 0 };
     char*       string_fields{ nullptr };
     double*     double_fields{ nullptr };
-    char**      ticker_list_cs{ nullptr };
-    char**      format_list_cs{ nullptr };
+    char**      ticker_list{ nullptr };
+    char**      format_list{ nullptr };
+    char**      xform_list{ nullptr };
     char*       ticker{ nullptr };  // current element in ticker_list_cs
     char*       format{ nullptr };  // current element in format_list_cs
     DblXform    dbl_xform{ DblXform::Null };
+    char*       xform{ nullptr };
     char        string_buffer[STR_BUF_LEN];
     DblXformVec dbl_xform_vec;
     fmt::format_to_n_result<char*> fmt_result;

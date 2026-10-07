@@ -55,13 +55,13 @@ struct TiingoIEXMidRecords {
 
 	void init(uint32_t rc) {
 		record_count = rc;
-		// 8 bytes per firld for the 64 bit fields
-		timestamp = (double*)malloc(rc * 8);
+		// 8 bytes per field for the tickers
+		timestamp = (double*)malloc(rc * sizeof(double));
 		ticker = (char*)malloc(rc * 8);
-		mid = (double*)malloc(rc * 8);
-		memset(timestamp, 0, rc * 8);
+		mid = (double*)malloc(rc * sizeof(double));
+		memset(timestamp, 0, rc * sizeof(double));
 		memset(ticker, 0, rc * 8);
-		memset(mid, 0, rc * 8);
+		memset(mid, 0, rc * sizeof(double));
 
 		field_names.push_back(Static::ticker_cs);
 		field_names.push_back(Static::timestamp_cs);
