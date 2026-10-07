@@ -275,7 +275,7 @@ EM_BOOL sa_ems_on_message(int event_type, const EmscriptenWebSocketMessageEvent*
     auto ws_client = reinterpret_cast<NDWebSockClient<emscripten::val, WebDuckDBCache, MktData_t>*>(user_data);
     if (ws_event->isText) {
         std::string payload((const char*)ws_event->data);
-        NDLogger::cout() << method << payload << std::endl;
+        // NDLogger::cout() << method << payload << std::endl;
         ws_client->ems_on_message(payload);
     }
     else {
