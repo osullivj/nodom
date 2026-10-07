@@ -795,7 +795,7 @@ public:
         // render hot path, and can invoke action_dispatch() directly
         while (!events.empty()) {
             JSON resp = events.front();
-            NDLogger::cout() << method << JPrettyPrint(resp) << std::endl;
+            // NDLogger::cout() << method << JPrettyPrint(resp) << std::endl;
             std::string nd_type(JAsString(resp, Static::nd_type_cs));
             // polymorphic as types are hidden inside change
             // Is this a CacheResponse for layout or data?
@@ -2280,36 +2280,65 @@ protected:
         assert(ticker_list_data_ref->tipe == cdStrVec);
         assert(ticker_list_data_ref->size < live.records.record_count);
 
+        // How big is live table?
+        // Rows: live.ticker_count() rows
+        // Columns: live.records.col_count columns
+
         if (w->buffer_not_set()) {
-            // cp tickers from data into widget local buffer
+            // If buffer not populated, we must memoise the formats, the transforms and the tickers.
+            // Formats and xforms first as there's one of each per col. So, given three cols, we'll
+            // have three fmt str ptrs, three xform enums, then N ticker str ptrs
+
+            // Formats first: use cspec:formats if supplied, otherwise use defaults.
+            // did we get a cspec:formats? If so, cp fmts into buffer
+            DataRef* formats_list_data_ref = cspec_data_ref(cs_formats, w);
+            if (formats_list_data_ref != nullptr) {
+                // live_tbl_vars.format_list_cs = w->next_free();
+                StrInx finx{ formats_list_data_ref->ref_inx };
+                for (live_tbl_vars.count = 0; live_tbl_vars.count < live.records.col_count; live_tbl_vars.count++) {
+                    w->append_buffer(data_lay_cache.get_string_value(finx));
+                    finx++;
+                }
+            }
+            else {
+                for (live_tbl_vars.count = 0; live_tbl_vars.count < live.records.col_count; live_tbl_vars.count++) {
+                    w->append_buffer(Static::default_format_cs);
+                }
+            }
+
+            // Now do the xforms
+            DataRef* xforms_list_data_ref = cspec_data_ref(cs_xforms, w);
+            if (xforms_list_data_ref != nullptr) {
+                StrInx xinx{ xforms_list_data_ref->ref_inx };
+                for (live_tbl_vars.count = 0; live_tbl_vars.count < xforms_list_data_ref->size; live_tbl_vars.count++) {
+                    live_tbl_vars.xform = (char*)data_lay_cache.get_string_value(xinx);
+                    // live_tbl_vars.dbl_xform = DblXformFromString(live_tbl_vars.xform);
+                    // live_tbl_vars.dbl_xform is a uint32_t, so when we cast to char*
+                    // we change size on win32, but not wasm
+                    w->append_buffer((char*)(live_tbl_vars.xform));
+                    // live_tbl_vars.dbl_xform_vec.push_back(DblXformFromString(xform));
+                    xinx++;
+                }
+            }
+            else {
+                for (live_tbl_vars.count = 0; live_tbl_vars.count < live.records.col_count; live_tbl_vars.count++) {
+                    w->append_buffer(Static::empty_cs);
+                }
+            }
+
+            // Finally, memoise the tickers
             StrInx tinx{ ticker_list_data_ref->ref_inx };
             for (live_tbl_vars.count = 0; live_tbl_vars.count < ticker_list_data_ref->size; live_tbl_vars.count++) {
                 w->append_buffer(data_lay_cache.get_string_value(tinx));
                 tinx++;
             }
-            live_tbl_vars.ticker_list_cs = (char**)w->buffer;
-            live_tbl_vars.format_list_cs = nullptr;
-            // did we get a cspec:formats? If so, cp fmts into buffer
-            DataRef* formats_list_data_ref = cspec_data_ref(cs_formats, w);
-            if (formats_list_data_ref != nullptr) {
-                live_tbl_vars.format_list_cs = w->next_free();
-                StrInx finx{ formats_list_data_ref->ref_inx };
-                for (live_tbl_vars.count = 0; live_tbl_vars.count < formats_list_data_ref->size; live_tbl_vars.count++) {
-                    w->append_buffer(data_lay_cache.get_string_value(finx));
-                    finx++;
-                }
-            }
-            // did data supply xforms?
-            DataRef* xforms_list_data_ref = cspec_data_ref(cs_xforms, w);
-            if (xforms_list_data_ref != nullptr) {
-                StrInx xinx{ xforms_list_data_ref->ref_inx };
-                for (live_tbl_vars.count = 0; live_tbl_vars.count < xforms_list_data_ref->size; live_tbl_vars.count++) {
-                    const char* xform = data_lay_cache.get_string_value(xinx);
-                    live_tbl_vars.dbl_xform_vec.push_back(DblXformFromString(xform));
-                    xinx++;
-                }
-            }
+            // live_tbl_vars.ticker_list_cs = (char**)w->buffer;
+            // live_tbl_vars.format_list_cs = nullptr;
         }
+        // NB we're doing ptr arithmetic here, and all ptrs are the same size!
+        live_tbl_vars.format_list = (char**)w->buffer;
+        live_tbl_vars.xform_list = (char**)(live_tbl_vars.format_list + live.records.col_count);
+        live_tbl_vars.ticker_list = (char**)(live_tbl_vars.xform_list + live.records.col_count);
 
         live_tbl_vars.row_inx = 0; {
             LocalFont body_font(w, cs_body_font, cs_body_font_size);
@@ -2323,22 +2352,28 @@ protected:
                 while (clipper.Step()) {
                     for (live_tbl_vars.row_inx = clipper.DisplayStart; live_tbl_vars.row_inx < clipper.DisplayEnd; live_tbl_vars.row_inx++) {
                         ImGui::TableNextRow();
-                        live_tbl_vars.ticker = live_tbl_vars.ticker_list_cs[live_tbl_vars.row_inx];
+                        live_tbl_vars.ticker = live_tbl_vars.ticker_list[live_tbl_vars.row_inx];
                         assert(live_tbl_vars.ticker != nullptr);
                         live.find_ticker(live_tbl_vars.ticker, live_tbl_vars.tkr_inx);
                         for (live_tbl_vars.col_inx = 0; live_tbl_vars.col_inx < live.records.col_count; live_tbl_vars.col_inx++) {
+                            /*
                             if (live_tbl_vars.format_list_cs == nullptr) {
                                 live_tbl_vars.format = (char*)Static::default_format_cs;
                             }
                             else {
                                 live_tbl_vars.format = live_tbl_vars.format_list_cs[live_tbl_vars.col_inx];
-                            }
+                            } */
+
+                            live_tbl_vars.format = live_tbl_vars.format_list[live_tbl_vars.col_inx];
+                            /*
                             if (live_tbl_vars.dbl_xform_vec.empty()) {
                                 live_tbl_vars.dbl_xform = Null;
                             }
                             else {
                                 live_tbl_vars.dbl_xform = live_tbl_vars.dbl_xform_vec[live_tbl_vars.col_inx];
-                            }
+                            }*/
+                            live_tbl_vars.dbl_xform = DblXformFromString(live_tbl_vars.xform_list[live_tbl_vars.col_inx]);
+
                             if (ImGui::TableSetColumnIndex(live_tbl_vars.col_inx)) {
                                 switch (live.records.field_types[live_tbl_vars.col_inx]) {
                                 case cdStr:
