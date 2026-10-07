@@ -500,6 +500,9 @@ public:
         }
         render_count++;
 
+        // update the live cache up and down counts
+        live.records.on_end_render_cycle();
+
         // Did any widget post a change to underlying data?
         // NB widgets may compose many pieces of data, but
         // they can only change one!
@@ -2346,6 +2349,10 @@ protected:
         live_tbl_vars.xform_list = (char**)(live_tbl_vars.format_list + live.records.col_count);
         live_tbl_vars.ticker_list = (char**)(live_tbl_vars.xform_list + live.records.col_count);
 
+        // get hold of up and down counts from live cache
+        live_tbl_vars.up_count = (uint32_t*)live.records.get_field(-1);
+        live_tbl_vars.down_count = (uint32_t*)live.records.get_field(-2);
+
         live_tbl_vars.row_inx = 0; {
             LocalFont body_font(w, cs_body_font, cs_body_font_size);
             if (ImGui::BeginTable(title, (int)live.records.col_count, live_tbl_vars.table_flags, live_tbl_vars.size)) {
@@ -2358,8 +2365,20 @@ protected:
                 while (clipper.Step()) {
                     for (live_tbl_vars.row_inx = clipper.DisplayStart; live_tbl_vars.row_inx < clipper.DisplayEnd; live_tbl_vars.row_inx++) {
                         ImGui::TableNextRow();
+                        if (live_tbl_vars.up_count[live_tbl_vars.row_inx] > 0) {
+                            live_tbl_vars.greenish.y = (1.0 * live_tbl_vars.up_count[live_tbl_vars.row_inx]) / (float)live.records.flash_ticks;
+                            ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::GetColorU32(live_tbl_vars.greenish));
+                        }
+                        else if (live_tbl_vars.down_count[live_tbl_vars.row_inx] > 0) {
+                            live_tbl_vars.reddish.z = (1.0 * live_tbl_vars.down_count[live_tbl_vars.row_inx]) / (float)live.records.flash_ticks;
+                            ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::GetColorU32(live_tbl_vars.reddish));
+                        }
+
+                        // get hold of the ticker symbol from the live cache
                         live_tbl_vars.ticker = live_tbl_vars.ticker_list[live_tbl_vars.row_inx];
                         assert(live_tbl_vars.ticker != nullptr);
+
+                        // use the ticker symbol to get the index into the live records
                         live.find_ticker(live_tbl_vars.ticker, live_tbl_vars.tkr_inx);
                         for (live_tbl_vars.col_inx = 0; live_tbl_vars.col_inx < live.records.col_count; live_tbl_vars.col_inx++) {
 
