@@ -528,8 +528,8 @@ enum WeekDay {
     EndWeekDay
 };
 
-enum DblXform {
-    Null,
+enum DblXform : uint32_t {
+    Null = 1,   // so it doesn't look like a null ptr in memory
     Secs,
     Milli,
     Micro,
@@ -557,3 +557,4 @@ using DblXformVec = std::vector<DblXform>;
 using CEVec = std::vector<CacheExport>;
 using CESet = std::set<CacheExport>;
 using CENameMap = std::map<CacheExport, std::string>;
+using CharStarVec = std::vector<char*>;
