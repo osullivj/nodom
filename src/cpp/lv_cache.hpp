@@ -39,11 +39,18 @@ template <typename JSON>
 struct TiingoIEXMidRecords {
 	uint32_t	record_count{ 0 };
 	uint32_t	col_count{ 3 };
+	uint32_t	flash_ticks{ 30 };
 	char*		ticker{ nullptr };	// 8 char ticker, so this is 64 like int and dbl
 	double*		timestamp{ nullptr };
 	double*		mid{ nullptr };
+	uint32_t*	up_count{ nullptr };
+	uint32_t*	down_count{ nullptr };
 	StringVec	field_names;
 	CDTVec		field_types;
+
+	// working storage
+	double		old_mid;
+	uint32_t	inx;
 
 	TiingoIEXMidRecords() { }
 
@@ -51,37 +58,66 @@ struct TiingoIEXMidRecords {
 		free(mid);
 		free(ticker);
 		free(timestamp);
+		free(up_count);
+		free(down_count);
 	}
 
-	void init(uint32_t rc) {
-		record_count = rc;
+	void init(uint32_t recd_cnt, uint32_t flsh_ticks=30) {
+		record_count = recd_cnt;
+		flash_ticks = flsh_ticks;
 		// 8 bytes per field for the tickers
-		timestamp = (double*)malloc(rc * sizeof(double));
-		ticker = (char*)malloc(rc * 8);
-		mid = (double*)malloc(rc * sizeof(double));
-		memset(timestamp, 0, rc * sizeof(double));
-		memset(ticker, 0, rc * 8);
-		memset(mid, 0, rc * sizeof(double));
+		ticker = (char*)malloc(record_count * 8);
+		timestamp = (double*)malloc(record_count * sizeof(double));
+		mid = (double*)malloc(record_count * sizeof(double));
+		up_count = (uint32_t*)malloc(record_count * sizeof(uint32_t));
+		down_count = (uint32_t*)malloc(record_count * sizeof(uint32_t));
+
+		memset(timestamp, 0, record_count * sizeof(double));
+		memset(ticker, 0, record_count * 8);
+		memset(mid, 0, record_count * sizeof(double));
+		memset(up_count, 0, record_count * sizeof(uint32_t));
+		memset(down_count, 0, record_count * sizeof(uint32_t));
 
 		field_names.push_back(Static::ticker_cs);
 		field_names.push_back(Static::timestamp_cs);
 		field_names.push_back(Static::mid_cs);
+
 		field_types.push_back(CDT::cdStr);
 		field_types.push_back(CDT::cdDouble);
 		field_types.push_back(CDT::cdDouble);
 	}
 
-	bool update(uint32_t inx, const std::string& tckr, const JSON& upd) {
-		if (inx >= record_count)
+	bool update(uint32_t tckr_inx, const std::string& tckr, const JSON& upd) {
+		if (tckr_inx >= record_count)
 			return false;
 		assert(JContains(upd, Static::mid_cs));
-		mid[inx] = JAsDouble(upd, Static::mid_cs);
-		timestamp[inx] = JAsDouble(upd, Static::timestamp_cs);
+		old_mid = mid[tckr_inx];
+		mid[tckr_inx] = JAsDouble(upd, Static::mid_cs);
+		timestamp[tckr_inx] = JAsDouble(upd, Static::timestamp_cs);
+		if (mid[tckr_inx] > old_mid) {
+			up_count[tckr_inx] = flash_ticks;
+		}
+		else if (mid[tckr_inx] < old_mid) {
+			down_count[tckr_inx] = flash_ticks;
+		}
 		return true;
 	}
 
-	void* get_field(uint32_t inx) {
+	void on_end_render_cycle() {
+		for (inx = 0; inx < record_count; ++inx) {
+			if (up_count[inx] > 0)
+				up_count[inx] = up_count[inx] - 1;
+			if (down_count[inx] > 0)
+				down_count[inx] = down_count[inx] - 1;
+		}
+	}
+
+	void* get_field(int32_t inx) {
 		switch (inx) {
+		case -1:
+			return up_count;
+		case -2:
+			return down_count;
 		case 0:
 			return ticker;
 		case 1:
