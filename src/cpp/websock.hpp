@@ -201,8 +201,8 @@ protected:
 
     void wspp_on_message(ws_client*, ws_handle h, message_ptr msg_ptr) {
         std::string payload(msg_ptr->get_payload());
-        NDLogger::cout() << "NDWebSockClient::on_message: hdl( "
-                            << h.lock().get() << ")" << std::endl;
+        // NDLogger::cout() << "NDWebSockClient::on_message: hdl( "
+        //                    << h.lock().get() << ")" << std::endl;
         nlohmann::json msg_json = nlohmann::json::parse(payload);
         server_responses.push(msg_json);
     }
