@@ -607,21 +607,21 @@ public:
         // Check the dirty_<type>_vec vectors for changes in DataRef addressables
         // that drive NDF lambda recalcs
         if (!dirty_int_ref_vec.empty()) {
-            data_lay_cache.on_dirty(dirty_int_addr_vec, dirty_int_ref_vec,
+            data_lay_cache.on_dirty(dirty_int_addr_vec, /* dirty_int_ref_vec, */
                 data_lay_cache.get_int_driven_widget_vecs(),
                 data_lay_cache.get_int_driven_cspec_vecs());
             dirty_int_addr_vec.clear();
             dirty_int_ref_vec.clear();
         }
         if (!dirty_str_ref_vec.empty()) {
-            data_lay_cache.on_dirty(dirty_str_addr_vec, dirty_str_ref_vec,
+            data_lay_cache.on_dirty(dirty_str_addr_vec, /* dirty_str_ref_vec, */
                 data_lay_cache.get_str_driven_widget_vecs(),
                 data_lay_cache.get_str_driven_cspec_vecs());
             dirty_str_addr_vec.clear();
             dirty_str_ref_vec.clear();
         }
         if (!dirty_bool_ref_vec.empty()) {
-            data_lay_cache.on_dirty(dirty_bool_addr_vec, dirty_bool_ref_vec,
+            data_lay_cache.on_dirty(dirty_bool_addr_vec, /* dirty_bool_ref_vec, */
                 data_lay_cache.get_bool_driven_widget_vecs(),
                 data_lay_cache.get_bool_driven_cspec_vecs());
             dirty_bool_addr_vec.clear();
@@ -2194,7 +2194,7 @@ protected:
                 // *bulk_tbl_vars.selection_col_ptr != bulk_tbl_vars.selection_col_inx;
                 //      # cspec and bulk have diff values
                 if (bulk_tbl_vars.selection_col_ptr != nullptr &&
-                                *bulk_tbl_vars.selection_col_ptr != bulk_tbl_vars.selection_col) {
+                                (int32_t)(*bulk_tbl_vars.selection_col_ptr) != bulk_tbl_vars.selection_col) {
                     bulk.set_selection_col(bulk_tbl_vars.handle, bulk_tbl_vars.selection_col);
                 }
             }
@@ -2240,7 +2240,7 @@ protected:
                             if (ImGui::TableSetColumnIndex(bulk_tbl_vars.col_inx)) {
                                 const char* endchar = bulk.get_datum(bulk_tbl_vars.handle, bulk_tbl_vars.col_inx, bulk_tbl_vars.row_inx);
                                 // Use am ImGui::Selectable in the cell as this is selection col
-                                if (bulk_tbl_vars.col_inx == bulk_tbl_vars.selection_col) {
+                                if ((int32_t)bulk_tbl_vars.col_inx == bulk_tbl_vars.selection_col) {
                                     if (endchar != nullptr) {
                                         std::string_view view(bulk.buffer, endchar - bulk.buffer);
                                         bulk_tbl_vars.fmt_result = fmt::format_to_n(bulk_tbl_vars.string_buffer, STR_BUF_LEN, Static::selectable_col_fmt_cs,
@@ -2366,11 +2366,11 @@ protected:
                     for (live_tbl_vars.row_inx = clipper.DisplayStart; live_tbl_vars.row_inx < clipper.DisplayEnd; live_tbl_vars.row_inx++) {
                         ImGui::TableNextRow();
                         if (live_tbl_vars.up_count[live_tbl_vars.row_inx] > 0) {
-                            live_tbl_vars.greenish.y = (1.0 * live_tbl_vars.up_count[live_tbl_vars.row_inx]) / (float)live.records.flash_ticks;
+                            live_tbl_vars.greenish.y = (1.0f * live_tbl_vars.up_count[live_tbl_vars.row_inx]) / (float)live.records.flash_ticks;
                             ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::GetColorU32(live_tbl_vars.greenish));
                         }
                         else if (live_tbl_vars.down_count[live_tbl_vars.row_inx] > 0) {
-                            live_tbl_vars.reddish.z = (1.0 * live_tbl_vars.down_count[live_tbl_vars.row_inx]) / (float)live.records.flash_ticks;
+                            live_tbl_vars.reddish.z = (1.0f * live_tbl_vars.down_count[live_tbl_vars.row_inx]) / (float)live.records.flash_ticks;
                             ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::GetColorU32(live_tbl_vars.reddish));
                         }
 
@@ -2416,7 +2416,7 @@ protected:
                                         live_tbl_vars.fmt_result = fmt::format_to_n(live_tbl_vars.string_buffer, STR_BUF_LEN,
                                             live_tbl_vars.format, TPNano{ std::chrono::nanoseconds{ (uint32_t)live_tbl_vars.double_fields[live_tbl_vars.tkr_inx]} });
                                         break;
-                                    case None:
+                                    case Null:
                                     case EndDblXform:
                                     default:
                                         live_tbl_vars.fmt_result = fmt::format_to_n(live_tbl_vars.string_buffer, STR_BUF_LEN,
@@ -2517,15 +2517,15 @@ protected:
         ImGui::BeginChild(title, bg_ch_vars.size, bg_ch_vars.child_flags, bg_ch_vars.window_flags);
     }
 
-    void render_end_child(WidgetPtr w) {
+    void render_end_child(WidgetPtr ) {
         ImGui::EndChild();
     }
 
-    void render_begin_group(WidgetPtr w) {
+    void render_begin_group(WidgetPtr ) {
         ImGui::BeginGroup();
     }
 
-    void render_end_group(WidgetPtr w) {
+    void render_end_group(WidgetPtr ) {
         ImGui::EndGroup();
     }
 
