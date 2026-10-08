@@ -1310,7 +1310,6 @@ public:
         return colm_types;
     }
 
-
     std::uint32_t* get_selected_row(RSHandle handle) {
         if (selected_row_map.find(handle) != selected_row_map.end()) {
             return &(selected_row_map[handle]);
@@ -1360,6 +1359,9 @@ public:
                 strcpy(selected_key_buf, buffer);
             }
             dirty_map[handle].insert(ce_selected_key);
+        }
+        else {
+            fprintf(stdout, "set_selected_key: row:%x, col:%x\n", row, col);
         }
     }
 
@@ -1564,6 +1566,21 @@ public:
 
     void set_done(bool) { }
 
+    void add_result_set(const std::string& query_id) {
+        RSHandle h = get_handle(query_id);
+        selected_row_map[h] = -1;
+        selection_col_map[h] = -1;
+        // LEAK: no free for this malloc, so we'll leak STR_BUF_LEN
+        // bytes for each query
+        char* buf = (char*)malloc(STR_BUF_LEN);
+        buf[0] = 0;
+        selected_key_map[h] = buf;
+
+        // TODO: a registered lambda mechanism to callback when
+        // add_result_set() fires. This will enable use to call
+        // an NDContext method to wire up the exports
+    }
+
     // register with DBResultDispatcher at startup time
     void add_db_response(emscripten::EM_VAL result_handle) {
         emscripten::val result = emscripten::val::take_ownership(result_handle);
@@ -1578,8 +1595,12 @@ public:
         static const char* method = "DuckDBWebCache::register_chunk: ";
         // Will ctor ChunkVec on first batch...
         std::cout << method << "QID(" << qid << ") sz(" << size << ") addr(" << addr << ")" << std::endl;
+        bool first_visit = chunk_map.find(qid) == chunk_map.end();
         WasmChunkVec& chunk_vector = chunk_map[qid];
         chunk_vector.emplace_back(WasmChunk(size, addr));
+        if (first_visit) {
+            add_result_set(qid);
+        }
     }
 };
 
