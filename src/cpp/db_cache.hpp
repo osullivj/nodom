@@ -1049,6 +1049,7 @@ public:
         double*     dbldata{ nullptr };
         int32_t*    idata{ nullptr };
         int         chunk_inx{ 0 };
+
         for (auto scvit = wcv->begin(); scvit != wcv->end(); ++scvit) {
             chunk_ptr = reinterpret_cast<uint32_t*>(scvit->addr);
             this_chunk_row_count = chunk_ptr[2];
@@ -1056,8 +1057,8 @@ public:
             col_ptr = chunk_ptr + col_offset;
             // col hdr: 32bit type, 32bit sz
             // wind past col hdr
-            int32_t col_type = *col_ptr++;
-            int32_t col_size = *col_ptr++;
+            /* int32_t col_type = */ *col_ptr++;
+            /* int32_t col_size = */ *col_ptr++;
             // fprintf(stdout, "get_min_max: chunk:%d, col:%d, type:%d, sz:%d\n", chunk_ptr, col_offset, col_type, col_size);
             switch (colm_type) {
             case wdtFloat:
