@@ -87,7 +87,7 @@ struct TiingoIEXMidRecords {
 		field_types.push_back(CDT::cdDouble);
 	}
 
-	bool update(uint32_t tckr_inx, const std::string& tckr, const JSON& upd) {
+	bool update(uint32_t tckr_inx, const JSON& upd) {
 		if (tckr_inx >= record_count)
 			return false;
 		assert(JContains(upd, Static::mid_cs));
@@ -112,8 +112,8 @@ struct TiingoIEXMidRecords {
 		}
 	}
 
-	void* get_field(int32_t inx) {
-		switch (inx) {
+	void* get_field(int32_t field_index) {
+		switch (field_index) {
 		case -1:
 			return up_count;
 		case -2:
@@ -203,7 +203,7 @@ public:
 		assert(JContains(upd, Static::ticker_cs));
 		ticker = JAsString(upd, Static::ticker_cs);
 		if (find_ticker(ticker.c_str(), ticker_inx)) {
-			return records.update(ticker_inx, ticker, upd);
+			return records.update(ticker_inx, upd);
 		}
 		return false;
 	}
