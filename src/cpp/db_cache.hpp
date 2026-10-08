@@ -4,6 +4,7 @@
 #include <vector>
 #include <stdexcept>
 #include <chrono>
+#include <thread>
 #include <list>
 #include "nd_types.hpp"
 #include "static_strings.hpp"
@@ -219,7 +220,7 @@ public:
 
     std::uint32_t get_row_count(RSHandle handle) {
         auto bob_iter = bobbin_map.find(handle);
-        std::uint32_t row_count = 0;
+        idx_t row_count = 0;
         if (bob_iter == bobbin_map.end())
             return 0;
         Bobbin& bob = bobbin_map.at(handle);
@@ -233,21 +234,18 @@ public:
 
     bool get_min_max(RSHandle handle, const char* col_name, double& min, double& max) {
         auto bob_iter = bobbin_map.find(handle);
-        std::uint32_t row_count = 0;
         if (bob_iter == bobbin_map.end())
             return false;
 
         // now we know the handle is good...
         int32_t col_inx = get_col_index(handle, col_name);
-        uint32_t chunk_sz{0};
+        idx_t chunk_sz{0};
         Bobbin& bob = bobbin_map.at(handle);
         auto chunk_iter = bob.begin();
         duckdb_data_chunk chunk;
         // get type metadata for the colm vector and validities
         const std::vector<duckdb_type>& types{ type_map.at(handle) };
         duckdb_type colm_type(types[col_inx]);
-        const std::vector<duckdb_logical_type>& logical_types{ logical_type_map.at(handle) };
-        duckdb_logical_type colm_type_l(logical_types[col_inx]);
         
         bool min_max_initialized{ false };
         while (chunk_iter != bob.end()) {
@@ -374,7 +372,7 @@ public:
         Bobbin& bob{ *range->bob };
         duckdb_data_chunk chunk{ bob[range->chunk_index] };
         idx_t this_chunk_sz = duckdb_data_chunk_get_size(chunk);
-        uint32_t available = this_chunk_sz - range->chunk_offset;
+        idx_t available = this_chunk_sz - range->chunk_offset;
         if (available > range->remaining) {
             range->edit_count = range->remaining;
             range->remaining = 0;
@@ -405,7 +403,7 @@ public:
                 range->idata += range->chunk_offset;
                 range->anydata = reinterpret_cast<char*>(range->idata);
                 range->mem_size = range->edit_count * 4;
-                for (int i = 0; i < range->edit_count; i++)
+                for (uint32_t i = 0; i < range->edit_count; i++)
                     dbl_buf[i] = static_cast<double>(range->idata[i]);
                 range->dbldata = dbl_buf;
             break;
@@ -441,7 +439,7 @@ public:
         Bobbin& bob{ *range->bob };
         duckdb_data_chunk chunk{ bob[range->chunk_index] };
         idx_t this_chunk_sz = duckdb_data_chunk_get_size(chunk);
-        uint32_t available = this_chunk_sz - range->chunk_offset;
+        idx_t available = this_chunk_sz - range->chunk_offset;
         if (available > range->remaining) {
             range->plot_count = range->remaining;
             range->remaining = 0;
@@ -470,7 +468,7 @@ public:
             break;
         case DUCKDB_TYPE_INTEGER:
             range->idata += range->chunk_offset;
-            for (int i = 0; i < range->plot_count; i++)
+            for (uint32_t i = 0; i < range->plot_count; i++)
                 dbl_buf[i] = static_cast<double>(range->idata[i]);
             range->xdata = dbl_buf;
             break;
@@ -964,6 +962,7 @@ public:
     }
 
     void start_db_thread() {
+        std::this_thread::sleep_for(std::chrono::seconds(5));
         db_thread = boost::thread(&BBDuckDBCache::db_loop, this);
     }
 };
