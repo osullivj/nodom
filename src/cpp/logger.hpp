@@ -26,7 +26,7 @@ public:
 	virtual ~NDOutBuffer() {}
 
 	NDOutBuffer(const std::string& fmt, bool imlog=false)
-		:format(fmt), imgui_log(imlog), std::stringbuf() { }
+		:std::stringbuf(), format(fmt), imgui_log(imlog) { }
 
 	void set_imgui_logging(bool imlog) {
 		imgui_log = imlog;
