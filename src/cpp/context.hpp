@@ -361,9 +361,13 @@ public:
             stack.clear();
             stack.push_back(data_lay_cache.get_home());
 #ifdef __EMSCRIPTEN__
-            // Now we have the real layout, and not init layout,
-            // load persisted layout details...
+            // Now we have the real layout in browser,
+            // and not init layout, load persisted layout details...
             ini_cache_ptr->next();
+#else
+            // Now we have the real layout on win32,
+            // start the DB thread
+            bulk.start_db_thread();
 #endif
         }
     }
