@@ -64,14 +64,16 @@ FIN_LAYOUT = [
             dict(
                 rname="Button",
                 widget_id="i_am_sub_button",
-                cspec=dict(text="Sub", disabled="ticker_symbols inst_sel_key in"),
+                cspec=dict(text="sub_text", disabled="ticker_symbols inst_sel_key in"),
             ),
             dict(rname="SameLine", cspec=dict()),
             dict(
                 rname="Button",
                 widget_id="i_am_unsub_button",
-                cspec=dict(text="Unsub", disabled="ticker_symbols inst_sel_key in not"),
+                cspec=dict(text="unsub_text", disabled="ticker_symbols inst_sel_key in not"),
             ),
+            dict(rname="SameLine", cspec=dict()),
+            dict(rname="Text", cspec=dict(text="inst_sel_key")),
             dict(rname="Separator", cspec=dict()),
             dict(rname="BeginChild", cspec=dict(height=200, title="MarketParent")),
             dict(
@@ -179,11 +181,13 @@ FIN_DATA = {
     "unsub_disabled": False,
     "inst_sel_col": 0,
     "inst_sel_row": 0,
-    "inst_sel_key": "_dummy_selection",
+    "inst_sel_key": "",
+    "sub_text":"Sub",
+    "unsub_text":"Unsub",
     "actions": {
         # GUI.CacheLoaded on BB, DuckDB.Online for wasm
         # TODO: gate implementation
-        "GUI.CacheLoaded": [
+        "DuckDB.Online": [
             REBLD_INST_TBL_ACTN,
             QUERY_INST_TBL_ACTN,
             BATCH_INST_TBL_ACTN,
@@ -310,14 +314,15 @@ class FinService(nd_utils.Service):
             update_s = json.dumps(
                 {
                     "nd_type": "LiveUpdate",
-                    "timestamp": time.time_ns(),
+                    "timestamp": time.time() * 1e6,
                     "ticker": ticker,
                     "mid": price,
                 }
             )
             for ws in self.client_websocks.values():
-                ws.write_message(update_s)
-                logr.info(f"fake_mkt_data: {update_s}")
+                if random.choice([True, False]):
+                    ws.write_message(update_s)
+                    logr.info(f"fake_mkt_data: {update_s}")
         for tkr in self.emu_tickers.keys():
             price = self.emu_tickers[tkr]
             self.emu_tickers[tkr] = price + (0.25 * random.choice([-1.0, 1.0]))
