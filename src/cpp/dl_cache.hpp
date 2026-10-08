@@ -642,7 +642,8 @@ protected:
 
             }
             if (JContains(imports, Static::live_cs)) {
-                const JSON& live_imports(imports[Static::live_cs]);
+                // TODO: live cache imports
+                // const JSON& live_imports(imports[Static::live_cs]);
             }
         }
     }
@@ -676,7 +677,7 @@ protected:
         }
     }
 
-    bool compile_forth(NDFMachine& lambda, CDT result_type, const std::string& forth_source, const JSON& data) {
+    bool compile_forth(NDFMachine& lambda, CDT result_type, const std::string& forth_source/*, const JSON& data*/) {
         // no space in the source means it's a direct reference
         std::stringstream forth_stream{ forth_source };
         std::string stoken;
@@ -725,14 +726,14 @@ protected:
         return true;
     }
 
-    bool compile_forth(WidgetPtr w, CacheSpecifier spec, CDT result_type, const std::string& forth_source, const JSON& data) {
+    bool compile_forth(WidgetPtr w, CacheSpecifier spec, CDT result_type, const std::string& forth_source/*, const JSON& data*/) {
         // no space in the source means it's a direct reference
         // std::stringstream forth_stream{ forth_source };
         // std::string stoken;
         // yes, we're creating a new ForthLambda/NDFMachine. NB not on a hotpath
         // ForthLambda& lambda{ w->ndf_lambda_map[spec] };
         NDFMachine& lambda{w->lambda_map[spec] };
-        if (!compile_forth(lambda, result_type, forth_source, data)) {
+        if (!compile_forth(lambda, result_type, forth_source/*, data*/)) {
             std::stringstream ss;
             ss << "FORTH_CSPEC(" << get_cspec_name(spec) << ") in NDF:["
                 << forth_source << "], does not compile for " << render_names[w->rname];
@@ -760,9 +761,9 @@ protected:
         assert(ndf_list_ref->tipe == cdIntVec || ndf_list_ref->tipe == cdStrVec);
 
         // the real index op
-        int* ndf_int_ptr = get_int_value(IntInx(ndf_index_ref->ref_inx));
+        ndf_int_ptr = get_int_value(IntInx(ndf_index_ref->ref_inx));
         assert(ndf_int_ptr != nullptr);
-        assert(*ndf_int_ptr < ndf_list_ref->size);
+        assert(*ndf_int_ptr < (int)ndf_list_ref->size);
 
         switch (ndf_list_ref->tipe) {
         case cdIntVec:
@@ -1034,7 +1035,7 @@ protected:
                         // into forth_result_data_ref, and cspec_data_ref()
                         // will return &forth_result_data_ref. Obv we
                         // want NDF to be a 0alloc 0cp uforth.
-                        if (is_forth(addr_or_qid) && compile_forth(widget, spec, ref_type, addr_or_qid, data))
+                        if (is_forth(addr_or_qid) && compile_forth(widget, spec, ref_type, addr_or_qid/*, data*/))
                             continue;
                         bad_data_refs.push_back(ref_name);
                         std::stringstream ss;
@@ -1337,7 +1338,7 @@ public:
         }
     }
 
-    void on_dirty(UintVec& dirty_addr_vec, UintVec& dirty_ref_vec,
+    void on_dirty(UintVec& dirty_addr_vec , /*UintVec& dirty_ref_vec, */
             InxWidgetVecMap& driven_widget_vecs, InxCspecVecMap& driven_cspec_vecs) {
         size_t sz{ dirty_addr_vec.size() };
         for (auto inx = 0; inx < sz; inx++) {
@@ -2263,7 +2264,6 @@ public:
         // using CEMap = std::map<CacheExport, std::string>;
         // std::map<std::string, CEMap>    export_map;
         size_t len = export_map.size();
-        int inx{ 0 };
         std::cout << "== report_export_map len:" << std::dec << len << std::endl;
         std::cout << "quote_id:CacheExport:export_name" << std::endl;
         for (auto emit = export_map.begin(); emit != export_map.end(); ++emit) {
@@ -2278,7 +2278,7 @@ public:
     }
 
     void report_cache_state() {
-        int esc, eic, efc, ebc, edc, unmppd;
+        int esc, eic, efc, ebc, unmppd;
         report_sanity_check();
         report_cache_strings(esc);
         report_cache_bools(ebc);
