@@ -119,9 +119,11 @@ int main(int argc, char* argv[]) {
             init_layout.empty() ? nullptr : init_layout.c_str());
 
     try {
-        // launch DB thread: see db_loop impls
-        bulk.start_db_thread();
-        // now launch websock client with a boost::asio
+        // We used to call BBDuckDBCache::start_db_thread()
+        // from here, but that caused DuckDB.Online to happen
+        // too soon in breadboard.exe. Now we call
+        // start_db_thread() from NDContext::on_dlc_init()
+        // Now we launch websock client with a boost::asio
         // event loop on the main thread to dispatch
         // the timeout and on_message callbacks
         NDWebSockClient_t ws_client(bulk, ctx);
