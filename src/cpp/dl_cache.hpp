@@ -970,6 +970,7 @@ protected:
                 case cdAny:
                 case cdResultSet:
                 case EndDataTypes:
+                case cdOperator:
                     assert(false);
                     break;
                 }
@@ -1145,6 +1146,7 @@ protected:
 
         switch (ref_type) {
         case cdAny:         // shouldn't be in addr_cspecs!
+        case cdOperator:
         case EndDataTypes:
             assert(false);
             break;
