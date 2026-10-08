@@ -138,8 +138,8 @@ inline std::string JPrettyPrint(const nlohmann::json& cache_object) {
 
 template <>
 inline void JKeys(const nlohmann::json& obj, StringVec& vec) {
-	for (auto& cit = obj.cbegin(); cit != obj.cend(); ++cit)
-		vec.push_back(cit.key());
+	for (auto& it = obj.begin(); it != obj.end(); ++it)
+		vec.push_back(it.key());
 }
 
 #else
