@@ -100,10 +100,10 @@ public:
         client.clear_access_channels(websocketpp::log::alevel::frame_payload);
         client.set_error_channels(websocketpp::log::alevel::frame_payload);
         client.init_asio();
-        client.set_message_handler(bind(&NDWebSockClient::wspp_on_message, this, &client, ::_1, ::_2));
-        client.set_open_handler(bind(&NDWebSockClient::wspp_on_open, this, &client, ::_1));
-        client.set_close_handler(bind(&NDWebSockClient::wspp_on_close, this, &client, ::_1));
-        client.set_fail_handler(bind(&NDWebSockClient::wspp_on_fail, this, &client, ::_1));
+        client.set_message_handler(bind(&NDWebSockClient::wspp_on_message, this, &client, std::placeholders::_1, std::placeholders::_2));
+        client.set_open_handler(bind(&NDWebSockClient::wspp_on_open, this, &client, std::placeholders::_1));
+        client.set_close_handler(bind(&NDWebSockClient::wspp_on_close, this, &client, std::placeholders::_1));
+        client.set_fail_handler(bind(&NDWebSockClient::wspp_on_fail, this, &client, std::placeholders::_1));
 #endif
         ctx.register_ws_sender(bind(&NDWebSockClient::send, this, std::placeholders::_1));
     }
@@ -153,7 +153,7 @@ public:
     // we're using emscripten_set_main_loop_arg
     void run() {
         error_code.clear();
-        ws_client::connection_ptr con = client.get_connection(uri, error_code);
+        const ws_client::connection_ptr con = client.get_connection(uri, error_code);
         if (error_code) {   // we never error here
             NDLogger::cerr() << "NDWebSockClient: CONNECTION_FAIL: "
                 << error_code.message() << std::endl;
