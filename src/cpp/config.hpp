@@ -23,7 +23,7 @@ public:
         return instance;
     }
 
-    void initialize(const std::string& json, const char* config_dir = nullptr) {
+    void initialize(const std::string& json) {
         config = JParse<JSON>(json);
         init();
     }
