@@ -100,6 +100,7 @@ private:
     // manage down logging by tracking misconfiged queries that throw
     // BAD_HANDLE_FAIL, especially for browser console log
     std::map<std::string, uint32_t>   bad_handle_map;
+    int bad_handle_sum{ 0 };
 
     // action_dispatch is called while rendering, and may change
     // the size of the render stack. In the imgui-jswt fork [1] JS allowed
@@ -640,15 +641,15 @@ public:
         pix_report(RenderPushPC, static_cast<float>(font_push_count));
         pix_report(RenderPopPC, static_cast<float>(font_pop_count));
         pix_report(RenderFPS, ImGui::GetIO().Framerate);
-        int bad_handle_sum = 0;
+        bad_handle_sum = 0;
         for (auto citer = bad_handle_map.cbegin(); citer != bad_handle_map.end(); ++citer) {
             bad_handle_sum += citer->second;
         }
         pix_report(RenderBadHandlePC, (float)bad_handle_sum);
 
         if (render_count % 120 == 0) {   // every 120 renders eg ~2 sec
-            for (auto citer = bad_handle_map.cbegin(); citer != bad_handle_map.cend(); ++citer) {
-                NDLogger::cout() << method << citer->first << " BHC: " << citer->second << std::endl;
+            for (auto iter = bad_handle_map.begin(); iter != bad_handle_map.end(); ++iter) {
+                NDLogger::cout() << method << iter->first << " BHC: " << iter->second << std::endl;
             }
 #ifdef __EMSCRIPTEN__
             ImGuiContext& g = *GImGui;
@@ -1965,7 +1966,8 @@ protected:
             smry_tbl_vars.smry_handle = bulk.get_handle(query_id);
             if (smry_tbl_vars.smry_handle == 0) {
                 auto [iter, inserted] = bad_handle_map.insert(std::make_pair(query_id, 1));
-                if (!inserted) iter->second++;
+                if (!inserted)
+                    iter->second++;
                 return;
             }
             if (ImGui::BeginTable(query_id, (int)colm_count, table_flags)) {
@@ -2186,7 +2188,8 @@ protected:
             bulk_tbl_vars.handle = bulk.get_handle(query_id);
             if (bulk_tbl_vars.handle == 0) {
                 auto [iter, inserted] = bad_handle_map.insert(std::make_pair(query_id, 1));
-                if (!inserted) iter->second++;
+                if (!inserted)
+                    iter->second++;
                 return;
             }
             if (bulk_tbl_vars.selection_col != -1) {
@@ -2194,9 +2197,6 @@ protected:
                 // NB we only want to set it once as it's a cspec val that won't change,
                 // unlike selected_row and selected_key
                 bulk_tbl_vars.selection_col_ptr = bulk.get_selection_col(bulk_tbl_vars.handle);
-                // bulk_tbl_vars.selection_col_ptr != nullptr; # bulk has handle ergo col storage
-                // *bulk_tbl_vars.selection_col_ptr != bulk_tbl_vars.selection_col_inx;
-                //      # cspec and bulk have diff values
                 if (bulk_tbl_vars.selection_col_ptr != nullptr &&
                                 (int32_t)(*bulk_tbl_vars.selection_col_ptr) != bulk_tbl_vars.selection_col) {
                     bulk.set_selection_col(bulk_tbl_vars.handle, bulk_tbl_vars.selection_col);
@@ -2308,7 +2308,6 @@ protected:
             // did we get a cspec:formats? If so, cp fmts into buffer
             DataRef* formats_list_data_ref = cspec_data_ref(cs_formats, w);
             if (formats_list_data_ref != nullptr) {
-                // live_tbl_vars.format_list_cs = w->next_free();
                 StrInx finx{ formats_list_data_ref->ref_inx };
                 for (live_tbl_vars.count = 0; live_tbl_vars.count < live.records.col_count; live_tbl_vars.count++) {
                     w->append_buffer(data_lay_cache.get_string_value(finx));
@@ -2331,7 +2330,6 @@ protected:
                     // live_tbl_vars.dbl_xform is a uint32_t, so when we cast to char*
                     // we change size on win32, but not wasm
                     w->append_buffer((char*)(live_tbl_vars.xform));
-                    // live_tbl_vars.dbl_xform_vec.push_back(DblXformFromString(xform));
                     xinx++;
                 }
             }
