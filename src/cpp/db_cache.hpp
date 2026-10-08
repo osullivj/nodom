@@ -962,7 +962,6 @@ public:
     }
 
     void start_db_thread() {
-        std::this_thread::sleep_for(std::chrono::seconds(5));
         db_thread = boost::thread(&BBDuckDBCache::db_loop, this);
     }
 };
