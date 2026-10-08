@@ -69,7 +69,7 @@ struct BeginChildLocals {
 
 struct ComboLocals {
     int         step{ 1 };
-    int         count{ 0 };
+    uint32_t    count{ 0 };
     int*        index{ nullptr };
     int         old_val{ 0 };
     int         new_val{ 0 };
@@ -81,7 +81,7 @@ struct LiveTableLocals {
     ImVec2      size{ -FLT_MIN, 0.0 };
     uint32_t    count{ 0 };
     uint32_t    col_inx{ 0 };
-    uint32_t    row_inx{ 0 };
+    int32_t     row_inx{ 0 };
     uint32_t    tkr_inx{ 0 };
     char*       string_fields{ nullptr };
     double*     double_fields{ nullptr };
@@ -127,7 +127,7 @@ struct BulkTableLocals {
     DataRef*    menupop_data_ref{ nullptr };
     RSHandle    handle{ 0 };   // uint64_t on win32, uint32_t on ems
     uint32_t    col_inx{ 0 };
-    uint32_t    row_inx{ 0 };
+    int32_t     row_inx{ 0 };   // signed because of ImGuiListClipper
     int32_t     selection_col{ -1 };
     uint32_t*   selection_col_ptr{ nullptr };
     int32_t     selected_row{ -1 };
