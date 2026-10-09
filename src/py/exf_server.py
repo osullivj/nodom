@@ -64,6 +64,7 @@ EXF_LAYOUT = [
                     cname="instruments",
                     cindex="selected_instrument",
                     label="Instrument",
+                    buffer_size=256,
                 ),
             ),
             dict(
@@ -307,7 +308,7 @@ EXF_DATA = dict(
     summary_text="Summary",
     chart_text="Chart",
     # NB tuple gives us Array in TS, and list gives us Object
-    instruments=(
+    instruments=[
         "FGBMU8",
         "FGBMZ8",
         "FGBXZ8",
@@ -316,7 +317,7 @@ EXF_DATA = dict(
         "FGBXU8",
         "FGBLU8",
         "FGBLZ8",
-    ),
+    ],
     selected_instrument=0,
     # depth scan SQL, ID and URLs
     scan_sql=SCAN_SQL % [INIT_URL],
