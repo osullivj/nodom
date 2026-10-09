@@ -2404,19 +2404,19 @@ protected:
                                     switch (live_tbl_vars.dbl_xform) {
                                     case Secs:
                                         live_tbl_vars.fmt_result = fmt::format_to_n(live_tbl_vars.string_buffer, STR_BUF_LEN,
-                                            live_tbl_vars.format, TPSecs{ std::chrono::seconds{ (uint32_t)live_tbl_vars.double_fields[live_tbl_vars.tkr_inx] }});
+                                            live_tbl_vars.format, TPSecs{ std::chrono::seconds{ (int64_t)live_tbl_vars.double_fields[live_tbl_vars.tkr_inx] }});
                                         break;
                                     case Milli:
                                         live_tbl_vars.fmt_result = fmt::format_to_n(live_tbl_vars.string_buffer, STR_BUF_LEN,
-                                            live_tbl_vars.format, TPMilli{ std::chrono::milliseconds{ (uint32_t)live_tbl_vars.double_fields[live_tbl_vars.tkr_inx]} });
+                                            live_tbl_vars.format, TPMilli{ std::chrono::milliseconds{ (int64_t)live_tbl_vars.double_fields[live_tbl_vars.tkr_inx]} });
                                         break;
                                     case Micro:
                                         live_tbl_vars.fmt_result = fmt::format_to_n(live_tbl_vars.string_buffer, STR_BUF_LEN,
-                                            live_tbl_vars.format, TPMicro{ std::chrono::microseconds{ (uint32_t)live_tbl_vars.double_fields[live_tbl_vars.tkr_inx]} });
+                                            live_tbl_vars.format, TPMicro{ std::chrono::microseconds{ (int64_t)live_tbl_vars.double_fields[live_tbl_vars.tkr_inx]} });
                                         break;
                                     case Nano:
                                         live_tbl_vars.fmt_result = fmt::format_to_n(live_tbl_vars.string_buffer, STR_BUF_LEN,
-                                            live_tbl_vars.format, TPNano{ std::chrono::nanoseconds{ (uint32_t)live_tbl_vars.double_fields[live_tbl_vars.tkr_inx]} });
+                                            live_tbl_vars.format, TPNano{ std::chrono::nanoseconds{ (int64_t)live_tbl_vars.double_fields[live_tbl_vars.tkr_inx]} });
                                         break;
                                     case Null:
                                     case EndDblXform:
