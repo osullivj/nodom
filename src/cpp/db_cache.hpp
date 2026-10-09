@@ -994,10 +994,11 @@ private:
     std::unordered_map<RSHandle, uint32_t>          selection_col_map;  // only 1 selection col per RS
     std::unordered_map<RSHandle, const char*>       selected_key_map;
 
-
-    // working storage
-    char                                string_buffer[STR_BUF_LEN];
-    fmt::format_to_n_result<char*>      fmt_result;
+    // working storage for composing strings in get_datum
+    char                                    string_buffer[STR_BUF_LEN];
+    fmt::format_to_n_result<char*>          fmt_result;
+    std::chrono::hours                      fmt_hours;      // EMS C++17 doesn't have std::chrono::days
+    std::chrono::system_clock::time_point   fmt_time_point;
 public:
     char* buffer{ 0 };
 
@@ -1360,9 +1361,6 @@ public:
             }
             dirty_map[handle].insert(ce_selected_key);
         }
-        else {
-            fprintf(stdout, "set_selected_key: row:%x, col:%x\n", row, col);
-        }
     }
 
     std::uint32_t* get_exported_int(RSHandle h, CacheExport ce) {
@@ -1507,9 +1505,10 @@ public:
         }
         // stride 1 for 32bit data and 2 for 64bit inc str
         WasmDuckType dt{ col_type };
-        int32_t* i32data = reinterpret_cast<int32_t*>(col_ptr);
-        int64_t* i64data = reinterpret_cast<int64_t*>(col_ptr);
-        double* dbldata = reinterpret_cast<double*>(col_ptr);
+        int32_t*    i32data = reinterpret_cast<int32_t*>(col_ptr);
+        uint32_t*   ui32data = reinterpret_cast<uint32_t*>(col_ptr);
+        int64_t*    i64data = reinterpret_cast<int64_t*>(col_ptr);
+        double*     dbldata = reinterpret_cast<double*>(col_ptr);
         // In most cases we'll copy into string_buffer, or
         // use sprintf to format into buffer. 
         buffer = string_buffer;
@@ -1539,8 +1538,13 @@ public:
         case WasmDuckType::wdtUtf8:    // null term trunc to 8 bytes
             sprintf(string_buffer, "%s", (char*)&(i64data[rel_index]));
             return 0;
-        case WasmDuckType::wdtDate:     // TODO: this isn't right...
-            fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%F}", TPSecs{ std::chrono::seconds{ i32data[rel_index] * 3600 } });
+        case WasmDuckType::wdtDate:
+            // emscripten C++ 17 doesn't support std::chrono::days, which is the more
+            // natural way to code this. At some point we'll switch to C++20, but it
+            // seems a big effort at this point.
+            fmt_hours = std::chrono::hours(24*i32data[rel_index]); 
+            fmt_time_point = std::chrono::system_clock::time_point(fmt_hours);
+            fmt_result = fmt::format_to_n(string_buffer, STR_BUF_LEN, "{:%Y-%m-%d}", fmt_time_point);
             string_buffer[fmt_result.size] = 0;
             return 0;
         default:
