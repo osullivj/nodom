@@ -88,6 +88,11 @@ protected:
                                             Static::cdt_int_vec_cs,
                                             Static::cdt_str_vec_cs
     };
+    StringSet                           ndf_cspecs{
+                                            Static::cname_cs,
+                                            Static::disabled_cs,
+                                            Static::text_cs
+    };
     // menuitems: RHS list entries under data.menus are reified as
     // entities so they can appear in an ActionKey{EntityInx,EventInx}
     // LHS of data.menus entries are not addresses, they are entities
@@ -1029,7 +1034,7 @@ protected:
                     ref_name == Static::text_cs  ||
                     ref_name == Static::disabled_cs) {
                     // before we error check it's not an NDF Lambda
-                    if (ref_name == Static::cname_cs || ref_name == Static::disabled_cs) {
+                    if (ndf_cspecs.find(ref_name) != ndf_cspecs.end()) {
                         // Yes, sharp eyed reader! This means the widget
                         // will not have a DataRefMap entry for cname.
                         // Instead the forth result will get loaded
@@ -1164,7 +1169,7 @@ protected:
         case cdFloat:       // InputFloat
             data_ref.ref_inx = get_float_index(JAsFloat(data, addr.c_str()))();
             break;
-        case cdDouble: // InpoutDouble spec:cname, sz:1
+        case cdDouble: // InputDouble spec:cname, sz:1
             data_ref.ref_inx = get_double_index(JAsDouble(data, addr.c_str()))();
             break;
         case cdBool:
@@ -1859,7 +1864,7 @@ private:
         {InputDouble, {cs_label, cs_step, cs_step_fast, cs_format, cs_flags, cs_tooltip}},
         {InputString, {cs_label, cs_text_flags, cs_tooltip, cs_buffer_size}},
         {InputTextArea, {cs_label, cs_text_flags, cs_tooltip, cs_buffer_size, cs_line_height}},
-        {Combo, {cs_label, cs_step, cs_tooltip}},
+        {Combo, {cs_label, cs_step, cs_tooltip, cs_buffer_size}},
         {Checkbox, {cs_tooltip}},
         {Text, {}},
         {Button, {cs_tooltip}},
