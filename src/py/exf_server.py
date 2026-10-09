@@ -82,7 +82,7 @@ EXF_LAYOUT = [
             dict(
                 rname="Text",
                 cspec=dict(
-                    text="Start date",
+                    text="start_date_text",
                 ),
             ),
             dict(
@@ -101,7 +101,7 @@ EXF_LAYOUT = [
             dict(
                 rname="Text",
                 cspec=dict(
-                    text="End date",
+                    text="end_date_text",
                 ),
             ),
             dict(rname="Separator", cspec=dict()),
@@ -109,7 +109,7 @@ EXF_LAYOUT = [
                 rname="Button",
                 widget_id=SCAN_BUTTON_ID,
                 cspec=dict(
-                    text=SCAN_BUTTON_TEXT,
+                    text="scan_text",
                 ),
             ),
             dict(rname="SameLine"),
@@ -117,7 +117,7 @@ EXF_LAYOUT = [
                 rname="Button",
                 widget_id=SUMMARY_BUTTON_ID,
                 cspec=dict(
-                    text=SUMMARY_BUTTON_TEXT,
+                    text="summary_text",
                 ),
             ),
             dict(rname="SameLine"),
@@ -125,7 +125,7 @@ EXF_LAYOUT = [
                 rname="Button",
                 widget_id=CHART_BUTTON_ID,
                 cspec=dict(
-                    text=CHART_BUTTON_TEXT,
+                    text="chart_text",
                     tooltip="Raise the charting window"
                 ),
             ),
@@ -238,57 +238,54 @@ INIT_URL = "https://localhost/api/parquet/FGBMU8_20080901_pd.parquet"
 
 LAUNCH_SCAN = dict(  # raise scanning modal, send scan request to DuckDB
     ui_push="parquet_loading_modal",
-    db_action="Command",
+    action="Command",
     query_id=SCAN_QID,
-    sql_cname="scan_sql",
+    cname="scan_sql",
 )
 
 LAUNCH_SUMMARY = dict(  # close scanning modal, send query request to DuckDB
     ui_pop="LoadingModal",
-    db_action="Query",
+    action="Query",
     query_id=SUMMARY_QID,
-    sql_cname="summary_sql",
+    cname="summary_sql",
 )
 
 # comment in ui_pop if LAUNCH_SUMMARY is commented out
 LAUNCH_SELECT = dict(  # send depth query request to DuckDB
-    # ui_pop="LoadingModal",
-    db_action="Query",
+    ui_pop="LoadingModal",
+    action="Query",
     query_id=SELECT_QID,
-    sql_cname="query_sql",
+    cname="query_sql",
 )
 
 LAUNCH_SUMMARY_BATCH = dict(
-    db_action="BatchRequest",
+    action="BatchRequest",
     query_id=SUMMARY_QID,
 )
 
 LAUNCH_SELECT_BATCH = dict(
-    db_action="BatchRequest",
+    action="BatchRequest",
     query_id=SELECT_QID,
 )
 
 LAUNCH_UI = dict(
-    db_action="Command",
+    action="Command",
     query_id=UI_QID,
-    sql_cname="ui_sql",
+    cname="ui_sql",
 )
 
 DEPTH_STORAGE = dict(
-    db_action="Command",
+    action="Command",
     query_id=DEPTH_STORAGE_QID,
-    sql_cname="depth_storage_sql",
+    cname="depth_storage_sql",
 )
 
 ENABLE_LOGGING = dict(
-    db_action="Command",
+    action="Command",
     query_id=ENABLE_LOGGING_QID,
-    sql_cname="enable_logging_sql",
+    cname="enable_logging_sql",
 )
 
-# NB commenting out LAUNCH_SUMMARY and LAUNCH_SUMMARY_BATCH
-# allowed the depth query to run with DuckDB-WASM. So some
-# kind of mem mgmt issue that we'll return to later.
 SUMMARY_SEQUENCE = [
     ENABLE_LOGGING,
     LAUNCH_SCAN,
@@ -304,6 +301,11 @@ SELECT_SEQUENCE = [
 EXF_DATA = dict(
     start_date=[2008, 9, 1],  # 3 tuple YMD. But! JSON doesn't know about tuples,
     end_date=[2008, 9, 2],  # so we use lists. NB default 1 day span
+    start_date_text="Start date",
+    end_date_text="End date",
+    scan_text="Scan",
+    summary_text="Summary",
+    chart_text="Chart",
     # NB tuple gives us Array in TS, and list gives us Object
     instruments=(
         "FGBMU8",
