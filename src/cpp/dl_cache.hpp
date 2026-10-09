@@ -1068,7 +1068,7 @@ protected:
             if (ref_name == Static::query_id_cs && !query_inx.is_valid()) {
                 bad_data_refs.push_back(ref_name);
                 std::stringstream ss;
-                ss << "BAD_DATA_REF(" << ref_name << "/" << addr_or_qid << ") not used by any data.actions ActionKey occurs in cspec:";
+                ss << "BAD_DATA_REF(" << ref_name << "/" << addr_or_qid << ") not referenced by any actions, yet QID occurs in cspec:";
                 ss << cspec;
                 layout_errors.push_back(ss.str());
                 continue;
