@@ -143,10 +143,10 @@ function get_duck_type_size(tipe) {
   switch (tipe) {
     case Type.Float: // 3: // ArrowType.Float:
     case Type.Utf8: // 5: // ArrowType.Utf8:
-    case Type.Date: // 8: // ArrowType.Date:
     case Type.Timestamp: // 10: // Timestamp: arrow API returns JS num
       return 8; // 8 bytes wide
     case Type.Int: // 2: // ArrowType.Int: Signed or unsigned 8, 16, 32, or 64-bit little-endian integer
+    case Type.Date: // 4: // ArrowType.Date:
       return 4; // 4 bytes wide
   }
   return 0;
@@ -305,8 +305,15 @@ function batch_materializer(qid, batch) {
       bptr += row_count * 2;
     } else if (sz == 4) {
       // continue with heap32
-      for (var ir = 0; ir < row_count; ir++) {
-        ui_heap32[bptr + ir] = vec.get(ir);
+      if (tipe == Type.Int) {
+        for (var ir = 0; ir < row_count; ir++) {
+          ui_heap32[bptr + ir] = vec.get(ir);
+        }
+      }
+      else {
+        for (var ir = 0; ir < row_count; ir++) {
+          ui_heap32[bptr + ir] = vec.data[0].values[ir];
+        }
       }
       bptr += row_count;
     } else if (sz == 8) {
