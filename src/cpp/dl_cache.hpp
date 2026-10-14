@@ -989,6 +989,7 @@ protected:
                 case cdIntVec:
                 case cdStrVec:
                 case cdAny:
+                case cdPtr:
                 case cdResultSet:
                 case EndDataTypes:
                 case cdOperator:
