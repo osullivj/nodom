@@ -101,6 +101,7 @@ struct Static {
 	inline static const char* yname_cs{ "yname" };
 	inline static const char* cindex_cs{ "cindex" };
 	inline static const char* disabled_cs{ "disabled" };
+	inline static const char* address_cs{ "address" };
 
 	inline static const char* sql_cs{ "sql" };
 
@@ -371,6 +372,7 @@ struct Static {
 	inline static const char* cdt_double_cs{ "cdDouble" };
 	inline static const char* cdt_bool_cs{ "cdBool" };
 	inline static const char* cdt_str_cs{ "cdStr" };
+	inline static const char* cdt_ptr_cs{ "cdPtr" };
 	inline static const char* cdt_int_vec_cs{ "cdIntVec" };
 	inline static const char* cdt_str_vec_cs{ "cdStrVec" };
 	inline static const char* cdt_any_cs{ "cdAny" };
