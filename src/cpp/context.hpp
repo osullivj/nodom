@@ -2477,10 +2477,11 @@ protected:
 
         // mem_edit_memo.int_map[cs_cindex] should have column index
         // mem_edit_memo.data_ref_map[cs_query_id] should have result set data ref
-        // we need to provide render_memory_editor with title:str, address:int and
-        // size:int value cspecs.
+        // we need to provide render_memory_editor with text:str, address:ptr and
+        // size:int addr cspecs.
 
-        // render_menu_pop should have provided the result set data ref and col inx
+        // render_menu_pop should have recorded the result 
+        // set data ref and col inx in mem_edit_memo
         mem_edit_vars.result_set_data_ref = mem_edit_memo.data_ref_map[cs_query_id];
         assert(mem_edit_vars.result_set_data_ref != nullptr);
         mem_edit_vars.query_id = (char*)data_lay_cache.get_string_value(mem_edit_vars.result_set_data_ref->addr_inx);
@@ -2533,34 +2534,9 @@ protected:
         // https://github.com/ocornut/imgui_club/tree/main#imgui_memory_editor
         static struct MemoryEditor memory_editor;
 
-        // TODO: plenty of scope for memoization below...
-        // cpsec:query_id is optional for render_memory_editor. When present it
-        // signals a bulk column MemEdit, so we prep DrawWindow's three params
-        // const char* title, void* mem_data, size_t mem_size from
-        // TableContext and TableMemEditContext
-        // DataRef* result_set_data_ref = cspec_data_ref(cs_query_id, w);
-        // const char* query_id = data_lay_cache.get_string_value(result_set_data_ref->addr_inx);
         mem_edit_vars.text_data_ref = cspec_data_ref(cs_text, w);
         mem_edit_vars.title = (char*)data_lay_cache.get_string_value(StrInx(mem_edit_vars.text_data_ref->ref_inx));
-        // if (query_id != nullptr) {
         if (mem_edit_vars.title != nullptr) {
-            // expensive lookup op that we'd typically do in
-            // a bulk cache based render method. We don't need
-            // to do that here a bulk_tbl_vars should have the correct
-            // handle. So we'll assert bulk_tbl_vars.handle does
-            // match our query_id in debug builds as a sanity check.
-            /*
-            assert(bulk.get_handle(query_id) == bulk_tbl_vars.handle);
-            StringVec& colm_names = bulk.get_col_names(bulk_tbl_vars.handle);
-            assert(colm_names.size() > mem_edit_ctx.col_inx);
-            const std::string& col_name = colm_names[mem_edit_ctx.col_inx];
-
-            bulk.get_meta_data(bulk_tbl_vars.handle, mem_edit_ctx.col_count, mem_edit_ctx.row_count);
-            Range* range = bulk.init_range(bulk_tbl_vars.handle, col_name.c_str(), mem_edit_ctx.offset, mem_edit_ctx.row_count);
-            */
-            // next_range will give us a nullptr if the col isn't int or double
-            // unlike Wasm, we cannot get "inside" the chunk, so we just show the raw
-            // data, which will always be 8 bytes and therefore available via dbldata
             mem_edit_vars.addr_data_ref = cspec_data_ref(cs_address, w);
             mem_edit_vars.address_ptr = data_lay_cache.get_word_value(PtrInx(mem_edit_vars.addr_data_ref->ref_inx));
             mem_edit_vars.size_data_ref = cspec_data_ref(cs_size, w);
@@ -2568,14 +2544,8 @@ protected:
             memory_editor.DrawWindow(mem_edit_vars.title, (void*)(*mem_edit_vars.address_ptr),
                                             *mem_edit_vars.size_ptr, *mem_edit_vars.address_ptr);
 
-            /*
-            if (range != nullptr) {
-                memory_editor.DrawWindow(col_name.c_str(), range->anydata, 
-                    range->mem_size, reinterpret_cast<size_t>(range->anydata));
-            }*/
             if (!memory_editor.Open) {
-                // top right close button clicked,
-                // so remove ourselves from render stack
+                // top right close clicked: rm ourselves from render stack
                 pending_pops.push_back(w->rname);
             }
         }
