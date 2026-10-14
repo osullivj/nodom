@@ -25,11 +25,19 @@
   "scan_text":"Scan",
   "summary_text":"Summary",
   "chart_text":"Chart",
+  "mem_edit_text":"Memory Editor",
+  "mem_edit_addr":0,
+  "mem_edit_size":0,
   "menus":{
     "summary_rclick_menupop":["Memory Editor"],
     "main_menu_bar": ["Queries", "Caches"],
     "Queries": ["the_depth_query", "the_depth_summary"],
     "Caches": ["Hot", "Cold", "Bulk"]
+  },
+  "types":{
+    "cdStr":["mem_edit_text"],
+    "cdInt":["mem_edit_size"],
+    "cdPtr":["mem_edit_addr"]
   },
   "actions": {
     "i_am_the_summary_button.Click": [
