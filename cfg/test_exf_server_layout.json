@@ -12,7 +12,8 @@
         "cspec": {
           "cname": "instruments",
           "cindex": "selected_instrument",
-          "label": "Instrument"
+          "label": "Instrument",
+          "buffer_size":256
         }
       },
       {
@@ -62,8 +63,6 @@
           "db": true,
           "fps": true,
           "demo": true,
-          "id_stack": true,
-          "memory": true,
           "font_scale": true,
           "style": true
         }
@@ -109,8 +108,9 @@
     "widget_id": "i_am_memory_editor",
     "rname": "MemoryEditor",
     "cspec": {
-      "title": "Memory Editor",
-      "query_id":"the_depth_query"
+      "text": "mem_edit_text",
+      "address":"mem_edit_addr",
+      "size":"mem_edit_size"
     }
   },
   {
