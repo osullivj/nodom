@@ -76,6 +76,8 @@ struct ComboLocals {
 };
 
 struct LiveTableLocals {
+    DataRef*    ticker_list_data_ref{ nullptr };
+    DataRef*    menupop_data_ref{ nullptr };
     int         table_flags{ 0 };
     int         line_height{ 0 };
     ImVec2      size{ -FLT_MIN, 0.0 };
