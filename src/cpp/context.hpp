@@ -1331,7 +1331,7 @@ protected:
     // 
     // useful popup level discussion
     // https://github.com/ocornut/imgui/discussions/3773
-    bool render_menu_pop_item(WidgetPtr parent) {
+    bool render_menu_pop_item(WidgetPtr parent, DataRef* menupop_data_ref) {
         const static char* method = "NDContext::render_menu_pop_item: ";
 
         menu_pop_vars.ret_val = false;
@@ -1351,9 +1351,10 @@ protected:
         // event flow; we'd have to make the parent window of
         // the summary table non modal for rclicks to get
         // dispatched here. 
-        assert(bulk_tbl_vars.menupop_data_ref);
+        assert(bulk_tbl_vars.menupop_data_ref || live_tbl_vars.menupop_data_ref);
 
         switch (parent->rname) {
+        case LiveTable:
         case BulkTable: // prep TableMemEditContext for subsequent render_memory_editor()
             // prep for render_memory_editor() bulk.init_range() invocation
 
@@ -1369,8 +1370,8 @@ protected:
                 menu_pop_vars.col = ImGui::GetCurrentTable()->ContextPopupColumn;
 
                 if (ImGui::TableBeginContextMenuPopup(ImGui::GetCurrentTable())) {
-                    StrInx mpop_inx{ bulk_tbl_vars.menupop_data_ref->ref_inx };
-                    for (uint32_t i = 0; i < bulk_tbl_vars.menupop_data_ref->size; i++) {
+                    StrInx mpop_inx{ menupop_data_ref->ref_inx };
+                    for (uint32_t i = 0; i < menupop_data_ref->size; i++) {
                         const char* menu_pop_item = data_lay_cache.get_string_value(mpop_inx);
                         if (menu_pop_item != nullptr && ImGui::MenuItem(menu_pop_item)) {
                             pending_actions.push_back({ mpop_inx(), einx_Menu });
@@ -2301,7 +2302,7 @@ protected:
                     }
                 }
                 if (bulk_tbl_vars.menupop_data_ref != nullptr && ImGui::GetCurrentTable()->IsContextPopupOpen) {
-                    if (render_menu_pop_item(w)) {
+                    if (render_menu_pop_item(w, bulk_tbl_vars.menupop_data_ref)) {
                         mem_edit_memo.data_ref_map[cs_query_id] = result_set_data_ref;
                     }
                 }
@@ -2313,7 +2314,7 @@ protected:
     void render_live_table(WidgetPtr w) {
         const static char* method = "NDContext::render_live_table: ";
 
-        static int default_table_flags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY;
+        static int default_table_flags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY;
 
         const char* title = cspec_string(cs_title, w->cspec_str, method);
         live_tbl_vars.table_flags = default_table_flags;
@@ -2324,9 +2325,12 @@ protected:
 
         live_tbl_vars.size[1] = ImGui::GetTextLineHeight() * live_tbl_vars.line_height;
 
-        DataRef* ticker_list_data_ref = cspec_data_ref(cs_cname, w);
-        assert(ticker_list_data_ref->tipe == cdStrVec);
-        assert(ticker_list_data_ref->size < live.records.record_count);
+        live_tbl_vars.ticker_list_data_ref = cspec_data_ref(cs_cname, w);
+        assert(live_tbl_vars.ticker_list_data_ref->tipe == cdStrVec);
+        assert(live_tbl_vars.ticker_list_data_ref->size < live.records.record_count);
+
+        // NB cspec:menupop is optional
+        live_tbl_vars.menupop_data_ref = cspec_data_ref(cs_menu_pop, w);
 
         // How big is live table?
         // Rows: live.ticker_count() rows
@@ -2373,8 +2377,8 @@ protected:
             }
 
             // Finally, memoise the tickers
-            StrInx tinx{ ticker_list_data_ref->ref_inx };
-            for (live_tbl_vars.count = 0; live_tbl_vars.count < ticker_list_data_ref->size; live_tbl_vars.count++) {
+            StrInx tinx{ live_tbl_vars.ticker_list_data_ref->ref_inx };
+            for (live_tbl_vars.count = 0; live_tbl_vars.count < live_tbl_vars.ticker_list_data_ref->size; live_tbl_vars.count++) {
                 w->append_buffer(data_lay_cache.get_string_value(tinx));
                 tinx++;
             }
@@ -2391,6 +2395,9 @@ protected:
         live_tbl_vars.row_inx = 0; {
             LocalFont body_font(w, cs_body_font, cs_body_font_size);
             if (ImGui::BeginTable(title, (int)live.records.col_count, live_tbl_vars.table_flags, live_tbl_vars.size)) {
+                if (live_tbl_vars.menupop_data_ref != nullptr && ImGui::GetCurrentTable() != nullptr) {
+                    ImGui::GetCurrentTable()->DisableDefaultContextMenu = true;
+                }
                 for (live_tbl_vars.col_inx = 0; live_tbl_vars.col_inx < live.records.col_count; live_tbl_vars.col_inx++) {
                     ImGui::TableSetupColumn(live.records.field_names[live_tbl_vars.col_inx].c_str(), ImGuiTableColumnFlags_None);
                 }
@@ -2467,6 +2474,12 @@ protected:
                         live_tbl_vars.tkr_inx++;
                     }
                 }
+
+                if (live_tbl_vars.menupop_data_ref != nullptr && ImGui::GetCurrentTable()->IsContextPopupOpen) {
+                    if (render_menu_pop_item(w, live_tbl_vars.menupop_data_ref)) {
+                        mem_edit_memo.data_ref_map[cs_cname] = live_tbl_vars.ticker_list_data_ref;
+                    }
+                }
                 ImGui::EndTable();
             }
         }
@@ -2480,54 +2493,62 @@ protected:
         // we need to provide render_memory_editor with text:str, address:ptr and
         // size:int addr cspecs.
 
-        // render_menu_pop should have recorded the result 
-        // set data ref and col inx in mem_edit_memo
-        mem_edit_vars.result_set_data_ref = mem_edit_memo.data_ref_map[cs_query_id];
-        assert(mem_edit_vars.result_set_data_ref != nullptr);
-        mem_edit_vars.query_id = (char*)data_lay_cache.get_string_value(mem_edit_vars.result_set_data_ref->addr_inx);
+        // set up local data refs that will be the same whether we've
+        // been raised by live or bulk tables
         mem_edit_vars.col_inx = mem_edit_memo.int_map[cs_cindex];
-
-        // Given QID we can get result handle, and then the column name
-        mem_edit_vars.handle = bulk.get_handle(mem_edit_vars.query_id);
-        assert(mem_edit_vars.handle != 0);
-        StringVec& col_names{ bulk.get_col_names(mem_edit_vars.handle) };
-
-        // Now we'll write into the DLC slots for MemoryEditor cspec
-        // NB we're doing this once, on push_widget(), and not on every render
         mem_edit_vars.text_data_ref = cspec_data_ref(cs_text, w);
         assert(mem_edit_vars.text_data_ref != nullptr);
-        data_lay_cache.update_string(mem_edit_vars.text_data_ref->ref_inx, col_names[mem_edit_vars.col_inx]);
+        mem_edit_vars.addr_data_ref = cspec_data_ref(cs_address, w);
+        assert(mem_edit_vars.addr_data_ref != nullptr);
+        mem_edit_vars.size_data_ref = cspec_data_ref(cs_size, w);
+        assert(mem_edit_vars.size_data_ref != nullptr);
 
-        // now we ask bulk cache for the addr and size of the col
-        Range* range = bulk.init_range(mem_edit_vars.handle,
-                            col_names[mem_edit_vars.col_inx].c_str(), 0, CHUNK_SIZE);
-        range = bulk.next_range(range);
+        // render_menu_pop should have recorded the result 
+        // set data ref and col inx in mem_edit_memo; cs_query_id
+        // if from bulk_table, and cs_cname if from live table
+        if (mem_edit_memo.data_ref_map.find(cs_query_id) != mem_edit_memo.data_ref_map.end()) {         // raised by render_bulk_table()
+            mem_edit_vars.result_set_data_ref = mem_edit_memo.data_ref_map[cs_query_id];
+            assert(mem_edit_vars.result_set_data_ref != nullptr);
+            mem_edit_vars.query_id = (char*)data_lay_cache.get_string_value(mem_edit_vars.result_set_data_ref->addr_inx);
 
-        switch (range->col_type) {
+            // Given QID we can get result handle, and then the column name
+            mem_edit_vars.handle = bulk.get_handle(mem_edit_vars.query_id);
+            assert(mem_edit_vars.handle != 0);
+            StringVec& col_names{ bulk.get_col_names(mem_edit_vars.handle) };
+
+            // Now we'll write into the DLC slots for MemoryEditor cspec
+            // NB we're doing this once, on push_widget(), and not on every render
+            data_lay_cache.update_string(mem_edit_vars.text_data_ref->ref_inx, col_names[mem_edit_vars.col_inx]);
+
+            // now we ask bulk cache for the addr and size of the col
+            Range* range = bulk.init_range(mem_edit_vars.handle,
+                col_names[mem_edit_vars.col_inx].c_str(), 0, CHUNK_SIZE);
+            range = bulk.next_range(range);
+
+            switch (range->col_type) {
 #ifndef __EMSCRIPTEN__
-        case DUCKDB_TYPE_DOUBLE:
+            case DUCKDB_TYPE_DOUBLE:
 #else
-        case wdtFloat:
+            case wdtFloat:
 #endif
-            mem_edit_vars.addr_data_ref = cspec_data_ref(cs_address, w);
-            assert(mem_edit_vars.addr_data_ref != nullptr);
-            data_lay_cache.update_word(mem_edit_vars.addr_data_ref->ref_inx, (size_t)range->dbldata);
-            mem_edit_vars.size_data_ref = cspec_data_ref(cs_size, w);
-            assert(mem_edit_vars.size_data_ref != nullptr);
-            data_lay_cache.update_int(mem_edit_vars.size_data_ref->ref_inx, sizeof(double) * CHUNK_SIZE);
-            break;
+                data_lay_cache.update_word(mem_edit_vars.addr_data_ref->ref_inx, (size_t)range->dbldata);
+                data_lay_cache.update_int(mem_edit_vars.size_data_ref->ref_inx, sizeof(double) * CHUNK_SIZE);
+                break;
 #ifndef __EMSCRIPTEN__
-        case DUCKDB_TYPE_INTEGER:
+            case DUCKDB_TYPE_INTEGER:
 #else
-        case wdtInt:
+            case wdtInt:
 #endif
-            mem_edit_vars.addr_data_ref = cspec_data_ref(cs_address, w);
-            assert(mem_edit_vars.addr_data_ref != nullptr);
-            data_lay_cache.update_word(mem_edit_vars.addr_data_ref->ref_inx, (size_t)range->idata);
-            mem_edit_vars.size_data_ref = cspec_data_ref(cs_size, w);
-            assert(mem_edit_vars.size_data_ref != nullptr);
-            data_lay_cache.update_int(mem_edit_vars.size_data_ref->ref_inx, sizeof(int) * CHUNK_SIZE);
-            break;
+                data_lay_cache.update_word(mem_edit_vars.addr_data_ref->ref_inx, (size_t)range->idata);
+                data_lay_cache.update_int(mem_edit_vars.size_data_ref->ref_inx, sizeof(int) * CHUNK_SIZE);
+                break;
+            }
+        }
+        else {  // raised by render_live_table()
+            // We have the column index in hand, so we can get the field name from live
+            data_lay_cache.update_string(mem_edit_vars.text_data_ref->ref_inx, live.records.field_names[mem_edit_vars.col_inx]);
+            data_lay_cache.update_word(mem_edit_vars.addr_data_ref->ref_inx, (size_t)live.records.get_field(mem_edit_vars.col_inx));
+            data_lay_cache.update_int(mem_edit_vars.size_data_ref->ref_inx, sizeof(double) * live.records.record_count);
         }
     }
 
