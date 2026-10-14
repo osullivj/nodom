@@ -136,8 +136,6 @@ EXF_LAYOUT = [
                     db=True,
                     fps=True,
                     demo=True,
-                    id_stack=True,
-                    memory=True,
                     font_scale=True,
                     style=True,
                     dlc=True,
@@ -199,10 +197,11 @@ EXF_LAYOUT = [
     ),
     dict(
         widget_id=MEM_EDIT_ID,
-        rname="MemoryEditor",  # "Noop"
+        rname="MemoryEditor",
         cspec=dict(
-            title="Memory Editor",
-            query_id=SELECT_QID,
+            text="mem_edit_text",
+            address="mem_edit_addr",
+            size="mem_edit_size",
         ),
     ),
     dict(
@@ -330,6 +329,9 @@ EXF_DATA = dict(
     enable_logging_sql="INSTALL parquet; CALL enable_logging(level='debug', storage='stdout');",
     depth_storage_sql="PRAGMA storage_info('depth');",
     memory_limit_sql="SELECT current_setting('memory_limit');",
+    mem_edit_addr=0,
+    mem_edit_size=0,
+    mem_edit_text="Memory Editor",
     xaxis="SeqNo",
     yaxis="AskPrice1",
     actions={
@@ -359,7 +361,12 @@ EXF_DATA = dict(
     },
     menus=dict(
         table_rclick_menupop=[MEM_EDIT_MENU_ITEM]
-    )
+    ),
+    types=dict(
+        cdPtr=["mem_edit_addr"],
+        cdInt=["mem_edit_size"],
+        cdStr=["mem_edit_text"]
+    ),
 )
 
 # nd_utils.file_list needs one more arg after this partial bind for the pattern we're matching
