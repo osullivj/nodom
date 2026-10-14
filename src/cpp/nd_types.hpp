@@ -216,12 +216,13 @@ enum CacheDataType : uint32_t {
     cdFloat = 0x20000, 
     cdDouble = 0x30000,
     cdBool = 0x40000, 
-    cdStr = 0x50000, 
-    cdIntVec = 0x60000,
-    cdStrVec = 0x70000,
-    cdAny = 0x80000,
-    cdResultSet = 0x90000,
-    cdOperator = 0xA0000,   // NDF operator
+    cdStr = 0x50000,
+    cdPtr = 0x60000,
+    cdIntVec = 0x70000,
+    cdStrVec = 0x80000,
+    cdAny = 0x90000,
+    cdResultSet = 0xA0000,
+    cdOperator = 0xB0000,   // NDF operator
     EndDataTypes = 0xF0000
 };
 
@@ -388,6 +389,9 @@ using BoolInx = DataCacheIndex<CIT::Value, CDT::cdBool>;
 using FloatInx = DataCacheIndex<CIT::Value, CDT::cdFloat>;
 using DoubleInx = DataCacheIndex<CIT::Value, CDT::cdDouble>;
 using StrInx = DataCacheIndex<CIT::Value, CDT::cdStr>;
+// A special atomic val for storing C++ ptrs
+using PtrInx = DataCacheIndex<CIT::Address, CDT::cdPtr>;
+
 // Array values
 using IntVecInx = DataCacheIndex<CIT::Value, CDT::cdIntVec>;  // mutable
 using StrVecInx = DataCacheIndex<CIT::Value, CDT::cdStrVec>;  // !mutable
@@ -491,18 +495,21 @@ enum CacheSpecifier : uint32_t {
     cs_show_footer_font_scale,
     cs_show_footer_style,       
     cs_show_footer_dlc,         // end atomic_cspec_types
-    cs_cname,                   // cname_cpsec_types
-    cs_cindex,                  // cindex_cpsec_types
+    cs_cname,                   // start addr cspecs 
+    cs_cindex,
     cs_query_id,
     cs_xname,
     cs_yname,
-    cs_disabled,
+    cs_disabled,                // end addr cspecs
+    cs_address,                 // pre_render mem edit cspec
+    cs_size,                    // pre_render mem edit cspec
     cs_end_cache_specs
 };
 
 using CacheSpecVec = std::vector<CacheSpecifier>;
 using CacheSpecTypeMap = std::map<CacheSpecifier, CDT>;
 using IntValMap = std::map<CacheSpecifier, IntInx>;
+using WordValMap = std::map<CacheSpecifier, PtrInx>;
 using BoolValMap = std::map<CacheSpecifier, BoolInx>;
 using FloatValMap = std::map<CacheSpecifier, FloatInx>;
 using StrValMap = std::map<CacheSpecifier, StrInx>;
