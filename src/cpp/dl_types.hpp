@@ -27,6 +27,8 @@ using CEDataRefMap = std::map<CacheExport, DataRef*>;
 using QueryCEDataRefMap = std::map<std::string, CEDataRefMap>;
 
 
+
+
 // NDFMachine is NoDOM Forth Machine. NDF is a micro forth
 // dialect designed for embedding in Widgets, Menus etc
 // where "data adapters" are needed to transform data to
@@ -81,8 +83,22 @@ struct NDFMachine {
         return next < ndf_bin.size();
     }
 };
-
 using ForthMap = std::map<CacheSpecifier, NDFMachine>;
+
+
+using CSIntMap = std::map<CacheSpecifier, std::int32_t>;
+using CSDataRefMap = std::map<CacheSpecifier, DataRef*>;
+
+struct Memo {
+    CSDataRefMap data_ref_map;
+    CSIntMap int_map;
+
+    void clear() {
+        data_ref_map.clear();
+        int_map.clear();
+    }
+};
+
 
 struct NDWidget {
     NDWidget() = default;
@@ -151,6 +167,7 @@ struct NDWidget {
     RenderMethod    rname{ EndRenderMethod };
     EntityInx       widget_inx;
     IntValMap       cspec_int;
+    WordValMap      cspec_word;
     BoolValMap      cspec_bool;
     FloatValMap     cspec_float;
     DoubleValMap    cspec_double;
@@ -190,7 +207,7 @@ struct NDAction {
     EventType action{ etEndEventTypes };   // Query|Command|BatchRequest|FunctionSync|FunctionAsync
     EntityInx entity_id;                   // func_name|query_id|sub_id
     AddrInx cname;
-    CacheDataType ctype{ EndDataTypes };   // sync func return type
+    CacheDataType ctype{ EndDataTypes };   // sync func param type
 };
 
 struct NDActionInterned {
@@ -364,6 +381,8 @@ inline const char* CDTToString(CacheDataType cdt) {
         return Static::cdt_bool_cs;
     case cdStr:
         return Static::cdt_str_cs;
+    case cdPtr:
+        return Static::cdt_ptr_cs;
     case cdIntVec:
         return Static::cdt_int_vec_cs;
     case cdStrVec:
@@ -388,6 +407,8 @@ inline CacheDataType CDTFromString(const std::string& ctype) {
         return cdBool;
     if (ctype == Static::cdt_str_cs)
         return cdStr;
+    if (ctype == Static::cdt_ptr_cs)
+        return cdPtr;
     if (ctype == Static::cdt_int_vec_cs)
         return cdIntVec;
     if (ctype == Static::cdt_str_vec_cs)
