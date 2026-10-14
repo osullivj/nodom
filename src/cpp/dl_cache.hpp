@@ -1180,8 +1180,10 @@ protected:
             // is not in the data cache
             assert(true);
             break;
-        case cdStr: // spec:[xname|yname], sz:1. TODO: extend to strvec for multi Yval plots
-            data_ref.ref_inx = get_string_index<CIT::Value>(JAsString(data, addr))();
+        case cdStr: // spec:[xname|yname], sz:1.
+            // NB we must not duplicate the string body here, as this is in data
+            // and not a cspec val.
+            data_ref.ref_inx = contiguous_string_index<CIT::Value>(JAsString(data, addr))();
             break;
         case cdInt: // spec:cindex, sz:1
             data_ref.ref_inx = get_int_index(JAsInt(data, addr))();
@@ -1582,8 +1584,6 @@ public:
         cache_bools[binx()] = *v;
         return binx;
     }
-
-
 
     DoubleInx intern_double(double v) {
         return get_double_index(v);
