@@ -2504,7 +2504,11 @@ protected:
         range = bulk.next_range(range);
 
         switch (range->col_type) {
+#ifndef __EMSCRIPTEN__
         case DUCKDB_TYPE_DOUBLE:
+#else
+        case wdtFloat:
+#endif
             mem_edit_vars.addr_data_ref = cspec_data_ref(cs_address, w);
             assert(mem_edit_vars.addr_data_ref != nullptr);
             data_lay_cache.update_word(mem_edit_vars.addr_data_ref->ref_inx, (size_t)range->dbldata);
@@ -2512,7 +2516,11 @@ protected:
             assert(mem_edit_vars.size_data_ref != nullptr);
             data_lay_cache.update_int(mem_edit_vars.size_data_ref->ref_inx, sizeof(double) * CHUNK_SIZE);
             break;
+#ifndef __EMSCRIPTEN__
         case DUCKDB_TYPE_INTEGER:
+#else
+        case wdtInt:
+#endif
             mem_edit_vars.addr_data_ref = cspec_data_ref(cs_address, w);
             assert(mem_edit_vars.addr_data_ref != nullptr);
             data_lay_cache.update_word(mem_edit_vars.addr_data_ref->ref_inx, (size_t)range->idata);
