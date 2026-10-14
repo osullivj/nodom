@@ -202,11 +202,13 @@ private:
     EndRenderLocals     er_vars;
     SummaryTableLocals  smry_tbl_vars;
     BulkTableLocals     bulk_tbl_vars;
-    TableMemEditContext mem_edit_ctx;
+    MenuPopLocals       menu_pop_vars;
+    MemEditLocals       mem_edit_vars;
     StringVec           ld_ticker_list;
     StringVec           query_id_list;
     QueryCEDataRefMap   query_export_map;
-    // QueryCEInxMap       query_export_addr_map;
+    Memo                mem_edit_memo;
+
 #ifdef __EMSCRIPTEN__
     IDBFileWriter       ini_writer;
     IDBFileCachePtr     ini_cache_ptr;
@@ -632,11 +634,16 @@ public:
             dirty_bool_addr_vec.clear();
             dirty_bool_ref_vec.clear();
         }
+
+        // This will cause pending NDAction::push_ui to get pushed
+        // if any widget fired eg a menu action from render
         if (!pending_actions.empty()) {
             PendingAction pa{ pending_actions.front() };
             pending_actions.pop_front();
             action_dispatch(pa.entity_inx, pa.event_inx);
         }
+
+        // code to clear memo stacks here if not consumed by push_ui fired above
 
         pix_report(RenderPushPC, static_cast<float>(font_push_count));
         pix_report(RenderPopPC, static_cast<float>(font_pop_count));
@@ -957,6 +964,11 @@ protected:
         return data_lay_cache.cspec_int(spec, int_val_map, target);
     }
 
+    size_t* cspec_word(CacheSpecifier spec, WordValMap& word_val_map, size_t* target = nullptr) {
+        return data_lay_cache.cspec_word(spec, word_val_map, target);
+    }
+
+
     bool* cspec_bool(CacheSpecifier spec, BoolValMap& bool_val_map, bool* target = nullptr) {
         return data_lay_cache.cspec_bool(spec, bool_val_map, target);
     }
@@ -977,7 +989,6 @@ protected:
         return data_lay_cache.cspec_data_ref(spec, w);
     }
     
-    // void dispatch_render(const JSON& w) {
     void dispatch_render(WidgetPtr w) {
         // const static char* method = "NDContext::dispatch_render: ";
         // w["rname"] resolve & invoke
@@ -1080,6 +1091,17 @@ protected:
             break;
         }
     }
+
+    void dispatch_pre_render(WidgetPtr w) {
+        switch (w->rname) {
+        case RenderMethod::MemoryEditor:
+            pre_render_memory_editor(w);
+            break;
+        default:
+            break;
+        }
+    }
+
 
     void compound_string(char* buf, int buflen, const char* s1,
                             const char* s2, const char* sep = nullptr) {
@@ -1309,8 +1331,10 @@ protected:
     // 
     // useful popup level discussion
     // https://github.com/ocornut/imgui/discussions/3773
-    void render_menu_pop_item(WidgetPtr parent) {
+    bool render_menu_pop_item(WidgetPtr parent) {
         const static char* method = "NDContext::render_menu_pop_item: ";
+
+        menu_pop_vars.ret_val = false;
         // cspec::menupop is a Str and a menu_name in data.menus.
         // NB BeginPopupContextItem() attaches to the previously
         // rendered widget, unless it's a table, in which case 
@@ -1320,7 +1344,7 @@ protected:
         // should call render_menu_pop_window() (NYI)
         assert(parent->rname != RenderMethod::Window);
 
-        // Currently only render_table() invokes us. In future 
+        // Currently only render_bulk_table() invokes us. In future 
         // we'll loosen this assert to accept menupop_data_refs
         // from other (non Window) render methods. Since
         // render_duck_table_summary_modal() is modal it changes
@@ -1342,15 +1366,18 @@ protected:
                 // only interested in col specific, not boundary clicks 
                 && (ImGui::GetCurrentTable()->ContextPopupColumn != -1)) {
 
-                mem_edit_ctx.offset = 0;
-                mem_edit_ctx.col_inx = ImGui::GetCurrentTable()->ContextPopupColumn;
-                if (ImGui::TableBeginContextMenuPopup(ImGui::GetCurrentTable())) {
+                menu_pop_vars.col = ImGui::GetCurrentTable()->ContextPopupColumn;
 
+                if (ImGui::TableBeginContextMenuPopup(ImGui::GetCurrentTable())) {
                     StrInx mpop_inx{ bulk_tbl_vars.menupop_data_ref->ref_inx };
                     for (uint32_t i = 0; i < bulk_tbl_vars.menupop_data_ref->size; i++) {
                         const char* menu_pop_item = data_lay_cache.get_string_value(mpop_inx);
                         if (menu_pop_item != nullptr && ImGui::MenuItem(menu_pop_item)) {
                             pending_actions.push_back({ mpop_inx(), einx_Menu });
+                            // start new memo with col index
+                            mem_edit_memo.clear();
+                            mem_edit_memo.int_map[cs_cindex] = menu_pop_vars.col;
+                            menu_pop_vars.ret_val = true;
                         }
                         mpop_inx++;
                     }
@@ -1362,6 +1389,7 @@ protected:
             // and use ImGui::BeginPopupContextItem()
             break;
         }
+        return menu_pop_vars.ret_val;
     }
 
     void render_home(WidgetPtr w) {
@@ -2231,10 +2259,10 @@ protected:
                 // If any of the table header logic invoked above has invoked 
                 // TableOpenContextMenu(), and we have a cspec:menupop, then
                 // go ahead and render the popup menu
+                /*
                 if (bulk_tbl_vars.menupop_data_ref != nullptr && ImGui::GetCurrentTable()->IsContextPopupOpen) {
-                    // TODO: add scope push cspec:push_scope=BulkRowColCross
                     render_menu_pop_item(w);
-                }
+                } */
                 ImGuiListClipper clipper;
                 clipper.Begin((int)row_count, -1.0f);
                 while (clipper.Step()) {
@@ -2270,6 +2298,11 @@ protected:
                                 }
                             }
                         }
+                    }
+                }
+                if (bulk_tbl_vars.menupop_data_ref != nullptr && ImGui::GetCurrentTable()->IsContextPopupOpen) {
+                    if (render_menu_pop_item(w)) {
+                        mem_edit_memo.data_ref_map[cs_query_id] = result_set_data_ref;
                     }
                 }
                 ImGui::EndTable();
@@ -2439,6 +2472,56 @@ protected:
         }
     }
 
+    void pre_render_memory_editor(WidgetPtr w) {
+        const static char* method = "NDContext::pre_render_memory_editor: ";
+
+        // mem_edit_memo.int_map[cs_cindex] should have column index
+        // mem_edit_memo.data_ref_map[cs_query_id] should have result set data ref
+        // we need to provide render_memory_editor with title:str, address:int and
+        // size:int value cspecs.
+
+        // render_menu_pop should have provided the result set data ref and col inx
+        mem_edit_vars.result_set_data_ref = mem_edit_memo.data_ref_map[cs_query_id];
+        assert(mem_edit_vars.result_set_data_ref != nullptr);
+        mem_edit_vars.query_id = (char*)data_lay_cache.get_string_value(mem_edit_vars.result_set_data_ref->addr_inx);
+        mem_edit_vars.col_inx = mem_edit_memo.int_map[cs_cindex];
+
+        // Given QID we can get result handle, and then the column name
+        mem_edit_vars.handle = bulk.get_handle(mem_edit_vars.query_id);
+        assert(mem_edit_vars.handle != 0);
+        StringVec& col_names{ bulk.get_col_names(mem_edit_vars.handle) };
+
+        // Now we'll write into the DLC slots for MemoryEditor cspec
+        // NB we're doing this once, on push_widget(), and not on every render
+        mem_edit_vars.text_data_ref = cspec_data_ref(cs_text, w);
+        assert(mem_edit_vars.text_data_ref != nullptr);
+        data_lay_cache.update_string(mem_edit_vars.text_data_ref->ref_inx, col_names[mem_edit_vars.col_inx]);
+
+        // now we ask bulk cache for the addr and size of the col
+        Range* range = bulk.init_range(mem_edit_vars.handle,
+                            col_names[mem_edit_vars.col_inx].c_str(), 0, CHUNK_SIZE);
+        range = bulk.next_range(range);
+
+        switch (range->col_type) {
+        case DUCKDB_TYPE_DOUBLE:
+            mem_edit_vars.addr_data_ref = cspec_data_ref(cs_address, w);
+            assert(mem_edit_vars.addr_data_ref != nullptr);
+            data_lay_cache.update_word(mem_edit_vars.addr_data_ref->ref_inx, (size_t)range->dbldata);
+            mem_edit_vars.size_data_ref = cspec_data_ref(cs_size, w);
+            assert(mem_edit_vars.size_data_ref != nullptr);
+            data_lay_cache.update_int(mem_edit_vars.size_data_ref->ref_inx, sizeof(double) * CHUNK_SIZE);
+            break;
+        case DUCKDB_TYPE_INTEGER:
+            mem_edit_vars.addr_data_ref = cspec_data_ref(cs_address, w);
+            assert(mem_edit_vars.addr_data_ref != nullptr);
+            data_lay_cache.update_word(mem_edit_vars.addr_data_ref->ref_inx, (size_t)range->idata);
+            mem_edit_vars.size_data_ref = cspec_data_ref(cs_size, w);
+            assert(mem_edit_vars.size_data_ref != nullptr);
+            data_lay_cache.update_int(mem_edit_vars.size_data_ref->ref_inx, sizeof(int) * CHUNK_SIZE);
+            break;
+        }
+    }
+
     void render_memory_editor(WidgetPtr w) {
         const static char* method = "NDContext::render_memory_editor: ";
 
@@ -2455,14 +2538,18 @@ protected:
         // signals a bulk column MemEdit, so we prep DrawWindow's three params
         // const char* title, void* mem_data, size_t mem_size from
         // TableContext and TableMemEditContext
-        DataRef* result_set_data_ref = cspec_data_ref(cs_query_id, w);
-        const char* query_id = data_lay_cache.get_string_value(result_set_data_ref->addr_inx);
-        if (query_id != nullptr) {
+        // DataRef* result_set_data_ref = cspec_data_ref(cs_query_id, w);
+        // const char* query_id = data_lay_cache.get_string_value(result_set_data_ref->addr_inx);
+        mem_edit_vars.text_data_ref = cspec_data_ref(cs_text, w);
+        mem_edit_vars.title = (char*)data_lay_cache.get_string_value(StrInx(mem_edit_vars.text_data_ref->ref_inx));
+        // if (query_id != nullptr) {
+        if (mem_edit_vars.title != nullptr) {
             // expensive lookup op that we'd typically do in
             // a bulk cache based render method. We don't need
             // to do that here a bulk_tbl_vars should have the correct
             // handle. So we'll assert bulk_tbl_vars.handle does
             // match our query_id in debug builds as a sanity check.
+            /*
             assert(bulk.get_handle(query_id) == bulk_tbl_vars.handle);
             StringVec& colm_names = bulk.get_col_names(bulk_tbl_vars.handle);
             assert(colm_names.size() > mem_edit_ctx.col_inx);
@@ -2470,15 +2557,22 @@ protected:
 
             bulk.get_meta_data(bulk_tbl_vars.handle, mem_edit_ctx.col_count, mem_edit_ctx.row_count);
             Range* range = bulk.init_range(bulk_tbl_vars.handle, col_name.c_str(), mem_edit_ctx.offset, mem_edit_ctx.row_count);
-
+            */
             // next_range will give us a nullptr if the col isn't int or double
             // unlike Wasm, we cannot get "inside" the chunk, so we just show the raw
             // data, which will always be 8 bytes and therefore available via dbldata
-            range = bulk.next_range(range);
+            mem_edit_vars.addr_data_ref = cspec_data_ref(cs_address, w);
+            mem_edit_vars.address_ptr = data_lay_cache.get_word_value(PtrInx(mem_edit_vars.addr_data_ref->ref_inx));
+            mem_edit_vars.size_data_ref = cspec_data_ref(cs_size, w);
+            mem_edit_vars.size_ptr = data_lay_cache.get_int_value(IntInx(mem_edit_vars.size_data_ref->ref_inx));
+            memory_editor.DrawWindow(mem_edit_vars.title, (void*)(*mem_edit_vars.address_ptr),
+                                                                *mem_edit_vars.size_ptr);
+
+            /*
             if (range != nullptr) {
                 memory_editor.DrawWindow(col_name.c_str(), range->anydata, 
                     range->mem_size, reinterpret_cast<size_t>(range->anydata));
-            }
+            }*/
             if (!memory_editor.Open) {
                 // top right close button clicked,
                 // so remove ourselves from render stack
@@ -2544,6 +2638,7 @@ protected:
         const static char* method = "NDContext::push_widget: ";
         if (!is_pushed(w)) {
             stack.push_back(w);
+            dispatch_pre_render(w);
         }
         else {
             NDLogger::cerr() << method << "PUSH_FAIL widget_inx("
