@@ -46,7 +46,7 @@ FIN_LAYOUT = [
                 cspec=dict(
                     title="Instruments",
                     query_id="query_inst_tbl_qid",
-                    menupop="instruments_rclick_menupop",
+
                     selectable_col=0,
                     table_flags=TableFlags.SCROLL_Y
                     | TableFlags.ROW_BG
@@ -83,6 +83,7 @@ FIN_LAYOUT = [
                     cname="ticker_symbols",
                     formats="ticker_formats",
                     xforms="ticker_xforms",
+                    menupop="live_rclick_menupop",
                     buffer_size=256,
                     line_height=8,
                     table_flags=TableFlags.SCROLL_Y
@@ -123,6 +124,15 @@ FIN_LAYOUT = [
             cname="loading_instruments_message",
             spinner_radius=20,
             spinner_thickness=4,
+        ),
+    ),
+    dict(
+        widget_id="i_am_the_memory_editor",
+        rname="MemoryEditor",
+        cspec=dict(
+            title="mem_edit_title",
+            address="mem_edit_addr",
+            size="mem_edit_size"
         ),
     ),
 ]
@@ -181,6 +191,9 @@ FIN_DATA = {
     "unsub_disabled": False,
     "inst_sel_col": 0,
     "inst_sel_row": 0,
+    "mem_edit_addr": 0,
+    "mem_edit_size": 0,
+    "mem_edit_text": "Memory Editor",
     "inst_sel_key": "",
     "sub_text":"Sub",
     "unsub_text":"Unsub",
@@ -194,11 +207,12 @@ FIN_DATA = {
             INIT_SUB_REQ_ACTN,
         ]
     },
-    "menus": {"instruments_rclick_menupop": ["Subscribe"]},
+    "menus": {"live_rclick_menupop": ["MemEdit"]},
     "types": {
         "cdBool": ["sub_disabled", "unsub_disabled"],
-        "cdInt": ["inst_sel_col", "inst_sel_row"],
+        "cdInt": ["inst_sel_col", "inst_sel_row", "mem_edit_size"],
         "cdStr": ["inst_sel_key"],
+        "cdPtr": ["mem_edit_addr"]
     },
     "imports": {
         "bulk": {
