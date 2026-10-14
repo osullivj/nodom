@@ -46,7 +46,6 @@ FIN_LAYOUT = [
                 cspec=dict(
                     title="Instruments",
                     query_id="query_inst_tbl_qid",
-
                     selectable_col=0,
                     table_flags=TableFlags.SCROLL_Y
                     | TableFlags.ROW_BG
@@ -127,10 +126,10 @@ FIN_LAYOUT = [
         ),
     ),
     dict(
-        widget_id="i_am_the_memory_editor",
+        widget_id="the_memory_editor",
         rname="MemoryEditor",
         cspec=dict(
-            title="mem_edit_title",
+            text="mem_edit_text",
             address="mem_edit_addr",
             size="mem_edit_size"
         ),
@@ -193,7 +192,7 @@ FIN_DATA = {
     "inst_sel_row": 0,
     "mem_edit_addr": 0,
     "mem_edit_size": 0,
-    "mem_edit_text": "Memory Editor",
+    "mem_edit_text": "mem_edit_window_title",
     "inst_sel_key": "",
     "sub_text":"Sub",
     "unsub_text":"Unsub",
@@ -205,13 +204,16 @@ FIN_DATA = {
             QUERY_INST_TBL_ACTN,
             BATCH_INST_TBL_ACTN,
             INIT_SUB_REQ_ACTN,
+        ],
+        "MemEdit.Menu":[
+            dict(ui_push="the_memory_editor")
         ]
     },
     "menus": {"live_rclick_menupop": ["MemEdit"]},
     "types": {
         "cdBool": ["sub_disabled", "unsub_disabled"],
         "cdInt": ["inst_sel_col", "inst_sel_row", "mem_edit_size"],
-        "cdStr": ["inst_sel_key"],
+        "cdStr": ["inst_sel_key", "mem_edit_text"],
         "cdPtr": ["mem_edit_addr"]
     },
     "imports": {
