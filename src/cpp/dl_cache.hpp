@@ -18,6 +18,7 @@ protected:
     std::vector<int*>           fp_int_ptrs;
     std::vector<const char*>    fp_char_ptrs;
     std::vector<bool*>          fp_bool_ptrs;
+    std::vector<size_t*>        fp_word_ptrs;
 
     // an LHS CacheName is an Address. All JSON sourced
     // strings from data and layout are moved into here,
@@ -37,7 +38,7 @@ protected:
     // overhead and risk of implicit conversions.
     std::vector<float>          cache_floats;
     std::vector<double>         cache_doubles;
-
+    std::vector<size_t>         cache_words;
     std::array<bool, CCAP>      cache_bools;
 
     WidgetVec                   widget_vec;
@@ -85,6 +86,7 @@ protected:
                                             Static::cdt_double_cs,
                                             Static::cdt_bool_cs,
                                             Static::cdt_str_cs,
+                                            Static::cdt_ptr_cs,
                                             Static::cdt_int_vec_cs,
                                             Static::cdt_str_vec_cs
     };
@@ -207,7 +209,21 @@ public:
         cache_ints[inx] = val;
     }
 
+    void update_word(uint32_t inx, size_t val) {
+        if (inx >= fp_word_ptrs.size())
+            throw std::runtime_error("NoDOM BAD_ADDR:update_bool");
+        *(fp_word_ptrs[inx]) = val;
+        cache_words[inx] = val;
+    }
+
 protected:
+    PtrInx get_word_index(size_t value) {
+        // create storage for an int value, and FP ptr too
+        cache_words.push_back(value);
+        fp_word_ptrs.push_back(&(cache_words.back()));
+        return PtrInx((uint32_t)fp_word_ptrs.size() - 1);
+    }
+
     IntInx get_int_index(int value) {
         // create storage for an int value, and FP ptr too
         cache_ints.push_back(value);
@@ -1098,6 +1114,8 @@ protected:
             case cs_xforms:
             case cs_text:
             case cs_disabled:
+            case cs_size:
+            case cs_address:
                 data_ref = CreateDataRef(ref_type, amit->second(), data, addr_or_qid);
                 break;
             case cs_query_id:   // cdResultSet
@@ -1129,6 +1147,8 @@ protected:
                 case cs_xforms:
                 case cs_text:
                 case cs_disabled:
+                case cs_size:
+                case cs_address:
                     data_ref_map[data_ref.addr_inx] = data_ref;
                     break;
                 default:
@@ -1165,6 +1185,9 @@ protected:
             break;
         case cdInt: // spec:cindex, sz:1
             data_ref.ref_inx = get_int_index(JAsInt(data, addr))();
+            break;
+        case cdPtr: // spec:address, sz:1
+            data_ref.ref_inx = get_word_index(JAsInt(data, addr))();
             break;
         case cdFloat:       // InputFloat
             data_ref.ref_inx = get_float_index(JAsFloat(data, addr.c_str()))();
@@ -1317,6 +1340,7 @@ public:
             assert(false);
             break;
         case cdFloat:       // not required by any widget yet
+        case cdPtr:
             assert(false);
             break;
         case cdStr:         // NDAction::cname SQL data_ref
@@ -1449,6 +1473,10 @@ public:
 
     double* get_double_value(DoubleInx inx) {
         return fp_double_ptrs[inx()];
+    }
+
+    size_t* get_word_value(PtrInx inx) {
+        return fp_word_ptrs[inx()];
     }
 
     AddrInx add_address(const std::string& addr) {
@@ -1652,6 +1680,17 @@ public:
         return nullptr;
     }
 
+    size_t* cspec_word(CacheSpecifier spec, WordValMap& word_val_map, size_t* target = nullptr) {
+        auto cs_word_iter = word_val_map.find(spec);
+        if (cs_word_iter != word_val_map.end()) {
+            PtrInx ptr_inx{ cs_word_iter->second };
+            size_t* rv = get_word_value(ptr_inx);
+            if (target != nullptr && rv != nullptr) *target = *rv;
+            return rv;
+        }
+        return nullptr;
+    }
+
     bool* cspec_bool(CacheSpecifier spec, BoolValMap& bool_val_map, bool* target = nullptr) {
         auto cs_bool_iter = bool_val_map.find(spec);
         if (cs_bool_iter != bool_val_map.end()) {
@@ -1797,7 +1836,9 @@ private:
         Static::query_id_cs,
         Static::xname_cs,
         Static::yname_cs,
-        Static::disabled_cs
+        Static::disabled_cs,
+        Static::address_cs,
+        Static::size_cs
     };
 
     inline static std::array<CacheDataType, cs_end_cache_specs> cspec_types{
@@ -1855,7 +1896,9 @@ private:
         cdResultSet,// cs_query_id
         cdStr,      // cs_xname
         cdStr,      // cs_yname
-        cdBool      // cs_disabled
+        cdBool,     // cs_disabled
+        cdPtr,      // cs_address
+        cdInt,      // cs_size
     };
 
     inline static  std::map<RenderMethod, CacheSpecVec> value_cspecs{
@@ -1895,7 +1938,7 @@ private:
         {ShadedPlot, {cs_title, cs_show_lines, cs_show_fills, cs_shaded_plot_flags}},
         {PushFont, {cs_font, cs_font_size}},
         {BeginChild, {cs_title, cs_height, cs_width, cs_window_flags}},
-        {MemoryEditor, {cs_title}}
+        {MemoryEditor, {/* cs_title , cs_address, cs_size */ }}
     };
 
     inline static std::map<RenderMethod, CacheSpecTypeMap> addr_cspecs{
@@ -1947,7 +1990,10 @@ private:
             {cs_menu_pop, cdStrVec}     // optional
         }},
         {MemoryEditor, {
-            {cs_query_id, cdResultSet}  // optional
+            {cs_text, cdStr},
+            {cs_address, cdPtr},
+            {cs_size, cdInt},
+            // {cs_query_id, cdResultSet}  // optional
         }}
     };
 
