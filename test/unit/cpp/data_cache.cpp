@@ -502,7 +502,7 @@ BOOST_FIXTURE_TEST_CASE(QedServerForth, DataCacheFixture)
     UintVec dirty_int_ref_vec;
     dirty_int_addr_vec.push_back(int_data_ref->addr_inx());
     dirty_int_ref_vec.push_back(iinx());
-    dc.on_dirty(dirty_int_addr_vec, dirty_int_ref_vec,
+    dc.on_dirty(dirty_int_addr_vec, /* dirty_int_ref_vec,*/
         dc.get_int_driven_widget_vecs(), dc.get_int_driven_cspec_vecs());
 
     // Now fetch the InputTextArea:cspec:cname NDF value again. No
@@ -525,13 +525,27 @@ BOOST_FIXTURE_TEST_CASE(ExfServerData, DataCacheFixture)
     auto data = JParse<nlohmann::json>(data_json);
     auto layout = JParse<nlohmann::json>(Static::empty_list_cs);
 
-    str_count = 50;
+    str_count = 53;
+    int_count = 3;
 
     dc.on_json(data, layout, [&]() { dc.on_init(); });
 
-    BOOST_TEST(dc.addr_map_size() == 21);   // xaxis,yaxis took us from 10 to 12
+    int example_int{ 1971 };
+    int* example_ptr{ &example_int };
+
+    AddrInx mem_edit_addr_addr_inx{ dc.get_addr_inx("mem_edit_addr") };
+    DataRef* mem_edit_addr_data_ref{ dc.get_data_ref(mem_edit_addr_addr_inx) };
+    BOOST_TEST(mem_edit_addr_data_ref != nullptr);
+    BOOST_TEST(mem_edit_addr_data_ref->tipe == cdPtr);
+
+    // prove that we can store and recover a ptr in DLC
+    dc.update_word(mem_edit_addr_data_ref->ref_inx, (size_t)example_ptr);
+    size_t* word_ptr = dc.get_word_value(PtrInx(mem_edit_addr_data_ref->ref_inx));
+    BOOST_TEST(example_ptr == (int*)(*word_ptr));
+
+    BOOST_TEST(dc.addr_map_size() == 24);   // xaxis,yaxis took us from 10 to 12
     BOOST_TEST(dc.action_map_size() == 4);
-    BOOST_TEST(dc.data_ref_map_size() == 3);
+    BOOST_TEST(dc.data_ref_map_size() == 6);
     assert_cache_state();
 }
 
@@ -547,8 +561,8 @@ BOOST_FIXTURE_TEST_CASE(ExfServerLayout, DataCacheFixture)
     auto layout = JParse<nlohmann::json>(layout_json);
 
     // check these against hex indices in cache dump
-    str_count = 87;
-    int_count = 16;
+    str_count = 90;
+    int_count = 20;
     dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.widget_vec_size() == 5);
 
