@@ -2566,7 +2566,7 @@ protected:
             mem_edit_vars.size_data_ref = cspec_data_ref(cs_size, w);
             mem_edit_vars.size_ptr = data_lay_cache.get_int_value(IntInx(mem_edit_vars.size_data_ref->ref_inx));
             memory_editor.DrawWindow(mem_edit_vars.title, (void*)(*mem_edit_vars.address_ptr),
-                                                                *mem_edit_vars.size_ptr);
+                                            *mem_edit_vars.size_ptr, *mem_edit_vars.address_ptr);
 
             /*
             if (range != nullptr) {
