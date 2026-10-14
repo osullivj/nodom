@@ -136,17 +136,28 @@ struct BulkTableLocals {
     fmt::format_to_n_result<char*> fmt_result;
 };
 
-// TODO: refactor
-struct TableMemEditContext {
+struct MenuPopLocals {
     // primed by render_table if,
     // and only if, the table has a menupop,
     // and a  menuitem is selected
     // render_memory_editor working storage
+    bool    ret_val{ false };
+    int32_t col{ 0 };
+};
+
+
+struct MemEditLocals {
+    // pre_render
+    DataRef*    result_set_data_ref{ nullptr };
+    DataRef*    addr_data_ref{ nullptr };
+    DataRef*    size_data_ref{ nullptr };
+    DataRef*    text_data_ref{ nullptr };
+    char*       query_id{ nullptr };
     uint32_t    col_inx{ 0 };
-    uint32_t    row_count{ 0 };
-    uint32_t    col_count{ 0 };
-    uint32_t    offset{ 0 };
-    char*       data{ nullptr };
-    std::size_t size{ 0 };
-    std::size_t base_addr{ 0 };
+    RSHandle    handle{ 0 };
+
+    // render
+    char*       title{ nullptr };
+    size_t*     address_ptr{ 0 };       // gotta be good for x64 too
+    int*        size_ptr{ 0 };
 };
