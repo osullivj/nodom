@@ -770,6 +770,18 @@ public:
     void set_done(bool d) { done = d; }
 
     void add_result_set(const std::string& query_id, duckdb_result dbresult) {
+        // check if we've run this query before; if so we need to 
+        // release DuckDB C API resources like the the result obj 
+        // and the chunks
+        if (result_map.find(query_id) != result_map.end()) {
+            RSHandle h = get_handle(query_id);
+            Bobbin& bob{ bobbin_map.at(h) };
+            for (int i = 0; i < bob.size(); i++) {
+                duckdb_destroy_data_chunk(&( bob[i]));
+            }
+            bob.clear();
+            duckdb_destroy_result(&result_map.at(query_id));
+        }
         result_map[query_id] = dbresult;
         RSHandle h = get_handle(query_id);
         selected_row_map[h] = -1;
