@@ -1601,6 +1601,17 @@ public:
         std::cout << method << "QID(" << qid << ") sz(" << size << ") addr(" << addr << ")" << std::endl;
         bool first_visit = chunk_map.find(qid) == chunk_map.end();
         WasmChunkVec& chunk_vector = chunk_map[qid];
+        if (!first_visit) {
+            // First 32 bits is the done uint32, which will be 
+            // true for the last chunk. If we have a new chunk
+            // for a completed query, we sweep away the previous 
+            // result set...
+            WasmChunk& last_chunk{ chunk_vector.back() };
+            uint32_t* chunk_ptr{ reinterpret_cast<uint32_t*>(last_chunk.addr) };
+            if (chunk_ptr) {
+                chunk_vector.clear();
+            }
+        }
         chunk_vector.emplace_back(WasmChunk(size, addr));
         if (first_visit) {
             add_result_set(qid);
