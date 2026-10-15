@@ -2115,6 +2115,9 @@ protected:
         if (cb_ptr != nullptr && !*cb_ptr) {
             // top right close button clicked, so rm self from render stack
             pending_pops.push_back(w->rname);
+            // restore close button to open state so we don't 
+            // self pop after next push
+            *cb_ptr = true;
         }
     }
 
