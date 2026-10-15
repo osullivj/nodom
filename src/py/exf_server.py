@@ -336,11 +336,7 @@ EXF_DATA = dict(
     yaxis="AskPrice1",
     actions={
         f"{DB_BUTTON_ID}.Click": [LAUNCH_UI],
-        # match on scan button click
         f"{SCAN_BUTTON_ID}.Click": SUMMARY_SEQUENCE,
-        # match on completion (CommandResult) of scan (SCAN_QID)
-        # summary of depth table
-        # comment out SCAN_QID Action if not SCAN_QID query_id
         f"{SCAN_QID}.CommandResult": SELECT_SEQUENCE,
         f"{SUMMARY_BUTTON_ID}.Click": [
             dict(
