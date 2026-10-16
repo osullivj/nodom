@@ -22,33 +22,54 @@
 
 #endif  // __EMSCRIPTEN__
 
-// LIVE should be a struct of arrays; each array is a field in a live record
-// For example, Tiingo IEX mid mkt data supplies these fields...
-// 
-// type		timestamp	ticker		mid
-// char[1]	TS/int64	char[8]		double
-//
-// Tiingo IEX TOB mkt data supplies these fields...
-// 
-// type		timestamp	tickid	ticker		bidsz	bid		mid		ask		asksz	ltrade	ltradesz
-// char[1]	TS/int64	int64	char[8]		int32	double	double	double	int32	double	int32
-//
-// LiveCache RecordCount needs to be a config param
+struct NDPoint {
+	NDPoint(double x, double y) :_x(x), _y(y) {}
+	double _x{ 0.0 };
+	double _y{ 0.0 };
+};
 
+struct MidRingBuf {
+	uint32_t				max_size{ 0 };
+	uint32_t				offset{ 0 };
+	std::vector<NDPoint>	buffer;
+
+	MidRingBuf(uint32_t cap = CHUNK_SIZE) {
+		max_size = cap;
+		buffer.reserve(max_size);
+	}
+
+	void add_point(NDPoint xy) {
+		if (buffer.size() < max_size) {
+			buffer.emplace_back(xy);
+		}
+		else {
+			buffer[offset] = xy;
+			offset = (offset + 1) % max_size;
+		}
+	}
+};
+using MidRingBufPtr = std::unique_ptr<MidRingBuf>;
+
+// Struct of Arrays for IEX mid points
 template <typename JSON>
 struct TiingoIEXMidRecords {
-	uint32_t	record_count{ 0 };
-	uint32_t	col_count{ 3 };
-	uint32_t	flash_ticks{ 30 };
-	char*		ticker{ nullptr };	// 8 char ticker, so this is 64 like int and dbl
-	double*		timestamp{ nullptr };
-	double*		mid{ nullptr };
-	uint32_t*	up_count{ nullptr };
-	uint32_t*	down_count{ nullptr };
+	uint32_t		record_count{ 0 };
+	uint32_t		col_count{ 3 };
+	uint32_t		flash_ticks{ 30 };
+
+	// columnar arrays
+	char*			ticker{ nullptr };	// 8 char ticker, so this is 64 like int and dbl
+	double*			timestamp{ nullptr };
+	double*			mid{ nullptr };
+	uint32_t*		up_count{ nullptr };
+	uint32_t*		down_count{ nullptr };
+	MidRingBufPtr*	ring_buf{ nullptr };
+
 	StringVec	field_names;
 	CDTVec		field_types;
 
 	// working storage
+	NDPoint		point{ 0.0,0.0 };
 	double		old_mid;
 	uint32_t	inx;
 
@@ -60,9 +81,10 @@ struct TiingoIEXMidRecords {
 		free(timestamp);
 		free(up_count);
 		free(down_count);
+		free(ring_buf);
 	}
 
-	void init(uint32_t recd_cnt, uint32_t flsh_ticks=30) {
+	void init(uint32_t recd_cnt, uint32_t flsh_ticks=16) {
 		record_count = recd_cnt;
 		flash_ticks = flsh_ticks;
 		// 8 bytes per field for the tickers
@@ -71,12 +93,14 @@ struct TiingoIEXMidRecords {
 		mid = (double*)malloc(record_count * sizeof(double));
 		up_count = (uint32_t*)malloc(record_count * sizeof(uint32_t));
 		down_count = (uint32_t*)malloc(record_count * sizeof(uint32_t));
+		ring_buf = (MidRingBufPtr*)malloc(record_count * sizeof(MidRingBufPtr));
 
 		memset(timestamp, 0, record_count * sizeof(double));
 		memset(ticker, 0, record_count * 8);
 		memset(mid, 0, record_count * sizeof(double));
 		memset(up_count, 0, record_count * sizeof(uint32_t));
 		memset(down_count, 0, record_count * sizeof(uint32_t));
+		memset(ring_buf, 0, record_count * sizeof(MidRingBufPtr));
 
 		field_names.push_back(Static::ticker_cs);
 		field_names.push_back(Static::timestamp_cs);
@@ -92,15 +116,22 @@ struct TiingoIEXMidRecords {
 			return false;
 		assert(JContains(upd, Static::mid_cs));
 		old_mid = mid[tckr_inx];
-		mid[tckr_inx] = JAsDouble(upd, Static::mid_cs);
-		timestamp[tckr_inx] = JAsDouble(upd, Static::timestamp_cs);
+		point._x = JAsDouble(upd, Static::timestamp_cs);
+		point._y = JAsDouble(upd, Static::mid_cs);
+		timestamp[tckr_inx] = point._x;
+		mid[tckr_inx] = point._y;
 		if (mid[tckr_inx] > old_mid) {
 			up_count[tckr_inx] = flash_ticks;
 		}
 		else if (mid[tckr_inx] < old_mid) {
 			down_count[tckr_inx] = flash_ticks;
 		}
+		ring_buf[tckr_inx]->add_point(point);
 		return true;
+	}
+
+	void add_ring_buf(uint32_t tckr_inx, uint32_t cap = CHUNK_SIZE) {
+		ring_buf[tckr_inx] = std::make_unique<MidRingBuf>(cap);
 	}
 
 	void on_end_render_cycle() {
@@ -131,7 +162,18 @@ struct TiingoIEXMidRecords {
 };
 
 
-
+// LIVE should be a struct of arrays; each array is a field in a live record
+// For example, Tiingo IEX mid mkt data supplies these fields...
+// 
+// type		timestamp	ticker		mid
+// char[1]	TS/int64	char[8]		double
+//
+// Tiingo IEX TOB mkt data supplies these fields...
+// 
+// type		timestamp	tickid	ticker		bidsz	bid		mid		ask		asksz	ltrade	ltradesz
+// char[1]	TS/int64	int64	char[8]		int32	double	double	double	int32	double	int32
+//
+// LiveCache RecordCount needs to be a config param
 template <typename JSON, typename LIVE>
 class LiveCache {
 private:
@@ -191,9 +233,11 @@ public:
 			ticker_ptr = find_free_ticker(ticker_inx);
 			if (ticker_ptr == nullptr || ticker_inx >= records.record_count)
 				return subbed_count;
+
 			assert(strlen(ticker_list[subbed_count].c_str()) < 8);
 			if (ticker_ptr != nullptr) {	// found a free slot
 				strncpy(ticker_ptr, ticker_list[subbed_count++].c_str(), 8);
+				records.add_ring_buf(ticker_inx);
 			}
 		}
 		return subbed_count;
