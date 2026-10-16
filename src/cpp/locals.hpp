@@ -147,7 +147,6 @@ struct MenuPopLocals {
     int32_t col{ 0 };
 };
 
-
 struct MemEditLocals {
     // pre_render
     DataRef*    result_set_data_ref{ nullptr };
@@ -162,4 +161,9 @@ struct MemEditLocals {
     char*       title{ nullptr };
     size_t*     address_ptr{ 0 };       // gotta be good for x64 too
     int*        size_ptr{ 0 };
+};
+
+struct LivePxPlotLocals {
+    int         ticker_inx{ 0 };
+    ImPlotSpec  spec;
 };
