@@ -72,6 +72,9 @@ struct TiingoIEXMidRecords {
 	NDPoint		point{ 0.0,0.0 };
 	double		old_mid;
 	uint32_t	inx;
+	// range of the buffered data
+	NDPoint		min{ 0.0,0.0 };
+	NDPoint		max{ 0.0,0.0 };
 
 	TiingoIEXMidRecords() { }
 
@@ -109,6 +112,11 @@ struct TiingoIEXMidRecords {
 		field_types.push_back(CDT::cdStr);
 		field_types.push_back(CDT::cdDouble);
 		field_types.push_back(CDT::cdDouble);
+
+		min._x = FLT_MAX;
+		min._y = FLT_MAX;
+		max._x = FLT_MIN;
+		max._y = FLT_MIN;
 	}
 
 	bool update(uint32_t tckr_inx, const JSON& upd) {
@@ -127,6 +135,15 @@ struct TiingoIEXMidRecords {
 			down_count[tckr_inx] = flash_ticks;
 		}
 		ring_buf[tckr_inx]->add_point(point);
+		if (point._x < min._x)
+			min._x = point._x;
+		if (point._y < min._y)
+			min._y = point._y;
+		if (point._x > max._x)
+			max._x = point._x;
+		if (point._y > max._y)
+			max._y = point._y;
+
 		return true;
 	}
 
