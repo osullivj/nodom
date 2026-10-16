@@ -68,6 +68,8 @@ int WasmDuckTypeToSize(WasmDuckType dt);
 void printf_comma(int i, int col_count);
 void sprintf_value(char* cbuf, uint32_t* chunk_ptr, int bptr, int32_t tipe, int row_index);
 
+static constexpr int CHUNK_SIZE = 2048;
+
 #ifdef __EMSCRIPTEN__
 using RSHandle = std::uint32_t;
 #else
