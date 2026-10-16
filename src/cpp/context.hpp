@@ -204,6 +204,7 @@ private:
     BulkTableLocals     bulk_tbl_vars;
     MenuPopLocals       menu_pop_vars;
     MemEditLocals       mem_edit_vars;
+    LivePxPlotLocals    live_px_plot_vars;
     StringVec           ld_ticker_list;
     StringVec           query_id_list;
     QueryCEDataRefMap   query_export_map;
@@ -226,7 +227,8 @@ private:
         ~LocalFont() { pop_func(); }
     };
 public:
-    NDContext(DB& s, MKT& m, const std::string& app_key, const std::string& ipath, const char* idata = nullptr, const char* ilayout = nullptr)
+    NDContext(DB& s, MKT& m, const std::string& app_key, const std::string& ipath, 
+                                const char* idata = nullptr, const char* ilayout = nullptr)
         :bulk(s), live(m), app_key_s(app_key), ini_path(ipath),
         init_data_s(idata?idata:Static::init_data_cs),
         init_layout_s(ilayout?ilayout:Static::init_layout_cs),
@@ -2118,6 +2120,40 @@ protected:
             // restore close button to open state so we don't 
             // self pop after next push
             *cb_ptr = true;
+        }
+    }
+
+    void render_live_prices_plot(WidgetPtr w) {
+        const static char* method = "NDContext::render_live_prices_plot: ";
+        static ImPlotShadedFlags default_shaded_plot_flags{ 0 };
+
+        const char* title = cspec_string(cs_title, w->cspec_str, method);
+        int shaded_plot_flags = default_shaded_plot_flags;
+        // See enum ImPlotShadedFlags: there is only default
+        // enable cspec setting of shaded when there is a real choice
+        // cspec_int(cs_shaded_plot_flags, w->cspec_int, &shaded_plot_flags);
+
+        cspec_bool(cs_show_lines, w->cspec_bool, &sh_pl_vars.show_lines);
+        cspec_bool(cs_show_fills, w->cspec_bool, &sh_pl_vars.show_fills);
+
+        if (ImPlot::BeginPlot(title)) {
+            ImPlot::SetupAxes("time", "price", ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_AutoFit);
+            ImPlot::SetupAxesLimits(live.records.min.x, live_records.max.x, 
+                                            live.records.min.y, live.records.max.y);
+            ImPlot::SetupAxisLimits(ImAxis_X1, live.records.min.x, live_records.max.x, ImGuiCond_Always);
+            ImPlot::SetupAxisLimits(ImAxis_Y1, 90.0, 110.0);
+
+            for (auto tkit = live.ticker_list.begin(); tkit != live.ticker_list.end(); ++tkit) {
+                // using the ticker_list StringVec to locate the live slots..
+                if (!live.find_ticker(tkit->c_str(), live_px_plot_vars.ticker_inx))
+                    continue;
+                MidRingBufPtr& ring{ live.records.ring_buf[live_px_plot_vars.ticker_inx] };
+                live_px_plot_vars.spec.Offset = ring->offset;
+                live_px_plot_vars.spec.Stride = 2 * sizeof(double);
+                ImPlot::PlotLine(tkit->c_str(), &ring.buffer[0]._x, &ring.buffer[0]._y,
+                                                ring.buffer.size(), live_px_plot_vars.spec);
+            }
+            ImPlot::EndPlot();
         }
     }
 
