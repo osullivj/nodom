@@ -174,6 +174,7 @@ enum RenderMethod : uint32_t {
     Window,
     ShadedPlot,
     MemoryEditor,
+    LivePricesPlot,
     EndRenderMethod
 };
 
