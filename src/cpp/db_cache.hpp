@@ -43,8 +43,6 @@
 //    void db_dispatch(JSON& db_request);
 //    void set_done(bool d);
 
-static constexpr int CHUNK_SIZE = 2048;
-
 // clang C++17 says "forward declaration of struct cannot have a nested name specifier"
 // so we cannot declare XYRange as a nested type in the two bulk cache impls below.
 #ifndef __EMSCRIPTEN__
