@@ -306,6 +306,8 @@ inline RenderMethod RenderMethodFromString(const std::string& method) {
         return RenderMethod::ShadedPlot;
     if (method == Static::rm_memory_editor_cs)
         return RenderMethod::MemoryEditor;
+    if (method == Static::rm_live_prices_plot_cs)
+        return RenderMethod::LivePricesPlot;
     return EndRenderMethod;
 }
 
