@@ -80,3 +80,18 @@ BOOST_FIXTURE_TEST_CASE(UpdateOneTicker, LiveCacheFixture)
     BOOST_TEST(live.records.mid[0] == mid);
     BOOST_TEST(live.records.timestamp[0] == ts);
 }
+
+BOOST_FIXTURE_TEST_CASE(RingBufferCapacity, LiveCacheFixture)
+{ 
+    // Buffer can hold 4 xy points
+    MidRingBuf buf(4);
+    BOOST_TEST(buf.max_size == 4);
+    BOOST_TEST(buf.offset == 0);
+    for (int i = 0; i < 4; i++) {
+        buf.add_point(NDPoint(double(1.0 + i), double(1.0 + i)));
+    }
+    BOOST_TEST(buf.offset == 0);
+    buf.add_point(NDPoint(5.0, 5.0));
+    BOOST_TEST(buf.offset == 1);
+    BOOST_TEST(buf.buffer[0]._x == 5.0);
+}
