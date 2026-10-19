@@ -196,7 +196,6 @@ class LiveCache {
 private:
 	// working storage
 	std::string ticker;
-	StringVec	ticker_list;
 	char*		ticker_ptr{ nullptr };
 	uint32_t	subbed_count{ 0 };
 	uint32_t	ticker_inx{ 0 };
@@ -216,7 +215,8 @@ private:
 	}
 
 public:
-	LIVE records;
+	StringVec	ticker_list;
+	LIVE		records;
 
 	LiveCache() {}
 
