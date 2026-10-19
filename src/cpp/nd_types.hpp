@@ -137,6 +137,13 @@ static constexpr int STR_BUF_LEN{ 256 };
 static constexpr int FMT_BUF_LEN{ 16 };
 static constexpr int MAX_TICKERS_LEN{ 256 };
 
+struct StrBuf {
+    void reset() { 
+        memset(buf, 0, STR_BUF_LEN);
+    }
+    char buf[STR_BUF_LEN];
+};
+
 // NDContext helpers
 void SetStyleColoring(int col);
 void AddStyleSettingsHandler(int* style_coloring_ptr);
