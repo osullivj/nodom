@@ -232,7 +232,7 @@ EXF_LAYOUT = [
 
 SCAN_SQL = "BEGIN; DROP TABLE IF EXISTS depth; CREATE TABLE depth as select * from read_parquet(%s); COMMIT;"
 QUERY_SQL = "select * from depth where LastTradeSize!=0 and AskQty5!=0 and BidQty5!=0 order by SeqNo;"
-SUMMARY_SQL = "summarize select * from depth;"
+SUMMARY_SQL = "summarize depth;"
 
 INIT_URL = "https://localhost/api/parquet/FGBMU8_20080901_pd.parquet"
 
@@ -243,14 +243,6 @@ LAUNCH_SCAN = dict(  # raise scanning modal, send scan request to DuckDB
     cname="scan_sql",
 )
 
-LAUNCH_SUMMARY = dict(  # close scanning modal, send query request to DuckDB
-    ui_pop="LoadingModal",
-    action="Query",
-    query_id=SUMMARY_QID,
-    cname="summary_sql",
-)
-
-# comment in ui_pop if LAUNCH_SUMMARY is commented out
 LAUNCH_SELECT = dict(  # send depth query request to DuckDB
     ui_pop="LoadingModal",
     action="Query",
@@ -258,14 +250,21 @@ LAUNCH_SELECT = dict(  # send depth query request to DuckDB
     cname="query_sql",
 )
 
-LAUNCH_SUMMARY_BATCH = dict(
-    action="BatchRequest",
-    query_id=SUMMARY_QID,
-)
-
 LAUNCH_SELECT_BATCH = dict(
     action="BatchRequest",
     query_id=SELECT_QID,
+)
+
+LAUNCH_SUMMARY = dict(  # close scanning modal, send query request to DuckDB
+    ui_pop="LoadingModal",
+    action="Query",
+    query_id=SUMMARY_QID,
+    cname="summary_sql",
+)
+
+LAUNCH_SUMMARY_BATCH = dict(
+    action="BatchRequest",
+    query_id=SUMMARY_QID,
 )
 
 LAUNCH_UI = dict(
@@ -286,9 +285,19 @@ ENABLE_LOGGING = dict(
     cname="enable_logging_sql",
 )
 
-SUMMARY_SEQUENCE = [
+INIT_SEQUENCE = [
     ENABLE_LOGGING,
     LAUNCH_SCAN,
+    LAUNCH_SELECT,
+    LAUNCH_SELECT_BATCH,
+    LAUNCH_SUMMARY,
+    LAUNCH_SUMMARY_BATCH,
+]
+
+SCAN_SEQUENCE = [
+    LAUNCH_SCAN,
+    LAUNCH_SELECT,
+    LAUNCH_SELECT_BATCH,
     LAUNCH_SUMMARY,
     LAUNCH_SUMMARY_BATCH,
 ]
@@ -296,6 +305,8 @@ SUMMARY_SEQUENCE = [
 SELECT_SEQUENCE = [
     LAUNCH_SELECT,
     LAUNCH_SELECT_BATCH,
+    LAUNCH_SUMMARY,
+    LAUNCH_SUMMARY_BATCH,
 ]
 
 EXF_DATA = dict(
@@ -336,7 +347,7 @@ EXF_DATA = dict(
     yaxis="AskPrice1",
     actions={
         f"{DB_BUTTON_ID}.Click": [LAUNCH_UI],
-        f"{SCAN_BUTTON_ID}.Click": SUMMARY_SEQUENCE,
+        f"{SCAN_BUTTON_ID}.Click": SCAN_SEQUENCE,
         f"{SCAN_QID}.CommandResult": SELECT_SEQUENCE,
         f"{SUMMARY_BUTTON_ID}.Click": [
             dict(
@@ -350,7 +361,7 @@ EXF_DATA = dict(
                 ui_push=CHART_WINDOW_ID
             )
         ],
-        f"{DB_ID}.Online": SUMMARY_SEQUENCE,
+        f"{DB_ID}.Online": INIT_SEQUENCE,
         f"{MEM_EDIT_MENU_ITEM}.Menu":[
             dict(ui_push=MEM_EDIT_ID)
         ]
