@@ -2140,8 +2140,8 @@ protected:
             ImPlot::SetupAxes("time", "price", ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_AutoFit);
             ImPlot::SetupAxesLimits(live.records.min.x, live_records.max.x, 
                                             live.records.min.y, live.records.max.y);
-            ImPlot::SetupAxisLimits(ImAxis_X1, live.records.min.x, live_records.max.x, ImGuiCond_Always);
-            ImPlot::SetupAxisLimits(ImAxis_Y1, 90.0, 110.0);
+            ImPlot::SetupAxisLimits(ImAxis_X1, live.records.min._x, live_records.max._x, ImGuiCond_Always);
+            ImPlot::SetupAxisLimits(ImAxis_Y1, live.records.min._y, live.records.max._y);
 
             for (auto tkit = live.ticker_list.begin(); tkit != live.ticker_list.end(); ++tkit) {
                 // using the ticker_list StringVec to locate the live slots..
