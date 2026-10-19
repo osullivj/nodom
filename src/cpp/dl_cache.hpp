@@ -1779,7 +1779,8 @@ private:
         Static::rm_pop_font_cs,
         Static::rm_window_cs,
         Static::rm_shaded_plot_cs,
-        Static::rm_memory_editor_cs
+        Static::rm_memory_editor_cs,
+        Static::rm_live_prices_plot_cs
     };
 
     inline static std::array<const char*, cs_end_cache_specs> cspec_names{
