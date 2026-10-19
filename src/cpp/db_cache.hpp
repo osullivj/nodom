@@ -167,7 +167,7 @@ private:
     std::unordered_map<RSHandle, Bobbin>            bobbin_map;
     std::unordered_map<RSHandle, uint32_t>          selected_row_map;  // only 1 selected row per RS
     std::unordered_map<RSHandle, uint32_t>          selection_col_map;  // only 1 selection col per RS
-    std::unordered_map<RSHandle, const char*>       selected_key_map;
+    std::unordered_map<RSHandle, StrBuf>            selected_key_map;
 
     // working storage
     int16_t* sidata = nullptr;
@@ -523,7 +523,7 @@ public:
 
     const char* get_selected_key(RSHandle handle) {
         if (selected_key_map.find(handle) != selected_key_map.end()) {
-            return selected_key_map.at(handle);
+            return selected_key_map[handle].buf;
         }
         return nullptr;
     }
@@ -533,16 +533,16 @@ public:
         std::uint32_t* col = get_selection_col(handle);
 
         if (row != nullptr && col != nullptr) {
-            char* selected_key_buf = (char*)selected_key_map.at(handle);
+            StrBuf& buf = selected_key_map[handle];
             const char* endchar = get_datum(handle, *col, *row);
             if (endchar != nullptr) {
                 int slen = buffer - endchar;
                 // no zero terminator, possible DuckDB packed string
-                strncpy(selected_key_buf, buffer, slen);
-                selected_key_buf[slen] = 0;
+                strncpy(buf.buf, buffer, slen);
+                buf.buf[slen] = 0;
             }
             else {
-                strcpy(selected_key_buf, buffer);
+                strncpy(buf.buf, buffer, STR_BUF_LEN);
             }
             dirty_map[handle].insert(ce_selected_key);
         }
@@ -773,23 +773,42 @@ public:
         // and the chunks
         if (result_map.find(query_id) != result_map.end()) {
             RSHandle h = get_handle(query_id);
-            Bobbin& bob{ bobbin_map.at(h) };
-            for (int i = 0; i < bob.size(); i++) {
-                duckdb_destroy_data_chunk(&( bob[i]));
+            // Just cos the handle exists, doesn't mean bobbin_map[h]
+            // exists yet. Handle exists from query dispatch; but
+            // bobbin_map[h] only gets reified when the first batch
+            // result hits
+            if (bobbin_map.find(h) != bobbin_map.end()) {
+                Bobbin& bob{ bobbin_map.at(h) };
+                for (int i = 0; i < bob.size(); i++) {
+                    duckdb_destroy_data_chunk(&(bob[i]));
+                }
+                bob.clear();
+                duckdb_destroy_result(&(result_map.at(query_id)));
+                // RSHandle h in our scope above is no longer valid, so we
+                // must clear out maps where it's used as a key
+                col_names_map.erase(h);
+                type_map.erase(h);
+                logical_type_map.erase(h);
+                dirty_map.erase(h);
+                bobbin_map.erase(h);
+                selected_row_map.erase(h);
+                selection_col_map.erase(h);
+                selected_key_map.erase(h);
             }
-            bob.clear();
-            duckdb_destroy_result(&result_map.at(query_id));
         }
         result_map[query_id] = dbresult;
         RSHandle h = get_handle(query_id);
         selected_row_map[h] = -1;
         selection_col_map[h] = -1;
+        StrBuf& buf = selected_key_map[h];
+        buf.reset();
+        /*
         // LEAK: no free for this malloc, so we'll leak STR_BUF_LEN
         // bytes for each query
         char* buf = (char*)malloc(STR_BUF_LEN);
         buf[0] = 0;
         selected_key_map[h] = buf;
-
+        */
         // TODO: a registered lambda mechanism to callback when
         // add_result_set() fires. This will enable use to call
         // an NDContext method to wire up the exports
