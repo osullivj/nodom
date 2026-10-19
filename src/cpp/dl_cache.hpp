@@ -1940,7 +1940,8 @@ private:
         {ShadedPlot, {cs_title, cs_show_lines, cs_show_fills, cs_shaded_plot_flags}},
         {PushFont, {cs_font, cs_font_size}},
         {BeginChild, {cs_title, cs_height, cs_width, cs_window_flags}},
-        {MemoryEditor, {/* cs_title , cs_address, cs_size */ }}
+        {MemoryEditor, {/* cs_title , cs_address, cs_size */ }},
+        {LivePricesPlot, {cs_title, cs_show_lines, cs_show_fills, cs_shaded_plot_flags}}
     };
 
     inline static std::map<RenderMethod, CacheSpecTypeMap> addr_cspecs{
