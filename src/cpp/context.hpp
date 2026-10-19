@@ -1088,6 +1088,9 @@ protected:
         case RenderMethod::MemoryEditor:
             render_memory_editor(w);
             break;
+        case RenderMethod::LivePricesPlot:
+            render_live_prices_plot(w);
+            break;
         default:
             // TODO: error
             break;
@@ -2138,9 +2141,9 @@ protected:
 
         if (ImPlot::BeginPlot(title)) {
             ImPlot::SetupAxes("time", "price", ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_AutoFit);
-            ImPlot::SetupAxesLimits(live.records.min.x, live_records.max.x, 
-                                            live.records.min.y, live.records.max.y);
-            ImPlot::SetupAxisLimits(ImAxis_X1, live.records.min._x, live_records.max._x, ImGuiCond_Always);
+            ImPlot::SetupAxesLimits(live.records.min._x, live.records.max._x, 
+                                            live.records.min._y, live.records.max._y);
+            ImPlot::SetupAxisLimits(ImAxis_X1, live.records.min._x, live.records.max._x, ImGuiCond_Always);
             ImPlot::SetupAxisLimits(ImAxis_Y1, live.records.min._y, live.records.max._y);
 
             for (auto tkit = live.ticker_list.begin(); tkit != live.ticker_list.end(); ++tkit) {
@@ -2148,10 +2151,15 @@ protected:
                 if (!live.find_ticker(tkit->c_str(), live_px_plot_vars.ticker_inx))
                     continue;
                 MidRingBufPtr& ring{ live.records.ring_buf[live_px_plot_vars.ticker_inx] };
+
+                // skip if less than two data points
+                if (ring->buffer.size() < 2) {
+                    continue;
+                }
                 live_px_plot_vars.spec.Offset = ring->offset;
-                live_px_plot_vars.spec.Stride = 2 * sizeof(double);
-                ImPlot::PlotLine(tkit->c_str(), &ring.buffer[0]._x, &ring.buffer[0]._y,
-                                                ring.buffer.size(), live_px_plot_vars.spec);
+                live_px_plot_vars.spec.Stride = sizeof(NDPoint);
+                ImPlot::PlotLine(tkit->c_str(), &ring->buffer[0]._x, &ring->buffer[0]._y,
+                                                ring->buffer.size(), live_px_plot_vars.spec);
             }
             ImPlot::EndPlot();
         }
