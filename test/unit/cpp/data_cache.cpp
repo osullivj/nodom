@@ -525,7 +525,7 @@ BOOST_FIXTURE_TEST_CASE(ExfServerData, DataCacheFixture)
     auto data = JParse<nlohmann::json>(data_json);
     auto layout = JParse<nlohmann::json>(Static::empty_list_cs);
 
-    str_count = 53;
+    str_count = 54;
     int_count = 3;
 
     dc.on_json(data, layout, [&]() { dc.on_init(); });
@@ -561,8 +561,8 @@ BOOST_FIXTURE_TEST_CASE(ExfServerLayout, DataCacheFixture)
     auto layout = JParse<nlohmann::json>(layout_json);
 
     // check these against hex indices in cache dump
-    str_count = 90;
-    int_count = 20;
+    str_count = 92;
+    int_count = 19;
     dc.on_json(data, layout, [&]() { dc.on_init(); });
     BOOST_TEST(dc.widget_vec_size() == 5);
 
