@@ -164,6 +164,6 @@ struct MemEditLocals {
 };
 
 struct LivePxPlotLocals {
-    int         ticker_inx{ 0 };
+    uint32_t     ticker_inx{ 0 };
     ImPlotSpec  spec;
 };
