@@ -10,6 +10,7 @@
 #include "widgets.hpp"
 #include "db_cache.hpp"
 #include "dl_cache.hpp"
+#include "lv_cache.hpp"
 #include "logger.hpp"
 #include "ems_idb.hpp"
 
