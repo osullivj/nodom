@@ -2135,7 +2135,11 @@ protected:
         const char* xtitle = cspec_string(cs_xtitle, w->cspec_str, method);
         const char* ytitle = cspec_string(cs_ytitle, w->cspec_str, method);
 
-        if (ImPlot::BeginPlot(title)) {
+        live_px_plot_vars.line_height = 10;
+        cspec_int(cs_line_height, w->cspec_int, &live_px_plot_vars.line_height);
+        live_px_plot_vars.plot_size.y = ImGui::GetTextLineHeight() * live_px_plot_vars.line_height;
+
+        if (ImPlot::BeginPlot(title, live_px_plot_vars.plot_size)) {
             ImPlot::SetupAxes(xtitle, ytitle, ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_AutoFit);
             ImPlot::SetupAxesLimits(live.records.min._x, live.records.max._x, 
                                             live.records.min._y, live.records.max._y);
