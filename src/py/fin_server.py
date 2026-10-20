@@ -103,8 +103,8 @@ FIN_LAYOUT = [
                 rname="LivePricesPlot",
                 cspec=dict(
                     title="Live prices",
-                    show_lines=True,
-                    show_fills=True,
+                    xtitle="time",
+                    ytitle="px",
                 ),
             ),
             dict(rname="EndChild"),
