@@ -2132,23 +2132,18 @@ protected:
         static ImPlotShadedFlags default_shaded_plot_flags{ 0 };
 
         const char* title = cspec_string(cs_title, w->cspec_str, method);
-        int shaded_plot_flags = default_shaded_plot_flags;
-        // See enum ImPlotShadedFlags: there is only default
-        // enable cspec setting of shaded when there is a real choice
-        // cspec_int(cs_shaded_plot_flags, w->cspec_int, &shaded_plot_flags);
-
-        cspec_bool(cs_show_lines, w->cspec_bool, &sh_pl_vars.show_lines);
-        cspec_bool(cs_show_fills, w->cspec_bool, &sh_pl_vars.show_fills);
+        const char* xtitle = cspec_string(cs_xtitle, w->cspec_str, method);
+        const char* ytitle = cspec_string(cs_ytitle, w->cspec_str, method);
 
         if (ImPlot::BeginPlot(title)) {
-            ImPlot::SetupAxes("time", "price", ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_AutoFit);
+            ImPlot::SetupAxes(xtitle, ytitle, ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_AutoFit);
             ImPlot::SetupAxesLimits(live.records.min._x, live.records.max._x, 
                                             live.records.min._y, live.records.max._y);
             ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Time);
             ImPlot::GetStyle().UseLocalTime = true;
             ImPlot::GetStyle().UseISO8601 = true;
 
-            ImPlot::SetupAxisFormat(ImAxis_Y1, "$%.0f");
+            ImPlot::SetupAxisFormat(ImAxis_Y1, "$%.2f");
 
             ImPlot::SetupAxisLimits(ImAxis_X1, live.records.min._x, live.records.max._x, ImGuiCond_Always);
             ImPlot::SetupAxisLimits(ImAxis_Y1, live.records.min._y, live.records.max._y);
