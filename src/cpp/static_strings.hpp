@@ -46,6 +46,8 @@ struct Static {
 
 	// cspec keys
 	inline static const char* title_cs{ "title" };
+	inline static const char* xtitle_cs{ "xtitle" };
+	inline static const char* ytitle_cs{ "ytitle" };
 	inline static const char* title_font_cs{ "title_font" };
 	inline static const char* title_font_size_cs{ "title_font_size" };
 	inline static const char* body_font_cs{ "body_font" };
