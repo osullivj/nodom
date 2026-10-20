@@ -1945,7 +1945,7 @@ private:
         {PushFont, {cs_font, cs_font_size}},
         {BeginChild, {cs_title, cs_height, cs_width, cs_window_flags}},
         {MemoryEditor, {/* cs_title , cs_address, cs_size */ }},
-        {LivePricesPlot, {cs_title, cs_xtitle, cs_ytitle, cs_shaded_plot_flags}}
+        {LivePricesPlot, {cs_title, cs_xtitle, cs_ytitle, cs_line_height}}
     };
 
     inline static std::map<RenderMethod, CacheSpecTypeMap> addr_cspecs{
