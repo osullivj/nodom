@@ -2160,7 +2160,7 @@ protected:
                 }
                 live_px_plot_vars.spec.Offset = ring->offset;
                 live_px_plot_vars.spec.Stride = sizeof(NDPoint);
-                ImPlot::PlotLine(tkit->c_str(), &ring->buffer[0]._x, &ring->buffer[0]._y,
+                ImPlot::PlotStairs(tkit->c_str(), &ring->buffer[0]._x, &ring->buffer[0]._y,
                                                 ring->buffer.size(), live_px_plot_vars.spec);
             }
             ImPlot::EndPlot();
