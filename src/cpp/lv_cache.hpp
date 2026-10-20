@@ -56,6 +56,7 @@ struct TiingoIEXMidRecords {
 	uint32_t		record_count{ 0 };
 	uint32_t		col_count{ 3 };
 	uint32_t		flash_ticks{ 30 };
+	double			ts_divisor{ 1e6 };	// ImPlotScale_Time requires seconds, Tiingo supplies us ts
 
 	// columnar arrays
 	char*			ticker{ nullptr };	// 8 char ticker, so this is 64 like int and dbl
@@ -65,6 +66,7 @@ struct TiingoIEXMidRecords {
 	uint32_t*		down_count{ nullptr };
 	MidRingBufPtr*	ring_buf{ nullptr };
 
+	// metadata
 	StringVec	field_names;
 	CDTVec		field_types;
 
@@ -87,9 +89,10 @@ struct TiingoIEXMidRecords {
 		free(ring_buf);
 	}
 
-	void init(uint32_t recd_cnt, uint32_t flsh_ticks=16) {
+	void init(uint32_t recd_cnt, uint32_t flsh_ticks=16, double tsd=1e6) {
 		record_count = recd_cnt;
 		flash_ticks = flsh_ticks;
+		ts_divisor = tsd;
 		// 8 bytes per field for the tickers
 		ticker = (char*)malloc(record_count * 8);
 		timestamp = (double*)malloc(record_count * sizeof(double));
@@ -124,7 +127,7 @@ struct TiingoIEXMidRecords {
 			return false;
 		assert(JContains(upd, Static::mid_cs));
 		old_mid = mid[tckr_inx];
-		point._x = JAsDouble(upd, Static::timestamp_cs);
+		point._x = JAsDouble(upd, Static::timestamp_cs) / ts_divisor;
 		point._y = JAsDouble(upd, Static::mid_cs);
 		timestamp[tckr_inx] = point._x;
 		mid[tckr_inx] = point._y;
