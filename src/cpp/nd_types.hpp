@@ -457,6 +457,8 @@ struct ActionKey {
 
 enum CacheSpecifier : uint32_t {
     cs_title = 0,           // start atomic_cspec_types
+    cs_xtitle,
+    cs_ytitle,
     cs_title_font,
     cs_title_font_size,
     cs_body_font,
