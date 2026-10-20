@@ -2144,6 +2144,12 @@ protected:
             ImPlot::SetupAxes("time", "price", ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_AutoFit);
             ImPlot::SetupAxesLimits(live.records.min._x, live.records.max._x, 
                                             live.records.min._y, live.records.max._y);
+            ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Time);
+            ImPlot::GetStyle().UseLocalTime = true;
+            ImPlot::GetStyle().UseISO8601 = true;
+
+            ImPlot::SetupAxisFormat(ImAxis_Y1, "$%.0f");
+
             ImPlot::SetupAxisLimits(ImAxis_X1, live.records.min._x, live.records.max._x, ImGuiCond_Always);
             ImPlot::SetupAxisLimits(ImAxis_Y1, live.records.min._y, live.records.max._y);
 
