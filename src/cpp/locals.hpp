@@ -164,6 +164,8 @@ struct MemEditLocals {
 };
 
 struct LivePxPlotLocals {
-    uint32_t     ticker_inx{ 0 };
+    uint32_t    ticker_inx{ 0 };
+    int         line_height{ 10 };
     ImPlotSpec  spec;
+    ImVec2      plot_size{ -1.0f, 0.0 };
 };
