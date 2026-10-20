@@ -1785,6 +1785,8 @@ private:
 
     inline static std::array<const char*, cs_end_cache_specs> cspec_names{
         Static::title_cs,      // cs_title
+        Static::xtitle_cs,
+        Static::ytitle_cs,
         Static::title_font_cs,      // cs_title_font
         Static::title_font_size_cs,      // cs_title_font_size
         Static::body_font_cs,      // cs_body_font
@@ -1845,6 +1847,8 @@ private:
 
     inline static std::array<CacheDataType, cs_end_cache_specs> cspec_types{
         cdStr,      // cs_title
+        cdStr,      // cs_xtitle
+        cdStr,      // cs_ytitle
         cdStr,      // cs_title_font
         cdInt,      // cs_title_font_size
         cdStr,      // cs_body_font
@@ -1941,7 +1945,7 @@ private:
         {PushFont, {cs_font, cs_font_size}},
         {BeginChild, {cs_title, cs_height, cs_width, cs_window_flags}},
         {MemoryEditor, {/* cs_title , cs_address, cs_size */ }},
-        {LivePricesPlot, {cs_title, cs_show_lines, cs_show_fills, cs_shaded_plot_flags}}
+        {LivePricesPlot, {cs_title, cs_xtitle, cs_ytitle, cs_shaded_plot_flags}}
     };
 
     inline static std::map<RenderMethod, CacheSpecTypeMap> addr_cspecs{
