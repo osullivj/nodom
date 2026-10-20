@@ -47,6 +47,18 @@ struct MidRingBuf {
 			offset = (offset + 1) % max_size;
 		}
 	}
+
+	bool is_full() {
+		return buffer.size() == max_size;
+	}
+
+	bool min_x(double& x) {
+		if (buffer.empty())
+			return false;
+		// offset is either 0 or the next to be overwritten
+		x = buffer[offset]._x;
+		return true;
+	}
 };
 using MidRingBufPtr = std::unique_ptr<MidRingBuf>;
 
@@ -138,8 +150,14 @@ struct TiingoIEXMidRecords {
 			down_count[tckr_inx] = flash_ticks;
 		}
 		ring_buf[tckr_inx]->add_point(point);
-		if (point._x < min._x)
-			min._x = point._x;
+		// We don't want to do this...
+		// if (point._x < min._x)
+		//	   min._x = point._x;
+		// ...because point._x < min._x is never true
+		// as _x is a monotonically increasing timestamp
+		// Which means we need to update min._x with a larger
+		// value if the ring buf has wrapped around.
+		ring_buf[tckr_inx]->min_x(min._x);
 		if (point._y < min._y)
 			min._y = point._y;
 		if (point._x > max._x)
