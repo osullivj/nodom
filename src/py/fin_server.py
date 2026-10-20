@@ -97,7 +97,7 @@ FIN_LAYOUT = [
             dict(rname="EndChild"),
             dict(rname="Separator", cspec=dict()),
             dict(rname="PopFont"),
-            dict(rname="BeginChild", cspec=dict(height=200, title="ChartParent")),
+            dict(rname="BeginChild", cspec=dict(height=400, title="ChartParent")),
             dict(
                 widget_id="the_live_prices_chart",
                 rname="LivePricesPlot",
@@ -105,6 +105,7 @@ FIN_LAYOUT = [
                     title="Live prices",
                     xtitle="time",
                     ytitle="px",
+                    line_height=20
                 ),
             ),
             dict(rname="EndChild"),
