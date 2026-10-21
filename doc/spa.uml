@@ -1,0 +1,111 @@
+@startuml Typical_Web_SPA_Architecture
+
+' --- Configuration & Styling ---
+skinparam BoxPadding 10
+skinparam Shadowing false
+skinparam roundcorner 5
+
+skinparam sequence {
+    ArrowColor #2C3E50
+    ActorBorderColor #2C3E50
+    LifeLineBorderColor #34495E
+    LifeLineBackgroundColor #ECF0F1
+    
+    ParticipantBorderColor #34495E
+    ParticipantBackgroundColor #FFFFFF
+    ParticipantFontName Arial
+    ParticipantFontSize 14
+    ParticipantFontColor #2C3E50
+}
+
+autonumber "<b>[00]"
+
+title Typical Web SPA Application Architecture & Lifecycle
+
+' --- Actors and Components ---
+actor "User" as user
+
+box "Client (Browser)" #F9F9F9
+    participant "Static Content / CDN\n(HTML/JS/CSS)" as cdn
+    participant "SPA Router & Views\n(React / Vue / Angular)" as spa
+    participant "State Manager\n(Redux / Pinia / Context)" as state
+end box
+
+box "API & Backend Layer" #EAEDED
+    participant "API Gateway / Reverse Proxy\n(Nginx / AWS API GW)" as gw
+    participant "Auth Service\n(OAuth2 / OIDC)" as auth
+    participant "Backend API / Microservices\n(Node / Python / Java)" as api
+end box
+
+database "Database" as db
+
+' --- Flow: Initial Load ---
+== 1. Initial Application Load ==
+
+user -> cdn : Navigates to website URL
+activate cdn
+cdn --> user : Serves index.html + Compiled JS & CSS bundles
+deactivate cdn
+
+user -> spa : Browser executes JS, initializes SPA App
+activate spa
+spa -> state : Initialize global state (loading: true, user: null)
+activate state
+state --> spa
+deactivate state
+spa --> user : Renders initial skeleton UI / Login Screen
+deactivate spa
+
+' --- Flow: Authentication ---
+== 2. Authentication & Hydration ==
+
+user -> spa : Submits login credentials
+activate spa
+spa -> gw : POST /api/v1/auth/login
+activate gw
+gw -> auth : Validate credentials
+activate auth
+auth --> gw : Return JWT Access & Refresh Token
+deactivate auth
+gw --> spa : 200 OK + Token Payload
+deactivate gw
+
+spa -> state : Update state (user: profile, authenticated: true)
+activate state
+state --> spa : State updated
+deactivate state
+spa --> user : Redirects to Dashboard (Client-side routing)
+deactivate spa
+
+' --- Flow: Dynamic Data Fetching ---
+== 3. Dynamic Data Fetching (AJAX/Fetch) ==
+
+user -> spa : Clicks "View Dashboard Data"
+activate spa
+spa -> state : Check local cache
+activate state
+state --> spa : Cache miss (Data not present)
+deactivate state
+
+spa -> gw : GET /api/v1/dashboard/metrics \n[Authorization: Bearer <JWT>]
+activate gw
+gw -> gw : Validate JWT signature & expiration
+gw -> api : Forward request to Metrics Service
+activate api
+api -> db : Fetch user metrics
+activate db
+db --> api : Raw data rows
+deactivate db
+api --> gw : JSON Payload (Formatted response)
+deactivate api
+gw --> spa : 200 OK (JSON Data)
+deactivate gw
+
+spa -> state : Mutate state with fresh server data
+activate state
+state --> spa : Trigger UI re-render
+deactivate state
+spa --> user : Updates Dashboard View dynamically (No page reload)
+deactivate spa
+
+@enduml
