@@ -122,7 +122,7 @@ $(EXE): $(OBJS) $(BLD_DIR)
 
 web:
 	copy src\web\favicon.ico bld\favicon.ico
-	copy src\web\duck_module.js bld\duck_module.js
+	copy src\web\noduck_module.js bld\noduck_module.js
 	type bld\nodom.html | sed s/app_key/add/g > bld\add.html
 
 clean:
