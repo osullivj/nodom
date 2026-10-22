@@ -1,0 +1,53 @@
+@startuml
+!include bluegray.puml
+skinparam packageStyle rectangle
+skinparam componentStyle uml2
+
+title Google Chrome / Chromium Multi-Process Architecture
+
+node "Operating System" {
+  
+  package "Browser Process (Main Process)" {
+    [UI Thread / Window Manager] as UI
+    [Network Service] as Net
+    [GPU Service / Compositor] as GPUProc
+    [Storage / Cookie Service] as Storage
+    
+    interface "Mojo IPC" as IPC_Browser
+  }
+
+  package "Renderer Process (Tab / Site Isolated)" as Renderer {
+    [RenderFrameHost / RenderProcess] as RHost
+    
+    package "Blink Engine" {
+      [DOM / Parser] as DOM
+      [Layout & Style Engine] as Layout
+    }
+    
+    [V8 JavaScript Engine] as V8
+    [In-Process Compositor] as RComp
+    
+    interface "Mojo IPC" as IPC_Renderer
+  }
+
+  package "Plugin / Extension Process" as Plugin {
+    [Extension / Plugin Runtime] as Ext
+  }
+}
+
+' Relationships & Communication
+UI -- IPC_Browser
+Net --> UI : HTTP/HTTPS Data
+Storage --> UI
+GPUProc --> UI : Surface Compositing
+
+IPC_Browser <--> IPC_Renderer : Mojo IPC / Messages
+RHost --> DOM : Manages Frame
+DOM --> V8 : Execute JS
+DOM --> Layout : Build Render Tree
+Layout --> RComp : Layer Paint
+RComp --> GPUProc : Direct GPU/Skia Commands
+
+Ext -[dashed]-> IPC_Browser : Extension APIs
+
+@enduml
