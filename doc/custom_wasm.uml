@@ -1,0 +1,53 @@
+@startuml Chrome_Wasm_Render_Engine
+!include bluegray.puml
+skinparam componentStyle rectangle
+
+
+title Chrome Browser running NoDOM WASM Render Engine
+
+package "Google Chrome Sandbox" {
+    
+    component "Browser Window / DOM" as DOM {
+        [HTML5 Canvas Element] as Canvas
+        [App UI Threads] as JSApp
+    }
+
+    package "V8 JavaScript Engine" {
+        component "JavaScript Layer" as JSLayer {
+            [Engine Wrapper API] as JSWrapper
+            [WebGL / Canvas 2D Context] as CanvasCtx
+        }
+    }
+
+    package "WebAssembly Runtime" {
+        component "Wasm Execution Context" as WasmContext {
+            [NoDOM Wasm Engine] as WasmCore
+            database "Linear Memory\n(SharedArrayBuffer)" as WasmMem
+        }
+    }
+}
+
+' Interactions and Data Flow
+JSApp --> JSWrapper : 1. Sends Layout/State Data
+JSWrapper --> WasmMem : 2. Writes Input Data (Pointers)
+JSWrapper --> WasmCore : 3. Calls nodom.render()
+
+WasmCore --> WasmMem : 4. Processes calculations & updates Framebuffer
+WasmCore ..> JSWrapper : 5. Returns execution control
+
+JSWrapper --> CanvasCtx : 6. Reads frame bytes from Wasm Memory
+CanvasCtx --> Canvas : 7. Blit/Draw Frame (requestAnimationFrame)
+
+note right of WasmMem
+  Holds raw vertex indices,
+  textures, and the final pixel
+  RGBA color array buffer.
+end note
+
+note bottom of WasmCore
+  Compiled C++ NoDOM engine.
+  Bypasses JS garbage collection
+  for constant 60+ FPS rendering.
+end note
+
+@enduml
