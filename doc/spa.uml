@@ -1,4 +1,5 @@
 @startuml Typical_Web_SPA_Architecture
+!include bluegray.puml
 
 ' --- Configuration & Styling ---
 skinparam BoxPadding 10
