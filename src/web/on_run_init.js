@@ -1,5 +1,8 @@
 Module["onRuntimeInitialized"] = function () {
   if (typeof Module !== "undefined") {
+    if (typeof Module["nodom_functions"] === "undefined") {
+      Module["nodom_functions"] = [];
+    }
     let on_db_result_cpp = Module.cwrap("on_db_result_cpp", "void", ["object"]);
     let get_chunk_cpp = Module.cwrap("get_chunk_cpp", "number", [
       "string",
