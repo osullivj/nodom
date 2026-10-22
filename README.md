@@ -1,5 +1,5 @@
 # nodom
-NoDOM Scrapeproof High Performance Web GUI
+NoDOM High Performance Web GUI
 
 - Implemented in Data Oriented Modern C++
 - Builds on highly performant GameDev tech
@@ -10,6 +10,9 @@ NoDOM Scrapeproof High Performance Web GUI
 - Scrapeproof: WebGL based GUI uses GPU rendering
 - No emscripten::val roundtrips on the render hotpath
 - Designed for the trading floor: performance over presentation
+
+# Getting started
+- [Building from source](https://github.com/osullivj/nodom/wiki/Building-NoDOM-from-source)
 
 # Standing on the shoulders of giants...
 NoDOM builds on top of some amazing OSS code...
