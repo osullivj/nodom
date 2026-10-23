@@ -151,7 +151,7 @@ BOOST_FIXTURE_TEST_CASE(NDFNotForth, DataCacheFixture)
     dirty_bool_ref_vec.push_back(save_enabled_data_ref->ref_inx);
     dirty_bool_addr_vec.push_back(discard_enabled_data_ref->addr_inx());
     dirty_bool_ref_vec.push_back(discard_enabled_data_ref->ref_inx);
-    dc.on_dirty(dirty_bool_addr_vec, dirty_bool_ref_vec,
+    dc.on_dirty(dirty_bool_addr_vec, /* dirty_bool_ref_vec, */
         dc.get_bool_driven_widget_vecs(), dc.get_bool_driven_cspec_vecs());
 
     // and now "save_enabled not" should give us false as save_enabled==true
@@ -192,7 +192,7 @@ BOOST_FIXTURE_TEST_CASE(NDFInForth, DataCacheFixture)
 
     // check for true result
     std::string source1{ "queries query2 in" };
-    bool compiled = dc.ut_compile_forth(forth, cdBool, source1, data);
+    bool compiled = dc.ut_compile_forth(forth, cdBool, source1);
     BOOST_TEST(compiled == true);
 
     bool execed = dc.ut_execute_forth(forth);
@@ -212,7 +212,7 @@ BOOST_FIXTURE_TEST_CASE(NDFInForth, DataCacheFixture)
 
     // check for false result
     std::string source2{ "queries query3 in" };
-    compiled = dc.ut_compile_forth(forth, cdBool, source2, data);
+    compiled = dc.ut_compile_forth(forth, cdBool, source2);
     BOOST_TEST(compiled == true);
     execed = dc.ut_execute_forth(forth);
     BOOST_TEST(execed == true);
