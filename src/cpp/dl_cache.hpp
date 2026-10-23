@@ -1294,8 +1294,8 @@ public:
     // public access to internal methods for use by unit tests only
     void ut_init() { init(); }   
 
-    bool ut_compile_forth(NDFMachine& lambda, CDT result_type, const std::string& forth_source, const JSON& data) {
-        return compile_forth(lambda, result_type, forth_source, data);
+    bool ut_compile_forth(NDFMachine& lambda, CDT result_type, const std::string& forth_source) {
+        return compile_forth(lambda, result_type, forth_source);
     }
 
     bool ut_execute_forth(NDFMachine& lambda) {
