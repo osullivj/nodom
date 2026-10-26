@@ -146,17 +146,17 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>%ND_HOME%\fmt\include;%ND_HOME%\websocketpp;%ND_HOME%\imgui;%ND_HOME%\imgui\backends;%ND_HOME%\imgui\examples\libs\glfw\include;%ND_HOME%\imgui\examples\libs\emscripten;%ND_HOME%\ImGuiDatePicker;%ND_HOME%\venv\lib\site-packages\pyarrow\include;%ND_BOOST_HOME%;%ND_SSL_HOME%\x64\include;%ND_DUCK_HOME%;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <BufferSecurityCheck>false</BufferSecurityCheck>
-      <PreprocessorDefinitions>USE_PIX;NODOM_DUCK;_WIN32_WINNT=0x0601;BOOST_BIND_GLOBAL_PLACEHOLDERS;_CRT_SECURE_NO_WARNINGS;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>%ND_HOME%\lib\fmt\include;%ND_HOME%\lib\websocketpp;%ND_HOME%\lib\imgui;%ND_HOME%\lib\imgui\backends;%ND_HOME%\lib\imgui\examples\libs\glfw\include;%ND_HOME%\lib\imgui\examples\libs\emscripten;%ND_HOME%\venv\lib\site-packages\pyarrow\include;%ND_BOOST_HOME%;%ND_SSL_HOME%\x64\include;%ND_DUCK_HOME%;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;USE_PIX;NODOM_DUCK;_WIN32_WINNT=0x0601;BOOST_BIND_GLOBAL_PLACEHOLDERS;_CRT_SECURE_NO_WARNINGS;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalOptions>/bigobj /utf-8 /wd4127 /wd4172 /wd4302 /wd4311 %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessToFile>false</PreprocessToFile>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>%ND_HOME%\imgui\examples\libs\glfw\lib-vc2010-64;%ND_PY_HOME%\libs;%ND_BOOST_HOME%\stage\lib;%ND_HOME%\venv\lib\site-packages\pyarrow;%ND_DUCK_HOME%;(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>%ND_HOME%\lib\imgui\examples\libs\glfw\lib-vc2010-64;%ND_PY_HOME%\libs;%ND_BOOST_HOME%\stage\lib;%ND_HOME%\venv\lib\site-packages\pyarrow;%ND_DUCK_HOME%;(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>opengl32.lib;glfw3.lib;arrow_python.lib;arrow.lib;duckdb.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Console</SubSystem>
       <IgnoreSpecificDefaultLibraries>
