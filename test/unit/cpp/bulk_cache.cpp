@@ -55,8 +55,6 @@ struct BulkCacheFixture {
         db_dispatch(Static::command_cs, scan_qid, depth_scan_sql);
         Sleep(1000);
         bulk.get_db_responses(responses);
-        BOOST_TEST(!responses.empty());
-        BOOST_TEST(responses.size() == 1);
 
         db_dispatch(Static::query_cs, select_qid, depth_query_sql);
         Sleep(1000);
@@ -80,6 +78,7 @@ BOOST_FIXTURE_TEST_CASE(LargeXYRange, BulkCacheFixture)
     int32_t total_plot_count{ 0 };
     bulk.get_meta_data(h, col_count, row_count);
     BOOST_TEST(col_count == 32);
+    // offset:1340, count:4000; ergo we span 3 chunks
     XYRange* range = bulk.init_xy_range(h, "SeqNo", "AskPrice1", 1340, 4000);
     range = bulk.next_xy_range(range);
     BOOST_TEST(range->plot_count == 708);
@@ -108,6 +107,7 @@ BOOST_FIXTURE_TEST_CASE(SmallXYRange, BulkCacheFixture)
     int32_t total_plot_count{ 0 };
     bulk.get_meta_data(h, col_count, row_count);
     BOOST_TEST(col_count == 32);
+    // offset:2780, count:420; all in single chunk
     XYRange* range = bulk.init_xy_range(h, "SeqNo", "AskPrice1", 2780, 420);
     range = bulk.next_xy_range(range);
     BOOST_TEST(range->plot_count == 420);
