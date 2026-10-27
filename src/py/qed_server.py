@@ -37,6 +37,7 @@ QED_LAYOUT = [
                     cname="queries",
                     cindex="selected_query",
                     label="Query",
+                    buffer_size=256
                 ),
             ),
             dict(rname="InputTextArea", cspec=dict(
