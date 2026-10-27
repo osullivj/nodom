@@ -10,7 +10,7 @@
 #pragma comment(lib, "legacy_stdio_definitions")
 #endif
 
-using dbl_nanosecs = std::chrono::duration<double, std::nano>;
+using dbl_microsecs = std::chrono::duration<double, std::micro>;
 
 using json_t = nlohmann::json;
 using Tiingo_t = TiingoIEXMidRecords<json_t>;
@@ -30,8 +30,8 @@ struct LiveCacheFixture {
 
     double now_as_double() {
         auto now = std::chrono::system_clock::now();
-        auto duration_ns = std::chrono::duration_cast<dbl_nanosecs>(now.time_since_epoch());
-        return duration_ns.count();
+        auto duration_us = std::chrono::duration_cast<dbl_microsecs>(now.time_since_epoch());
+        return duration_us.count();
     }
 };
 
@@ -78,7 +78,7 @@ BOOST_FIXTURE_TEST_CASE(UpdateOneTicker, LiveCacheFixture)
     update[Static::timestamp_cs] = ts;
     live.on_update(update);
     BOOST_TEST(live.records.mid[0] == mid);
-    BOOST_TEST(live.records.timestamp[0] == ts);
+    BOOST_TEST(live.records.timestamp[0] * live.records.ts_divisor == ts);
 }
 
 BOOST_FIXTURE_TEST_CASE(RingBufferCapacity, LiveCacheFixture)
