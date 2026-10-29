@@ -2310,13 +2310,6 @@ protected:
                     ImGui::TableSetupColumn(colm_names[bulk_tbl_vars.col_inx].c_str(), ImGuiTableColumnFlags_None);
                 }
                 ImGui::TableHeadersRow();
-                // If any of the table header logic invoked above has invoked 
-                // TableOpenContextMenu(), and we have a cspec:menupop, then
-                // go ahead and render the popup menu
-                /*
-                if (bulk_tbl_vars.menupop_data_ref != nullptr && ImGui::GetCurrentTable()->IsContextPopupOpen) {
-                    render_menu_pop_item(w);
-                } */
                 ImGuiListClipper clipper;
                 clipper.Begin((int)row_count, -1.0f);
                 while (clipper.Step()) {
@@ -2354,6 +2347,9 @@ protected:
                         }
                     }
                 }
+                // If any of the table header logic invoked above has invoked 
+                // TableOpenContextMenu(), and we have a cspec:menupop, then
+                // go ahead and render the popup menu
                 if (bulk_tbl_vars.menupop_data_ref != nullptr && ImGui::GetCurrentTable()->IsContextPopupOpen) {
                     if (render_menu_pop_item(w, bulk_tbl_vars.menupop_data_ref)) {
                         mem_edit_memo.data_ref_map[cs_query_id] = result_set_data_ref;
