@@ -443,12 +443,15 @@ protected:
                     if (nd_action.action == etCommand || nd_action.action == etQuery) {
                         std::string sql_cache_key = JAsString(action_defn, Static::cname_cs);
                         // This add_address should just find the addr cached by data keys
-                        // parsing earlier...
+                        // parsing earlier. We do it because it's the easiest way
+                        // to get an AddrInx for action.cname. But if data[sql_cache_key]
+                        // doesn't exist then it makes it look like it does. So we check
+                        // data with JContains
                         nd_action.cname = add_address(sql_cache_key);
                         // check that the sql cname refers to a cache data entry
                         interned.cname = (char*)get_addr_value(nd_action.cname);
                         auto amit = address_map.find(sql_cache_key);
-                        if (amit == address_map.end()) {
+                        if (!JContains(data, sql_cache_key.c_str())) {
                             std::stringstream ss;
                             ss << "CACHE_KEY_NOT_FOUND(" << sql_cache_key << ")";
                             std::string error{ ss.str() };
