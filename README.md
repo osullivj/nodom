@@ -5,13 +5,15 @@ NoDOM High Performance Web GUI
 - Builds on highly performant GameDev tech
 - Compiles to WASM with Emscripten, and Win32 x64 with MSVC 2022
 - Integrates with DuckDB WASM for bulk data
-- Declarative GUI specified in JSON served to WASM client by websocket
-- - GUI specification JSON designed for AI generation
+- Declarative JSON GUI served to WASM client by websocket
 - Scrapeproof: WebGL based GUI uses GPU rendering
 - No emscripten::val roundtrips on the render hotpath
 - Designed for the trading floor: performance over presentation
 
 # Getting started
+- [Why NoDOM?](https://github.com/osullivj/nodom/wiki/Why-NoDOM%3F)
+- [How does a NoDOM app load?](https://github.com/osullivj/nodom/wiki/How-does-a-NoDOM-app-load%3F)
+- [NoDOM internal structure](https://github.com/osullivj/nodom/wiki/NoDOM-internal-structure)
 - [Building from source](https://github.com/osullivj/nodom/wiki/Building-NoDOM-from-source)
 
 # Standing on the shoulders of giants...
