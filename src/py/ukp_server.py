@@ -97,14 +97,6 @@ UKP_LAYOUT = [
             dict(rname="Separator", cspec=dict()),
             dict(
                 rname="Button",
-                widget_id=SUMMARY_BUTTON_ID,
-                cspec=dict(
-                    text="summary_text",
-                ),
-            ),
-            dict(rname="SameLine"),
-            dict(
-                rname="Button",
                 widget_id=CHART_BUTTON_ID,
                 cspec=dict(
                     text="chart_text",
@@ -269,7 +261,6 @@ UKP_DATA = dict(
     end_date=[2008, 9, 2],  # so we use lists. NB default 1 day span
     start_date_text="Start date",
     end_date_text="End date",
-    summary_text="Summary",
     chart_text="Chart",
     scan_urls=["s3://datasets-documentation/uk-house-prices/parquet"],
     httpfs_sql=HTTPFS_SQL,
@@ -278,20 +269,14 @@ UKP_DATA = dict(
     summary_sql=SUMMARY_SQL,
     # change to level='debug' for more DuckDB logging
     enable_logging_sql="INSTALL parquet; CALL enable_logging(level='debug', storage='stdout');",
-    depth_storage_sql="PRAGMA storage_info('depth');",
+    prices_storage_sql="PRAGMA storage_info('prices');",
     memory_limit_sql="SELECT current_setting('memory_limit');",
     mem_edit_addr=0,
     mem_edit_size=0,
     mem_edit_text="Memory Editor",
-    xaxis="SeqNo",
-    yaxis="AskPrice1",
+    xaxis="date",
+    yaxis="price",
     actions={
-        f"{SUMMARY_BUTTON_ID}.Click": [
-            dict(
-                # depth_summary_modal is self popping,
-                ui_push=SUMMARY_MODAL_ID
-            )
-        ],
         f"{CHART_BUTTON_ID}.Click": [
             dict(
                 # depth_summary_modal is self popping,
