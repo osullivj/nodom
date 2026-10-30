@@ -2183,6 +2183,7 @@ protected:
 
         cspec_bool(cs_show_lines, w->cspec_bool, &sh_pl_vars.show_lines);
         cspec_bool(cs_show_fills, w->cspec_bool, &sh_pl_vars.show_fills);
+        cspec_bool(cs_show_scatter, w->cspec_bool, &sh_pl_vars.show_scatter);
 
         DataRef* result_set_data_ref = cspec_data_ref(cs_query_id, w);
         assert(result_set_data_ref != nullptr);
@@ -2232,6 +2233,16 @@ protected:
                 range = bulk.next_xy_range(range);
                 while (range != nullptr) {
                     ImPlot::PlotLine(title, range->xdata, range->ydata, range->plot_count);
+                    range = bulk.next_xy_range(range);
+                }
+            }
+            // Scatter on top of lines
+            if (sh_pl_vars.show_scatter) {
+                sh_pl_vars.spec.Flags = shaded_plot_flags;
+                range = bulk.init_xy_range(handle, x_col_name, y_col_name, sh_pl_vars.offset, sh_pl_vars.row_count);
+                range = bulk.next_xy_range(range);
+                while (range != nullptr) {
+                    ImPlot::PlotScatter(title, range->xdata, range->ydata, range->plot_count);
                     range = bulk.next_xy_range(range);
                 }
             }
