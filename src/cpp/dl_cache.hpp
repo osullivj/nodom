@@ -616,9 +616,9 @@ protected:
                             type_errors.push_back(ss.str());
                             continue;
                         }
-                        AddrInx ainx{ address_map[*vnit] };
-                        DataRef data_ref = CreateDataRef(ref_type, ainx, data, *vnit);
+                        AddrInx ainx{ address_map.at(var_name) };
                         if (data_ref_map.find(ainx) == data_ref_map.end()) {
+                            DataRef data_ref = CreateDataRef(ref_type, ainx, data, *vnit);
                             data_ref_map[ainx] = data_ref;
                         }
                         else {
