@@ -631,10 +631,15 @@ public:
 
         uint64_t rel_index = row_index % duck_chunk_size;
         uint64_t chunk_index = row_index / duck_chunk_size;
-        auto bob_iter = bob.cbegin();
-        while (chunk_index > 0) {
+        auto bob_iter = bob.begin();
+        while (chunk_index > 0 && bob_iter != bob.end()) {
             --chunk_index;
             ++bob_iter;
+        }
+        // guard againt no chunks, or an out of range request
+        if (bob_iter == bob.end()) {
+            buffer = (char*)Static::null_cs;
+            return nullptr;
         }
         chunk = *bob_iter;
         duckdb_vector colm = duckdb_data_chunk_get_vector(chunk, colm_index);
@@ -648,9 +653,9 @@ public:
             // get type metadata for the colm vector and validities
             // NB we only do this work if the field is valid
             const std::vector<duckdb_type>& types{ type_map.at(h) };
-            duckdb_type colm_type(types[colm_index]);
+            duckdb_type colm_type(types.at(colm_index));
             const std::vector<duckdb_logical_type>& logical_types{ logical_type_map.at(h) };
-            duckdb_logical_type colm_type_l(logical_types[colm_index]);
+            duckdb_logical_type colm_type_l(logical_types.at(colm_index));
 
             switch (colm_type) {
             case DUCKDB_TYPE_VARCHAR:
