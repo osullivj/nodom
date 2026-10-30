@@ -626,7 +626,7 @@ public:
         auto bmit = bobbin_map.find(h);
         if (bmit == bobbin_map.end())
             return nullptr;
-        const Bobbin& bob{ bmit->second };
+        Bobbin& bob{ bmit->second };
         duckdb_data_chunk chunk;
 
         uint64_t rel_index = row_index % duck_chunk_size;
