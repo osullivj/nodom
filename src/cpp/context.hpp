@@ -2584,6 +2584,13 @@ protected:
             Range* range = bulk.init_range(mem_edit_vars.handle,
                 col_names[mem_edit_vars.col_inx].c_str(), 0, CHUNK_SIZE);
             range = bulk.next_range(range);
+            if (range == nullptr) {
+                // bulk cache cannot give us a range for this col type
+                // bailing here means render_memory_editor() will see previous
+                // settings if any; ergo the previous col rclicked, if that
+                // was a successful rclick
+                return;
+            }
 
             switch (range->col_type) {
 #ifndef __EMSCRIPTEN__
@@ -2628,14 +2635,25 @@ protected:
         if (mem_edit_vars.title != nullptr) {
             mem_edit_vars.addr_data_ref = cspec_data_ref(cs_address, w);
             mem_edit_vars.address_ptr = data_lay_cache.get_word_value(PtrInx(mem_edit_vars.addr_data_ref->ref_inx));
-            mem_edit_vars.size_data_ref = cspec_data_ref(cs_size, w);
-            mem_edit_vars.size_ptr = data_lay_cache.get_int_value(IntInx(mem_edit_vars.size_data_ref->ref_inx));
-            memory_editor.DrawWindow(mem_edit_vars.title, (void*)(*mem_edit_vars.address_ptr),
-                                            *mem_edit_vars.size_ptr, *mem_edit_vars.address_ptr);
+            // NB size_t* MemEditLocals::address_ptr: so we could check that the init 0 ptr val
+            // in DLC is in fact 0, not nullptr :) address_ptr itself should always be !nullptr
+            // as compile time should have excluded a bad ref in cspec:address. If you've read
+            // this far in the comment you'll figure why putting a non zero init val
+            // in a data element referred to by MemoryEditor:cspec:address is a bad idea!
+            // Not least because it would violate NoDOM's own notions of correct rigid
+            // designator behaviour ;) Anyway, we do not check that *mem_edit_vars.address_ptr != 0,
+            // namely, the DLC val has initted, because DrawWindow is graceful in the face of a nullptr,
+            // and cos it only happens on win32 BB cos of the difference between win32 and web DuckDB.
+            if (mem_edit_vars.address_ptr != nullptr) {
+                mem_edit_vars.size_data_ref = cspec_data_ref(cs_size, w);
+                mem_edit_vars.size_ptr = data_lay_cache.get_int_value(IntInx(mem_edit_vars.size_data_ref->ref_inx));
+                memory_editor.DrawWindow(mem_edit_vars.title, (void*)(*mem_edit_vars.address_ptr),
+                    *mem_edit_vars.size_ptr, *mem_edit_vars.address_ptr);
 
-            if (!memory_editor.Open) {
-                // top right close clicked: rm ourselves from render stack
-                pending_pops.push_back(w->rname);
+                if (!memory_editor.Open) {
+                    // top right close clicked: rm ourselves from render stack
+                    pending_pops.push_back(w->rname);
+                }
             }
         }
     }
