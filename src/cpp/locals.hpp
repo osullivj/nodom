@@ -47,6 +47,7 @@ struct ShadedPlotLocals {
     ImPlotSpec  spec;
     bool        show_fills{ true };
     bool        show_lines{ true };
+    bool        show_scatter{ true };
     double      xmin_dbl{ 0.0 };
     double      xmax_dbl{ 0.0 };
     double      ymin_dbl{ 0.0 };
