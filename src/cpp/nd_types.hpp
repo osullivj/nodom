@@ -490,6 +490,7 @@ enum CacheSpecifier : uint32_t {
     cs_tooltip,
     cs_show_lines,
     cs_show_fills,
+    cs_show_scatter,
     cs_shaded_plot_flags,
     cs_menu_bar,
     cs_menu,
