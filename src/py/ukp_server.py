@@ -191,8 +191,9 @@ UKP_LAYOUT = [
                 rname="ShadedPlot",
                 cspec=dict(
                     title="Property",
-                    show_lines=True,
-                    show_fills=True,
+                    show_lines=False,
+                    show_fills=False,
+                    show_scatter=True,
                     xname="xaxis",
                     yname="yaxis",
                     query_id="select_prices",
@@ -279,7 +280,6 @@ UKP_DATA = dict(
     actions={
         f"{CHART_BUTTON_ID}.Click": [
             dict(
-                # depth_summary_modal is self popping,
                 ui_push=CHART_WINDOW_ID
             )
         ],
