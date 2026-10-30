@@ -1821,6 +1821,7 @@ private:
         Static::tooltip_cs,
         Static::show_lines_cs,
         Static::show_fills_cs,
+        Static::show_scatter_cs,
         Static::shaded_plot_flags_cs,
         Static::menu_bar_cs,
         Static::menu_cs,
@@ -1883,6 +1884,7 @@ private:
         cdStr,      // cs_tooltip
         cdBool,     // cs_show_lines
         cdBool,     // cs_show_fills
+        cdBool,     // cs_show_scatter
         cdInt,      // cs_shaded_plot_flags
         cdStr,      // cs_menu_bar
         cdStr,      // cs_menu
@@ -1944,7 +1946,8 @@ private:
                     cs_window_flags}},
         {Window, {cs_title, cs_title_font, cs_title_font_size,
                     cs_window_flags, cs_close_button}},
-        {ShadedPlot, {cs_title, cs_show_lines, cs_show_fills, cs_shaded_plot_flags}},
+        {ShadedPlot, {cs_title, cs_show_lines, cs_show_fills,
+                        cs_show_scatter, cs_shaded_plot_flags}},
         {PushFont, {cs_font, cs_font_size}},
         {BeginChild, {cs_title, cs_height, cs_width, cs_window_flags}},
         {MemoryEditor, {/* cs_title , cs_address, cs_size */ }},
