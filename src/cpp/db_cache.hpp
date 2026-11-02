@@ -222,9 +222,13 @@ public:
         if (bob_iter == bobbin_map.end())
             return 0;
         Bobbin& bob = bobbin_map.at(handle);
+        // PERF: assume 2048 for all but last chunk
+        // and only invoke duckdb_data_chunk_get_size()
+        // for last chunk
         auto chunk_iter = bob.begin();
         while (chunk_iter != bob.end()) {
-            row_count += duckdb_data_chunk_get_size(*chunk_iter);
+            duckdb_data_chunk chunk{ *chunk_iter };
+            row_count += duckdb_data_chunk_get_size(chunk);
             chunk_iter++;
         }
         return row_count;
