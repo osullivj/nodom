@@ -43,19 +43,6 @@ struct SpinnerLocals {
     ImVec2  centre;
 };
 
-struct ShadedPlotLocals {
-    ImPlotSpec  spec;
-    bool        show_fills{ true };
-    bool        show_lines{ true };
-    bool        show_scatter{ true };
-    double      xmin_dbl{ 0.0 };
-    double      xmax_dbl{ 0.0 };
-    double      ymin_dbl{ 0.0 };
-    double      ymax_dbl{ 0.0 };
-    uint32_t    row_count{ 0 };
-    uint32_t    offset{ 0 };
-};
-
 struct TextAreaLocals {
     int     text_flags{ 0 };
     int     line_height{ 0 };
@@ -169,4 +156,19 @@ struct LivePxPlotLocals {
     int         line_height{ 10 };
     ImPlotSpec  spec;
     ImVec2      plot_size{ -1.0f, 0.0 };
+};
+
+struct ShadedPlotLocals {
+    int         line_height{ 10 };
+    ImPlotSpec  spec;
+    ImVec2      plot_size{ -1.0f, 0.0 };
+    bool        show_fills{ true };
+    bool        show_lines{ true };
+    bool        show_scatter{ true };
+    double      xmin_dbl{ 0.0 };
+    double      xmax_dbl{ 0.0 };
+    double      ymin_dbl{ 0.0 };
+    double      ymax_dbl{ 0.0 };
+    uint32_t    row_count{ 0 };
+    uint32_t    offset{ 0 };
 };
