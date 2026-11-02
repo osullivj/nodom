@@ -1832,6 +1832,12 @@ private:
         Static::selectable_col_cs,
         Static::height_cs,
         Static::width_cs,
+        Static::xtime_cs,
+        Static::ytime_cs,
+        Static::local_time_cs,
+        Static::iso_time_cs,
+        Static::xformat_cs,
+        Static::yformat_cs,
         Static::db_cs,     // cs_db,
         Static::fps_cs,     // cs_fps,
         Static::demo_cs,     // cs_demo,
@@ -1892,9 +1898,15 @@ private:
         cdStr,      // cs_menu_pop
         cdInt,      // cs_buffer_size
         cdInt,      // cs_line_height
-        cdInt,      // cs_rclick_col
+        cdInt,      // cs_selectable_col
         cdFloat,    // cs_height: NB ImVec2::x and ::y are float
         cdFloat,    // cs_width: 
+        cdBool,     // cs_xtime,
+        cdBool,     // cs_ytime,
+        cdBool,     // cs_localtime,
+        cdBool,     // cs_isotime,
+        cdBool,     // cs_xformat,
+        cdBool,     // cs_yformat,
         cdBool,     // cs_show_footer_db
         cdBool,     // cs_show_footer_fps
         cdBool,     // cs_show_footer_demo
