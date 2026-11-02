@@ -2181,10 +2181,11 @@ protected:
         static ImPlotShadedFlags default_shaded_plot_flags{ 0 };
 
         const char* title = cspec_string(cs_title, w->cspec_str, method);
-        int shaded_plot_flags = default_shaded_plot_flags;
+
         // See enum ImPlotShadedFlags: there is only default
         // enable cspec setting of shaded when there is a real choice
         // cspec_int(cs_shaded_plot_flags, w->cspec_int, &shaded_plot_flags);
+        int shaded_plot_flags = default_shaded_plot_flags;
 
         // default height is -1: fit to container
         sh_pl_vars.plot_size.y = -1;
