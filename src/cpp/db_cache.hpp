@@ -218,19 +218,12 @@ public:
 
     std::uint32_t get_row_count(RSHandle handle) {
         auto bob_iter = bobbin_map.find(handle);
-        idx_t row_count = 0;
         if (bob_iter == bobbin_map.end())
             return 0;
         Bobbin& bob = bobbin_map.at(handle);
-        // PERF: assume 2048 for all but last chunk
-        // and only invoke duckdb_data_chunk_get_size()
-        // for last chunk
-        auto chunk_iter = bob.begin();
-        while (chunk_iter != bob.end()) {
-            duckdb_data_chunk chunk{ *chunk_iter };
-            row_count += duckdb_data_chunk_get_size(chunk);
-            chunk_iter++;
-        }
+        uint32_t row_count = (bob.size() - 1) * CHUNK_SIZE;
+        duckdb_data_chunk last_chunk{ bob.back() };
+        row_count += duckdb_data_chunk_get_size(last_chunk);
         return row_count;
     }
 
@@ -631,21 +624,14 @@ public:
         if (bmit == bobbin_map.end())
             return nullptr;
         Bobbin& bob{ bmit->second };
-        duckdb_data_chunk chunk;
 
         uint64_t rel_index = row_index % duck_chunk_size;
         uint64_t chunk_index = row_index / duck_chunk_size;
-        auto bob_iter = bob.begin();
-        while (chunk_index > 0 && bob_iter != bob.end()) {
-            --chunk_index;
-            ++bob_iter;
-        }
-        // guard againt no chunks, or an out of range request
-        if (bob_iter == bob.end()) {
-            buffer = (char*)Static::null_cs;
+        if (chunk_index >= bob.size()) {
+            buffer = (char*)Static::space_cs;
             return nullptr;
         }
-        chunk = *bob_iter;
+        duckdb_data_chunk chunk{bob[chunk_index]};
         duckdb_vector colm = duckdb_data_chunk_get_vector(chunk, colm_index);
         uint64_t* validities = duckdb_vector_get_validity(colm);
         // In most cases we'll copy into string_buffer, or
