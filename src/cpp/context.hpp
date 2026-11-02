@@ -2135,9 +2135,14 @@ protected:
         const char* xtitle = cspec_string(cs_xtitle, w->cspec_str, method);
         const char* ytitle = cspec_string(cs_ytitle, w->cspec_str, method);
 
+        // default height is -1: fit to container
+        live_px_plot_vars.plot_size.y = -1;
+
+        // if plot has cspec:line_height then fixed height
         live_px_plot_vars.line_height = 10;
-        cspec_int(cs_line_height, w->cspec_int, &live_px_plot_vars.line_height);
-        live_px_plot_vars.plot_size.y = ImGui::GetTextLineHeight() * live_px_plot_vars.line_height;
+        if (cspec_int(cs_line_height, w->cspec_int, &live_px_plot_vars.line_height) != nullptr) {
+            live_px_plot_vars.plot_size.y = ImGui::GetTextLineHeight() * live_px_plot_vars.line_height;
+        }
 
         if (ImPlot::BeginPlot(title, live_px_plot_vars.plot_size)) {
             ImPlot::SetupAxes(xtitle, ytitle, ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_AutoFit);
@@ -2181,6 +2186,15 @@ protected:
         // enable cspec setting of shaded when there is a real choice
         // cspec_int(cs_shaded_plot_flags, w->cspec_int, &shaded_plot_flags);
 
+        // default height is -1: fit to container
+        sh_pl_vars.plot_size.y = -1;
+
+        // if plot has cspec:line_height then fixed height
+        sh_pl_vars.line_height = 10;
+        if (cspec_int(cs_line_height, w->cspec_int, &sh_pl_vars.line_height) != nullptr) {
+            sh_pl_vars.plot_size.y = ImGui::GetTextLineHeight() * sh_pl_vars.line_height;
+        }
+
         cspec_bool(cs_show_lines, w->cspec_bool, &sh_pl_vars.show_lines);
         cspec_bool(cs_show_fills, w->cspec_bool, &sh_pl_vars.show_fills);
         cspec_bool(cs_show_scatter, w->cspec_bool, &sh_pl_vars.show_scatter);
@@ -2207,12 +2221,12 @@ protected:
         if (!bulk.get_min_max(handle, x_col_name, sh_pl_vars.xmin_dbl, sh_pl_vars.xmax_dbl) ||
             !bulk.get_min_max(handle, y_col_name, sh_pl_vars.ymin_dbl, sh_pl_vars.ymax_dbl))
             return;
-        // TODO: connect row_count & offset to slider widgets
+
         sh_pl_vars.row_count = bulk.get_row_count(handle);
         sh_pl_vars.offset = 0;
 
         XYRange* range{ 0 };
-        if (ImPlot::BeginPlot(title)) {
+        if (ImPlot::BeginPlot(title, sh_pl_vars.plot_size)) {
             ImPlot::SetupAxes(x_col_name, y_col_name, ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_AutoFit);
             ImPlot::SetupAxesLimits(sh_pl_vars.xmin_dbl, sh_pl_vars.xmax_dbl,
                                         sh_pl_vars.ymin_dbl, sh_pl_vars.ymax_dbl);
