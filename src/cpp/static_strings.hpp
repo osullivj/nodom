@@ -97,6 +97,13 @@ struct Static {
 	inline static const char* selectable_col_cs{ "selectable_col" };
 	inline static const char* height_cs{ "height" };
 	inline static const char* width_cs{ "width" };
+	inline static const char* xtime_cs{ "xtime" };
+	inline static const char* ytime_cs{ "ytime" };
+	inline static const char* local_time_cs{ "local_time" };
+	inline static const char* iso_time_cs{ "iso_time" };
+	inline static const char* xformat_cs{ "xformat" };
+	inline static const char* yformat_cs{ "yformat" };
+
 	inline static const char* cspec_cs{ "cspec" };
 	inline static const char* cname_cs{ "cname" };
 	inline static const char* qname_cs{ "qname" };
