@@ -207,10 +207,23 @@ UKP_LAYOUT = [
 ]
 
 HTTPFS_SQL = "INSTALL httpfs; LOAD httpfs;"
-TABLE_SQL = """BEGIN; CREATE TABLE IF NOT EXISTS prices AS
-SELECT * FROM read_csv_auto('https://datasets-documentation.s3.eu-west-3.amazonaws.com/uk-house-prices/csv/house_prices.csv.gz'); commit;"""
 SELECT_SQL = "select * from prices;"
 SUMMARY_SQL = "summarize prices;"
+# DuckDB's csv sniffer defaults all int to BIGINT
+# we have DuckDB-WASM configged to avoid BIGINT, so
+# we get double instead. So here we spec for INTEGER,
+# which will be 32bit on wasm
+SCHEMA = {
+    'price':'INTEGER',
+    'date':'INTEGER',
+    'type':'INTEGER',
+    'is_new': 'INTEGER',
+    'duration': 'INTEGER'
+}
+table_sql = """BEGIN; CREATE TABLE IF NOT EXISTS prices AS
+SELECT * FROM read_csv_auto(
+    'https://datasets-documentation.s3.eu-west-3.amazonaws.com/uk-house-prices/csv/house_prices.csv.gz', types={}); commit;"""
+TABLE_SQL = table_sql.format(SCHEMA)
 
 LAUNCH_TABLE = dict(  # raise scanning modal, send scan request to DuckDB
     ui_push="parquet_loading_modal",
