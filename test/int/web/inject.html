@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en-us">
+    <head>
+        <meta charset="utf-8" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no"
+        />
+        <title>NoDOM Event Injector</title>
+    </head>
+    <body>
+        <h1>NoDOM Event Injector</h1>
+        <section>
+            <div class="url-text-container">
+                <label for="url-text">URL:</label>
+                <textarea id="url-text" rows="2" cols="30">
+ws://localhost:8890/api/inject
+                </textarea>
+            <div class="event-text-container">
+                <label for="event-text">Event:</label>
+                <textarea id="event-text" rows="8" cols="30">
+{
+"nd_type":"FunctionResult",
+"query_id": 2,
+"cache_key": "op1",
+"new_value": 1
+}
+                </textarea>
+            <div class="inject-button-container">
+                <button id="inject-button">Inject</button>
+            </div>
+        </section>
+        <script type="text/javascript">
+            const inject_button = document.querySelector("#inject-button");
+            const url_text_area = document.querySelector("#url-text");
+            const event_text_area = document.querySelector("#event-text");
+            function inject_event(event_json_str) {
+              console.log("JSON:" + event_json_str + "\n");
+              let event = JSON.parse(event_json_str);
+              let url = url_text_area.value;
+              var websock = new WebSocket(url);
+              websock.addEventListener('open', (event) => {
+                  console.log('Websock connected to '+url+'\n');
+                  websock.send(event_json_str);
+                  console.log('Event dispatched.')
+                  websock.close();
+              });
+            }
+            function on_inject_button() {
+                inject_event(event_text_area.value);
+            }
+            inject_button.addEventListener("click", on_inject_button);
+        </script>
+    </body>
+</html>
