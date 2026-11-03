@@ -627,7 +627,9 @@ public:
 
         uint64_t rel_index = row_index % duck_chunk_size;
         uint64_t chunk_index = row_index / duck_chunk_size;
-        if (chunk_index >= bob.size()) {
+        // check that bob[chunk_index] is in range;
+        // dont wanna fire dflt ctor
+        if (!(chunk_index < bob.size())) {
             buffer = (char*)Static::space_cs;
             return nullptr;
         }
