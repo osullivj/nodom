@@ -165,6 +165,12 @@ struct ShadedPlotLocals {
     bool        show_fills{ true };
     bool        show_lines{ true };
     bool        show_scatter{ true };
+    bool        xtime{ false };
+    bool        ytime{ false };
+    bool        local_time{ false };
+    bool        iso_time{ false };
+    char*       xformat{ nullptr };
+    char*       yformat{ nullptr };
     double      xmin_dbl{ 0.0 };
     double      xmax_dbl{ 0.0 };
     double      ymin_dbl{ 0.0 };
