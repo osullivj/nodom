@@ -198,6 +198,8 @@ UKP_LAYOUT = [
                     iso_time=True,
                     local_time=True,
                     query_id="select_prices",
+                    xname="xaxis",
+                    yname="yaxis"
                 ),
             ),
         ],
