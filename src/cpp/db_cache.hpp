@@ -221,6 +221,8 @@ public:
         if (bob_iter == bobbin_map.end())
             return 0;
         Bobbin& bob = bobbin_map.at(handle);
+        if (bob.empty())
+            return 0;
         uint32_t row_count = (bob.size() - 1) * CHUNK_SIZE;
         duckdb_data_chunk last_chunk{ bob.back() };
         row_count += duckdb_data_chunk_get_size(last_chunk);
