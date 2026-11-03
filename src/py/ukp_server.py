@@ -153,21 +153,6 @@ UKP_LAYOUT = [
         ),
     ),
     dict(
-        widget_id=SUMMARY_MODAL_ID,
-        rname="DuckTableSummaryModal",  # "Noop"
-        cspec=dict(
-            title="Price table summary",
-            title_font="Arial",
-            body_font="CourierNew",
-            body_font_size=8,
-            button_font="CourierNew",
-            button_font_size=12,
-            query_id="summarize_prices",
-            window_flags=WindowFlags.ALWAYS_AUTO_RESIZE
-            | WindowFlags.HORIZONTAL_SCROLLBAR,
-        ),
-    ),
-    dict(
         widget_id=MEM_EDIT_ID,
         rname="MemoryEditor",
         cspec=dict(
@@ -208,7 +193,6 @@ UKP_LAYOUT = [
 
 HTTPFS_SQL = "INSTALL httpfs; LOAD httpfs;"
 SELECT_SQL = "select * from prices;"
-SUMMARY_SQL = "summarize prices;"
 # DuckDB's csv sniffer defaults all int to BIGINT
 # we have DuckDB-WASM configged to avoid BIGINT, so
 # we get double instead. So here we spec for INTEGER,
@@ -244,18 +228,6 @@ LAUNCH_SELECT_BATCH = dict(
     query_id="select_prices",
 )
 
-LAUNCH_SUMMARY = dict(  # close scanning modal, send query request to DuckDB
-    ui_pop="LoadingModal",
-    action="Query",
-    query_id="summarize_prices",
-    cname="summary_sql",
-)
-
-LAUNCH_SUMMARY_BATCH = dict(
-    action="BatchRequest",
-    query_id="summarize_prices",
-)
-
 LAUNCH_HTTPFS = dict(
     action="Command",
     query_id="load_and_install_httpfs",
@@ -269,8 +241,6 @@ INIT_SEQUENCE = [
     LAUNCH_TABLE,
     LAUNCH_SELECT,
     LAUNCH_SELECT_BATCH,
-    LAUNCH_SUMMARY,
-    LAUNCH_SUMMARY_BATCH,
 ]
 
 UKP_DATA = dict(
@@ -283,7 +253,6 @@ UKP_DATA = dict(
     httpfs_sql=HTTPFS_SQL,
     table_sql=TABLE_SQL,
     select_sql=SELECT_SQL,
-    summary_sql=SUMMARY_SQL,
     # change to level='debug' for more DuckDB logging
     enable_logging_sql="INSTALL parquet; CALL enable_logging(level='debug', storage='stdout');",
     prices_storage_sql="PRAGMA storage_info('prices');",
