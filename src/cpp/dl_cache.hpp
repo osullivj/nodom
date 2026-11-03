@@ -1905,8 +1905,8 @@ private:
         cdBool,     // cs_ytime,
         cdBool,     // cs_localtime,
         cdBool,     // cs_isotime,
-        cdBool,     // cs_xformat,
-        cdBool,     // cs_yformat,
+        cdStr,      // cs_xformat,
+        cdStr,      // cs_yformat,
         cdBool,     // cs_show_footer_db
         cdBool,     // cs_show_footer_fps
         cdBool,     // cs_show_footer_demo
@@ -1962,7 +1962,9 @@ private:
         {BeginChild, {cs_title, cs_height, cs_width, cs_window_flags}},
         {MemoryEditor, { }},
         {ShadedPlot, {cs_title, cs_show_lines, cs_show_fills,
-                        cs_show_scatter, cs_shaded_plot_flags, cs_line_height}},
+                        cs_show_scatter, cs_shaded_plot_flags, cs_line_height,
+                        cs_xtime, cs_ytime, cs_local_time, cs_iso_time, 
+                        cs_xformat, cs_yformat}},
         {LivePricesPlot, {cs_title, cs_xtitle, cs_ytitle, cs_line_height}}
     };
 
@@ -2006,9 +2008,7 @@ private:
             {cs_xforms, cdStrVec}
         }},
         {ShadedPlot, {
-            {cs_query_id, cdResultSet},
-            {cs_xname, cdStr},
-            {cs_yname, cdStr}
+            {cs_query_id, cdResultSet}
         }},
         {Window, {
             {cs_menu_bar, cdStrVec},    // optional
