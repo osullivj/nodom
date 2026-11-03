@@ -2178,17 +2178,21 @@ protected:
 
     void render_shaded_plot(WidgetPtr w) {
         const static char* method = "NDContext::render_shaded_plot: ";
-        static ImPlotShadedFlags default_shaded_plot_flags{ 0 };
 
         const char* title = cspec_string(cs_title, w->cspec_str, method);
 
         // See enum ImPlotShadedFlags: there is only default
         // enable cspec setting of shaded when there is a real choice
         // cspec_int(cs_shaded_plot_flags, w->cspec_int, &shaded_plot_flags);
-        int shaded_plot_flags = default_shaded_plot_flags;
-
-        // default height is -1: fit to container
-        sh_pl_vars.plot_size.y = -1;
+        int shaded_plot_flags = 0;
+                
+        sh_pl_vars.plot_size.y = -1;    // default height is -1: fit to container
+        sh_pl_vars.xtime = false;       // assume X axis not time/data
+        sh_pl_vars.ytime = false;       // assume Y axis not time/data
+        sh_pl_vars.local_time = false;  // local tz
+        sh_pl_vars.iso_time = false;    // use US style middle endian date fmt
+        sh_pl_vars.xformat = nullptr;   // eg "$%.2f" for 2DP
+        sh_pl_vars.yformat = nullptr;   // eg "$%.2f" for 2DP
 
         // if plot has cspec:line_height then fixed height
         sh_pl_vars.line_height = 10;
@@ -2199,6 +2203,12 @@ protected:
         cspec_bool(cs_show_lines, w->cspec_bool, &sh_pl_vars.show_lines);
         cspec_bool(cs_show_fills, w->cspec_bool, &sh_pl_vars.show_fills);
         cspec_bool(cs_show_scatter, w->cspec_bool, &sh_pl_vars.show_scatter);
+        cspec_bool(cs_xtime, w->cspec_bool, &sh_pl_vars.xtime);
+        cspec_bool(cs_ytime, w->cspec_bool, &sh_pl_vars.ytime);
+        cspec_bool(cs_local_time, w->cspec_bool, &sh_pl_vars.local_time);
+        cspec_bool(cs_iso_time, w->cspec_bool, &sh_pl_vars.iso_time);
+        sh_pl_vars.xformat = (char*)cspec_string(cs_xformat, w->cspec_str, nullptr);
+        sh_pl_vars.yformat = (char*)cspec_string(cs_yformat, w->cspec_str, nullptr);
 
         DataRef* result_set_data_ref = cspec_data_ref(cs_query_id, w);
         assert(result_set_data_ref != nullptr);
@@ -2231,6 +2241,20 @@ protected:
             ImPlot::SetupAxes(x_col_name, y_col_name, ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_AutoFit);
             ImPlot::SetupAxesLimits(sh_pl_vars.xmin_dbl, sh_pl_vars.xmax_dbl,
                                         sh_pl_vars.ymin_dbl, sh_pl_vars.ymax_dbl);
+
+            if (sh_pl_vars.xtime)
+                ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Time);
+            if (sh_pl_vars.ytime)
+                ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_Time);
+            if (sh_pl_vars.local_time)
+                ImPlot::GetStyle().UseLocalTime = true;
+            if (sh_pl_vars.iso_time)
+                ImPlot::GetStyle().UseISO8601 = true;
+            if (sh_pl_vars.xformat != nullptr)
+                ImPlot::SetupAxisFormat(ImAxis_X1, sh_pl_vars.xformat);
+            if (sh_pl_vars.yformat != nullptr)
+                ImPlot::SetupAxisFormat(ImAxis_Y1, sh_pl_vars.yformat);
+
             if (sh_pl_vars.show_fills) {
                 sh_pl_vars.spec.Flags = shaded_plot_flags;
                 sh_pl_vars.spec.FillAlpha = 0.25f;
