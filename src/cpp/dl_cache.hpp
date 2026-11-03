@@ -2008,7 +2008,9 @@ private:
             {cs_xforms, cdStrVec}
         }},
         {ShadedPlot, {
-            {cs_query_id, cdResultSet}
+            {cs_query_id, cdResultSet},
+            {cs_xname, cdStr},
+            {cs_yname, cdStr}
         }},
         {Window, {
             {cs_menu_bar, cdStrVec},    // optional
