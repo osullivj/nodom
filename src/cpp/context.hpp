@@ -2255,6 +2255,9 @@ protected:
             if (sh_pl_vars.yformat != nullptr)
                 ImPlot::SetupAxisFormat(ImAxis_Y1, sh_pl_vars.yformat);
 
+            ImPlot::SetupAxisLimits(ImAxis_X1, sh_pl_vars.xmin_dbl, sh_pl_vars.xmax_dbl /*, ImGuiCond_Always */);
+            ImPlot::SetupAxisLimits(ImAxis_Y1, sh_pl_vars.xmin_dbl, sh_pl_vars.xmax_dbl);
+
             if (sh_pl_vars.show_fills) {
                 sh_pl_vars.spec.Flags = shaded_plot_flags;
                 sh_pl_vars.spec.FillAlpha = 0.25f;
