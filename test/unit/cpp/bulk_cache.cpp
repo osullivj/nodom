@@ -8,6 +8,8 @@
 
 using BulkCache_t = BBDuckDBCache;
 
+// you need pq_server running for this one
+// TODO: mv to test/int/cpp
 
 struct BulkCacheFixture {
     BulkCache_t bulk;
