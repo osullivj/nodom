@@ -221,6 +221,7 @@ EXF_LAYOUT = [
                     title="depth",
                     show_lines=True,
                     show_fills=True,
+                    show_scatter=False,
                     xname="xaxis",
                     yname="yaxis",
                     query_id=SELECT_QID,
