@@ -1636,7 +1636,7 @@ public:
             // result set...
             WasmChunk& last_chunk{ chunk_vector.back() };
             uint32_t* chunk_ptr{ reinterpret_cast<uint32_t*>(last_chunk.addr) };
-            if (chunk_ptr) {
+            if (chunk_ptr != nullptr && *chunk_ptr) {   // if done flag set in last chunk
                 chunk_vector.clear();
             }
         }
