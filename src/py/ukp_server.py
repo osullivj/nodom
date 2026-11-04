@@ -196,16 +196,18 @@ SELECT_SQL = "select * from prices;"
 # DuckDB's csv sniffer defaults all int to BIGINT
 # we have DuckDB-WASM configged to avoid BIGINT, so
 # we get double instead. So here we spec for INTEGER,
-# which will be 32bit on wasm
+# for type,is_new,duration. Since price and date
+# are numerical we'll let them dflt to DOUBLE, which
+# suits ImPlot. ImPlot time axes use a 1 sec unit,
+# and UKP is in days, so we *86400
 SCHEMA = {
-    'price':'INTEGER',
-    'date':'INTEGER',
     'type':'INTEGER',
     'is_new': 'INTEGER',
     'duration': 'INTEGER'
 }
 table_sql = """BEGIN; CREATE TABLE IF NOT EXISTS prices AS
-SELECT * FROM read_csv_auto(
+SELECT price, date*86400.0 as udate, postcode1, postcode2, type, is_new, duration,
+  addr1, addr2, street, locality, town, district, county  FROM read_csv_auto(
     'https://datasets-documentation.s3.eu-west-3.amazonaws.com/uk-house-prices/csv/house_prices.csv.gz', types={}); commit;"""
 TABLE_SQL = table_sql.format(SCHEMA)
 
@@ -260,7 +262,7 @@ UKP_DATA = dict(
     mem_edit_addr=0,
     mem_edit_size=0,
     mem_edit_text="Memory Editor",
-    xaxis="date",
+    xaxis="udate",
     yaxis="price",
     actions={
         f"{CHART_BUTTON_ID}.Click": [
