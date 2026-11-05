@@ -2193,6 +2193,7 @@ protected:
         sh_pl_vars.iso_time = false;    // use US style middle endian date fmt
         sh_pl_vars.xformat = nullptr;   // eg "$%.2f" for 2DP
         sh_pl_vars.yformat = nullptr;   // eg "$%.2f" for 2DP
+        sh_pl_vars.xscaling = nullptr;
 
         // if plot has cspec:line_height then fixed height
         sh_pl_vars.line_height = 10;
@@ -2200,6 +2201,7 @@ protected:
             sh_pl_vars.plot_size.y = ImGui::GetTextLineHeight() * sh_pl_vars.line_height;
         }
 
+        // now we get hold of value cspecs
         cspec_bool(cs_show_lines, w->cspec_bool, &sh_pl_vars.show_lines);
         cspec_bool(cs_show_fills, w->cspec_bool, &sh_pl_vars.show_fills);
         cspec_bool(cs_show_scatter, w->cspec_bool, &sh_pl_vars.show_scatter);
@@ -2210,6 +2212,7 @@ protected:
         sh_pl_vars.xformat = (char*)cspec_string(cs_xformat, w->cspec_str, nullptr);
         sh_pl_vars.yformat = (char*)cspec_string(cs_yformat, w->cspec_str, nullptr);
 
+        // now the addr cspecs
         DataRef* result_set_data_ref = cspec_data_ref(cs_query_id, w);
         assert(result_set_data_ref != nullptr);
         const char* query_id = data_lay_cache.get_string_value(result_set_data_ref->addr_inx);
@@ -2227,10 +2230,15 @@ protected:
         StrInx yinx{ y_data_ref->ref_inx };
         const char* y_col_name = data_lay_cache.get_string_value(yinx);
 
+        // does the X axis have a scale factor?
+        DataRef* xscaling_data_ref = cspec_data_ref(cs_xscaling, w);
+        DoubleInx dinx{ xscaling_data_ref->ref_inx };
+        sh_pl_vars.xscaling = data_lay_cache.get_double_value(dinx);
+
         // get ranges from bulk cache
         // TODO: memoize the range in a ShadedPlotContext
-        if (!bulk.get_min_max(handle, x_col_name, sh_pl_vars.xmin_dbl, sh_pl_vars.xmax_dbl) ||
-            !bulk.get_min_max(handle, y_col_name, sh_pl_vars.ymin_dbl, sh_pl_vars.ymax_dbl))
+        if (!bulk.get_min_max(handle, x_col_name, sh_pl_vars.xmin_dbl, sh_pl_vars.xmax_dbl, sh_pl_vars.xscaling) ||
+            !bulk.get_min_max(handle, y_col_name, sh_pl_vars.ymin_dbl, sh_pl_vars.ymax_dbl, nullptr))
             return;
 
         sh_pl_vars.row_count = bulk.get_row_count(handle);
@@ -2262,30 +2270,30 @@ protected:
                 sh_pl_vars.spec.Flags = shaded_plot_flags;
                 sh_pl_vars.spec.FillAlpha = 0.25f;
                 range = bulk.init_xy_range(handle, x_col_name, y_col_name, sh_pl_vars.offset, sh_pl_vars.row_count);
-                range = bulk.next_xy_range(range);
+                range = bulk.next_xy_range(range, sh_pl_vars.xscaling);
                 while (range != nullptr) {
                     ImPlot::PlotShaded(title, range->xdata, range->ydata, range->plot_count, range->ydata[0], sh_pl_vars.spec);
-                    range = bulk.next_xy_range(range);
+                    range = bulk.next_xy_range(range, sh_pl_vars.xscaling);
                 }
             }
             // Lines on top of fills
             if (sh_pl_vars.show_lines) {
                 sh_pl_vars.spec.Flags = shaded_plot_flags;
                 range = bulk.init_xy_range(handle, x_col_name, y_col_name, sh_pl_vars.offset, sh_pl_vars.row_count);
-                range = bulk.next_xy_range(range);
+                range = bulk.next_xy_range(range, sh_pl_vars.xscaling);
                 while (range != nullptr) {
                     ImPlot::PlotLine(title, range->xdata, range->ydata, range->plot_count);
-                    range = bulk.next_xy_range(range);
+                    range = bulk.next_xy_range(range, sh_pl_vars.xscaling);
                 }
             }
             // Scatter on top of lines
             if (sh_pl_vars.show_scatter) {
                 sh_pl_vars.spec.Flags = shaded_plot_flags;
                 range = bulk.init_xy_range(handle, x_col_name, y_col_name, sh_pl_vars.offset, sh_pl_vars.row_count);
-                range = bulk.next_xy_range(range);
+                range = bulk.next_xy_range(range, sh_pl_vars.xscaling);
                 while (range != nullptr) {
                     ImPlot::PlotScatter(title, range->xdata, range->ydata, range->plot_count);
-                    range = bulk.next_xy_range(range);
+                    range = bulk.next_xy_range(range, sh_pl_vars.xscaling);
                 }
             }
             ImPlot::EndPlot();
@@ -2625,7 +2633,7 @@ protected:
             // now we ask bulk cache for the addr and size of the col
             Range* range = bulk.init_range(mem_edit_vars.handle,
                 col_names[mem_edit_vars.col_inx].c_str(), 0, CHUNK_SIZE);
-            range = bulk.next_range(range);
+            range = bulk.next_range(range, nullptr);
             if (range == nullptr) {
                 // bulk cache cannot give us a range for this col type
                 // bailing here means render_memory_editor() will see previous
