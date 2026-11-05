@@ -1092,7 +1092,7 @@ public:
     }
 
     // NB implot works in doubles, even when our underlying is int
-    bool get_min_max(RSHandle handle, const char* col_name, double& min, double& max) {
+    bool get_min_max(RSHandle handle, const char* col_name, double& min, double& max, double* scale) {
         WasmChunkVec* wcv = reinterpret_cast<WasmChunkVec*>(handle);
         if (wcv == nullptr)
             return false;
@@ -1134,8 +1134,14 @@ public:
             if (!min_max_initialized) {
                 switch (colm_type) {
                 case wdtFloat:
-                    min = dbldata[0];
-                    max = dbldata[0];
+                    if (scale == nullptr) {
+                        min = dbldata[0];
+                        max = dbldata[0];
+                    }
+                    else {
+                        min = *scale * dbldata[0];
+                        max = *scale * dbldata[0];
+                    }
                     break;
                 case wdtInt:
                     min = static_cast<double>(idata[0]);
@@ -1147,10 +1153,18 @@ public:
             for (int inx = 0; inx < this_chunk_row_count; inx++) {
                 switch (colm_type) {
                 case wdtFloat:
-                    if (dbldata[inx] > max)
-                        max = dbldata[inx];
-                    if (dbldata[inx] < min)
-                        min = dbldata[inx];
+                    if (scale == nullptr) {
+                        if (dbldata[inx] > max)
+                            max = dbldata[inx];
+                        if (dbldata[inx] < min)
+                            min = dbldata[inx];
+                    }
+                    else {
+                        if (*scale * dbldata[inx] > max)
+                            max = *scale * dbldata[inx];
+                        if (*scale * dbldata[inx] < min)
+                            min = *scale * dbldata[inx];
+                    }
                     break;
                 case wdtInt:
                     if (static_cast<double>(idata[inx]) > max)
@@ -1216,7 +1230,7 @@ public:
         return &range;
     }
 
-    Range* next_range(Range* range) {
+    Range* next_range(Range* range, double* scale) {
         static double_t dbl_buf[CHUNK_SIZE];
 
         if (range == nullptr || range->bob == nullptr)
@@ -1234,6 +1248,8 @@ public:
         }
 
         WasmChunkVec& bob{ *range->bob };
+        if (!(range->chunk_index < bob.size()) || bob.empty())
+            return nullptr;
         WasmChunk chunk = bob[range->chunk_index];
         uint32_t* chunk_ptr = reinterpret_cast<uint32_t*>(chunk.addr);
         uint32_t this_chunk_sz = chunk_ptr[2];
@@ -1267,6 +1283,11 @@ public:
         switch (range->col_type) {
         case wdtFloat:
             range->dbldata += range->chunk_offset;
+            if (scale != nullptr) {
+                for (uint32_t i = 0; i < range->edit_count; i++)
+                    dbl_buf[i] = *scale * range->dbldata[i];
+                range->dbldata = dbl_buf;
+            }
             break;
         case wdtInt:
             range->idata += range->chunk_offset;
@@ -1283,7 +1304,7 @@ public:
         return range;
     }
 
-    XYRange* next_xy_range(XYRange* range) {
+    XYRange* next_xy_range(XYRange* range, double* xscale) {
         static double_t dbl_buf[CHUNK_SIZE];
 
         if (range == nullptr || range->bob == nullptr)
@@ -1304,6 +1325,8 @@ public:
         }
 
         WasmChunkVec& bob{ *range->bob };
+        if (!(range->chunk_index < bob.size()) || bob.empty())
+            return nullptr;
         WasmChunk chunk{ bob[range->chunk_index] };
         uint32_t* chunk_ptr = reinterpret_cast<uint32_t*>(chunk.addr);
 
@@ -1336,6 +1359,12 @@ public:
         switch (range->xcol_type) {
         case wdtFloat:
             range->xdata += range->chunk_offset;
+            if (xscale != nullptr) {
+                // not returning raw doubles...
+                for (uint32_t i = 0; i < range->plot_count; i++)
+                    dbl_buf[i] = *xscale * range->xdata[i];
+                range->xdata = dbl_buf;
+            }
             break;
         case wdtInt:
             range->idata += range->chunk_offset;
