@@ -200,7 +200,7 @@ SELECT_SQL = "select * from prices;"
 # for type,is_new,duration. Since price and date
 # are numerical we'll let them dflt to DOUBLE, which
 # suits ImPlot. ImPlot time axes use a 1 sec unit,
-# and UKP is in days, so we *86400
+# and UKP is in days, so we *86400 in widget scaling
 SCHEMA = {
     'price':'DOUBLE',
     'date':'DOUBLE',
@@ -208,11 +208,12 @@ SCHEMA = {
     'is_new': 'INTEGER',
     'duration': 'INTEGER'
 }
-# SELECT price, (date*86400)::DOUBLE as udate, postcode1, postcode2, type, is_new, duration,
-# addr1, addr2, street, locality, town, district, county FROM read_csv_auto(
+# note the where clause in table_sql: we only want rows
+# free of NULL in critical fields.
 table_sql = """BEGIN; CREATE TABLE IF NOT EXISTS prices AS
- SELECT * FROM read_csv_auto(
-'https://datasets-documentation.s3.eu-west-3.amazonaws.com/uk-house-prices/csv/house_prices.csv.gz', types={}); commit;"""
+ SELECT price, date, postcode1, postcode2, type, is_new, duration, addr1, addr2
+ FROM read_csv_auto('https://datasets-documentation.s3.eu-west-3.amazonaws.com/uk-house-prices/csv/house_prices.csv.gz', types={})
+ WHERE COLUMNS('[price|date|postcode?|addr?]') IS NOT NULL;COMMIT;"""
 TABLE_SQL = table_sql.format(SCHEMA)
 
 LAUNCH_TABLE = dict(  # raise scanning modal, send scan request to DuckDB
