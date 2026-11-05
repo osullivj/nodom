@@ -480,6 +480,7 @@ enum CacheSpecifier : uint32_t {
     cs_format,              // render_input_double
     cs_formats,             // render_live_table fmtlib fmts
     cs_xforms,              // render_live_table transforms
+    cs_xscaling,
     cs_flags,
     cs_table_flags,
     cs_combo_flags,
