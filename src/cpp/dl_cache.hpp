@@ -1636,6 +1636,7 @@ public:
         case cs_menu_pop:
         case cs_tooltip:
         case cs_disabled:
+        case cs_xscaling:
             return true;
         default:
             return false;
@@ -1811,6 +1812,7 @@ private:
         Static::format_cs,
         Static::formats_cs,
         Static::xforms_cs,
+        Static::xscaling_cs,
         Static::flags_cs,      // cs_flags
         Static::table_flags_cs,      // cs_table_flags
         Static::combo_flags_cs,      // cs_combo_flags
@@ -1880,6 +1882,7 @@ private:
         cdStr,      // cs_format
         cdStrVec,   // cs_formats
         cdStrVec,   // cs_xforms
+        cdFloat,    // cs_xscaling
         cdInt,      // cs_flags
         cdInt,      // cs_table_flags
         cdInt,      // cs_combo_flags
@@ -2010,7 +2013,8 @@ private:
         {ShadedPlot, {
             {cs_query_id, cdResultSet},
             {cs_xname, cdStr},
-            {cs_yname, cdStr}
+            {cs_yname, cdStr},
+            {cs_xscaling, cdFloat}
         }},
         {Window, {
             {cs_menu_bar, cdStrVec},    // optional
