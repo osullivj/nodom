@@ -184,6 +184,7 @@ UKP_LAYOUT = [
                     local_time=True,
                     query_id="select_prices",
                     xname="xaxis",
+                    xscaling="xscale",
                     yname="yaxis"
                 ),
             ),
@@ -201,14 +202,17 @@ SELECT_SQL = "select * from prices;"
 # suits ImPlot. ImPlot time axes use a 1 sec unit,
 # and UKP is in days, so we *86400
 SCHEMA = {
+    'price':'DOUBLE',
+    'date':'DOUBLE',
     'type':'INTEGER',
     'is_new': 'INTEGER',
     'duration': 'INTEGER'
 }
+# SELECT price, (date*86400)::DOUBLE as udate, postcode1, postcode2, type, is_new, duration,
+# addr1, addr2, street, locality, town, district, county FROM read_csv_auto(
 table_sql = """BEGIN; CREATE TABLE IF NOT EXISTS prices AS
-SELECT price, date*86400.0 as udate, postcode1, postcode2, type, is_new, duration,
-  addr1, addr2, street, locality, town, district, county  FROM read_csv_auto(
-    'https://datasets-documentation.s3.eu-west-3.amazonaws.com/uk-house-prices/csv/house_prices.csv.gz', types={}); commit;"""
+ SELECT * FROM read_csv_auto(
+'https://datasets-documentation.s3.eu-west-3.amazonaws.com/uk-house-prices/csv/house_prices.csv.gz', types={}); commit;"""
 TABLE_SQL = table_sql.format(SCHEMA)
 
 LAUNCH_TABLE = dict(  # raise scanning modal, send scan request to DuckDB
@@ -262,7 +266,8 @@ UKP_DATA = dict(
     mem_edit_addr=0,
     mem_edit_size=0,
     mem_edit_text="Memory Editor",
-    xaxis="udate",
+    xaxis="date",
+    xscale=86400.0,
     yaxis="price",
     actions={
         f"{CHART_BUTTON_ID}.Click": [
