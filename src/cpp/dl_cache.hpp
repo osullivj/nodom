@@ -1120,6 +1120,7 @@ protected:
             case cs_disabled:
             case cs_size:
             case cs_address:
+            case cs_xscaling:
                 data_ref = CreateDataRef(ref_type, amit->second(), data, addr_or_qid);
                 break;
             case cs_query_id:   // cdResultSet
@@ -1153,6 +1154,7 @@ protected:
                 case cs_disabled:
                 case cs_size:
                 case cs_address:
+                case cs_xscaling:
                     data_ref_map[data_ref.addr_inx] = data_ref;
                     break;
                 default:
@@ -1882,7 +1884,7 @@ private:
         cdStr,      // cs_format
         cdStrVec,   // cs_formats
         cdStrVec,   // cs_xforms
-        cdFloat,    // cs_xscaling
+        cdDouble,   // cs_xscaling
         cdInt,      // cs_flags
         cdInt,      // cs_table_flags
         cdInt,      // cs_combo_flags
@@ -2014,7 +2016,7 @@ private:
             {cs_query_id, cdResultSet},
             {cs_xname, cdStr},
             {cs_yname, cdStr},
-            {cs_xscaling, cdFloat}
+            {cs_xscaling, cdDouble}
         }},
         {Window, {
             {cs_menu_bar, cdStrVec},    // optional
