@@ -229,7 +229,7 @@ public:
         return row_count;
     }
 
-    bool get_min_max(RSHandle handle, const char* col_name, double& min, double& max) {
+    bool get_min_max(RSHandle handle, const char* col_name, double& min, double& max, double* scale) {
         auto bob_iter = bobbin_map.find(handle);
         if (bob_iter == bobbin_map.end())
             return false;
@@ -238,6 +238,9 @@ public:
         int32_t col_inx = get_col_index(handle, col_name);
         idx_t chunk_sz{0};
         Bobbin& bob = bobbin_map.at(handle);
+        if (bob.empty())
+            return false;
+
         auto chunk_iter = bob.begin();
         duckdb_data_chunk chunk;
         // get type metadata for the colm vector and validities
@@ -261,8 +264,14 @@ public:
             if (!min_max_initialized) {
                 switch (colm_type) {
                 case DUCKDB_TYPE_DOUBLE:
-                    min = dbldata[0];
-                    max = dbldata[0];
+                    if (scale == nullptr) {
+                        min = dbldata[0];
+                        max = dbldata[0];
+                    }
+                    else {
+                        min = *scale * dbldata[0];
+                        max = *scale * dbldata[0];
+                    }
                     break;
                 case DUCKDB_TYPE_INTEGER:
                     min = static_cast<double>(idata[0]);
@@ -275,10 +284,18 @@ public:
                 if (duckdb_validity_row_is_valid(validities, inx)) {
                     switch (colm_type) {
                     case DUCKDB_TYPE_DOUBLE:
-                        if (dbldata[inx] > max)
-                            max = dbldata[inx];
-                        if (dbldata[inx] < min)
-                            min = dbldata[inx];
+                        if (scale == nullptr) {
+                            if (dbldata[inx] > max)
+                                max = dbldata[inx];
+                            if (dbldata[inx] < min)
+                                min = dbldata[inx];
+                        }
+                        else {
+                            if (*scale * dbldata[inx] > max)
+                                max = *scale * dbldata[inx];
+                            if (*scale * dbldata[inx] < min)
+                                min = *scale * dbldata[inx];
+                        }
                         break;
                     case DUCKDB_TYPE_INTEGER:
                         if (static_cast<double>(idata[inx]) > max)
@@ -350,7 +367,7 @@ public:
         return &range;
     }
 
-    Range* next_range(Range* range) {
+    Range* next_range(Range* range, double* xscale) {
         static double_t dbl_buf[CHUNK_SIZE];
 
         if (range == nullptr || range->bob == nullptr)
@@ -367,6 +384,8 @@ public:
             return nullptr;
         }
         Bobbin& bob{ *range->bob };
+        if (!(range->chunk_index < bob.size()) || bob.empty())
+            return nullptr;
         duckdb_data_chunk chunk{ bob[range->chunk_index] };
         idx_t this_chunk_sz = duckdb_data_chunk_get_size(chunk);
         idx_t available = this_chunk_sz - range->chunk_offset;
@@ -393,8 +412,16 @@ public:
         switch (range->col_type) {
             case DUCKDB_TYPE_DOUBLE:
                 range->dbldata += range->chunk_offset;
-                range->anydata = reinterpret_cast<char*>(range->dbldata);
                 range->mem_size = range->edit_count * 8;
+                if (xscale == nullptr) {
+                    range->anydata = reinterpret_cast<char*>(range->dbldata);
+                }
+                else {
+                    // not returning raw doubles...
+                    for (uint32_t i = 0; i < range->edit_count; i++)
+                        dbl_buf[i] = *xscale * range->dbldata[i];
+                    range->anydata = reinterpret_cast<char*>(dbl_buf);
+                }
                 break;
             case DUCKDB_TYPE_INTEGER:
                 range->idata += range->chunk_offset;
@@ -414,7 +441,7 @@ public:
         return range;
     }
 
-    XYRange* next_xy_range(XYRange* range) {
+    XYRange* next_xy_range(XYRange* range, double* xscale) {
         static double_t dbl_buf[CHUNK_SIZE];
 
         if (range == nullptr || range->bob == nullptr)
@@ -434,6 +461,8 @@ public:
             return nullptr;
         }
         Bobbin& bob{ *range->bob };
+        if (!(range->chunk_index < bob.size()) || bob.empty())
+            return nullptr;
         duckdb_data_chunk chunk{ bob[range->chunk_index] };
         idx_t this_chunk_sz = duckdb_data_chunk_get_size(chunk);
         idx_t available = this_chunk_sz - range->chunk_offset;
@@ -462,6 +491,12 @@ public:
         switch (range->xcol_type) {
         case DUCKDB_TYPE_DOUBLE:
             range->xdata += range->chunk_offset;
+            if (xscale != nullptr) {
+                // not returning raw doubles...
+                for (uint32_t i = 0; i < range->plot_count; i++)
+                    dbl_buf[i] = *xscale * range->xdata[i];
+                range->xdata = dbl_buf;
+            }
             break;
         case DUCKDB_TYPE_INTEGER:
             range->idata += range->chunk_offset;
@@ -635,7 +670,7 @@ public:
             buffer = (char*)Static::space_cs;
             return nullptr;
         }
-        duckdb_data_chunk chunk{bob[chunk_index]};
+        duckdb_data_chunk& chunk{bob[chunk_index]};
         duckdb_vector colm = duckdb_data_chunk_get_vector(chunk, colm_index);
         uint64_t* validities = duckdb_vector_get_validity(colm);
         // In most cases we'll copy into string_buffer, or
@@ -1458,7 +1493,6 @@ public:
                 WasmDuckType tipe{ static_cast<int32_t>(chunk_ptr[3 + i]) };
                 tipes.push_back(tipe);
             }
-
             // wind past the colm addrs
             chunk_ptr += 3 + (2 * colm_count);
             // After types we have column names
@@ -1479,19 +1513,6 @@ public:
 
     const char* get_datum(RSHandle handle, std::uint32_t colm_index, std::uint32_t row_index) {
         const static char* method = "DuckDBWebCache::get_datum: ";
-        /*
-        static std::map<WasmDuckType, int64_t>  timestamp_scale_map{
-            {wdtTimestamp_s, 1},
-            {wdtTimestamp_ms, 1e3},
-            {wdtTimestamp_us, 1e6},
-            {wdtTimestamp_ns, 1e9}
-        };
-        static std::map<WasmDuckType, const char*> timestamp_dec_fmt_map{
-            {wdtTimestamp_s, nullptr},
-            {wdtTimestamp_ms, "%03.3f"},
-            {wdtTimestamp_us, "%06.6f"},
-            {wdtTimestamp_ns, "%09.9f"}
-        }; */
         static int error_count{ 0 };
 
         WasmChunkVec* wcv = reinterpret_cast<WasmChunkVec*>(handle);
