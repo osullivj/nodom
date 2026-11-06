@@ -124,9 +124,15 @@ class Service(object):
         # websock event notification
         pass
 
-    def on_api_request(self, request, json_key):
+    def on_api_request(self, json_key):
         # invoked by JSONHandler: used to get layout or data
         return json.dumps(self.cache.get(json_key))
+
+    def on_dump(self, app_key):
+        for sub in ["data", "layout"]:
+            file_name = "%s_%s.json" % (app_key, sub)
+            with open(file_name, "wt") as jfile:
+                jfile.write(self.on_api_request(sub))
 
     def on_duck_journal_request(self, client_uuid):
         # invoked by DuckJournalHandler: used to log DB ops

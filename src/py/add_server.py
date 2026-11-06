@@ -133,7 +133,7 @@ class AdditionService(nd_utils.Service):
             return [change]
         return []
 
-    def on_api_request(self, req, jkey):
+    def on_api_request(self, jkey):
         # nodom client url: https://localhost/api/fdec1/<N>
         elements = jkey.split('/')
         slug = elements[0]

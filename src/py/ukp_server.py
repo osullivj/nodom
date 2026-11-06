@@ -303,6 +303,7 @@ class PropertyService(nd_utils.Service):
 service = PropertyService(NDAPP, UKP_LAYOUT, UKP_DATA, True)
 
 define("port", default=8890, help="run on the given port", type=int)
+define("dump", default=False, help="dump JSON to FS", type=bool)
 
 async def http_main():
     app = nd_web.NDApp(service, [])
@@ -310,16 +311,16 @@ async def http_main():
     logr.info(f"{NDAPP} port:{options.port}")
     await asyncio.Event().wait()
 
+# ssl helpers
+cert_path = os.path.normpath(os.path.join(nd_consts.ND_ROOT_DIR, "cfg"))
+ssl_options={
+    "certfile": os.path.join(cert_path, "ssl_cert.pem"),
+    "keyfile": os.path.join(cert_path, "ssl_key.pem")
+}
+
 async def https_main():
-    cert_path = os.path.normpath(os.path.join(nd_consts.ND_ROOT_DIR, "cfg"))
     app = nd_web.NDApp(service, EXTRA_HANDLERS)
-    https_server = tornado.httpserver.HTTPServer(
-        app,
-        ssl_options={
-            "certfile": os.path.join(cert_path, "ssl_cert.pem"),
-            "keyfile": os.path.join(cert_path, "ssl_key.pem"),
-        },
-    )
+    https_server = tornado.httpserver.HTTPServer(app,ssl_options)
     https_server.listen(options.port)
     logr.info(f"{NDAPP} port:{options.port} cert_path:{cert_path}")
     await asyncio.Event().wait()
@@ -327,7 +328,10 @@ async def https_main():
 
 if __name__ == "__main__":
     parse_command_line()
-    if options.port == 443:
-        asyncio.run(https_main())
+    if options.dump:
+        data_json = service.on_dump("ukp")
     else:
-        asyncio.run(http_main())
+        if options.port == 443:
+            asyncio.run(https_main())
+        else:
+            asyncio.run(http_main())
