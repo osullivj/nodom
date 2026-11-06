@@ -66,6 +66,7 @@ private:
     std::queue<JSON>            server_responses;
     DB&                         bulk;
     bool                        connected{ false };
+    bool                        no_websock{false};
 
     // websock data members: diff impls for 
     // websockpp on win32, and emscripten's own
@@ -85,16 +86,19 @@ public:
                                     :ctx(c), bulk(blk) {
         NDConfig<JSON>& cfg{ NDConfig<JSON>::get_instance() };
         cfg.get_value(Static::server_url_cs, uri);
+        cfg.get_value(Static::no_websock_cs, no_websock);
 #ifdef __EMSCRIPTEN__
         ws_attrs.url = uri.c_str();
-        ws_handle = emscripten_websocket_new(&ws_attrs);
-        // ems callbacks require standalone C style funcs, so we
-        // pass this ptr as userData param so our callbacks
-        // can redispatch to NDWebSockClient member methods.
-        emscripten_websocket_set_onopen_callback(ws_handle, this, sa_ems_on_open);
-        emscripten_websocket_set_onerror_callback(ws_handle, this, sa_ems_on_error);
-        emscripten_websocket_set_onclose_callback(ws_handle, this, sa_ems_on_close);
-        emscripten_websocket_set_onmessage_callback(ws_handle, this, sa_ems_on_message);
+        if (!no_websock) {
+            ws_handle = emscripten_websocket_new(&ws_attrs);
+            // ems callbacks require standalone C style funcs, so we
+            // pass this ptr as userData param so our callbacks
+            // can redispatch to NDWebSockClient member methods.
+            emscripten_websocket_set_onopen_callback(ws_handle, this, sa_ems_on_open);
+            emscripten_websocket_set_onerror_callback(ws_handle, this, sa_ems_on_error);
+            emscripten_websocket_set_onclose_callback(ws_handle, this, sa_ems_on_close);
+            emscripten_websocket_set_onmessage_callback(ws_handle, this, sa_ems_on_message);
+        }
 #else
         client.set_access_channels(websocketpp::log::alevel::all);
         client.clear_access_channels(websocketpp::log::alevel::frame_payload);
