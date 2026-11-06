@@ -277,6 +277,7 @@ struct Static {
 	inline static const char* context_menupop_id{"##menupop"};
 	inline static const char* imlog_cs{ "imlog" };
 	inline static const char* unk_cs{ "unk" };
+	inline static const char* no_websock_cs{ "no_websock" };
 
 	// LiveTable timestamp transforms
 	inline static const char* secs_cs{ "secs" };
