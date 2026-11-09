@@ -1,5 +1,5 @@
 # nodom
-NoDOM High Performance Web GUI
+NoDOM Low Latency WASM Dashboard Framework
 
 - Implemented in Data Oriented Modern C++
 - Builds on highly performant GameDev tech
@@ -8,7 +8,7 @@ NoDOM High Performance Web GUI
 - Declarative JSON GUI served to WASM client by websocket
 - Scrapeproof: WebGL based GUI uses GPU rendering
 - No emscripten::val roundtrips on the render hotpath
-- Designed for the trading floor: performance over presentation
+- Designed for the trading floor: minumum latency from tick to chart
 
 # Getting started
 - [Why NoDOM?](https://github.com/osullivj/nodom/wiki/Why-NoDOM%3F)
