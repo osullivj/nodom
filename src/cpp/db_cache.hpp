@@ -207,7 +207,7 @@ public:
 
     // GUI thread methods for accessing the data
     RSHandle get_handle(const std::string& qid) {
-        static const char* method = "DuckDBCache::get_handle: ";
+        static const char* method = "BBDuckDBCache::get_handle: ";
         auto res_iter = result_map.find(qid);
         if (res_iter != result_map.end()) {
             RSHandle handle = reinterpret_cast<std::uint64_t>(&(res_iter->second));
@@ -776,7 +776,7 @@ public:
     }
 
     void get_db_responses(std::queue<nlohmann::json>& responses) {
-        static const char* method = "DBCache::get_db_responses: ";
+        static const char* method = "BBDuckDBCache::get_db_responses: ";
         boost::unique_lock<boost::mutex> from_lock(result_mutex);
         db_results.swap(responses);
         if (!responses.empty()) {
@@ -785,7 +785,7 @@ public:
     }
 
     void db_dispatch(nlohmann::json& db_request) {
-        const static char* method = "DBCache::db_dispatch: ";
+        const static char* method = "BBDuckDBCache::db_dispatch: ";
         std::cout << method << db_request << std::endl;
         try {
             // grab lock for this Q: should be free as ::duck_loop should be in to_cond.wait()
@@ -802,10 +802,12 @@ public:
     void set_done(bool d) { done = d; }
 
     void add_result_set(const std::string& query_id, duckdb_result dbresult) {
+        const static char* method = "BBDuckDBCache::add_result_set: ";
         // check if we've run this query before; if so we need to 
         // release DuckDB C API resources like the the result obj 
         // and the chunks
         if (result_map.find(query_id) != result_map.end()) {
+            std::cerr << method << "DBRELEASE: " << query_id << std::endl;
             RSHandle h = get_handle(query_id);
             // Just cos the handle exists, doesn't mean bobbin_map[h]
             // exists yet. Handle exists from query dispatch; but
@@ -813,6 +815,7 @@ public:
             // result hits
             if (bobbin_map.find(h) != bobbin_map.end()) {
                 Bobbin& bob{ bobbin_map.at(h) };
+                std::cerr << method << "DBRELEASE: " << bob.size() << " chunks" << std::endl;
                 for (int i = 0; i < bob.size(); i++) {
                     duckdb_destroy_data_chunk(&(bob[i]));
                 }
@@ -888,7 +891,7 @@ public:
     }
 
     void db_loop() {
-        static const char* method = "DuckDBCache::db_loop: ";
+        static const char* method = "BBDuckDBCache::db_loop: ";
 
         std::cout << method << "starting..." << std::endl;
         if (!db_init()) {
@@ -1541,7 +1544,7 @@ public:
     }
 
     const char* get_datum(RSHandle handle, std::uint32_t colm_index, std::uint32_t row_index) {
-        const static char* method = "DuckDBWebCache::get_datum: ";
+        const static char* method = "WebDuckDBCache::get_datum: ";
         static int error_count{ 0 };
 
         WasmChunkVec* wcv = reinterpret_cast<WasmChunkVec*>(handle);
@@ -1649,6 +1652,8 @@ public:
     void set_done(bool) { }
 
     void add_result_set(const std::string& query_id) {
+        const static char* method = "WebDuckDBCache::add_result_set: ";
+
         RSHandle h = get_handle(query_id);
         selected_row_map[h] = -1;
         selection_col_map[h] = -1;
