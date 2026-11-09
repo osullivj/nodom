@@ -177,5 +177,6 @@ struct ShadedPlotLocals {
     double      ymax_dbl{ 0.0 };
     double*     xscaling{ nullptr };
     uint32_t    row_count{ 0 };
+    uint32_t    col_count{ 0 };
     uint32_t    offset{ 0 };
 };
