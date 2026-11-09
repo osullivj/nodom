@@ -2235,13 +2235,15 @@ protected:
         DoubleInx dinx{ xscaling_data_ref->ref_inx };
         sh_pl_vars.xscaling = data_lay_cache.get_double_value(dinx);
 
-        // get ranges from bulk cache
-        // TODO: memoize the range in a ShadedPlotContext
+        // get ranges from bulk cache: we call get_meta_data() first to
+        // prime metadata cache as does render_bulk_table().
+        if (!bulk.get_meta_data(handle, sh_pl_vars.col_count, sh_pl_vars.row_count))
+            return;
+
         if (!bulk.get_min_max(handle, x_col_name, sh_pl_vars.xmin_dbl, sh_pl_vars.xmax_dbl, sh_pl_vars.xscaling) ||
             !bulk.get_min_max(handle, y_col_name, sh_pl_vars.ymin_dbl, sh_pl_vars.ymax_dbl, nullptr))
             return;
 
-        sh_pl_vars.row_count = bulk.get_row_count(handle);
         sh_pl_vars.offset = 0;
 
         XYRange* range{ 0 };
