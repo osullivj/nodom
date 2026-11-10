@@ -182,6 +182,7 @@ enum RenderMethod : uint32_t {
     ShadedPlot,
     MemoryEditor,
     LivePricesPlot,
+    Curve,
     EndRenderMethod
 };
 
