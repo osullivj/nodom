@@ -807,7 +807,6 @@ public:
         // release DuckDB C API resources like the the result obj 
         // and the chunks
         if (result_map.find(query_id) != result_map.end()) {
-            std::cerr << method << "DBRELEASE: " << query_id << std::endl;
             RSHandle h = get_handle(query_id);
             // Just cos the handle exists, doesn't mean bobbin_map[h]
             // exists yet. Handle exists from query dispatch; but
@@ -839,13 +838,6 @@ public:
         selection_col_map[h] = -1;
         StrBuf& buf = selected_key_map[h];
         buf.reset();
-        /*
-        // LEAK: no free for this malloc, so we'll leak STR_BUF_LEN
-        // bytes for each query
-        char* buf = (char*)malloc(STR_BUF_LEN);
-        buf[0] = 0;
-        selected_key_map[h] = buf;
-        */
         // TODO: a registered lambda mechanism to callback when
         // add_result_set() fires. This will enable use to call
         // an NDContext method to wire up the exports
@@ -1058,8 +1050,8 @@ private:
     std::unordered_map<RSHandle, CESet>             dirty_map;
     std::unordered_map<RSHandle, uint32_t>          selected_row_map;  // only 1 selected row per RS
     std::unordered_map<RSHandle, uint32_t>          selection_col_map;  // only 1 selection col per RS
-    std::unordered_map<RSHandle, const char*>       selected_key_map;
-
+    // std::unordered_map<RSHandle, const char*>       selected_key_map;
+    std::unordered_map<RSHandle, StrBuf>            selected_key_map;
     // working storage for composing strings in get_datum
     char                                    string_buffer[STR_BUF_LEN];
     fmt::format_to_n_result<char*>          fmt_result;
@@ -1433,7 +1425,7 @@ public:
 
     const char* get_selected_key(RSHandle handle) {
         if (selected_key_map.find(handle) != selected_key_map.end()) {
-            return selected_key_map.at(handle);
+            return selected_key_map.at(handle).buf;
         }
         return nullptr;
     }
@@ -1443,7 +1435,7 @@ public:
         std::uint32_t* col = get_selection_col(handle);
 
         if (row != nullptr && col != nullptr) {
-            char* selected_key_buf = (char*)selected_key_map.at(handle);
+            char* selected_key_buf = (char*)selected_key_map.at(handle).buf;
             const char* endchar = get_datum(handle, *col, *row);
             if (endchar != nullptr) {
                 int slen = buffer - endchar;
@@ -1657,15 +1649,8 @@ public:
         RSHandle h = get_handle(query_id);
         selected_row_map[h] = -1;
         selection_col_map[h] = -1;
-        // LEAK: no free for this malloc, so we'll leak STR_BUF_LEN
-        // bytes for each query
-        char* buf = (char*)malloc(STR_BUF_LEN);
-        buf[0] = 0;
-        selected_key_map[h] = buf;
-
-        // TODO: a registered lambda mechanism to callback when
-        // add_result_set() fires. This will enable use to call
-        // an NDContext method to wire up the exports
+        StrBuf& buf = selected_key_map[h];
+        buf.reset();
     }
 
     // register with DBResultDispatcher at startup time
@@ -1692,6 +1677,7 @@ public:
             WasmChunk& last_chunk{ chunk_vector.back() };
             uint32_t* chunk_ptr{ reinterpret_cast<uint32_t*>(last_chunk.addr) };
             if (chunk_ptr != nullptr && *chunk_ptr) {   // if done flag set in last chunk
+                std::cerr << method << "DBRELEASE: " << qid << ", " << chunk_vector.size() << " chunks" << std::endl;
                 chunk_vector.clear();
             }
         }
