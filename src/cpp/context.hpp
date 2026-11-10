@@ -196,6 +196,8 @@ private:
     DatePickerLocals    dp_vars;
     SpinnerLocals       sp_vars;
     ShadedPlotLocals    sh_pl_vars;
+    ShadedPlotLocals    pl_cv_vars;
+    PlotHoverLocals     pl_hv_vars;
     TextAreaLocals      txt_area_vars;
     ComboLocals         combo_vars;
     LiveTableLocals     live_tbl_vars;
@@ -1094,6 +1096,9 @@ protected:
             break;
         case RenderMethod::Curve:
             render_curve(w);
+            break;
+        case RenderMethod::PlotHover:
+            render_plot_hover(w);
             break;
         default:
             // TODO: error
@@ -2218,20 +2223,21 @@ protected:
         // now the addr cspecs
         DataRef* result_set_data_ref = cspec_data_ref(cs_query_id, w);
         assert(result_set_data_ref != nullptr);
-        const char* query_id = data_lay_cache.get_string_value(result_set_data_ref->addr_inx);
-        RSHandle handle = bulk.get_handle(query_id);
+        sh_pl_vars.query_id = (char*)data_lay_cache.get_string_value(result_set_data_ref->addr_inx);
+        sh_pl_vars.handle = bulk.get_handle(sh_pl_vars.query_id);
 
         DataRef* x_data_ref = cspec_data_ref(cs_xname, w);
         DataRef* y_data_ref = cspec_data_ref(cs_yname, w);
         assert(x_data_ref != nullptr);
         assert(y_data_ref != nullptr);
 
-        StrInx xinx{ x_data_ref->ref_inx };
-        const char* x_col_name = data_lay_cache.get_string_value(xinx);
+        // StrInx xinx{ x_data_ref->ref_inx };
+        sh_pl_vars.x_col_name = (char*)data_lay_cache.get_string_value(StrInx(x_data_ref->ref_inx));
 
         // TODO: extend for multiple y plots
-        StrInx yinx{ y_data_ref->ref_inx };
-        const char* y_col_name = data_lay_cache.get_string_value(yinx);
+        // StrInx yinx{ y_data_ref->ref_inx };
+        // const char* y_col_name = data_lay_cache.get_string_value(yinx);
+        sh_pl_vars.y_col_name = (char*)data_lay_cache.get_string_value(StrInx(y_data_ref->ref_inx));
 
         // does the X axis have a scale factor?
         DataRef* xscaling_data_ref = cspec_data_ref(cs_xscaling, w);
@@ -2240,18 +2246,21 @@ protected:
 
         // get ranges from bulk cache: we call get_meta_data() first to
         // prime metadata cache as does render_bulk_table().
-        if (!bulk.get_meta_data(handle, sh_pl_vars.col_count, sh_pl_vars.row_count))
+        if (!bulk.get_meta_data(sh_pl_vars.handle, sh_pl_vars.col_count, sh_pl_vars.row_count))
             return;
 
-        if (!bulk.get_min_max(handle, x_col_name, sh_pl_vars.xmin_dbl, sh_pl_vars.xmax_dbl, sh_pl_vars.xscaling) ||
-            !bulk.get_min_max(handle, y_col_name, sh_pl_vars.ymin_dbl, sh_pl_vars.ymax_dbl, nullptr))
+        if (!bulk.get_min_max(sh_pl_vars.handle, sh_pl_vars.x_col_name,
+                sh_pl_vars.xmin_dbl, sh_pl_vars.xmax_dbl, sh_pl_vars.xscaling) ||
+            !bulk.get_min_max(sh_pl_vars.handle, sh_pl_vars.y_col_name, 
+                sh_pl_vars.ymin_dbl, sh_pl_vars.ymax_dbl, nullptr))
             return;
 
         sh_pl_vars.offset = 0;
 
         XYRange* range{ 0 };
         if (ImPlot::BeginPlot(title, sh_pl_vars.plot_size)) {
-            ImPlot::SetupAxes(x_col_name, y_col_name, ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_AutoFit);
+            ImPlot::SetupAxes(sh_pl_vars.x_col_name, sh_pl_vars.y_col_name,
+                                ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_AutoFit);
             ImPlot::SetupAxesLimits(sh_pl_vars.xmin_dbl, sh_pl_vars.xmax_dbl,
                                         sh_pl_vars.ymin_dbl, sh_pl_vars.ymax_dbl);
 
@@ -2274,7 +2283,7 @@ protected:
             if (sh_pl_vars.show_fills) {
                 sh_pl_vars.spec.Flags = shaded_plot_flags;
                 sh_pl_vars.spec.FillAlpha = 0.25f;
-                range = bulk.init_xy_range(handle, x_col_name, y_col_name, sh_pl_vars.offset, sh_pl_vars.row_count);
+                range = bulk.init_xy_range(sh_pl_vars.handle, sh_pl_vars.x_col_name, sh_pl_vars.y_col_name, sh_pl_vars.offset, sh_pl_vars.row_count);
                 range = bulk.next_xy_range(range, sh_pl_vars.xscaling);
                 while (range != nullptr) {
                     ImPlot::PlotShaded(title, range->xdata, range->ydata, range->plot_count, range->ydata[0], sh_pl_vars.spec);
@@ -2284,7 +2293,7 @@ protected:
             // Lines on top of fills
             if (sh_pl_vars.show_lines) {
                 sh_pl_vars.spec.Flags = shaded_plot_flags;
-                range = bulk.init_xy_range(handle, x_col_name, y_col_name, sh_pl_vars.offset, sh_pl_vars.row_count);
+                range = bulk.init_xy_range(sh_pl_vars.handle, sh_pl_vars.x_col_name, sh_pl_vars.y_col_name, sh_pl_vars.offset, sh_pl_vars.row_count);
                 range = bulk.next_xy_range(range, sh_pl_vars.xscaling);
                 while (range != nullptr) {
                     ImPlot::PlotLine(title, range->xdata, range->ydata, range->plot_count);
@@ -2294,7 +2303,7 @@ protected:
             // Scatter on top of lines
             if (sh_pl_vars.show_scatter) {
                 sh_pl_vars.spec.Flags = shaded_plot_flags;
-                range = bulk.init_xy_range(handle, x_col_name, y_col_name, sh_pl_vars.offset, sh_pl_vars.row_count);
+                range = bulk.init_xy_range(sh_pl_vars.handle, sh_pl_vars.x_col_name, sh_pl_vars.y_col_name, sh_pl_vars.offset, sh_pl_vars.row_count);
                 range = bulk.next_xy_range(range, sh_pl_vars.xscaling);
                 while (range != nullptr) {
                     ImPlot::PlotScatter(title, range->xdata, range->ydata, range->plot_count);
@@ -2319,23 +2328,23 @@ protected:
         // cspec_int(cs_shaded_plot_flags, w->cspec_int, &shaded_plot_flags);
         int shaded_plot_flags = 0;
 
-        sh_pl_vars.plot_size.y = -1;    // default height is -1: fit to container
-        sh_pl_vars.xtime = false;       // assume X axis not time/data
-        sh_pl_vars.ytime = false;       // assume Y axis not time/data
-        sh_pl_vars.local_time = false;  // local tz
-        sh_pl_vars.iso_time = false;    // use US style middle endian date fmt
-        sh_pl_vars.xformat = nullptr;   // eg "$%.2f" for 2DP
-        sh_pl_vars.yformat = nullptr;   // eg "$%.2f" for 2DP
-        sh_pl_vars.xscaling = nullptr;
+        pl_cv_vars.plot_size.y = -1;    // default height is -1: fit to container
+        pl_cv_vars.xtime = false;       // assume X axis not time/data
+        pl_cv_vars.ytime = false;       // assume Y axis not time/data
+        pl_cv_vars.local_time = false;  // local tz
+        pl_cv_vars.iso_time = false;    // use US style middle endian date fmt
+        pl_cv_vars.xformat = nullptr;   // eg "$%.2f" for 2DP
+        pl_cv_vars.yformat = nullptr;   // eg "$%.2f" for 2DP
+        pl_cv_vars.xscaling = nullptr;
 
         // now we get hold of value cspecs
-        cspec_bool(cs_show_lines, w->cspec_bool, &sh_pl_vars.show_lines);
-        cspec_bool(cs_show_fills, w->cspec_bool, &sh_pl_vars.show_fills);
-        cspec_bool(cs_show_scatter, w->cspec_bool, &sh_pl_vars.show_scatter);
-        cspec_bool(cs_xtime, w->cspec_bool, &sh_pl_vars.xtime);
-        cspec_bool(cs_ytime, w->cspec_bool, &sh_pl_vars.ytime);
-        cspec_bool(cs_local_time, w->cspec_bool, &sh_pl_vars.local_time);
-        cspec_bool(cs_iso_time, w->cspec_bool, &sh_pl_vars.iso_time);
+        cspec_bool(cs_show_lines, w->cspec_bool, &pl_cv_vars.show_lines);
+        cspec_bool(cs_show_fills, w->cspec_bool, &pl_cv_vars.show_fills);
+        cspec_bool(cs_show_scatter, w->cspec_bool, &pl_cv_vars.show_scatter);
+        cspec_bool(cs_xtime, w->cspec_bool, &pl_cv_vars.xtime);
+        cspec_bool(cs_ytime, w->cspec_bool, &pl_cv_vars.ytime);
+        cspec_bool(cs_local_time, w->cspec_bool, &pl_cv_vars.local_time);
+        cspec_bool(cs_iso_time, w->cspec_bool, &pl_cv_vars.iso_time);
 
         // now the addr cspecs
         DataRef* result_set_data_ref = cspec_data_ref(cs_query_id, w);
@@ -2358,50 +2367,79 @@ protected:
         // does the X axis have a scale factor?
         DataRef* xscaling_data_ref = cspec_data_ref(cs_xscaling, w);
         DoubleInx dinx{ xscaling_data_ref->ref_inx };
-        sh_pl_vars.xscaling = data_lay_cache.get_double_value(dinx);
+        pl_cv_vars.xscaling = data_lay_cache.get_double_value(dinx);
 
         // get ranges from bulk cache: we call get_meta_data() first to
         // prime metadata cache as does render_bulk_table().
-        if (!bulk.get_meta_data(handle, sh_pl_vars.col_count, sh_pl_vars.row_count))
+        if (!bulk.get_meta_data(handle, pl_cv_vars.col_count, pl_cv_vars.row_count))
             return;
 
-        if (!bulk.get_min_max(handle, x_col_name, sh_pl_vars.xmin_dbl, sh_pl_vars.xmax_dbl, sh_pl_vars.xscaling) ||
-            !bulk.get_min_max(handle, y_col_name, sh_pl_vars.ymin_dbl, sh_pl_vars.ymax_dbl, nullptr))
+        if (!bulk.get_min_max(handle, x_col_name, pl_cv_vars.xmin_dbl, pl_cv_vars.xmax_dbl, pl_cv_vars.xscaling) ||
+            !bulk.get_min_max(handle, y_col_name, pl_cv_vars.ymin_dbl, pl_cv_vars.ymax_dbl, nullptr))
             return;
 
-        sh_pl_vars.offset = 0;
+        pl_cv_vars.offset = 0;
 
         XYRange* range{ 0 };
 
-        if (sh_pl_vars.show_fills) {
-            sh_pl_vars.spec.Flags = shaded_plot_flags;
-            sh_pl_vars.spec.FillAlpha = 0.25f;
-            range = bulk.init_xy_range(handle, x_col_name, y_col_name, sh_pl_vars.offset, sh_pl_vars.row_count);
-            range = bulk.next_xy_range(range, sh_pl_vars.xscaling);
+        if (pl_cv_vars.show_fills) {
+            pl_cv_vars.spec.Flags = shaded_plot_flags;
+            pl_cv_vars.spec.FillAlpha = 0.25f;
+            range = bulk.init_xy_range(handle, x_col_name, y_col_name, pl_cv_vars.offset, pl_cv_vars.row_count);
+            range = bulk.next_xy_range(range, pl_cv_vars.xscaling);
             while (range != nullptr) {
                 ImPlot::PlotShaded(title, range->xdata, range->ydata, range->plot_count, range->ydata[0], sh_pl_vars.spec);
-                range = bulk.next_xy_range(range, sh_pl_vars.xscaling);
+                range = bulk.next_xy_range(range, pl_cv_vars.xscaling);
             }
         }
         // Lines on top of fills
-        if (sh_pl_vars.show_lines) {
-            sh_pl_vars.spec.Flags = shaded_plot_flags;
-            range = bulk.init_xy_range(handle, x_col_name, y_col_name, sh_pl_vars.offset, sh_pl_vars.row_count);
-            range = bulk.next_xy_range(range, sh_pl_vars.xscaling);
+        if (pl_cv_vars.show_lines) {
+            pl_cv_vars.spec.Flags = shaded_plot_flags;
+            range = bulk.init_xy_range(handle, x_col_name, y_col_name, sh_pl_vars.offset, pl_cv_vars.row_count);
+            range = bulk.next_xy_range(range, pl_cv_vars.xscaling);
             while (range != nullptr) {
                 ImPlot::PlotLine(title, range->xdata, range->ydata, range->plot_count);
-                range = bulk.next_xy_range(range, sh_pl_vars.xscaling);
+                range = bulk.next_xy_range(range, pl_cv_vars.xscaling);
             }
         }
         // Scatter on top of lines
-        if (sh_pl_vars.show_scatter) {
-            sh_pl_vars.spec.Flags = shaded_plot_flags;
-            range = bulk.init_xy_range(handle, x_col_name, y_col_name, sh_pl_vars.offset, sh_pl_vars.row_count);
-            range = bulk.next_xy_range(range, sh_pl_vars.xscaling);
+        if (pl_cv_vars.show_scatter) {
+            pl_cv_vars.spec.Flags = shaded_plot_flags;
+            range = bulk.init_xy_range(handle, x_col_name, y_col_name, pl_cv_vars.offset, pl_cv_vars.row_count);
+            range = bulk.next_xy_range(range, pl_cv_vars.xscaling);
             while (range != nullptr) {
                 ImPlot::PlotScatter(title, range->xdata, range->ydata, range->plot_count);
-                range = bulk.next_xy_range(range, sh_pl_vars.xscaling);
+                range = bulk.next_xy_range(range, pl_cv_vars.xscaling);
             }
+        }
+    }
+
+    void render_plot_hover(WidgetPtr w) {
+        const static char* method = "NDContext::render_plot_hover: ";
+
+        const char* title = cspec_string(cs_title, w->cspec_str, method);
+
+        // if we arrive in this render method we know that render_shaded_plot()
+        // is below us on the stack, ergo we can rely on ShadedPlotLocals...
+        pl_hv_vars.draw_list = ImPlot::GetPlotDrawList();
+        pl_hv_vars.half_width = (sh_pl_vars.xmax_dbl - sh_pl_vars.xmin_dbl) / 100.0;
+        pl_hv_vars.plot_posn = ImPlot::GetPlotPos();
+        pl_hv_vars.plot_size = ImPlot::GetPlotSize();
+        if (ImPlot::IsPlotHovered()) {
+            pl_hv_vars.mouse = ImPlot::GetPlotMousePos();
+            if (sh_pl_vars.xscaling != nullptr) {
+                pl_hv_vars.mouse.x = std::floor(pl_hv_vars.mouse.x / *sh_pl_vars.xscaling);
+            }
+            pl_hv_vars.mouse.y = 100.0 * std::floor(pl_hv_vars.mouse.y / 100.0);
+            pl_hv_vars.top_left = ImPlot::PlotToPixels(pl_hv_vars.mouse.x - pl_hv_vars.half_width, pl_hv_vars.plot_posn.y);
+            pl_hv_vars.btm_rite = ImPlot::PlotToPixels(pl_hv_vars.mouse.x + pl_hv_vars.half_width, pl_hv_vars.plot_posn.y + pl_hv_vars.plot_size.y/2.0);
+
+            ImPlot::PushPlotClipRect();
+            pl_hv_vars.draw_list->AddRectFilled(pl_hv_vars.top_left, pl_hv_vars.btm_rite, pl_hv_vars.rect_color);
+            ImPlot::PopPlotClipRect();
+
+            XYRange* range = bulk.init_xy_range(sh_pl_vars.handle, sh_pl_vars.x_col_name, sh_pl_vars.y_col_name, sh_pl_vars.offset, sh_pl_vars.row_count);
+            range = bulk.next_xy_range(range, sh_pl_vars.xscaling);
         }
     }
 
