@@ -217,7 +217,8 @@ SCHEMA = {
 table_sql = """BEGIN; CREATE TABLE IF NOT EXISTS prices AS
  SELECT price, date, postcode1, postcode2, type, is_new, duration, addr1, addr2
  FROM read_csv_auto('https://datasets-documentation.s3.eu-west-3.amazonaws.com/uk-house-prices/csv/house_prices.csv.gz', types={})
- WHERE COLUMNS('[price|date|postcode?|addr?]') IS NOT NULL;COMMIT;"""
+ WHERE COLUMNS('[price|date|postcode?|addr?]') IS NOT NULL
+ AND DATE > 1.0; COMMIT;"""
 TABLE_SQL = table_sql.format(SCHEMA)
 
 LAUNCH_HTTPFS = dict(
@@ -278,7 +279,7 @@ def select_sql_generator(count=5):
     while (count > 0):
         qid = f"select_{property_types[count]}_prices"
         ckey = f"{qid}_sql"
-        sql = f"select price,date from prices where type={count};"
+        sql = f"select date,price from prices where type={count};"
         yield [ckey, sql]
         count -= 1
 
