@@ -1052,7 +1052,8 @@ protected:
                     ref_name == Static::xname_cs ||
                     ref_name == Static::yname_cs ||
                     ref_name == Static::text_cs  ||
-                    ref_name == Static::disabled_cs) {
+                    ref_name == Static::disabled_cs
+                    ) {
                     // before we error check it's not an NDF Lambda
                     if (ndf_cspecs.find(ref_name) != ndf_cspecs.end()) {
                         // Yes, sharp eyed reader! This means the widget
@@ -1061,7 +1062,7 @@ protected:
                         // into forth_result_data_ref, and cspec_data_ref()
                         // will return &forth_result_data_ref. Obv we
                         // want NDF to be a 0alloc 0cp uforth.
-                        if (is_forth(addr_or_qid) && compile_forth(widget, spec, ref_type, addr_or_qid/*, data*/))
+                        if (is_forth(addr_or_qid) && compile_forth(widget, spec, ref_type, addr_or_qid))
                             continue;
                         bad_data_refs.push_back(ref_name);
                         std::stringstream ss;
@@ -1254,7 +1255,6 @@ protected:
             wvec->push_back(wptr);
             orthogonalize_cspec(cspec, data, wvec->back());
             create_widget_buffer(wptr);
-            // TODO: insert invocation of create_widget_buffer()
             const JSON children = extract_children(w);
             int child_count = JSize(children);
             if (child_count > 0) {
@@ -1276,11 +1276,13 @@ protected:
 public:
     DataLayCache(int capacity = 256) {
         fp_float_ptrs.reserve(capacity);
+        fp_double_ptrs.reserve(capacity);
         fp_int_ptrs.reserve(capacity);
         fp_char_ptrs.reserve(capacity);
         cache_strings.reserve(capacity);
         cache_ints.reserve(capacity);
         cache_floats.reserve(capacity);
+        cache_doubles.reserve(capacity);
 
         EntityInx winx = get_string_index<EntityID>(Static::i_am_noop_cs, WidgetID);
         noop_widget = std::make_shared<NDWidget>(RenderMethod::Noop, winx);
@@ -1786,7 +1788,8 @@ private:
         Static::rm_window_cs,
         Static::rm_shaded_plot_cs,
         Static::rm_memory_editor_cs,
-        Static::rm_live_prices_plot_cs
+        Static::rm_live_prices_plot_cs,
+        Static::rm_curve_cs
     };
 
     inline static std::array<const char*, cs_end_cache_specs> cspec_names{
@@ -1970,6 +1973,10 @@ private:
                         cs_show_scatter, cs_shaded_plot_flags, cs_line_height,
                         cs_xtime, cs_ytime, cs_local_time, cs_iso_time, 
                         cs_xformat, cs_yformat}},
+        {Curve, {cs_title, cs_show_lines, cs_show_fills,
+                        cs_show_scatter, cs_flags, 
+                        cs_xtime, cs_ytime, cs_local_time, cs_iso_time,
+                        cs_xformat, cs_yformat}},
         {LivePricesPlot, {cs_title, cs_xtitle, cs_ytitle, cs_line_height}}
     };
 
@@ -2013,6 +2020,12 @@ private:
             {cs_xforms, cdStrVec}
         }},
         {ShadedPlot, {
+            {cs_query_id, cdResultSet},
+            {cs_xname, cdStr},
+            {cs_yname, cdStr},
+            {cs_xscaling, cdDouble}
+        }},
+        {Curve, {
             {cs_query_id, cdResultSet},
             {cs_xname, cdStr},
             {cs_yname, cdStr},
