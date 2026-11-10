@@ -183,6 +183,7 @@ enum RenderMethod : uint32_t {
     MemoryEditor,
     LivePricesPlot,
     Curve,
+    PlotHover,
     EndRenderMethod
 };
 
