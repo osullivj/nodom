@@ -1789,7 +1789,8 @@ private:
         Static::rm_shaded_plot_cs,
         Static::rm_memory_editor_cs,
         Static::rm_live_prices_plot_cs,
-        Static::rm_curve_cs
+        Static::rm_curve_cs,
+        Static::rm_plot_hover_cs
     };
 
     inline static std::array<const char*, cs_end_cache_specs> cspec_names{
@@ -1977,7 +1978,8 @@ private:
                         cs_show_scatter, cs_flags, 
                         cs_xtime, cs_ytime, cs_local_time, cs_iso_time,
                         cs_xformat, cs_yformat}},
-        {LivePricesPlot, {cs_title, cs_xtitle, cs_ytitle, cs_line_height}}
+        {LivePricesPlot, {cs_title, cs_xtitle, cs_ytitle, cs_line_height}},
+        {PlotHover, {cs_title}}
     };
 
     inline static std::map<RenderMethod, CacheSpecTypeMap> addr_cspecs{
@@ -2031,6 +2033,7 @@ private:
             {cs_yname, cdStr},
             {cs_xscaling, cdDouble}
         }},
+        {PlotHover, {}},
         {Window, {
             {cs_menu_bar, cdStrVec},    // optional
             {cs_menu_pop, cdStrVec}     // optional
