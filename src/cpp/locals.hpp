@@ -171,6 +171,10 @@ struct ShadedPlotLocals {
     bool        iso_time{ false };
     char*       xformat{ nullptr };
     char*       yformat{ nullptr };
+    char*       query_id{ nullptr };
+    RSHandle    handle{ 0 };
+    char*       x_col_name{ nullptr };
+    char*       y_col_name{ nullptr };
     double      xmin_dbl{ 0.0 };
     double      xmax_dbl{ 0.0 };
     double      ymin_dbl{ 0.0 };
@@ -179,4 +183,15 @@ struct ShadedPlotLocals {
     uint32_t    row_count{ 0 };
     uint32_t    col_count{ 0 };
     uint32_t    offset{ 0 };
+};
+
+struct PlotHoverLocals {
+    ImDrawList* draw_list{ nullptr };
+    double      half_width{ 0.0 };
+    ImPlotPoint mouse;
+    ImVec2      top_left;
+    ImVec2      btm_rite;   // service_to_identation > eng_lang_felony
+    ImVec2      plot_posn;
+    ImVec2      plot_size;
+    ImU32       rect_color{ IM_COL32(128,128,128,64) };
 };
