@@ -32,13 +32,14 @@ SUMMARY_BUTTON_TEXT = "Summary"
 SUMMARY_BUTTON_ID = "i_am_summary_button"
 CHART_BUTTON_TEXT = "Chart"
 CHART_BUTTON_ID = "i_am_chart_button"
-CHART_ID = "i_am_plot"
 SUMMARY_MODAL_ID = "i_am_depth_summary_modal"
 CHART_WINDOW_ID = "i_am_chart_window"
 MEM_EDIT_ID = "i_am_memory_editor"
 MEM_EDIT_MENU_ITEM = "Memory Editor"
 DB_ID = "DuckDB"
 DB_BUTTON_ID = "i_am_footer_db_button"
+
+SHADED_PLOT_CHILDREN=[]
 
 UKP_LAYOUT = [
     dict(
@@ -121,7 +122,7 @@ UKP_LAYOUT = [
                 rname="BulkTable",
                 cspec=dict(
                     title="Transactions",
-                    query_id="select_prices",
+                    query_id="select_all_prices",
                     menupop="table_rclick_menupop",
                     table_flags=TableFlags.SCROLL_X
                     | TableFlags.SCROLL_Y
@@ -172,28 +173,31 @@ UKP_LAYOUT = [
         ),
         children=[
             dict(
-                widget_id=CHART_ID,
                 rname="ShadedPlot",
                 cspec=dict(
-                    title="Property",
+                    title="UK Property Transactions",
                     show_lines=False,
                     show_fills=False,
-                    show_scatter=True,
+                    show_scatter=False,
                     xtime=True,
                     iso_time=True,
                     local_time=True,
-                    query_id="select_prices",
+                    query_id="select_all_prices",
                     xname="xaxis",
                     xscaling="xscale",
                     yname="yaxis"
                 ),
+                children=SHADED_PLOT_CHILDREN
             ),
         ],
     ),
 ]
 
+
+# SQL
 HTTPFS_SQL = "INSTALL httpfs; LOAD httpfs;"
-SELECT_SQL = "select * from prices;"
+# terrace:1, semi:2, detached:3, flat:4, other:0
+SELECT_ALL_SQL = "select * from prices;"
 # DuckDB's csv sniffer defaults all int to BIGINT
 # we have DuckDB-WASM configged to avoid BIGINT, so
 # we get double instead. So here we spec for INTEGER,
@@ -216,6 +220,12 @@ table_sql = """BEGIN; CREATE TABLE IF NOT EXISTS prices AS
  WHERE COLUMNS('[price|date|postcode?|addr?]') IS NOT NULL;COMMIT;"""
 TABLE_SQL = table_sql.format(SCHEMA)
 
+LAUNCH_HTTPFS = dict(
+    action="Command",
+    query_id="load_and_install_httpfs",
+    cname="httpfs_sql",
+)
+
 LAUNCH_TABLE = dict(  # raise scanning modal, send scan request to DuckDB
     ui_push="parquet_loading_modal",
     action="Command",
@@ -223,43 +233,87 @@ LAUNCH_TABLE = dict(  # raise scanning modal, send scan request to DuckDB
     cname="table_sql",
 )
 
-LAUNCH_SELECT = dict(  # send depth query request to DuckDB
-    ui_pop="LoadingModal",
+POP_LOADING = dict(
+    ui_pop="LoadingModal"
+)
+
+LAUNCH_SELECT_ALL = dict(
     action="Query",
-    query_id="select_prices",
-    cname="select_sql",
+    query_id="select_all_prices",
+    cname="select_all_sql",
 )
 
-LAUNCH_SELECT_BATCH = dict(
+
+LAUNCH_SELECT_ALL_BATCH = dict(
     action="BatchRequest",
-    query_id="select_prices",
+    query_id="select_all_prices",
 )
-
-LAUNCH_HTTPFS = dict(
-    action="Command",
-    query_id="load_and_install_httpfs",
-    cname="httpfs_sql",
-)
-
 
 
 INIT_SEQUENCE = [
     LAUNCH_HTTPFS,
     LAUNCH_TABLE,
-    LAUNCH_SELECT,
-    LAUNCH_SELECT_BATCH,
+    LAUNCH_SELECT_ALL,
+    LAUNCH_SELECT_ALL_BATCH,
 ]
 
+property_types = {
+    1:"terrace",
+    2:"semi",
+    3:"detached",
+    4:"flat",
+    5:"other"
+}
+
+def select_batch_action_generator(count=5):
+    while (count > 0):
+        qid = f"select_{property_types[count]}_prices"
+        ckey = f"{qid}_sql"
+        select = dict(action="Query", query_id=qid, cname=ckey)
+        batch = dict(action="BatchRequest", query_id=qid)
+        yield [select, batch]
+        count -= 1
+
+def select_sql_generator(count=5):
+    while (count > 0):
+        qid = f"select_{property_types[count]}_prices"
+        ckey = f"{qid}_sql"
+        sql = f"select price,date from prices where type={count};"
+        yield [ckey, sql]
+        count -= 1
+
+base_curve_dict = dict(
+    show_lines=False,
+    show_fills=False,
+    show_scatter=True,
+    xtime=True,
+    iso_time=True,
+    local_time=True,
+    xname="xaxis",
+    xscaling="xscale",
+    yname="yaxis")
+
+def curve_generator(count=5):
+    while (count > 0):
+        title = property_types[count]
+        qid = f"select_{title}_prices"
+        cspec = base_curve_dict.copy()
+        cspec.update(dict(title=title, query_id=qid))
+        yield dict(rname="Curve", cspec=cspec)
+        count -= 1
+
+# SELECT1_SQL = "select * from prices where type=1;"
+
 UKP_DATA = dict(
-    start_date=[2008, 9, 1],  # 3 tuple YMD. But! JSON doesn't know about tuples,
-    end_date=[2008, 9, 2],  # so we use lists. NB default 1 day span
+    start_date=[2020, 1, 1],  # 3 tuple YMD. But! JSON doesn't know about tuples,
+    end_date=[2023, 2, 28],  # so we use lists. NB default 1 day span
     start_date_text="Start date",
     end_date_text="End date",
     chart_text="Chart",
     scan_urls=["s3://datasets-documentation/uk-house-prices/parquet"],
     httpfs_sql=HTTPFS_SQL,
     table_sql=TABLE_SQL,
-    select_sql=SELECT_SQL,
+    select_all_sql=SELECT_ALL_SQL,
     # change to level='debug' for more DuckDB logging
     enable_logging_sql="INSTALL parquet; CALL enable_logging(level='debug', storage='stdout');",
     prices_storage_sql="PRAGMA storage_info('prices');",
@@ -291,12 +345,26 @@ UKP_DATA = dict(
     ),
 )
 
+def finalize_data_and_layout():
+    global INIT_SEQUENCE, SHADED_PLOT_CHILDREN
+    action_list = []
+    for act in select_batch_action_generator():
+        action_list += act
+    action_list.append(POP_LOADING)
+    print(action_list)
+    INIT_SEQUENCE += action_list
+    sql_dict = {k:v for k,v in select_sql_generator()}
+    print(sql_dict)
+    UKP_DATA.update(sql_dict)
+    plot_children = [curve for curve in curve_generator()]
+    print(plot_children)
+    SHADED_PLOT_CHILDREN += plot_children
+
 EXTRA_HANDLERS = []
 
 class PropertyService(nd_utils.Service):
     def on_client_data_change(self, uuid, client_change):
         pass
-
 
 # breadboard looks out for service at the module level
 # NB 4th param for duck app
@@ -304,6 +372,7 @@ service = PropertyService(NDAPP, UKP_LAYOUT, UKP_DATA, True)
 
 define("port", default=8890, help="run on the given port", type=int)
 define("dump", default=False, help="dump JSON to FS", type=bool)
+finalize_data_and_layout()
 
 async def http_main():
     app = nd_web.NDApp(service, [])
@@ -311,20 +380,17 @@ async def http_main():
     logr.info(f"{NDAPP} port:{options.port}")
     await asyncio.Event().wait()
 
-# ssl helpers
-cert_path = os.path.normpath(os.path.join(nd_consts.ND_ROOT_DIR, "cfg"))
-ssl_options={
-    "certfile": os.path.join(cert_path, "ssl_cert.pem"),
-    "keyfile": os.path.join(cert_path, "ssl_key.pem")
-}
-
 async def https_main():
+    cert_path = os.path.normpath(os.path.join(nd_consts.ND_ROOT_DIR, "cfg"))
+    ssl_cfg={
+        "certfile": os.path.join(cert_path, "ssl_cert.pem"),
+        "keyfile": os.path.join(cert_path, "ssl_key.pem")
+    }
     app = nd_web.NDApp(service, EXTRA_HANDLERS)
-    https_server = tornado.httpserver.HTTPServer(app,ssl_options)
+    https_server = tornado.httpserver.HTTPServer(app,ssl_options=ssl_cfg)
     https_server.listen(options.port)
     logr.info(f"{NDAPP} port:{options.port} cert_path:{cert_path}")
     await asyncio.Event().wait()
-
 
 if __name__ == "__main__":
     parse_command_line()
