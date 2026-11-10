@@ -36,6 +36,7 @@ struct Static {
 	inline static const char* rm_window_cs{ "Window" };
 	inline static const char* rm_shaded_plot_cs{ "ShadedPlot" };
 	inline static const char* rm_curve_cs{ "Curve" };
+	inline static const char* rm_plot_hover_cs{ "PlotHover" };
 	inline static const char* rm_memory_editor_cs{ "MemoryEditor" };
 	inline static const char* rm_live_prices_plot_cs{ "LivePricesPlot" };
 	inline static const char* rm_push_font_cs{ "PushFont" };	// Fonts
