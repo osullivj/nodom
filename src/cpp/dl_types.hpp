@@ -310,6 +310,8 @@ inline RenderMethod RenderMethodFromString(const std::string& method) {
         return RenderMethod::LivePricesPlot;
     if (method == Static::rm_curve_cs)
         return RenderMethod::Curve;
+    if (method == Static::rm_plot_hover_cs)
+        return RenderMethod::PlotHover;
     return EndRenderMethod;
 }
 
