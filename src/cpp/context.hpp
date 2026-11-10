@@ -2425,11 +2425,11 @@ protected:
         pl_hv_vars.half_width = (sh_pl_vars.xmax_dbl - sh_pl_vars.xmin_dbl) / 100.0;
         pl_hv_vars.plot_posn = ImPlot::GetPlotPos();
         pl_hv_vars.plot_size = ImPlot::GetPlotSize();
+        pl_hv_vars.hover_row = -1;
+
         if (ImPlot::IsPlotHovered()) {
             pl_hv_vars.mouse = ImPlot::GetPlotMousePos();
-            if (sh_pl_vars.xscaling != nullptr) {
-                pl_hv_vars.mouse.x = std::floor(pl_hv_vars.mouse.x / *sh_pl_vars.xscaling);
-            }
+            pl_hv_vars.mouse.x = std::floor(pl_hv_vars.mouse.x);
             pl_hv_vars.mouse.y = 100.0 * std::floor(pl_hv_vars.mouse.y / 100.0);
             pl_hv_vars.top_left = ImPlot::PlotToPixels(pl_hv_vars.mouse.x - pl_hv_vars.half_width, pl_hv_vars.plot_posn.y);
             pl_hv_vars.btm_rite = ImPlot::PlotToPixels(pl_hv_vars.mouse.x + pl_hv_vars.half_width, pl_hv_vars.plot_posn.y + pl_hv_vars.plot_size.y/2.0);
@@ -2440,6 +2440,40 @@ protected:
 
             XYRange* range = bulk.init_xy_range(sh_pl_vars.handle, sh_pl_vars.x_col_name, sh_pl_vars.y_col_name, sh_pl_vars.offset, sh_pl_vars.row_count);
             range = bulk.next_xy_range(range, sh_pl_vars.xscaling);
+            // assuming monotonically ascending
+            pl_hv_vars.xscale = 1.0;
+            if (sh_pl_vars.xscaling != nullptr)
+                pl_hv_vars.xscale = *sh_pl_vars.xscaling;
+            while (range != nullptr) {
+                if (pl_hv_vars.mouse.x >= range->xdata[0] && pl_hv_vars.mouse.x <= range->xdata[range->plot_count-1]) {
+                    for (uint32_t inx = 0; inx < range->plot_count; inx++) {
+                        pl_hv_vars.xscaled = pl_hv_vars.mouse.x / pl_hv_vars.xscale;
+                        pl_hv_vars.xlo = (pl_hv_vars.xscaled - 5.0) * pl_hv_vars.xscale;
+                        pl_hv_vars.xhi = (pl_hv_vars.xscaled + 5.0) * pl_hv_vars.xscale;
+                        // wondering about the -1: see the bottom of bulk.next_xy_range()
+                        if (range->ydata[inx] == pl_hv_vars.mouse.y &&
+                                range->xdata[inx] >= pl_hv_vars.xlo && range->xdata[inx] <= pl_hv_vars.xhi) {
+                            pl_hv_vars.hover_row = (range->chunk_index - 1) * CHUNK_SIZE + inx;
+                            printf("mouse_x(%f) xdata(%f)\n", pl_hv_vars.mouse.x, range->xdata[inx]);
+                            printf("mouse_x(%d) xdata(%d) inx(%d)\n", int(pl_hv_vars.mouse.x/pl_hv_vars.xscale), int(range->xdata[inx]/ pl_hv_vars.xscale), inx);
+                            range = nullptr;
+                            break;
+                        }
+                    }
+                }
+                range = bulk.next_xy_range(range, sh_pl_vars.xscaling);
+            }
+            if (pl_hv_vars.hover_row != -1) {
+                ImGui::BeginTooltip();
+                char buff[32];
+                ImPlot::FormatDate(ImPlotTime::FromDouble(xs[idx]), buff, 32, ImPlotDateFmt_DayMoYr, ImPlot::GetStyle().UseISO8601);
+                ImGui::Text("Day:   %s", buff);
+                ImGui::Text("Open:  $%.2f", opens[idx]);
+                ImGui::Text("Close: $%.2f", closes[idx]);
+                ImGui::Text("Low:   $%.2f", lows[idx]);
+                ImGui::Text("High:  $%.2f", highs[idx]);
+                ImGui::EndTooltip();
+            }
         }
     }
 

@@ -186,12 +186,17 @@ struct ShadedPlotLocals {
 };
 
 struct PlotHoverLocals {
+    ImU32       rect_color{ IM_COL32(128,128,128,64) };
     ImDrawList* draw_list{ nullptr };
     double      half_width{ 0.0 };
     ImPlotPoint mouse;
-    ImVec2      top_left;
-    ImVec2      btm_rite;   // service_to_identation > eng_lang_felony
     ImVec2      plot_posn;
     ImVec2      plot_size;
-    ImU32       rect_color{ IM_COL32(128,128,128,64) };
+    ImVec2      top_left;
+    ImVec2      btm_rite;   // service_to_identation > eng_lang_felony
+    int32_t     hover_row{ -1 };
+    double      xscale{ 1.0 };
+    double      xscaled{ 1.0 };
+    double      xhi{ 0.0 };
+    double      xlo{ 0.0 };
 };
