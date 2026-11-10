@@ -815,7 +815,7 @@ public:
             // result hits
             if (bobbin_map.find(h) != bobbin_map.end()) {
                 Bobbin& bob{ bobbin_map.at(h) };
-                std::cerr << method << "DBRELEASE: " << bob.size() << " chunks" << std::endl;
+                std::cerr << method << "DBRELEASE: " << query_id << ", " << bob.size() << " chunks" << std::endl;
                 for (int i = 0; i < bob.size(); i++) {
                     duckdb_destroy_data_chunk(&(bob[i]));
                 }
