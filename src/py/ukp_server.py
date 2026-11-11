@@ -197,7 +197,7 @@ UKP_LAYOUT = [
 # SQL
 HTTPFS_SQL = "INSTALL httpfs; LOAD httpfs;"
 # terrace:1, semi:2, detached:3, flat:4, other:0
-SELECT_ALL_SQL = "select * from prices order by date,price;"
+SELECT_ALL_SQL = "select * from prices order by date asc,price asc;"
 # DuckDB's csv sniffer defaults all int to BIGINT
 # we have DuckDB-WASM configged to avoid BIGINT, so
 # we get double instead. So here we spec for INTEGER,
@@ -361,7 +361,7 @@ def finalize_data_and_layout():
     print(plot_children)
     SHADED_PLOT_CHILDREN += plot_children
     # hover child for plot
-    hover_cspec = dict(title="property_hover_tip")
+    hover_cspec = dict(title="property_hover_tip", buffer_size=256)
     hover_widget = dict(rname="PlotHover", cspec=hover_cspec)
     SHADED_PLOT_CHILDREN.append(hover_widget)
 
