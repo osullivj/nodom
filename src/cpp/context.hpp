@@ -2454,8 +2454,9 @@ protected:
                         if (range->ydata[inx] == pl_hv_vars.mouse.y &&
                                 range->xdata[inx] >= pl_hv_vars.xlo && range->xdata[inx] <= pl_hv_vars.xhi) {
                             pl_hv_vars.hover_row = (range->chunk_index - 1) * CHUNK_SIZE + inx;
-                            printf("mouse_x(%f) xdata(%f)\n", pl_hv_vars.mouse.x, range->xdata[inx]);
-                            printf("mouse_x(%d) xdata(%d) inx(%d)\n", int(pl_hv_vars.mouse.x/pl_hv_vars.xscale), int(range->xdata[inx]/ pl_hv_vars.xscale), inx);
+                            // NB comment this in to debug and you're crossing the wasm/JS boundary
+                            // on the render hotpath, and that's vv expensive!
+                            // printf("hover_row(%d)\n", pl_hv_vars.hover_row);
                             range = nullptr;
                             break;
                         }
