@@ -2464,14 +2464,20 @@ protected:
                 range = bulk.next_xy_range(range, sh_pl_vars.xscaling);
             }
             if (pl_hv_vars.hover_row != -1) {
+                StringVec& col_names{ bulk.get_col_names(sh_pl_vars.handle) };
                 ImGui::BeginTooltip();
-                char buff[32];
-                ImPlot::FormatDate(ImPlotTime::FromDouble(xs[idx]), buff, 32, ImPlotDateFmt_DayMoYr, ImPlot::GetStyle().UseISO8601);
-                ImGui::Text("Day:   %s", buff);
-                ImGui::Text("Open:  $%.2f", opens[idx]);
-                ImGui::Text("Close: $%.2f", closes[idx]);
-                ImGui::Text("Low:   $%.2f", lows[idx]);
-                ImGui::Text("High:  $%.2f", highs[idx]);
+                for (uint32_t inx = 0; inx < col_names.size(); inx++) {
+                    std::string& col_name{ col_names.at(inx) };
+                    const char* endchar = bulk.get_datum(sh_pl_vars.handle, inx, pl_hv_vars.hover_row);
+                    if (endchar != nullptr) {
+                        ImGui::Text("%s: ", col_name.c_str());
+                        ImGui::SameLine();
+                        ImGui::TextUnformatted(bulk.buffer, endchar);
+                    }
+                    else {
+                        ImGui::Text("%s: %s", col_name.c_str(), bulk.buffer);
+                    }
+                }
                 ImGui::EndTooltip();
             }
         }
