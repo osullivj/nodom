@@ -2430,7 +2430,7 @@ protected:
         if (ImPlot::IsPlotHovered()) {
             pl_hv_vars.mouse = ImPlot::GetPlotMousePos();
             pl_hv_vars.mouse.x = std::floor(pl_hv_vars.mouse.x);
-            pl_hv_vars.mouse.y = 100.0 * std::floor(pl_hv_vars.mouse.y / 100.0);
+            pl_hv_vars.mouse.y = 500.0 * std::round(pl_hv_vars.mouse.y / 500.0);
             pl_hv_vars.top_left = ImPlot::PlotToPixels(pl_hv_vars.mouse.x - pl_hv_vars.half_width, pl_hv_vars.plot_posn.y);
             pl_hv_vars.btm_rite = ImPlot::PlotToPixels(pl_hv_vars.mouse.x + pl_hv_vars.half_width, pl_hv_vars.plot_posn.y + pl_hv_vars.plot_size.y/2.0);
 
