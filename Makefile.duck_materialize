@@ -7,7 +7,8 @@ EXE = $(BLD_DIR)/duck_materialize.html
 IMGUI_DIR = lib/imgui
 ND_SRC_DIR = src/cpp
 ND_WEB_DIR = src/web
-ND_TST_DIR = test/unit/cpp
+ND_UTST_DIR = test/unit/cpp
+ND_IWTST_DIR = test/int/web
 ND_FMT_DIR = lib/fmt
 SOURCES = $(ND_TST_DIR)/duck_materialize.cpp
 SOURCES += $(ND_SRC_DIR)/nd_utils.cpp
@@ -65,7 +66,7 @@ CPPFLAGS += -I$(IMGUI_DIR) -I$(IMGUI_DIR)/backends
 # https://emscripten.org/docs/porting/Debugging.html#debugging
 DBGFLAGS += -g -gdwarf-5 -gsplit-dwarf -gpubnames
 CPPFLAGS += $(DBGFLAGS) -Wall -Wformat -Os $(EMS)
-LDFLAGS += --shell-file ${ND_WEB_DIR}/shell_materialize.html
+LDFLAGS += --shell-file ${ND_IWTST_DIR}/duck_materialize.html
 LDFLAGS += $(EMS) $(DBGFLAGS)
 
 ##---------------------------------------------------------------------
@@ -84,7 +85,10 @@ $(BLD_DIR)/%.o:$(IMGUI_DIR)/backends/%.cpp
 $(BLD_DIR)/%.o:$(ND_SRC_DIR)/%.cpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
 
-$(BLD_DIR)/%.o:$(ND_TST_DIR)/%.cpp
+$(BLD_DIR)/%.o:$(ND_UTST_DIR)/%.cpp
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
+
+$(BLD_DIR)/%.o:$(ND_IWTST_DIR)/%.cpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
 
 $(BLD_DIR)/%.o:$(ND_FMT_DIR)/src/%.cc
