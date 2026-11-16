@@ -67,7 +67,7 @@ CPPFLAGS += -I$(IMGUI_DIR) -I$(IMGUI_DIR)/backends
 DBGFLAGS += -g -gdwarf-5 -gsplit-dwarf -gpubnames
 CPPFLAGS += $(DBGFLAGS) -Wall -Wformat -Os $(EMS)
 LDFLAGS += --shell-file ${ND_IWTST_DIR}/duck_materialize.html
-LDFLAGS += $(EMS) $(DBGFLAGS)
+LDFLAGS += $(EMS) $(DBGFLAGS) --pre-js src/web/on_run_init.js
 
 ##---------------------------------------------------------------------
 ## BUILD RULES
