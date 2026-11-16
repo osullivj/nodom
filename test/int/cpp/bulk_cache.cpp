@@ -82,11 +82,11 @@ BOOST_FIXTURE_TEST_CASE(LargeXYRange, BulkCacheFixture)
     BOOST_TEST(col_count == 32);
     // offset:1340, count:4000; ergo we span 3 chunks
     XYRange* range = bulk.init_xy_range(h, "SeqNo", "AskPrice1", 1340, 4000);
-    range = bulk.next_xy_range(range);
+    range = bulk.next_xy_range(range, nullptr);
     BOOST_TEST(range->plot_count == 708);
     total_plot_count += range->plot_count;
     while (range != nullptr) {
-        range = bulk.next_xy_range(range);
+        range = bulk.next_xy_range(range, nullptr);
         if (range != nullptr) {
             bool plot_count_ok = (range->plot_count == 2048 || range->plot_count == 1244);
             BOOST_TEST(plot_count_ok);
@@ -111,11 +111,11 @@ BOOST_FIXTURE_TEST_CASE(SmallXYRange, BulkCacheFixture)
     BOOST_TEST(col_count == 32);
     // offset:2780, count:420; all in single chunk
     XYRange* range = bulk.init_xy_range(h, "SeqNo", "AskPrice1", 2780, 420);
-    range = bulk.next_xy_range(range);
+    range = bulk.next_xy_range(range, nullptr);
     BOOST_TEST(range->plot_count == 420);
     total_plot_count += range->plot_count;
     while (range != nullptr) {
-        range = bulk.next_xy_range(range);
+        range = bulk.next_xy_range(range, nullptr);
         if (range != nullptr) {
             bool plot_count_ok = (range->plot_count == 2048 || range->plot_count == 1244);
             BOOST_TEST(plot_count_ok);
