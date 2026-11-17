@@ -13,18 +13,9 @@
         <section>
             <div class="query-text-container">
                 <label for="scan-text">Scan:</label>
-                <textarea id="scan-text" rows="3" cols="50">
-        BEGIN; DROP TABLE IF EXISTS depth; CREATE TABLE depth as select * from parquet_scan([
-        "https://localhost/api/parquet/FGBMU8_20080901_pd.parquet",
-        "https://localhost/api/parquet/FGBMU8_20080902_pd.parquet",
-        "https://localhost/api/parquet/FGBMU8_20080903_pd.parquet"
-        ]); COMMIT;
-        </textarea
-                >
+                <textarea id="scan-text" rows="3" cols="50">BEGIN; DROP TABLE IF EXISTS mtest; CREATE TABLE mtest as select * from read_csv_auto("https://localhost/dat/int_double.csv", types={'id':'INTEGER','amount':'DOUBLE'}); COMMIT;</textarea>
                 <label for="query-text">SQL:</label>
-                <textarea id="query-text" rows="3" cols="20">
-summarize select * from depth;</textarea
-                >
+                <textarea id="query-text" rows="3" cols="20"> select * from mtest;</textarea>
             </div>
             <div class="query-button-container">
                 <button id="scan-button">Scan</button>
