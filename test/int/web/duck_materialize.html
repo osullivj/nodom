@@ -70,17 +70,9 @@ summarize select * from depth;</textarea
             const query_text_area = document.querySelector("#query-text");
             const scan_text_area = document.querySelector("#scan-text");
             function execute_query(_nd_type, qid, sql) {
-                console.log("shell QID:" + qid);
-                if (_nd_type !== "BatchRequest") {
-                    console.log(", SQL:" + sql);
-                }
-                console.log("\n");
                 let db_request = { nd_type: _nd_type, query_id: qid, sql: sql };
-                if (typeof window.__nodom__.duck_module !== "undefined") {
-                    window.__nodom__.duck_module.postMessage(db_request);
-                } else {
-                    console.log("Please wait for DuckDB instantiation\n");
-                }
+                console.log(db_request);
+                window.postMessage(db_request);
             }
             function on_query_button() {
                 execute_query("Query", "Q1", query_text_area.value);
