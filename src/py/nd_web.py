@@ -178,6 +178,11 @@ def NDHandlers(template_path):
             StaticFileHandler,
             dict(path=os.path.join(nd_consts.ND_ROOT_DIR, "log")),
         ),
+        (
+            r"/dat/(.*)",
+            StaticFileHandler,
+            dict(path=os.path.join(nd_consts.ND_ROOT_DIR, "dat")),
+        ),
         (r"/(.*\.html)", HomeHandler),
         (
             r"/(.*\.js)",
