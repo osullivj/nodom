@@ -194,10 +194,15 @@ function batch_materializer(qid, batch) {
     ["string", "number"],
     [qid, buffer_size],
   );
+  // buffer_size is in 32bit words, so make sure it's not odd
+  // as that will throw the divide by 2 sizing below
+  if (buffer_size % 2)
+    buffer_size++;
   // Now create Uint64Array with underlying storage buffer_offset, which is a uint64_t ptr,
   // so guaranteed to be on an 8 byte boundary. So we know that will work for
   // 32,16 and 8 arrays. Note the element count adjustment in buffer_size/2.
   // Obviously half as many array elements in same size for 64 vs 32.
+  // NB buffer_size=35 means 35 32bit words eg 140bytes
   let dbl_heap64 = new Float64Array(
     Module.HEAPU64.buffer,
     buffer_offset,
@@ -251,7 +256,8 @@ function batch_materializer(qid, batch) {
     let unit = type_units[ic];
     // Column must start on 8 byte boundary; bptr has 32bit/4byte stride,
     //  so if it's odd it's not on 8 byte boundary
-    if (bptr % 2) bptr++;
+    if (bptr % 2)
+      bptr++;
     console.log(
       "batch_materializer: ic=" +
         ic +
