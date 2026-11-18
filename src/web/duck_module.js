@@ -326,9 +326,11 @@ function batch_materializer(qid, batch) {
       let bptr64 = bptr / 2;
       for (var ir = 0; ir < row_count; ir++) {
         switch (tipe) {
-          case Type.Float:
           case Type.Date:
             dbl_heap64[bptr64 + ir] = get_value(vec, ir, tipe);
+            break;
+          case Type.Float:
+            dbl_heap64[bptr64 + ir] = vec.data[0].values[ir];
             break;
           case Type.Timestamp:
             bi_heap64[bptr64 + ir] = vec.data[0].values[ir];
