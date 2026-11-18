@@ -181,11 +181,16 @@ function batch_materializer(qid, batch) {
   let names_sum_length = names.reduce((accumulator, current_value) => {
     return accumulator + current_value.length + 1;
   }, 0);
-  // space for columns, assuming 64bit wide
-  let buffer_size = row_count * types.length * 2; // 32bit word *2 = 64bits
+  // space for columns, assuming 64bit wide. NB row_count+1 to allow
+  // room for the tipe32,sz32 preamble at the head of each col
+  let buffer_size = (row_count+1) * types.length * 2; // 32bit word *2 = 64bits
   // 32bits for each type, and 32bit chars for col names,
   // and 32bits for column count
   buffer_size += types.length + names_sum_length + 3; // 3 for done, cols, row_count
+  // buffer_size is in 32bit words, so make sure it's not odd
+  // as that will throw the divide by 2 sizing below
+  if (buffer_size % 2)
+    buffer_size++;
   // Get C++ wasm to create buffer. NB cwrapped funcs not
   // recognised inside the generator, so we Module.ccall
   let buffer_offset = Module.ccall(
@@ -194,10 +199,6 @@ function batch_materializer(qid, batch) {
     ["string", "number"],
     [qid, buffer_size],
   );
-  // buffer_size is in 32bit words, so make sure it's not odd
-  // as that will throw the divide by 2 sizing below
-  if (buffer_size % 2)
-    buffer_size++;
   // Now create Uint64Array with underlying storage buffer_offset, which is a uint64_t ptr,
   // so guaranteed to be on an 8 byte boundary. So we know that will work for
   // 32,16 and 8 arrays. Note the element count adjustment in buffer_size/2.
