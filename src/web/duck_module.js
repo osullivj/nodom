@@ -193,11 +193,13 @@ function batch_materializer(qid, batch) {
     buffer_size++;
   // Get C++ wasm to create buffer. NB cwrapped funcs not
   // recognised inside the generator, so we Module.ccall
+  // NB get_chunk_cpp allocs "new uint64_t[size]" and
+  // our unit size is 32bits, hence /2
   let buffer_offset = Module.ccall(
     "get_chunk_cpp",
     "number",
     ["string", "number"],
-    [qid, buffer_size],
+    [qid, buffer_size/2],
   );
   // Now create Uint64Array with underlying storage buffer_offset, which is a uint64_t ptr,
   // so guaranteed to be on an 8 byte boundary. So we know that will work for
